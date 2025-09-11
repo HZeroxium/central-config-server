@@ -20,6 +20,12 @@ repositories {
     mavenCentral()
 }
 
+configurations.all {
+    exclude group: 'ch.qos.logback', module: 'logback-classic'
+    exclude group: 'ch.qos.logback', module: 'logback-core'
+    exclude group: 'org.apache.logging.log4j', module: 'log4j-to-slf4j'
+}
+
 dependencies {
     implementation('org.springframework.boot:spring-boot-starter-web') {
         exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
@@ -33,7 +39,9 @@ dependencies {
     implementation 'org.apache.thrift:libthrift:0.22.0'
     compileOnly 'javax.annotation:javax.annotation-api:1.3.2'
 
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation('org.springframework.boot:spring-boot-starter-test') {
+        exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
+    }
     testImplementation 'org.mockito:mockito-core:5.12.0'
 }
 
