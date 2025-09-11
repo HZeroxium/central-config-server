@@ -1,0 +1,22 @@
+spring:
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017/users}
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: when_authorized
+  metrics:
+    tags:
+      application: user-rpc-thrift-service
+
+thrift:
+  port: ${THRIFT_PORT:9090}

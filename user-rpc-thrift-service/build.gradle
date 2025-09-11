@@ -1,0 +1,106 @@
+plugins {
+    id 'java'
+    id 'idea'
+    id 'org.springframework.boot' version '3.3.13'
+    id 'io.spring.dependency-management' version '1.1.6'
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+group = 'com.example'
+version = '1.0.0'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation('org.springframework.boot:spring-boot-starter') {
+        exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
+    }
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.boot:spring-boot-starter-data-mongodb'
+    implementation 'org.springframework.boot:spring-boot-starter-log4j2'
+
+    compileOnly 'org.projectlombok:lombok:1.18.32'
+    annotationProcessor 'org.projectlombok:lombok:1.18.32'
+
+    runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
+
+    implementation 'org.apache.thrift:libthrift:0.22.0'
+    // For @javax.annotation.Generated used by Thrift 0.22.x generated sources
+    compileOnly 'javax.annotation:javax.annotation-api:1.3.2'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.testcontainers:junit-jupiter:1.20.1'
+    testImplementation 'org.testcontainers:mongodb:1.20.1'
+}
+
+configurations.all {
+    resolutionStrategy {
+        failOnVersionConflict()
+    }
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs = [
+                    'src/main/java',
+                    'build/generated-sources/thrift'
+            ]
+        }
+        resources.srcDirs = ['src/main/resources']
+    }
+    test {
+        java.srcDirs = ['src/test/java']
+        resources.srcDirs = ['src/test/resources']
+    }
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+}
+
+ext {
+    thriftVersion = '0.22.0'
+}
+
+def thriftSrcDir = file('src/main/thrift')
+
+tasks.register('generateThrift') {
+    inputs.dir(thriftSrcDir)
+    outputs.dir(file('build/generated-sources/thrift'))
+    doLast {
+        def outDir = file('build/generated-sources/thrift')
+        outDir.mkdirs()
+        if (thriftSrcDir.exists()) {
+            thriftSrcDir.eachFileRecurse { f ->
+                if (f.isFile() && f.name.endsWith('.thrift')) {
+                    exec {
+                        executable 'thrift'
+                        args '-r', '--gen', 'java', '-out', outDir.absolutePath, f.absolutePath
+                    }
+                }
+            }
+        }
+    }
+}
+
+compileJava {
+    dependsOn tasks.named('generateThrift')
+    options.encoding = 'UTF-8'
+}
+
+bootJar {
+    archiveFileName = 'user-rpc-thrift-service.jar'
+}
+
+jar {
+    enabled = false
+}
+
