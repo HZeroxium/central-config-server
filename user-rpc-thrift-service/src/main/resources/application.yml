@@ -1,4 +1,16 @@
 spring:
+  datasource:
+    url: ${JDBC_URL:jdbc:h2:mem:userdb;DB_CLOSE_DELAY=-1;MODE=LEGACY}
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ''
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+    open-in-view: false
   data:
     mongodb:
       uri: ${MONGODB_URI:mongodb://localhost:27017/users}
@@ -20,3 +32,7 @@ management:
 
 thrift:
   port: ${THRIFT_PORT:9090}
+
+app:
+  persistence:
+    type: ${PERSISTENCE_TYPE:mongo} # h2 | mongo

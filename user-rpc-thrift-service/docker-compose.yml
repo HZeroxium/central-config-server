@@ -1,4 +1,5 @@
-version: "3.8"
+# docker-compose.yml
+
 services:
   mongo:
     image: mongo:8.0
@@ -6,6 +7,18 @@ services:
       - "27017:27017"
     environment:
       MONGO_INITDB_DATABASE: users
+    volumes:
+      - mongo-data:/data/db
+
+  mongo-express:
+    image: mongo-express:latest
+    depends_on:
+      - mongo
+    ports:
+      - "8081:8081"
+    environment:
+      ME_CONFIG_MONGODB_URL: mongodb://mongo:27017/users
+
   user-thrift:
     build: .
     depends_on:
@@ -16,3 +29,6 @@ services:
     ports:
       - "8080:8080"
       - "9090:9090"
+
+volumes:
+  mongo-data:

@@ -10,6 +10,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Component
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(name = "app.persistence.type", havingValue = "mongo")
 @RequiredArgsConstructor
 public class UserRepositoryAdapter implements UserRepositoryPort {
 

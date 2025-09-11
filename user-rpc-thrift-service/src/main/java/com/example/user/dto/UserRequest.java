@@ -1,22 +1,13 @@
-package com.example.user.domain;
+package com.example.user.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 @Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-@Schema(name = "User", description = "User entity for RPC service")
-public class User {
-  @Schema(description = "Unique identifier", example = "u-1")
-  private String id;
-
+@Schema(name = "UserRequest", description = "Payload to create/update a user")
+public class UserRequest {
   @Schema(description = "Full name", example = "Alice Nguyen")
   @NotBlank
   @Size(max = 100)
@@ -31,3 +22,5 @@ public class User {
   @Size(max = 255)
   private String address;
 }
+
+
