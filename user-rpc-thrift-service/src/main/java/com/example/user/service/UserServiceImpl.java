@@ -54,4 +54,16 @@ public class UserServiceImpl implements UserServicePort {
   public List<User> list() {
     return userRepository.findAll();
   }
+
+  /** {@inheritDoc} */
+  @Override
+  public List<User> listPaged(int page, int size) {
+    return userRepository.findPage(page, size);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public long count() {
+    return userRepository.count();
+  }
 }

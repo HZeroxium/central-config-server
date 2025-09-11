@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import org.springframework.data.domain.PageRequest;
 
 /**
  * MongoDB-based adapter implementing {@link UserRepositoryPort}.
@@ -57,5 +58,17 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
   @Override
   public List<User> findAll() {
     return repository.findAll().stream().map(UserRepositoryAdapter::toDomain).collect(Collectors.toList());
+  }
+
+  @Override
+  public List<User> findPage(int page, int size) {
+    return repository.findAll(PageRequest.of(page, size)).stream()
+        .map(UserRepositoryAdapter::toDomain)
+        .collect(Collectors.toList());
+  }
+
+  @Override
+  public long count() {
+    return repository.count();
   }
 }

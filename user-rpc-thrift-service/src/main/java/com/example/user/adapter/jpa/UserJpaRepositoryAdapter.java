@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
@@ -96,6 +98,17 @@ public class UserJpaRepositoryAdapter implements UserRepositoryPort {
   @Override
   public List<User> findAll() {
     return repository.findAll().stream().map(UserJpaRepositoryAdapter::toDomain).collect(Collectors.toList());
+  }
+
+  @Override
+  public List<User> findPage(int page, int size) {
+    Page<UserEntity> p = repository.findAll(PageRequest.of(page, size));
+    return p.getContent().stream().map(UserJpaRepositoryAdapter::toDomain).collect(Collectors.toList());
+  }
+
+  @Override
+  public long count() {
+    return repository.count();
   }
 }
 

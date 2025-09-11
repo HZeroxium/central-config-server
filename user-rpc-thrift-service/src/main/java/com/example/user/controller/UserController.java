@@ -1,6 +1,7 @@
 package com.example.user.controller;
 
 import com.example.user.domain.User;
+import com.example.user.dto.UserPageResponse;
 import com.example.user.dto.UserRequest;
 import com.example.user.dto.UserResponse;
 import com.example.user.mapper.UserMapper;
@@ -11,7 +12,6 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -95,16 +96,28 @@ public class UserController {
     return ResponseEntity.noContent().build();
   }
 
-  /** List all users. */
+  /** List users with pagination (default: page=0,size=20). */
   @GetMapping
-  @Operation(summary = "List users")
+  @Operation(summary = "List users with pagination")
   @ApiResponse(
       responseCode = "200",
       description = "OK",
-      content = @Content(schema = @Schema(implementation = UserResponse.class)))
-  public ResponseEntity<List<UserResponse>> list() {
-    List<UserResponse> result = userService.list().stream().map(UserMapper::toResponse).toList();
-    return ResponseEntity.ok(result);
+      content = @Content(schema = @Schema(implementation = UserPageResponse.class)))
+  public ResponseEntity<UserPageResponse> list(
+      @Parameter(description = "Zero-based page index") @RequestParam(defaultValue = "0") int page,
+      @Parameter(description = "Page size") @RequestParam(defaultValue = "20") int size) {
+    var users = userService.listPaged(page, size);
+    var total = userService.count();
+    var totalPages = (int) Math.ceil((double) total / (double) size);
+    var items = users.stream().map(UserMapper::toResponse).toList();
+    var body = UserPageResponse.builder()
+        .items(items)
+        .page(page)
+        .size(size)
+        .total(total)
+        .totalPages(totalPages)
+        .build();
+    return ResponseEntity.ok(body);
   }
 }
 

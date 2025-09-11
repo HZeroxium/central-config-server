@@ -26,4 +26,16 @@ public interface UserServicePort {
 
   /** List all users. */
   List<User> list();
+
+  /**
+   * List users with pagination.
+   *
+   * @param page zero-based page index
+   * @param size page size
+   * @return list of users in current page
+   */
+  List<User> listPaged(int page, int size);
+
+  /** Total users count. */
+  long count();
 }

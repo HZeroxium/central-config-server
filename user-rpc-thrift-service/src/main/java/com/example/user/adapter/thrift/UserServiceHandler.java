@@ -4,7 +4,7 @@ import com.example.user.domain.User;
 import com.example.user.service.port.UserServicePort;
 import com.example.user.thrift.TUser;
 import com.example.user.thrift.UserService;
-import lombok.RequiredArgsConstructor;
+import com.example.user.thrift.TPagedUsers;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -72,7 +72,16 @@ public class UserServiceHandler implements UserService.Iface {
   }
 
   @Override
-  public List<TUser> listUsers() {
-    return userService.list().stream().map(UserServiceHandler::toThrift).collect(Collectors.toList());
+  public TPagedUsers listUsers(int page, int size) {
+    List<User> users = userService.listPaged(page, size);
+    long total = userService.count();
+    int totalPages = (int) Math.ceil((double) total / (double) size);
+    TPagedUsers res = new TPagedUsers();
+    res.setItems(users.stream().map(UserServiceHandler::toThrift).collect(Collectors.toList()));
+    res.setPage(page);
+    res.setSize(size);
+    res.setTotal(total);
+    res.setTotalPages(totalPages);
+    return res;
   }
 }

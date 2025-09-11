@@ -20,4 +20,18 @@ public interface UserRepositoryPort {
 
   /** List all users. */
   List<User> findAll();
+
+  /**
+   * Find users with pagination.
+   *
+   * @param page zero-based page index
+   * @param size page size
+   * @return list of users for the current page
+   */
+  List<User> findPage(int page, int size);
+
+  /**
+   * @return total number of users
+   */
+  long count();
 }
