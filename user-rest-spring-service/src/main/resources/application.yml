@@ -1,0 +1,12 @@
+server:
+  port: 8081
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+
+thrift:
+  host: ${THRIFT_HOST:localhost}
+  port: ${THRIFT_PORT:9090}

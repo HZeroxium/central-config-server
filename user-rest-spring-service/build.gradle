@@ -1,0 +1,112 @@
+plugins {
+    id 'java'
+    id 'idea'
+    id 'org.springframework.boot' version '3.3.13'
+    id 'io.spring.dependency-management' version '1.1.6'
+    id 'com.diffplug.spotless' version '6.25.0'
+    id 'checkstyle'
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+group = 'com.example'
+version = '1.0.0'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation('org.springframework.boot:spring-boot-starter-web') {
+        exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
+    }
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.boot:spring-boot-starter-log4j2'
+
+    compileOnly 'org.projectlombok:lombok:1.18.32'
+    annotationProcessor 'org.projectlombok:lombok:1.18.32'
+
+    implementation 'org.apache.thrift:libthrift:0.22.0'
+    compileOnly 'javax.annotation:javax.annotation-api:1.3.2'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.mockito:mockito-core:5.12.0'
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+}
+
+spotless {
+    java {
+        googleJavaFormat('1.22.0')
+        target 'src/**/*.java'
+        importOrder '', 'java', 'javax', 'org', 'com'
+        removeUnusedImports()
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+}
+
+checkstyle {
+    toolVersion = '10.17.0'
+    configFile = file('config/checkstyle/checkstyle.xml')
+    configProperties = ["checkstyle.cache.file": file("build/checkstyle-cachefile").absolutePath]
+}
+
+tasks.named('check') {
+    dependsOn 'spotlessCheck'
+}
+
+tasks.withType(Checkstyle).configureEach {
+    // Ignore generated Thrift sources to avoid false positives
+    exclude '**/build/generated-sources/**'
+}
+
+tasks.named('checkstyleMain') {
+    // Restrict Checkstyle to handwritten sources only
+    setSource(fileTree('src/main/java'))
+}
+
+tasks.named('checkstyleTest') {
+    setSource(fileTree('src/test/java'))
+}
+
+sourceSets {
+    main {
+        java.srcDirs = ['src/main/java', 'build/generated-sources/thrift']
+        resources.srcDirs = ['src/main/resources']
+    }
+    test {
+        java.srcDirs = ['src/test/java']
+        resources.srcDirs = ['src/test/resources']
+    }
+}
+
+def thriftSrcDir = file('src/main/thrift')
+
+tasks.register('generateThrift') {
+    inputs.dir(thriftSrcDir)
+    outputs.dir(file('build/generated-sources/thrift'))
+    doLast {
+        def outDir = file('build/generated-sources/thrift')
+        outDir.mkdirs()
+        if (thriftSrcDir.exists()) {
+            thriftSrcDir.eachFileRecurse { f ->
+                if (f.isFile() && f.name.endsWith('.thrift')) {
+                    exec {
+                        executable 'thrift'
+                        args '-r', '--gen', 'java', '-out', outDir.absolutePath, f.absolutePath
+                    }
+                }
+            }
+        }
+    }
+}
+
+compileJava.dependsOn tasks.named('generateThrift')
+
