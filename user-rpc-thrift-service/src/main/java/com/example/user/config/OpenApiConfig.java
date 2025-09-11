@@ -7,6 +7,9 @@ import io.swagger.v3.oas.annotations.info.License;
 import io.swagger.v3.oas.annotations.servers.Server;
 import org.springframework.context.annotation.Configuration;
 
+/**
+ * OpenAPI metadata configuration for the RPC service's internal REST endpoints.
+ */
 @Configuration
 @OpenAPIDefinition(
     info =

@@ -7,6 +7,10 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+/**
+ * MongoDB document for collection {@code users}.
+ * Serves as persistence representation for the domain user when Mongo is active.
+ */
 @Data
 @Builder
 @NoArgsConstructor

@@ -9,11 +9,24 @@ import lombok.RequiredArgsConstructor;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@RequiredArgsConstructor
+/**
+ * Thrift service handler bridging Thrift-generated API to domain service port.
+ * Performs translation between {@link TUser} wire model and domain {@link com.example.user.domain.User}.
+ */
 public class UserServiceHandler implements UserService.Iface {
 
   private final UserServicePort userService;
 
+  /**
+   * Construct handler with a domain service port.
+   *
+   * @param userService domain service to delegate business logic
+   */
+  public UserServiceHandler(UserServicePort userService) {
+    this.userService = userService;
+  }
+
+  /** Convert domain to Thrift DTO. */
   private static TUser toThrift(User user) {
     TUser t = new TUser();
     t.setId(user.getId());
@@ -23,6 +36,7 @@ public class UserServiceHandler implements UserService.Iface {
     return t;
   }
 
+  /** Convert Thrift DTO to domain. */
   private static User toDomain(TUser t) {
     return User.builder()
         .id(t.getId())

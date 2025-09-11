@@ -9,6 +9,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+/**
+ * MongoDB-based adapter implementing {@link UserRepositoryPort}.
+ * Active when property app.persistence.type=mongo.
+ */
 @Component
 @org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(name = "app.persistence.type", havingValue = "mongo")
 @RequiredArgsConstructor

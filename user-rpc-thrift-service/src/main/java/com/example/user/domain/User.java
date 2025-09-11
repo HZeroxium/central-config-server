@@ -8,11 +8,15 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * Domain aggregate representing a user in the system.
+ * This model is independent of transport (REST/Thrift) and persistence (JPA/Mongo) concerns.
+ */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(name = "User", description = "User entity for RPC service")
+@Schema(name = "User", description = "Domain user entity for RPC service")
 public class User {
   @Schema(description = "Unique identifier", example = "u-1")
   private String id;

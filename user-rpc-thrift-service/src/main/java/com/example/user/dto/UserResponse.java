@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Value;
 
+/** Response view returned by the API. */
 @Value
 @Builder
 @Schema(name = "UserResponse", description = "User view returned by the API")

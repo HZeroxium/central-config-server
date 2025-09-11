@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
+/** Request payload to create or update a user. */
 @Data
 @Schema(name = "UserRequest", description = "Payload to create/update a user")
 public class UserRequest {

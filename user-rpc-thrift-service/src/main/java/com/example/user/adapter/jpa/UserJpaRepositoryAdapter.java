@@ -10,12 +10,23 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
+/**
+ * JPA-based adapter implementing {@link UserRepositoryPort}.
+ * <p>
+ * Active when property {@code app.persistence.type=h2}. Maps the domain model {@link com.example.user.domain.User}
+ * to the persistence entity {@link UserEntity} and delegates operations to {@link UserJpaRepository}.
+ */
 @Component
 @Primary
 @ConditionalOnProperty(name = "app.persistence.type", havingValue = "h2")
 public class UserJpaRepositoryAdapter implements UserRepositoryPort {
   private final UserJpaRepository repository;
 
+  /**
+   * Create adapter with the injected Spring Data JPA repository.
+   *
+   * @param repository concrete JPA repository
+   */
   public UserJpaRepositoryAdapter(UserJpaRepository repository) {
     this.repository = repository;
   }
@@ -38,6 +49,13 @@ public class UserJpaRepositoryAdapter implements UserRepositoryPort {
         .build();
   }
 
+  /**
+   * Save or update a domain user into the database.
+   * If the identifier is missing, a random UUID is generated.
+   *
+   * @param user domain user to persist
+   * @return persisted user reloaded from the database
+   */
   @Override
   public User save(User user) {
     String id = user.getId();
@@ -49,16 +67,32 @@ public class UserJpaRepositoryAdapter implements UserRepositoryPort {
     return toDomain(saved);
   }
 
+  /**
+   * Find a user by id.
+   *
+   * @param id user identifier
+   * @return optional domain user if present
+   */
   @Override
   public Optional<User> findById(String id) {
     return repository.findById(id).map(UserJpaRepositoryAdapter::toDomain);
   }
 
+  /**
+   * Delete a user by id.
+   *
+   * @param id user identifier
+   */
   @Override
   public void deleteById(String id) {
     repository.deleteById(id);
   }
 
+  /**
+   * List all users.
+   *
+   * @return list of all domain users
+   */
   @Override
   public List<User> findAll() {
     return repository.findAll().stream().map(UserJpaRepositoryAdapter::toDomain).collect(Collectors.toList());

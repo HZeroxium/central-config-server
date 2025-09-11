@@ -15,6 +15,13 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/**
+ * Thrift server bootstrap configuration.
+ * <p>
+ * Exposes a {@link TServer} via a background daemon thread to handle RPC calls using a
+ * {@link TThreadPoolServer} and {@link TBinaryProtocol}. The handler delegates to
+ * {@link com.example.user.service.port.UserServicePort}.
+ */
 @Configuration
 @RequiredArgsConstructor
 public class ThriftServerConfig implements ApplicationRunner {
@@ -24,11 +31,22 @@ public class ThriftServerConfig implements ApplicationRunner {
 
   private final UserServicePort userServicePort;
 
+  /**
+   * Create the Thrift {@link TProcessor} for the user service.
+   *
+   * @return configured Thrift processor
+   */
   @Bean
   public TProcessor userServiceProcessor() {
     return new UserService.Processor<>(new UserServiceHandler(userServicePort));
   }
 
+  /**
+   * Start the Thrift server asynchronously on the configured port.
+   *
+   * @param args application arguments
+   * @throws Exception if server start fails
+   */
   @Override
   public void run(ApplicationArguments args) throws Exception {
     TServerTransport serverTransport = new TServerSocket(thriftPort);

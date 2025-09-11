@@ -24,6 +24,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * Internal REST controller exposing CRUD endpoints to validate domain logic locally in the RPC
+ * service. Returns {@link UserResponse} DTOs and accepts {@link UserRequest} payloads.
+ */
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/users")
@@ -32,6 +36,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserController {
   private final UserServiceImpl userService;
 
+  /** Simple health endpoint. */
   @GetMapping("/ping")
   @Operation(summary = "Health ping")
   @ApiResponse(
@@ -42,6 +47,7 @@ public class UserController {
     return ResponseEntity.ok("pong");
   }
 
+  /** Create a new user. */
   @PostMapping
   @Operation(summary = "Create user")
   @ApiResponse(
@@ -53,6 +59,7 @@ public class UserController {
     return ResponseEntity.ok(UserMapper.toResponse(created));
   }
 
+  /** Retrieve a user by id. */
   @GetMapping("/{id}")
   @Operation(summary = "Get user by id")
   @ApiResponse(
@@ -65,6 +72,7 @@ public class UserController {
     return userService.getById(id).map(UserMapper::toResponse).map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
   }
 
+  /** Update a user by id. */
   @PutMapping("/{id}")
   @Operation(summary = "Update user by id")
   @ApiResponse(
@@ -78,6 +86,7 @@ public class UserController {
     return ResponseEntity.ok(UserMapper.toResponse(updated));
   }
 
+  /** Delete a user by id. */
   @DeleteMapping("/{id}")
   @Operation(summary = "Delete user by id")
   @ApiResponse(responseCode = "204", description = "Deleted")
@@ -86,6 +95,7 @@ public class UserController {
     return ResponseEntity.noContent().build();
   }
 
+  /** List all users. */
   @GetMapping
   @Operation(summary = "List users")
   @ApiResponse(

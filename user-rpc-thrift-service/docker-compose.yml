@@ -20,7 +20,7 @@ services:
       ME_CONFIG_MONGODB_URL: mongodb://mongo:27017/users
 
   user-thrift:
-    build: .
+    image: hzeroxium/thrift-demo-user-rpc-thrift-service:latest
     depends_on:
       - mongo
     environment:
