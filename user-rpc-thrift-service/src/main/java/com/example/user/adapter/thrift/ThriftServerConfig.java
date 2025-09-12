@@ -3,6 +3,7 @@ package com.example.user.adapter.thrift;
 import com.example.user.service.port.UserServicePort;
 import com.example.user.thrift.UserService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.server.TServer;
@@ -22,6 +23,7 @@ import org.springframework.context.annotation.Configuration;
  * {@link TThreadPoolServer} and {@link TBinaryProtocol}. The handler delegates to
  * {@link com.example.user.service.port.UserServicePort}.
  */
+@Slf4j
 @Configuration
 @RequiredArgsConstructor
 public class ThriftServerConfig implements ApplicationRunner {
@@ -38,7 +40,10 @@ public class ThriftServerConfig implements ApplicationRunner {
    */
   @Bean
   public TProcessor userServiceProcessor() {
-    return new UserService.Processor<>(new UserServiceHandler(userServicePort));
+    log.info("Creating Thrift processor for UserService");
+    TProcessor processor = new UserService.Processor<>(new UserServiceHandler(userServicePort));
+    log.debug("Thrift processor created successfully");
+    return processor;
   }
 
   /**
@@ -49,13 +54,34 @@ public class ThriftServerConfig implements ApplicationRunner {
    */
   @Override
   public void run(ApplicationArguments args) throws Exception {
-    TServerTransport serverTransport = new TServerSocket(thriftPort);
-    TThreadPoolServer.Args serverArgs = new TThreadPoolServer.Args(serverTransport)
-        .processor(userServiceProcessor())
-        .protocolFactory(new TBinaryProtocol.Factory());
-    TServer server = new TThreadPoolServer(serverArgs);
-    Thread serverThread = new Thread(server::serve, "thrift-server");
-    serverThread.setDaemon(true);
-    serverThread.start();
+    log.info("Starting Thrift server on port: {}", thriftPort);
+    try {
+      TServerTransport serverTransport = new TServerSocket(thriftPort);
+      log.debug("Thrift server transport created on port: {}", thriftPort);
+      
+      TThreadPoolServer.Args serverArgs = new TThreadPoolServer.Args(serverTransport)
+          .processor(userServiceProcessor())
+          .protocolFactory(new TBinaryProtocol.Factory());
+      log.debug("Thrift server arguments configured");
+      
+      TServer server = new TThreadPoolServer(serverArgs);
+      log.debug("Thrift server instance created");
+      
+      Thread serverThread = new Thread(() -> {
+        try {
+          log.info("Thrift server starting to serve requests on port: {}", thriftPort);
+          server.serve();
+        } catch (Exception e) {
+          log.error("Thrift server failed to start or serve requests", e);
+        }
+      }, "thrift-server");
+      
+      serverThread.setDaemon(true);
+      serverThread.start();
+      log.info("Thrift server thread started successfully on port: {}", thriftPort);
+    } catch (Exception e) {
+      log.error("Failed to start Thrift server on port: {}", thriftPort, e);
+      throw e;
+    }
   }
 }

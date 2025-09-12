@@ -3,8 +3,6 @@ plugins {
     id 'idea'
     id 'org.springframework.boot' version '3.3.13'
     id 'io.spring.dependency-management' version '1.1.6'
-    id 'com.diffplug.spotless' version '6.25.0'
-    id 'checkstyle'
 }
 
 java {
@@ -32,6 +30,10 @@ dependencies {
     }
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'org.springframework.boot:spring-boot-starter-log4j2'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+    // OpenAPI/Swagger UI for Spring Boot 3
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0'
 
     compileOnly 'org.projectlombok:lombok:1.18.32'
     annotationProcessor 'org.projectlombok:lombok:1.18.32'
@@ -47,41 +49,6 @@ dependencies {
 
 tasks.withType(Test).configureEach {
     useJUnitPlatform()
-}
-
-spotless {
-    java {
-        googleJavaFormat('1.22.0')
-        target 'src/**/*.java'
-        importOrder '', 'java', 'javax', 'org', 'com'
-        removeUnusedImports()
-        trimTrailingWhitespace()
-        endWithNewline()
-    }
-}
-
-checkstyle {
-    toolVersion = '10.17.0'
-    configFile = file('config/checkstyle/checkstyle.xml')
-    configProperties = ["checkstyle.cache.file": file("build/checkstyle-cachefile").absolutePath]
-}
-
-tasks.named('check') {
-    dependsOn 'spotlessCheck'
-}
-
-tasks.withType(Checkstyle).configureEach {
-    // Ignore generated Thrift sources to avoid false positives
-    exclude '**/build/generated-sources/**'
-}
-
-tasks.named('checkstyleMain') {
-    // Restrict Checkstyle to handwritten sources only
-    setSource(fileTree('src/main/java'))
-}
-
-tasks.named('checkstyleTest') {
-    setSource(fileTree('src/test/java'))
 }
 
 sourceSets {
@@ -117,4 +84,21 @@ tasks.register('generateThrift') {
 }
 
 compileJava.dependsOn tasks.named('generateThrift')
+
+bootJar {
+    archiveFileName = 'user-rest-spring-service.jar'
+}
+
+// Docker build task
+tasks.register('buildDocker', Exec) {
+    group = 'docker'
+    description = 'Build Docker image for user-rest-spring-service'
+    dependsOn bootJar
+    
+    commandLine 'docker', 'build', '-t', 'user-rest-spring-service:latest', '.'
+    
+    doFirst {
+        println "Building Docker image for user-rest-spring-service..."
+    }
+}
 

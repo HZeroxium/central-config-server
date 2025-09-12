@@ -17,4 +17,8 @@ public interface ThriftUserClientPort {
   void delete(String id);
 
   List<User> list();
+
+  List<User> listPaged(int page, int size);
+
+  long count();
 }

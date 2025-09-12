@@ -1,28 +1,20 @@
-package com.example.rest.user.domain;
+package com.example.rest.user.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
+/** Request payload to create or update a user from REST facade. */
 @Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-@Schema(name = "User", description = "User resource exposed by REST facade")
-public class User {
-  @Schema(description = "Unique identifier", example = "u-12345")
-  private String id;
-
+@Schema(name = "UserRequest", description = "Payload to create/update a user")
+public class UserRequest {
   @Schema(description = "Full name", example = "Alice Nguyen")
   @NotBlank
   @Size(max = 100)
   private String name;
 
-  @Schema(description = "Phone number in free format", example = "+84-912-345-678")
+  @Schema(description = "Phone number", example = "+84-912-345-678")
   @NotBlank
   @Size(max = 32)
   private String phone;
@@ -31,3 +23,5 @@ public class User {
   @Size(max = 255)
   private String address;
 }
+
+

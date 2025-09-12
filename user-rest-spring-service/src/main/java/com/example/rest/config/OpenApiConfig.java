@@ -1,27 +1,23 @@
-package com.example.user.config;
+package com.example.rest.config;
 
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.info.Contact;
 import io.swagger.v3.oas.annotations.info.Info;
 import io.swagger.v3.oas.annotations.info.License;
 import io.swagger.v3.oas.annotations.servers.Server;
+
 import org.springframework.context.annotation.Configuration;
 
-/**
- * OpenAPI metadata configuration for the RPC service's internal REST endpoints.
- */
 @Configuration
 @OpenAPIDefinition(
     info =
         @Info(
-            title = "User RPC - Internal REST",
+            title = "User REST API",
             version = "1.0.0",
-            description = "Internal REST endpoints for CRUD to validate logic",
+            description = "REST facade for User RPC (Thrift) service",
             contact = @Contact(name = "Thrift Demo", email = "dev@example.com"),
             license =
                 @License(name = "Apache 2.0", url = "https://www.apache.org/licenses/LICENSE-2.0")),
-    // Use relative server to avoid hard-coded host/port, preventing CORS in Swagger UI
+    // Use relative server to match whatever host/port the app is served from (avoids CORS/mismatch)
     servers = { @Server(url = "/", description = "Current host") })
 public class OpenApiConfig { }
-
-

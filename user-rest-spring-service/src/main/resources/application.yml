@@ -1,11 +1,17 @@
 server:
-  port: 8081
+  port: ${SERVER_PORT:8083}
 
 management:
   endpoints:
     web:
       exposure:
         include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: when_authorized
+  metrics:
+    tags:
+      application: user-rest-spring-service
 
 thrift:
   host: ${THRIFT_HOST:localhost}

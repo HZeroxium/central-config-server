@@ -119,3 +119,16 @@ jar {
     enabled = false
 }
 
+// Docker build task
+tasks.register('buildDocker', Exec) {
+    group = 'docker'
+    description = 'Build Docker image for user-rpc-thrift-service'
+    dependsOn bootJar
+    
+    commandLine 'docker', 'build', '-t', 'user-rpc-thrift-service:latest', '.'
+    
+    doFirst {
+        println "Building Docker image for user-rpc-thrift-service..."
+    }
+}
+

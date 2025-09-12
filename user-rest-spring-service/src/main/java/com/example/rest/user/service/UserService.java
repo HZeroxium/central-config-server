@@ -1,6 +1,7 @@
 package com.example.rest.user.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 import java.util.Optional;
@@ -10,32 +11,108 @@ import org.springframework.stereotype.Service;
 import com.example.rest.user.domain.User;
 import com.example.rest.user.port.ThriftUserClientPort;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserService {
   private final ThriftUserClientPort thriftClient;
 
   public String ping() {
-    return thriftClient.ping();
+    log.debug("Pinging Thrift service");
+    try {
+      String response = thriftClient.ping();
+      log.debug("Thrift service ping successful: {}", response);
+      return response;
+    } catch (Exception e) {
+      log.error("Thrift service ping failed", e);
+      throw e;
+    }
   }
 
   public User create(User user) {
-    return thriftClient.create(user);
+    log.debug("Creating user via Thrift client: {}", user);
+    try {
+      User created = thriftClient.create(user);
+      log.debug("User created successfully via Thrift: {}", created);
+      return created;
+    } catch (Exception e) {
+      log.error("Failed to create user via Thrift: {}", user, e);
+      throw e;
+    }
   }
 
   public Optional<User> getById(String id) {
-    return thriftClient.getById(id);
+    log.debug("Retrieving user by ID via Thrift client: {}", id);
+    try {
+      Optional<User> user = thriftClient.getById(id);
+      if (user.isPresent()) {
+        log.debug("User found via Thrift: {}", user.get());
+      } else {
+        log.debug("User not found via Thrift for ID: {}", id);
+      }
+      return user;
+    } catch (Exception e) {
+      log.error("Failed to retrieve user via Thrift for ID: {}", id, e);
+      throw e;
+    }
   }
 
   public User update(User user) {
-    return thriftClient.update(user);
+    log.debug("Updating user via Thrift client: {}", user);
+    try {
+      User updated = thriftClient.update(user);
+      log.debug("User updated successfully via Thrift: {}", updated);
+      return updated;
+    } catch (Exception e) {
+      log.error("Failed to update user via Thrift: {}", user, e);
+      throw e;
+    }
   }
 
   public void delete(String id) {
-    thriftClient.delete(id);
+    log.debug("Deleting user via Thrift client: {}", id);
+    try {
+      thriftClient.delete(id);
+      log.debug("User deleted successfully via Thrift: {}", id);
+    } catch (Exception e) {
+      log.error("Failed to delete user via Thrift for ID: {}", id, e);
+      throw e;
+    }
   }
 
   public List<User> list() {
-    return thriftClient.list();
+    log.debug("Listing all users via Thrift client");
+    try {
+      List<User> users = thriftClient.list();
+      log.debug("Retrieved {} users via Thrift", users.size());
+      return users;
+    } catch (Exception e) {
+      log.error("Failed to list users via Thrift", e);
+      throw e;
+    }
+  }
+
+  public List<User> listPaged(int page, int size) {
+    log.debug("Listing users with pagination via Thrift client - page: {}, size: {}", page, size);
+    try {
+      List<User> users = thriftClient.listPaged(page, size);
+      log.debug("Retrieved {} users via Thrift for page: {}, size: {}", users.size(), page, size);
+      return users;
+    } catch (Exception e) {
+      log.error("Failed to list users with pagination via Thrift - page: {}, size: {}", page, size, e);
+      throw e;
+    }
+  }
+
+  public long count() {
+    log.debug("Counting users via Thrift client");
+    try {
+      long count = thriftClient.count();
+      log.debug("User count via Thrift: {}", count);
+      return count;
+    } catch (Exception e) {
+      log.error("Failed to count users via Thrift", e);
+      throw e;
+    }
   }
 }

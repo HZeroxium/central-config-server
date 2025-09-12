@@ -5,6 +5,7 @@ import com.example.user.service.port.UserServicePort;
 import com.example.user.thrift.TUser;
 import com.example.user.thrift.UserService;
 import com.example.user.thrift.TPagedUsers;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -13,6 +14,7 @@ import java.util.stream.Collectors;
  * Thrift service handler bridging Thrift-generated API to domain service port.
  * Performs translation between {@link TUser} wire model and domain {@link com.example.user.domain.User}.
  */
+@Slf4j
 public class UserServiceHandler implements UserService.Iface {
 
   private final UserServicePort userService;
@@ -48,40 +50,119 @@ public class UserServiceHandler implements UserService.Iface {
 
   @Override
   public String ping() {
-    return userService.ping();
+    log.debug("Thrift ping request received");
+    try {
+      String response = userService.ping();
+      log.debug("Thrift ping response: {}", response);
+      return response;
+    } catch (Exception e) {
+      log.error("Thrift ping failed", e);
+      throw e;
+    }
   }
 
   @Override
   public TUser createUser(TUser user) {
-    return toThrift(userService.create(toDomain(user)));
+    log.debug("Thrift createUser request received: {}", user);
+    try {
+      User domainUser = toDomain(user);
+      log.debug("Mapped Thrift user to domain user: {}", domainUser);
+      
+      User created = userService.create(domainUser);
+      log.info("User created via Thrift with ID: {}", created.getId());
+      
+      TUser thriftUser = toThrift(created);
+      log.debug("Mapped domain user to Thrift user: {}", thriftUser);
+      return thriftUser;
+    } catch (Exception e) {
+      log.error("Thrift createUser failed: {}", user, e);
+      throw e;
+    }
   }
 
   @Override
   public TUser getUser(String id) {
-    return userService.getById(id).map(UserServiceHandler::toThrift).orElse(null);
+    log.debug("Thrift getUser request received for ID: {}", id);
+    try {
+      return userService.getById(id)
+          .map(user -> {
+            log.debug("User found via Thrift: {}", user);
+            TUser thriftUser = toThrift(user);
+            log.debug("Mapped domain user to Thrift user: {}", thriftUser);
+            return thriftUser;
+          })
+          .orElseGet(() -> {
+            log.debug("User not found via Thrift for ID: {}", id);
+            return null;
+          });
+    } catch (Exception e) {
+      log.error("Thrift getUser failed for ID: {}", id, e);
+      throw e;
+    }
   }
 
   @Override
   public TUser updateUser(TUser user) {
-    return toThrift(userService.update(toDomain(user)));
+    log.debug("Thrift updateUser request received: {}", user);
+    try {
+      User domainUser = toDomain(user);
+      log.debug("Mapped Thrift user to domain user: {}", domainUser);
+      
+      User updated = userService.update(domainUser);
+      log.info("User updated via Thrift with ID: {}", updated.getId());
+      
+      TUser thriftUser = toThrift(updated);
+      log.debug("Mapped domain user to Thrift user: {}", thriftUser);
+      return thriftUser;
+    } catch (Exception e) {
+      log.error("Thrift updateUser failed: {}", user, e);
+      throw e;
+    }
   }
 
   @Override
   public void deleteUser(String id) {
-    userService.delete(id);
+    log.debug("Thrift deleteUser request received for ID: {}", id);
+    try {
+      userService.delete(id);
+      log.info("User deleted via Thrift with ID: {}", id);
+    } catch (Exception e) {
+      log.error("Thrift deleteUser failed for ID: {}", id, e);
+      throw e;
+    }
   }
 
   @Override
   public TPagedUsers listUsers(int page, int size) {
-    List<User> users = userService.listPaged(page, size);
-    long total = userService.count();
-    int totalPages = (int) Math.ceil((double) total / (double) size);
-    TPagedUsers res = new TPagedUsers();
-    res.setItems(users.stream().map(UserServiceHandler::toThrift).collect(Collectors.toList()));
-    res.setPage(page);
-    res.setSize(size);
-    res.setTotal(total);
-    res.setTotalPages(totalPages);
-    return res;
+    log.debug("Thrift listUsers request received - page: {}, size: {}", page, size);
+    try {
+      List<User> users = userService.listPaged(page, size);
+      log.debug("Retrieved {} users from service for Thrift", users.size());
+      
+      long total = userService.count();
+      log.debug("Total user count for Thrift: {}", total);
+      
+      int totalPages = (int) Math.ceil((double) total / (double) size);
+      List<TUser> thriftUsers = users.stream()
+          .map(user -> {
+            log.debug("Mapping domain user to Thrift user: {}", user);
+            return toThrift(user);
+          })
+          .collect(Collectors.toList());
+      
+      TPagedUsers res = new TPagedUsers();
+      res.setItems(thriftUsers);
+      res.setPage(page);
+      res.setSize(size);
+      res.setTotal(total);
+      res.setTotalPages(totalPages);
+      
+      log.debug("Thrift listUsers response - items: {}, page: {}, size: {}, total: {}, totalPages: {}", 
+                thriftUsers.size(), page, size, total, totalPages);
+      return res;
+    } catch (Exception e) {
+      log.error("Thrift listUsers failed - page: {}, size: {}", page, size, e);
+      throw e;
+    }
   }
 }

@@ -1,17 +1,16 @@
-# docker-compose.yml - RPC Thrift Service Standalone
 
 services:
   mongodb:
     image: mongo:8.0
-    container_name: rpc-service-mongodb
+    container_name: mongodb
+    environment:
+      - MONGO_INITDB_DATABASE=users
     ports:
       - "27017:27017"
-    environment:
-      MONGO_INITDB_DATABASE: users
     volumes:
       - mongodb_data:/data/db
     networks:
-      - rpc-network
+      - thrift-network
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 10s
@@ -21,7 +20,7 @@ services:
 
   mongo-express:
     image: mongo-express:latest
-    container_name: rpc-service-mongo-express
+    container_name: mongo-express
     depends_on:
       mongodb:
         condition: service_healthy
@@ -31,17 +30,14 @@ services:
       ME_CONFIG_MONGODB_URL: mongodb://mongodb:27017/users
       ME_CONFIG_MONGODB_ENABLE_ADMIN: "true"
     networks:
-      - rpc-network
+      - thrift-network
 
   user-rpc-thrift-service:
     build:
-      context: .
+      context: ./user-rpc-thrift-service
       dockerfile: Dockerfile
     image: user-rpc-thrift-service:latest
     container_name: user-rpc-thrift-service
-    depends_on:
-      mongodb:
-        condition: service_healthy
     environment:
       - PERSISTENCE_TYPE=mongo
       - SERVER_PORT=8080
@@ -51,10 +47,37 @@ services:
     ports:
       - "8080:8080"
       - "9090:9090"
+    depends_on:
+      mongodb:
+        condition: service_healthy
     networks:
-      - rpc-network
+      - thrift-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  user-rest-spring-service:
+    build:
+      context: ./user-rest-spring-service
+      dockerfile: Dockerfile
+    image: user-rest-spring-service:latest
+    container_name: user-rest-spring-service
+    environment:
+      - SERVER_PORT=8083
+      - THRIFT_HOST=user-rpc-thrift-service
+      - THRIFT_PORT=9090
+    depends_on:
+      user-rpc-thrift-service:
+        condition: service_healthy
+    ports:
+      - "8083:8083"
+    networks:
+      - thrift-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083/actuator/health"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -64,5 +87,5 @@ volumes:
   mongodb_data:
 
 networks:
-  rpc-network:
+  thrift-network:
     driver: bridge

@@ -2,23 +2,23 @@
 <Configuration status="WARN" monitorInterval="30">
   <Properties>
     <Property name="LOG_PATTERN">%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n</Property>
-    <Property name="LOG_PATTERN_JSON">{"timestamp":"%d{yyyy-MM-dd'T'HH:mm:ss.SSS'Z'","level":"%level","logger":"%logger{36}","message":"%message","thread":"%thread","exception":"%ex{full}","service":"user-rest-spring-service"}</Property>
+    <Property name="LOG_PATTERN_JSON">{"timestamp":"%d{yyyy-MM-dd'T'HH:mm:ss.SSS'Z'","level":"%level","logger":"%logger{36}","message":"%message","thread":"%thread","exception":"%ex{full}","service":"user-rpc-thrift-service"}</Property>
   </Properties>
   
   <Appenders>
     <!-- Console Appender with JSON Layout for structured logging -->
     <Console name="Console" target="SYSTEM_OUT">
       <JsonLayout complete="false" compact="true" eventEol="true" stacktraceAsString="true">
-        <KeyValuePair key="service" value="user-rest-spring-service"/>
+        <KeyValuePair key="service" value="user-rpc-thrift-service"/>
         <KeyValuePair key="environment" value="${env:ENVIRONMENT:-dev}"/>
       </JsonLayout>
     </Console>
     
     <!-- File Appender for persistent logging -->
-    <RollingFile name="FileAppender" fileName="logs/user-rest-service.log"
-                 filePattern="logs/user-rest-service-%d{yyyy-MM-dd}-%i.log.gz">
+    <RollingFile name="FileAppender" fileName="logs/user-rpc-service.log"
+                 filePattern="logs/user-rpc-service-%d{yyyy-MM-dd}-%i.log.gz">
       <JsonLayout complete="false" compact="true" eventEol="true" stacktraceAsString="true">
-        <KeyValuePair key="service" value="user-rest-spring-service"/>
+        <KeyValuePair key="service" value="user-rpc-thrift-service"/>
         <KeyValuePair key="environment" value="${env:ENVIRONMENT:-dev}"/>
       </JsonLayout>
       <Policies>
@@ -29,10 +29,10 @@
     </RollingFile>
     
     <!-- Error File Appender for ERROR and FATAL logs -->
-    <RollingFile name="ErrorFileAppender" fileName="logs/user-rest-service-error.log"
-                 filePattern="logs/user-rest-service-error-%d{yyyy-MM-dd}-%i.log.gz">
+    <RollingFile name="ErrorFileAppender" fileName="logs/user-rpc-service-error.log"
+                 filePattern="logs/user-rpc-service-error-%d{yyyy-MM-dd}-%i.log.gz">
       <JsonLayout complete="false" compact="true" eventEol="true" stacktraceAsString="true">
-        <KeyValuePair key="service" value="user-rest-spring-service"/>
+        <KeyValuePair key="service" value="user-rpc-thrift-service"/>
         <KeyValuePair key="environment" value="${env:ENVIRONMENT:-dev}"/>
       </JsonLayout>
       <ThresholdFilter level="ERROR" onMatch="ACCEPT" onMismatch="DENY"/>
@@ -46,7 +46,7 @@
   
   <Loggers>
     <!-- Application specific loggers -->
-    <Logger name="com.example.rest" level="DEBUG" additivity="false">
+    <Logger name="com.example.user" level="DEBUG" additivity="false">
       <AppenderRef ref="Console"/>
       <AppenderRef ref="FileAppender"/>
       <AppenderRef ref="ErrorFileAppender"/>
@@ -64,14 +64,20 @@
       <AppenderRef ref="FileAppender"/>
     </Logger>
     
-    <!-- HTTP Client logging -->
-    <Logger name="org.apache.http" level="WARN" additivity="false">
+    <!-- Hibernate/JPA logging -->
+    <Logger name="org.hibernate" level="WARN" additivity="false">
       <AppenderRef ref="Console"/>
       <AppenderRef ref="FileAppender"/>
     </Logger>
     
-    <!-- OpenAPI/Swagger logging -->
-    <Logger name="org.springdoc" level="WARN" additivity="false">
+    <!-- MongoDB logging -->
+    <Logger name="org.mongodb" level="WARN" additivity="false">
+      <AppenderRef ref="Console"/>
+      <AppenderRef ref="FileAppender"/>
+    </Logger>
+    
+    <!-- HTTP Client logging -->
+    <Logger name="org.apache.http" level="WARN" additivity="false">
       <AppenderRef ref="Console"/>
       <AppenderRef ref="FileAppender"/>
     </Logger>
@@ -84,4 +90,3 @@
     </Root>
   </Loggers>
 </Configuration>
-
