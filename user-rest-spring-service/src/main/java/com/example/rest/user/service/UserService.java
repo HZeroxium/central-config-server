@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import com.example.rest.user.domain.User;
 import com.example.rest.user.port.ThriftUserClientPort;
+import com.example.rest.exception.ThriftServiceException;
 
 @Slf4j
 @Service
@@ -25,7 +26,7 @@ public class UserService {
       return response;
     } catch (Exception e) {
       log.error("Thrift service ping failed", e);
-      throw e;
+      throw new ThriftServiceException("Failed to ping Thrift service", "ping", e);
     }
   }
 
@@ -37,7 +38,7 @@ public class UserService {
       return created;
     } catch (Exception e) {
       log.error("Failed to create user via Thrift: {}", user, e);
-      throw e;
+      throw new ThriftServiceException("Failed to create user via Thrift service", "create", e);
     }
   }
 
@@ -53,7 +54,7 @@ public class UserService {
       return user;
     } catch (Exception e) {
       log.error("Failed to retrieve user via Thrift for ID: {}", id, e);
-      throw e;
+      throw new ThriftServiceException("Failed to retrieve user via Thrift service", "getById", e);
     }
   }
 
@@ -65,7 +66,7 @@ public class UserService {
       return updated;
     } catch (Exception e) {
       log.error("Failed to update user via Thrift: {}", user, e);
-      throw e;
+      throw new ThriftServiceException("Failed to update user via Thrift service", "update", e);
     }
   }
 
@@ -76,7 +77,7 @@ public class UserService {
       log.debug("User deleted successfully via Thrift: {}", id);
     } catch (Exception e) {
       log.error("Failed to delete user via Thrift for ID: {}", id, e);
-      throw e;
+      throw new ThriftServiceException("Failed to delete user via Thrift service", "delete", e);
     }
   }
 
@@ -88,7 +89,7 @@ public class UserService {
       return users;
     } catch (Exception e) {
       log.error("Failed to list users via Thrift", e);
-      throw e;
+      throw new ThriftServiceException("Failed to list users via Thrift service", "list", e);
     }
   }
 
@@ -100,7 +101,7 @@ public class UserService {
       return users;
     } catch (Exception e) {
       log.error("Failed to list users with pagination via Thrift - page: {}, size: {}", page, size, e);
-      throw e;
+      throw new ThriftServiceException("Failed to list users with pagination via Thrift service", "listPaged", e);
     }
   }
 
@@ -112,7 +113,7 @@ public class UserService {
       return count;
     } catch (Exception e) {
       log.error("Failed to count users via Thrift", e);
-      throw e;
+      throw new ThriftServiceException("Failed to count users via Thrift service", "count", e);
     }
   }
 }

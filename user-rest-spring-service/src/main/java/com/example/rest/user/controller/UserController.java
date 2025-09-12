@@ -9,7 +9,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.List;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -51,14 +50,9 @@ public class UserController {
       content = @Content(schema = @Schema(implementation = String.class)))
   public ResponseEntity<String> ping() {
     log.info("Health check ping requested");
-    try {
-      String response = userService.ping();
-      log.info("Health check ping successful, response: {}", response);
-      return ResponseEntity.ok(response);
-    } catch (Exception e) {
-      log.error("Health check ping failed", e);
-      throw e;
-    }
+    String response = userService.ping();
+    log.info("Health check ping successful, response: {}", response);
+    return ResponseEntity.ok(response);
   }
 
   /** Create user via Thrift server. */
@@ -70,21 +64,17 @@ public class UserController {
       content = @Content(schema = @Schema(implementation = UserResponse.class)))
   public ResponseEntity<UserResponse> create(@RequestBody @Validated UserRequest request) {
     log.info("Creating new user with name: {}", request.getName());
-    try {
-      var domainUser = UserMapper.toDomainFromRequest(request, null);
-      log.debug("Mapped request to domain user: {}", domainUser);
-      
-      var created = userService.create(domainUser);
-      log.info("User created successfully with ID: {}", created.getId());
-      
-      var response = UserMapper.toResponse(created);
-      log.debug("Mapped domain user to response: {}", response);
-      
-      return ResponseEntity.ok(response);
-    } catch (Exception e) {
-      log.error("Failed to create user with name: {}", request.getName(), e);
-      throw e;
-    }
+    
+    var domainUser = UserMapper.toDomainFromRequest(request, null);
+    log.debug("Mapped request to domain user: {}", domainUser);
+    
+    var created = userService.create(domainUser);
+    log.info("User created successfully with ID: {}", created.getId());
+    
+    var response = UserMapper.toResponse(created);
+    log.debug("Mapped domain user to response: {}", response);
+    
+    return ResponseEntity.ok(response);
   }
 
   @GetMapping("/{id}")
@@ -96,23 +86,19 @@ public class UserController {
   @ApiResponse(responseCode = "404", description = "Not Found")
   public ResponseEntity<UserResponse> get(@PathVariable @Parameter(description = "User id") String id) {
     log.info("Retrieving user with ID: {}", id);
-    try {
-      return userService
-          .getById(id)
-          .map(user -> {
-            log.debug("User found: {}", user);
-            var response = UserMapper.toResponse(user);
-            log.info("User retrieved successfully with ID: {}", id);
-            return ResponseEntity.ok(response);
-          })
-          .orElseGet(() -> {
-            log.warn("User not found with ID: {}", id);
-            return ResponseEntity.notFound().build();
-          });
-    } catch (Exception e) {
-      log.error("Failed to retrieve user with ID: {}", id, e);
-      throw e;
-    }
+    
+    return userService
+        .getById(id)
+        .map(user -> {
+          log.debug("User found: {}", user);
+          var response = UserMapper.toResponse(user);
+          log.info("User retrieved successfully with ID: {}", id);
+          return ResponseEntity.ok(response);
+        })
+        .orElseGet(() -> {
+          log.warn("User not found with ID: {}", id);
+          return ResponseEntity.notFound().build();
+        });
   }
 
   @PutMapping("/{id}")
@@ -126,21 +112,17 @@ public class UserController {
       @PathVariable @Parameter(description = "User id") String id,
       @RequestBody @Validated UserRequest request) {
     log.info("Updating user with ID: {} and name: {}", id, request.getName());
-    try {
-      var domainUser = UserMapper.toDomainFromRequest(request, id);
-      log.debug("Mapped request to domain user: {}", domainUser);
-      
-      var updated = userService.update(domainUser);
-      log.info("User updated successfully with ID: {}", id);
-      
-      var response = UserMapper.toResponse(updated);
-      log.debug("Mapped domain user to response: {}", response);
-      
-      return ResponseEntity.ok(response);
-    } catch (Exception e) {
-      log.error("Failed to update user with ID: {} and name: {}", id, request.getName(), e);
-      throw e;
-    }
+    
+    var domainUser = UserMapper.toDomainFromRequest(request, id);
+    log.debug("Mapped request to domain user: {}", domainUser);
+    
+    var updated = userService.update(domainUser);
+    log.info("User updated successfully with ID: {}", id);
+    
+    var response = UserMapper.toResponse(updated);
+    log.debug("Mapped domain user to response: {}", response);
+    
+    return ResponseEntity.ok(response);
   }
 
   @DeleteMapping("/{id}")
@@ -148,14 +130,10 @@ public class UserController {
   @ApiResponse(responseCode = "204", description = "Deleted")
   public ResponseEntity<Void> delete(@PathVariable @Parameter(description = "User id") String id) {
     log.info("Deleting user with ID: {}", id);
-    try {
-      userService.delete(id);
-      log.info("User deleted successfully with ID: {}", id);
-      return ResponseEntity.noContent().build();
-    } catch (Exception e) {
-      log.error("Failed to delete user with ID: {}", id, e);
-      throw e;
-    }
+    
+    userService.delete(id);
+    log.info("User deleted successfully with ID: {}", id);
+    return ResponseEntity.noContent().build();
   }
 
   @GetMapping
@@ -169,31 +147,27 @@ public class UserController {
       @Parameter(description = "Zero-based page index") @RequestParam(defaultValue = "0") int page,
       @Parameter(description = "Page size") @RequestParam(defaultValue = "20") int size) {
     log.info("Listing users with pagination - page: {}, size: {}", page, size);
-    try {
-      var users = userService.listPaged(page, size);
-      var total = userService.count();
-      var totalPages = (int) Math.ceil((double) total / (double) size);
-      log.debug("Retrieved {} users from service, total: {}", users.size(), total);
-      
-      var items = users.stream().map(user -> {
-        log.debug("Mapping user to response: {}", user);
-        return UserMapper.toResponse(user);
-      }).toList();
-      
-      var body = UserPageResponse.builder()
-          .items(items)
-          .page(page)
-          .size(size)
-          .total(total)
-          .totalPages(totalPages)
-          .build();
-      
-      log.info("Successfully listed {} users for page: {}, size: {}, total: {}, totalPages: {}",
-               items.size(), page, size, total, totalPages);
-      return ResponseEntity.ok(body);
-    } catch (Exception e) {
-      log.error("Failed to list users with pagination - page: {}, size: {}", page, size, e);
-      throw e;
-    }
+    
+    var users = userService.listPaged(page, size);
+    var total = userService.count();
+    var totalPages = (int) Math.ceil((double) total / (double) size);
+    log.debug("Retrieved {} users from service, total: {}", users.size(), total);
+    
+    var items = users.stream().map(user -> {
+      log.debug("Mapping user to response: {}", user);
+      return UserMapper.toResponse(user);
+    }).toList();
+    
+    var body = UserPageResponse.builder()
+        .items(items)
+        .page(page)
+        .size(size)
+        .total(total)
+        .totalPages(totalPages)
+        .build();
+    
+    log.info("Successfully listed {} users for page: {}, size: {}, total: {}, totalPages: {}",
+             items.size(), page, size, total, totalPages);
+    return ResponseEntity.ok(body);
   }
 }
