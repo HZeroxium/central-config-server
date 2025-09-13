@@ -1,18 +1,80 @@
 server:
-  port: ${SERVER_PORT:8083}
+  port: 8083
 
+spring:
+  application:
+    name: user-rest-spring-service
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:default}
+
+# Thrift client configuration
+thrift:
+  host: ${THRIFT_HOST:localhost}
+  port: ${THRIFT_PORT:9090}
+  timeout: 5000
+  retry-attempts: 3
+
+# Application configuration
+app:
+  name: user-rest-spring-service
+  version: 1.0.0
+  environment: ${ENVIRONMENT:development}
+
+# Management and monitoring configuration
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,prometheus
+        include: health,info,prometheus,metrics,env,beans,configprops,loggers,threaddump,heapdump
   endpoint:
     health:
       show-details: when_authorized
+      show-components: always
+    prometheus:
+      enabled: true
+    metrics:
+      enabled: true
   metrics:
     tags:
       application: user-rest-spring-service
+      service: user-rest-spring-service
+      environment: ${ENVIRONMENT:development}
+    export:
+      prometheus:
+        enabled: true
+        step: 10s
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+        http.client.requests: true
+      percentiles:
+        http.server.requests: 0.5, 0.9, 0.95, 0.99
+        http.client.requests: 0.5, 0.9, 0.95, 0.99
+      slo:
+        http.server.requests: 50ms, 100ms, 200ms, 500ms, 1s, 2s, 5s
+        http.client.requests: 50ms, 100ms, 200ms, 500ms, 1s, 2s, 5s
+  tracing:
+    sampling:
+      probability: 1.0
+    zipkin:
+      endpoint: http://zipkin:9411/api/v2/spans
 
-thrift:
-  host: ${THRIFT_HOST:localhost}
-  port: ${THRIFT_PORT:9090}
+# Logging configuration
+logging:
+  level:
+    com.example.rest: DEBUG
+    com.example.user: DEBUG
+    org.springframework.web: DEBUG
+    org.apache.thrift: DEBUG
+    io.micrometer: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId:-},%X{spanId:-}] %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId:-},%X{spanId:-}] %logger{36} - %msg%n"
+  file:
+    name: /app/logs/user-rest-service.log
+  logback:
+    rollingpolicy:
+      file-name-pattern: /app/logs/user-rest-service-%d{yyyy-MM-dd}-%i.log.gz
+      max-file-size: 100MB
+      max-history: 30
+      total-size-cap: 3GB

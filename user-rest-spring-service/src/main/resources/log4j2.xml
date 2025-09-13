@@ -1,5 +1,5 @@
-<!-- user-rest-spring-service/src/main/resources/log4j2.xml -->
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- user-rest-spring-service/src/main/resources/log4j2.xml -->
 <Configuration status="WARN" monitorInterval="30">
   <Properties>
     <Property name="LOG_PATTERN">%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n</Property>
@@ -25,8 +25,9 @@
 
     <!-- File Appender for persistent logging (normal logs) -->
     <RollingFile name="FileAppender"
-                 fileName="logs/user-rest-service.log"
-                 filePattern="logs/user-rest-service-%d{yyyy-MM-dd}-%i.log.gz">
+                 fileName="/app/logs/user-rest-service.log"
+                 filePattern="/app/logs/user-rest-service-%d{yyyy-MM-dd}-%i.log.gz"
+                 immediateFlush="true" append="true">
       <PatternLayout pattern="${LOG_PATTERN}"/>
       <Policies>
         <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
@@ -37,8 +38,9 @@
 
     <!-- Error File Appender for ERROR and FATAL logs -->
     <RollingFile name="ErrorFileAppender"
-                 fileName="logs/user-rest-service-error.log"
-                 filePattern="logs/user-rest-service-error-%d{yyyy-MM-dd}-%i.log.gz">
+                 fileName="/app/logs/user-rest-service-error.log"
+                 filePattern="/app/logs/user-rest-service-error-%d{yyyy-MM-dd}-%i.log.gz"
+                 immediateFlush="true" append="true">
       <PatternLayout pattern="${LOG_PATTERN}"/>
       <ThresholdFilter level="ERROR" onMatch="ACCEPT" onMismatch="DENY"/>
       <Policies>

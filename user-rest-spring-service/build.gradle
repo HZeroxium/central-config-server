@@ -32,9 +32,16 @@ dependencies {
     implementation 'io.github.resilience4j:resilience4j-retry:2.2.0'
     implementation 'io.github.resilience4j:resilience4j-timelimiter:2.2.0'
 
-    // Micrometer for metrics
+    // Micrometer for metrics and profiling
     implementation 'io.micrometer:micrometer-core'
     implementation 'io.micrometer:micrometer-registry-prometheus'
+    implementation 'io.micrometer:micrometer-tracing-bridge-brave'
+    implementation 'io.zipkin.brave:brave'
+    implementation 'io.zipkin.reporter2:zipkin-reporter-brave'
+    
+    // AOP for method-level profiling
+    implementation 'org.springframework:spring-aop'
+    implementation 'org.aspectj:aspectjweaver'
 
     // OpenAPI/Swagger UI for Spring Boot 3
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0'
@@ -83,4 +90,3 @@ tasks.register('buildDocker', Exec) {
         println "Building Docker image for user-rest-spring-service..."
     }
 }
-
