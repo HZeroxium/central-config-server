@@ -5,18 +5,9 @@ plugins {
     id 'io.spring.dependency-management' version '1.1.6'
 }
 
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
-    }
-}
-
+// Inherit from parent project
 group = 'com.example'
 version = '1.0.0'
-
-repositories {
-    mavenCentral()
-}
 
 configurations.all {
     exclude group: 'ch.qos.logback', module: 'logback-classic'
@@ -25,6 +16,9 @@ configurations.all {
 }
 
 dependencies {
+    // Shared Thrift definitions
+    implementation project(':shared-thrift-definitions')
+    
     implementation('org.springframework.boot:spring-boot-starter-web') {
         exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
     }
@@ -34,18 +28,20 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-log4j2'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
 
+    // Resilience4j for circuit breaker, retry, timeout
+    implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.2.0'
+    implementation 'io.github.resilience4j:resilience4j-circuitbreaker:2.2.0'
+    implementation 'io.github.resilience4j:resilience4j-retry:2.2.0'
+    implementation 'io.github.resilience4j:resilience4j-timelimiter:2.2.0'
+
+    // Micrometer for metrics
+    implementation 'io.micrometer:micrometer-core'
+    implementation 'io.micrometer:micrometer-registry-prometheus'
+
     // OpenAPI/Swagger UI for Spring Boot 3
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0'
 
-    compileOnly 'org.projectlombok:lombok:1.18.32'
-    annotationProcessor 'org.projectlombok:lombok:1.18.32'
-
     runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
-
-    implementation 'org.apache.thrift:libthrift:0.22.0'
-    // For @javax.annotation.Generated used by Thrift 0.22.x generated sources
-    compileOnly 'javax.annotation:javax.annotation-api:1.3.2'
-
     runtimeOnly 'com.h2database:h2:2.3.232'
 
     testImplementation('org.springframework.boot:spring-boot-starter-test') {
@@ -61,14 +57,10 @@ configurations.all {
     }
 }
 
+// Source sets configuration - no longer need Thrift generation here
 sourceSets {
     main {
-        java {
-            srcDirs = [
-                    'src/main/java',
-                    'build/generated-sources/thrift'
-            ]
-        }
+        java.srcDirs = ['src/main/java']
         resources.srcDirs = ['src/main/resources']
     }
     test {
@@ -77,38 +69,10 @@ sourceSets {
     }
 }
 
-tasks.withType(Test).configureEach {
-    useJUnitPlatform()
-}
-
-ext {
-    thriftVersion = '0.22.0'
-}
-
-def thriftSrcDir = file('src/main/thrift')
-
-tasks.register('generateThrift') {
-    inputs.dir(thriftSrcDir)
-    outputs.dir(file('build/generated-sources/thrift'))
-    doLast {
-        def outDir = file('build/generated-sources/thrift')
-        outDir.mkdirs()
-        if (thriftSrcDir.exists()) {
-            thriftSrcDir.eachFileRecurse { f ->
-                if (f.isFile() && f.name.endsWith('.thrift')) {
-                    exec {
-                        executable 'thrift'
-                        args '-r', '--gen', 'java', '-out', outDir.absolutePath, f.absolutePath
-                    }
-                }
-            }
-        }
-    }
-}
-
+// Compile Java configuration
 compileJava {
-    dependsOn tasks.named('generateThrift')
     options.encoding = 'UTF-8'
+    dependsOn ':shared-thrift-definitions:generateThrift'
 }
 
 bootJar {

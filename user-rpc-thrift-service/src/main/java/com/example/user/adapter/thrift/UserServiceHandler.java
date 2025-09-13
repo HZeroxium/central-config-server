@@ -5,7 +5,10 @@ import com.example.user.service.port.UserServicePort;
 import com.example.user.thrift.TUser;
 import com.example.user.thrift.UserService;
 import com.example.user.thrift.TPagedUsers;
+import com.example.user.exception.DatabaseException;
+import com.example.user.exception.UserServiceException;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.thrift.TException;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -49,20 +52,23 @@ public class UserServiceHandler implements UserService.Iface {
   }
 
   @Override
-  public String ping() {
+  public String ping() throws TException {
     log.debug("Thrift ping request received");
     try {
       String response = userService.ping();
       log.debug("Thrift ping response: {}", response);
       return response;
+    } catch (UserServiceException e) {
+      log.error("Thrift ping failed: {}", e.getMessage(), e);
+      throw new TException("Service ping failed: " + e.getMessage(), e);
     } catch (Exception e) {
-      log.error("Thrift ping failed", e);
-      throw e;
+      log.error("Unexpected error during Thrift ping", e);
+      throw new TException("Unexpected error during ping: " + e.getMessage(), e);
     }
   }
 
   @Override
-  public TUser createUser(TUser user) {
+  public TUser createUser(TUser user) throws TException {
     log.debug("Thrift createUser request received: {}", user);
     try {
       User domainUser = toDomain(user);
@@ -74,14 +80,20 @@ public class UserServiceHandler implements UserService.Iface {
       TUser thriftUser = toThrift(created);
       log.debug("Mapped domain user to Thrift user: {}", thriftUser);
       return thriftUser;
+    } catch (DatabaseException e) {
+      log.error("Database error during user creation: {}", e.getMessage(), e);
+      throw new TException("Database error during user creation: " + e.getMessage(), e);
+    } catch (UserServiceException e) {
+      log.error("Service error during user creation: {}", e.getMessage(), e);
+      throw new TException("Service error during user creation: " + e.getMessage(), e);
     } catch (Exception e) {
-      log.error("Thrift createUser failed: {}", user, e);
-      throw e;
+      log.error("Unexpected error during user creation: {}", e.getMessage(), e);
+      throw new TException("Unexpected error during user creation: " + e.getMessage(), e);
     }
   }
 
   @Override
-  public TUser getUser(String id) {
+  public TUser getUser(String id) throws TException {
     log.debug("Thrift getUser request received for ID: {}", id);
     try {
       return userService.getById(id)
@@ -95,14 +107,20 @@ public class UserServiceHandler implements UserService.Iface {
             log.debug("User not found via Thrift for ID: {}", id);
             return null;
           });
+    } catch (DatabaseException e) {
+      log.error("Database error during user retrieval: {}", e.getMessage(), e);
+      throw new TException("Database error during user retrieval: " + e.getMessage(), e);
+    } catch (UserServiceException e) {
+      log.error("Service error during user retrieval: {}", e.getMessage(), e);
+      throw new TException("Service error during user retrieval: " + e.getMessage(), e);
     } catch (Exception e) {
-      log.error("Thrift getUser failed for ID: {}", id, e);
-      throw e;
+      log.error("Unexpected error during user retrieval: {}", e.getMessage(), e);
+      throw new TException("Unexpected error during user retrieval: " + e.getMessage(), e);
     }
   }
 
   @Override
-  public TUser updateUser(TUser user) {
+  public TUser updateUser(TUser user) throws TException {
     log.debug("Thrift updateUser request received: {}", user);
     try {
       User domainUser = toDomain(user);
@@ -114,26 +132,38 @@ public class UserServiceHandler implements UserService.Iface {
       TUser thriftUser = toThrift(updated);
       log.debug("Mapped domain user to Thrift user: {}", thriftUser);
       return thriftUser;
+    } catch (DatabaseException e) {
+      log.error("Database error during user update: {}", e.getMessage(), e);
+      throw new TException("Database error during user update: " + e.getMessage(), e);
+    } catch (UserServiceException e) {
+      log.error("Service error during user update: {}", e.getMessage(), e);
+      throw new TException("Service error during user update: " + e.getMessage(), e);
     } catch (Exception e) {
-      log.error("Thrift updateUser failed: {}", user, e);
-      throw e;
+      log.error("Unexpected error during user update: {}", e.getMessage(), e);
+      throw new TException("Unexpected error during user update: " + e.getMessage(), e);
     }
   }
 
   @Override
-  public void deleteUser(String id) {
+  public void deleteUser(String id) throws TException {
     log.debug("Thrift deleteUser request received for ID: {}", id);
     try {
       userService.delete(id);
       log.info("User deleted via Thrift with ID: {}", id);
+    } catch (DatabaseException e) {
+      log.error("Database error during user deletion: {}", e.getMessage(), e);
+      throw new TException("Database error during user deletion: " + e.getMessage(), e);
+    } catch (UserServiceException e) {
+      log.error("Service error during user deletion: {}", e.getMessage(), e);
+      throw new TException("Service error during user deletion: " + e.getMessage(), e);
     } catch (Exception e) {
-      log.error("Thrift deleteUser failed for ID: {}", id, e);
-      throw e;
+      log.error("Unexpected error during user deletion: {}", e.getMessage(), e);
+      throw new TException("Unexpected error during user deletion: " + e.getMessage(), e);
     }
   }
 
   @Override
-  public TPagedUsers listUsers(int page, int size) {
+  public TPagedUsers listUsers(int page, int size) throws TException {
     log.debug("Thrift listUsers request received - page: {}, size: {}", page, size);
     try {
       List<User> users = userService.listPaged(page, size);
@@ -160,9 +190,15 @@ public class UserServiceHandler implements UserService.Iface {
       log.debug("Thrift listUsers response - items: {}, page: {}, size: {}, total: {}, totalPages: {}", 
                 thriftUsers.size(), page, size, total, totalPages);
       return res;
+    } catch (DatabaseException e) {
+      log.error("Database error during user listing: {}", e.getMessage(), e);
+      throw new TException("Database error during user listing: " + e.getMessage(), e);
+    } catch (UserServiceException e) {
+      log.error("Service error during user listing: {}", e.getMessage(), e);
+      throw new TException("Service error during user listing: " + e.getMessage(), e);
     } catch (Exception e) {
-      log.error("Thrift listUsers failed - page: {}, size: {}", page, size, e);
-      throw e;
+      log.error("Unexpected error during user listing: {}", e.getMessage(), e);
+      throw new TException("Unexpected error during user listing: " + e.getMessage(), e);
     }
   }
 }

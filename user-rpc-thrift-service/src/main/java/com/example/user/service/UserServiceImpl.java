@@ -3,6 +3,8 @@ package com.example.user.service;
 import com.example.user.domain.User;
 import com.example.user.service.port.UserRepositoryPort;
 import com.example.user.service.port.UserServicePort;
+import com.example.user.exception.DatabaseException;
+import com.example.user.exception.UserNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -45,7 +47,7 @@ public class UserServiceImpl implements UserServicePort {
       return created;
     } catch (Exception e) {
       log.error("Failed to create user: {}", user, e);
-      throw e;
+      throw new DatabaseException("Failed to create user in database", "create", e);
     }
   }
 
@@ -63,7 +65,7 @@ public class UserServiceImpl implements UserServicePort {
       return user;
     } catch (Exception e) {
       log.error("Failed to retrieve user from repository for ID: {}", id, e);
-      throw e;
+      throw new DatabaseException("Failed to retrieve user from database", "getById", e);
     }
   }
 
@@ -77,7 +79,7 @@ public class UserServiceImpl implements UserServicePort {
       return updated;
     } catch (Exception e) {
       log.error("Failed to update user in repository: {}", user, e);
-      throw e;
+      throw new DatabaseException("Failed to update user in database", "update", e);
     }
   }
 
@@ -90,7 +92,7 @@ public class UserServiceImpl implements UserServicePort {
       log.info("User deleted successfully with ID: {}", id);
     } catch (Exception e) {
       log.error("Failed to delete user from repository for ID: {}", id, e);
-      throw e;
+      throw new DatabaseException("Failed to delete user from database", "delete", e);
     }
   }
 
@@ -104,7 +106,7 @@ public class UserServiceImpl implements UserServicePort {
       return users;
     } catch (Exception e) {
       log.error("Failed to list users from repository", e);
-      throw e;
+      throw new DatabaseException("Failed to list users from database", "list", e);
     }
   }
 
@@ -118,7 +120,7 @@ public class UserServiceImpl implements UserServicePort {
       return users;
     } catch (Exception e) {
       log.error("Failed to list users with pagination from repository - page: {}, size: {}", page, size, e);
-      throw e;
+      throw new DatabaseException("Failed to list users with pagination from database", "listPaged", e);
     }
   }
 
@@ -132,7 +134,7 @@ public class UserServiceImpl implements UserServicePort {
       return count;
     } catch (Exception e) {
       log.error("Failed to count users in repository", e);
-      throw e;
+      throw new DatabaseException("Failed to count users in database", "count", e);
     }
   }
 }

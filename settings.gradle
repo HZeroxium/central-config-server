@@ -1,0 +1,11 @@
+rootProject.name = 'thrift-demo'
+
+// Include all modules
+include 'shared-thrift-definitions'
+include 'user-rpc-thrift-service'
+include 'user-rest-spring-service'
+
+// Configure project directories
+project(':shared-thrift-definitions').projectDir = file('shared-thrift-definitions')
+project(':user-rpc-thrift-service').projectDir = file('user-rpc-thrift-service')
+project(':user-rest-spring-service').projectDir = file('user-rest-spring-service')

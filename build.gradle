@@ -1,0 +1,94 @@
+// Root build.gradle for multi-module project
+plugins {
+    id 'java'
+    id 'idea'
+    id 'org.springframework.boot' version '3.3.13' apply false
+    id 'io.spring.dependency-management' version '1.1.6' apply false
+}
+
+// Common configuration for all subprojects
+allprojects {
+    group = 'com.example'
+    version = '1.0.0'
+    
+    repositories {
+        mavenCentral()
+    }
+    
+    // Common Java configuration
+    plugins.withType(JavaPlugin) {
+        java {
+            toolchain {
+                languageVersion = JavaLanguageVersion.of(21)
+            }
+        }
+    }
+}
+
+// Configuration for all subprojects
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'idea'
+    
+    // Common dependencies
+    dependencies {
+        // Thrift dependencies
+        implementation 'org.apache.thrift:libthrift:0.22.0'
+        compileOnly 'javax.annotation:javax.annotation-api:1.3.2'
+        
+        // Lombok
+        compileOnly 'org.projectlombok:lombok:1.18.32'
+        annotationProcessor 'org.projectlombok:lombok:1.18.32'
+        
+        // Test dependencies
+        testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
+        testImplementation 'org.mockito:mockito-core:5.12.0'
+    }
+    
+    // Common test configuration
+    tasks.withType(Test).configureEach {
+        useJUnitPlatform()
+    }
+    
+    // Common source sets
+    sourceSets {
+        main {
+            java.srcDirs = ['src/main/java']
+            resources.srcDirs = ['src/main/resources']
+        }
+        test {
+            java.srcDirs = ['src/test/java']
+            resources.srcDirs = ['src/test/resources']
+        }
+    }
+}
+
+// Thrift version configuration
+ext {
+    thriftVersion = '0.22.0'
+}
+
+// Task to build all modules
+task buildAll {
+    group = 'build'
+    description = 'Build all modules'
+    dependsOn ':shared-thrift-definitions:build'
+    dependsOn ':user-rpc-thrift-service:build'
+    dependsOn ':user-rest-spring-service:build'
+}
+
+// Task to clean all modules
+task cleanAll {
+    group = 'build'
+    description = 'Clean all modules'
+    dependsOn ':shared-thrift-definitions:clean'
+    dependsOn ':user-rpc-thrift-service:clean'
+    dependsOn ':user-rest-spring-service:clean'
+}
+
+// Task to generate Thrift for all modules
+task generateThriftAll {
+    group = 'thrift'
+    description = 'Generate Thrift classes for all modules'
+    dependsOn ':shared-thrift-definitions:generateThrift'
+}
