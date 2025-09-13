@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import com.example.rest.user.domain.User;
 import com.example.rest.user.port.ThriftUserClientPort;
 import com.example.rest.exception.ThriftServiceException;
+import com.example.rest.exception.UserNotFoundException;
 
 @Slf4j
 @Service
@@ -54,6 +55,10 @@ public class UserService {
       return user;
     } catch (Exception e) {
       log.error("Failed to retrieve user via Thrift for ID: {}", id, e);
+      // Check if it's a user not found scenario
+      if (e.getMessage() != null && e.getMessage().contains("not found")) {
+        throw new UserNotFoundException(id, "Thrift service");
+      }
       throw new ThriftServiceException("Failed to retrieve user via Thrift service", "getById", e);
     }
   }

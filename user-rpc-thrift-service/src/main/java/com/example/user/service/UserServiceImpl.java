@@ -4,7 +4,6 @@ import com.example.user.domain.User;
 import com.example.user.service.port.UserRepositoryPort;
 import com.example.user.service.port.UserServicePort;
 import com.example.user.exception.DatabaseException;
-import com.example.user.exception.UserNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

@@ -9,7 +9,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -22,11 +21,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.example.rest.user.dto.UserRequest;
-import com.example.rest.user.dto.UserResponse;
-import com.example.rest.user.dto.UserPageResponse;
+import com.example.rest.user.dto.*;
 import com.example.rest.user.mapper.UserMapper;
 import com.example.rest.user.service.UserService;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
 
 /**
  * REST facade acting as a Thrift client. Accepts {@link com.example.rest.user.dto.UserRequest}
@@ -61,19 +61,26 @@ public class UserController {
   @ApiResponse(
       responseCode = "200",
       description = "Created",
-      content = @Content(schema = @Schema(implementation = UserResponse.class)))
-  public ResponseEntity<UserResponse> create(@RequestBody @Validated UserRequest request) {
+      content = @Content(schema = @Schema(implementation = CreateUserResponse.class)))
+  public ResponseEntity<CreateUserResponse> create(@RequestBody @Validated CreateUserRequest request) {
     log.info("Creating new user with name: {}", request.getName());
     
-    var domainUser = UserMapper.toDomainFromRequest(request, null);
+    var domainUser = UserMapper.toDomainFromCreateRequest(request);
     log.debug("Mapped request to domain user: {}", domainUser);
     
     var created = userService.create(domainUser);
     log.info("User created successfully with ID: {}", created.getId());
     
-    var response = UserMapper.toResponse(created);
-    log.debug("Mapped domain user to response: {}", response);
+    var userResponse = UserMapper.toResponse(created);
+    var response = CreateUserResponse.builder()
+        .status(StatusCode.SUCCESS)
+        .message("User created successfully")
+        .user(userResponse)
+        .timestamp(LocalDateTime.now())
+        .correlationId(UUID.randomUUID().toString())
+        .build();
     
+    log.debug("Mapped domain user to response: {}", response);
     return ResponseEntity.ok(response);
   }
 
@@ -82,22 +89,36 @@ public class UserController {
   @ApiResponse(
       responseCode = "200",
       description = "Found",
-      content = @Content(schema = @Schema(implementation = UserResponse.class)))
+      content = @Content(schema = @Schema(implementation = GetUserResponse.class)))
   @ApiResponse(responseCode = "404", description = "Not Found")
-  public ResponseEntity<UserResponse> get(@PathVariable @Parameter(description = "User id") String id) {
+  public ResponseEntity<GetUserResponse> get(@PathVariable @Parameter(description = "User id") String id) {
     log.info("Retrieving user with ID: {}", id);
     
     return userService
         .getById(id)
         .map(user -> {
           log.debug("User found: {}", user);
-          var response = UserMapper.toResponse(user);
+          var userResponse = UserMapper.toResponse(user);
+          var response = GetUserResponse.builder()
+              .status(StatusCode.SUCCESS)
+              .message("User retrieved successfully")
+              .user(userResponse)
+              .timestamp(LocalDateTime.now())
+              .correlationId(UUID.randomUUID().toString())
+              .build();
           log.info("User retrieved successfully with ID: {}", id);
           return ResponseEntity.ok(response);
         })
         .orElseGet(() -> {
           log.warn("User not found with ID: {}", id);
-          return ResponseEntity.notFound().build();
+          var response = GetUserResponse.builder()
+              .status(StatusCode.USER_NOT_FOUND)
+              .message("User not found")
+              .user(null)
+              .timestamp(LocalDateTime.now())
+              .correlationId(UUID.randomUUID().toString())
+              .build();
+          return ResponseEntity.status(StatusCode.getHttpStatus(StatusCode.USER_NOT_FOUND)).body(response);
         });
   }
 
@@ -106,34 +127,81 @@ public class UserController {
   @ApiResponse(
       responseCode = "200",
       description = "Updated",
-      content = @Content(schema = @Schema(implementation = UserResponse.class)))
+      content = @Content(schema = @Schema(implementation = UpdateUserResponse.class)))
+  @ApiResponse(responseCode = "404", description = "Not Found")
   /** Update user via Thrift server. */
-  public ResponseEntity<UserResponse> update(
+  public ResponseEntity<UpdateUserResponse> update(
       @PathVariable @Parameter(description = "User id") String id,
-      @RequestBody @Validated UserRequest request) {
+      @RequestBody @Validated UpdateUserRequest request) {
     log.info("Updating user with ID: {} and name: {}", id, request.getName());
     
-    var domainUser = UserMapper.toDomainFromRequest(request, id);
+    // Check if user exists first
+    var existingUser = userService.getById(id);
+    if (existingUser.isEmpty()) {
+      log.warn("User not found for update with ID: {}", id);
+      var response = UpdateUserResponse.builder()
+          .status(StatusCode.USER_NOT_FOUND)
+          .message("User not found")
+          .user(null)
+          .timestamp(LocalDateTime.now())
+          .correlationId(UUID.randomUUID().toString())
+          .build();
+      return ResponseEntity.status(StatusCode.getHttpStatus(StatusCode.USER_NOT_FOUND)).body(response);
+    }
+    
+    var domainUser = UserMapper.toDomainFromUpdateRequest(request);
     log.debug("Mapped request to domain user: {}", domainUser);
     
     var updated = userService.update(domainUser);
     log.info("User updated successfully with ID: {}", id);
     
-    var response = UserMapper.toResponse(updated);
-    log.debug("Mapped domain user to response: {}", response);
+    var userResponse = UserMapper.toResponse(updated);
+    var response = UpdateUserResponse.builder()
+        .status(StatusCode.SUCCESS)
+        .message("User updated successfully")
+        .user(userResponse)
+        .timestamp(LocalDateTime.now())
+        .correlationId(UUID.randomUUID().toString())
+        .build();
     
+    log.debug("Mapped domain user to response: {}", response);
     return ResponseEntity.ok(response);
   }
 
   @DeleteMapping("/{id}")
   @Operation(summary = "Delete user by id")
-  @ApiResponse(responseCode = "204", description = "Deleted")
-  public ResponseEntity<Void> delete(@PathVariable @Parameter(description = "User id") String id) {
+  @ApiResponse(
+      responseCode = "200",
+      description = "Deleted",
+      content = @Content(schema = @Schema(implementation = DeleteUserResponse.class)))
+  @ApiResponse(responseCode = "404", description = "Not Found")
+  public ResponseEntity<DeleteUserResponse> delete(@PathVariable @Parameter(description = "User id") String id) {
     log.info("Deleting user with ID: {}", id);
+    
+    // Check if user exists first
+    var existingUser = userService.getById(id);
+    if (existingUser.isEmpty()) {
+      log.warn("User not found for deletion with ID: {}", id);
+      var response = DeleteUserResponse.builder()
+          .status(StatusCode.USER_NOT_FOUND)
+          .message("User not found")
+          .timestamp(LocalDateTime.now())
+          .correlationId(UUID.randomUUID().toString())
+          .build();
+      return ResponseEntity.status(StatusCode.getHttpStatus(StatusCode.USER_NOT_FOUND)).body(response);
+    }
     
     userService.delete(id);
     log.info("User deleted successfully with ID: {}", id);
-    return ResponseEntity.noContent().build();
+    
+    var response = DeleteUserResponse.builder()
+        .status(StatusCode.SUCCESS)
+        .message("User deleted successfully")
+        .timestamp(LocalDateTime.now())
+        .correlationId(UUID.randomUUID().toString())
+        .build();
+    
+    return ResponseEntity.ok(response);
   }
 
   @GetMapping
@@ -141,9 +209,9 @@ public class UserController {
   @ApiResponse(
       responseCode = "200",
       description = "OK",
-      content = @Content(schema = @Schema(implementation = UserPageResponse.class)))
+      content = @Content(schema = @Schema(implementation = ListUsersResponse.class)))
   /** List users via Thrift server with pagination support. */
-  public ResponseEntity<UserPageResponse> list(
+  public ResponseEntity<ListUsersResponse> list(
       @Parameter(description = "Zero-based page index") @RequestParam(defaultValue = "0") int page,
       @Parameter(description = "Page size") @RequestParam(defaultValue = "20") int size) {
     log.info("Listing users with pagination - page: {}, size: {}", page, size);
@@ -158,16 +226,20 @@ public class UserController {
       return UserMapper.toResponse(user);
     }).toList();
     
-    var body = UserPageResponse.builder()
+    var response = ListUsersResponse.builder()
+        .status(StatusCode.SUCCESS)
+        .message("Users retrieved successfully")
         .items(items)
         .page(page)
         .size(size)
         .total(total)
         .totalPages(totalPages)
+        .timestamp(LocalDateTime.now())
+        .correlationId(UUID.randomUUID().toString())
         .build();
     
     log.info("Successfully listed {} users for page: {}, size: {}, total: {}, totalPages: {}",
              items.size(), page, size, total, totalPages);
-    return ResponseEntity.ok(body);
+    return ResponseEntity.ok(response);
   }
 }

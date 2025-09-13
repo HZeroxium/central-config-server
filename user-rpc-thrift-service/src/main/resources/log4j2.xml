@@ -1,26 +1,32 @@
+<!-- user-rpc-thrift-service/src/main/resources/log4j2.xml -->
 <?xml version="1.0" encoding="UTF-8"?>
 <Configuration status="WARN" monitorInterval="30">
   <Properties>
     <Property name="LOG_PATTERN">%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n</Property>
+    <Property name="LOG_PATTERN_COLOR">%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %highlight{%-5level} %style{%logger{36}}{cyan} - %msg%n</Property>
     <Property name="LOG_PATTERN_JSON">{"timestamp":"%d{yyyy-MM-dd'T'HH:mm:ss.SSS'Z'","level":"%level","logger":"%logger{36}","message":"%message","thread":"%thread","exception":"%ex{full}","service":"user-rpc-thrift-service"}</Property>
   </Properties>
   
   <Appenders>
-    <!-- Console Appender with JSON Layout for structured logging -->
+    <!-- Console Appender with colored output for development -->
     <Console name="Console" target="SYSTEM_OUT">
+      <PatternLayout pattern="${LOG_PATTERN_COLOR}"/>
+    </Console>
+    
+    <!-- Console Appender with JSON Layout for production and Loki -->
+    <Console name="ConsoleJson" target="SYSTEM_ERR">
       <JsonLayout complete="false" compact="true" eventEol="true" stacktraceAsString="true">
         <KeyValuePair key="service" value="user-rpc-thrift-service"/>
         <KeyValuePair key="environment" value="${env:ENVIRONMENT:-dev}"/>
+        <KeyValuePair key="container_id" value="${env:HOSTNAME:-unknown}"/>
+        <KeyValuePair key="log_type" value="application"/>
       </JsonLayout>
     </Console>
     
     <!-- File Appender for persistent logging -->
     <RollingFile name="FileAppender" fileName="logs/user-rpc-service.log"
                  filePattern="logs/user-rpc-service-%d{yyyy-MM-dd}-%i.log.gz">
-      <JsonLayout complete="false" compact="true" eventEol="true" stacktraceAsString="true">
-        <KeyValuePair key="service" value="user-rpc-thrift-service"/>
-        <KeyValuePair key="environment" value="${env:ENVIRONMENT:-dev}"/>
-      </JsonLayout>
+      <PatternLayout pattern="${LOG_PATTERN}"/>
       <Policies>
         <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
         <SizeBasedTriggeringPolicy size="100MB"/>
@@ -31,10 +37,7 @@
     <!-- Error File Appender for ERROR and FATAL logs -->
     <RollingFile name="ErrorFileAppender" fileName="logs/user-rpc-service-error.log"
                  filePattern="logs/user-rpc-service-error-%d{yyyy-MM-dd}-%i.log.gz">
-      <JsonLayout complete="false" compact="true" eventEol="true" stacktraceAsString="true">
-        <KeyValuePair key="service" value="user-rpc-thrift-service"/>
-        <KeyValuePair key="environment" value="${env:ENVIRONMENT:-dev}"/>
-      </JsonLayout>
+      <PatternLayout pattern="${LOG_PATTERN}"/>
       <ThresholdFilter level="ERROR" onMatch="ACCEPT" onMismatch="DENY"/>
       <Policies>
         <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
@@ -85,6 +88,7 @@
     <!-- Root logger -->
     <Root level="INFO">
       <AppenderRef ref="Console"/>
+      <AppenderRef ref="ConsoleJson"/>
       <AppenderRef ref="FileAppender"/>
       <AppenderRef ref="ErrorFileAppender"/>
     </Root>
