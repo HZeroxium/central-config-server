@@ -1,5 +1,6 @@
 package com.example.rest.user.dto;
 
+import com.example.rest.user.domain.User;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -25,4 +26,13 @@ public class UpdateUserRequest {
     @Schema(description = "Address", example = "123 Nguyen Trai, Ha Noi")
     @Size(max = 255, message = "Address must not exceed 255 characters")
     private String address;
+
+    @Schema(description = "User status", example = "ACTIVE")
+    private User.UserStatus status;
+
+    @Schema(description = "User role", example = "USER")
+    private User.UserRole role;
+
+    @Schema(description = "Version for optimistic locking", example = "1")
+    private Integer version;
 }

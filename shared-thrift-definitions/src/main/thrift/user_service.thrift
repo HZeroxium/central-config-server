@@ -1,18 +1,44 @@
 namespace java com.example.user.thrift
 
-// Base User struct
+// Enums
+enum TUserStatus {
+  ACTIVE = 1,
+  INACTIVE = 2,
+  SUSPENDED = 3
+}
+
+enum TUserRole {
+  ADMIN = 1,
+  USER = 2,
+  MODERATOR = 3,
+  GUEST = 4
+}
+
+// Base User struct with audit fields and soft delete
 struct TUser {
   1: string id,
   2: string name,
   3: string phone,
-  4: string address
+  4: string address,
+  5: TUserStatus status = TUserStatus.ACTIVE,
+  6: TUserRole role = TUserRole.USER,
+  7: i64 createdAt,
+  8: string createdBy = "admin",
+  9: i64 updatedAt,
+  10: string updatedBy = "admin",
+  11: i32 version = 1,
+  12: bool deleted = false,
+  13: i64 deletedAt,
+  14: string deletedBy
 }
 
 // Request/Response DTOs
 struct TCreateUserRequest {
   1: string name,
   2: string phone,
-  3: string address
+  3: string address,
+  4: TUserStatus status = TUserStatus.ACTIVE,
+  5: TUserRole role = TUserRole.USER
 }
 
 struct TCreateUserResponse {
@@ -35,7 +61,10 @@ struct TUpdateUserRequest {
   1: string id,
   2: string name,
   3: string phone,
-  4: string address
+  4: string address,
+  5: TUserStatus status,
+  6: TUserRole role,
+  7: i32 version
 }
 
 struct TUpdateUserResponse {
@@ -55,7 +84,17 @@ struct TDeleteUserResponse {
 
 struct TListUsersRequest {
   1: i32 page,
-  2: i32 size
+  2: i32 size,
+  3: string search,
+  4: TUserStatus status,
+  5: TUserRole role,
+  6: string sortBy,
+  7: string sortDir,
+  8: bool includeDeleted,
+  9: i64 createdAfter,
+  10: i64 createdBefore,
+  11: string sortByMultiple,
+  12: string sortDirMultiple
 }
 
 struct TListUsersResponse {

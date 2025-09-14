@@ -1,7 +1,12 @@
 package com.example.rest.user.mapper;
 
 import com.example.rest.user.domain.User;
+import com.example.rest.user.domain.UserQueryCriteria;
 import com.example.rest.user.dto.*;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /** Utility mapping functions between REST DTOs and domain model. */
 public final class UserMapper {
@@ -19,6 +24,16 @@ public final class UserMapper {
         .name(req.getName())
         .phone(req.getPhone())
         .address(req.getAddress())
+        .status(req.getStatus() != null ? req.getStatus() : User.UserStatus.ACTIVE)
+        .role(req.getRole() != null ? req.getRole() : User.UserRole.USER)
+        .createdAt(null) // Will be set by service
+        .createdBy("admin")
+        .updatedAt(null) // Will be set by service
+        .updatedBy("admin")
+        .version(1)
+        .deleted(false)
+        .deletedAt(null)
+        .deletedBy(null)
         .build();
   }
 
@@ -30,9 +45,36 @@ public final class UserMapper {
    */
   public static User toDomainFromUpdateRequest(UpdateUserRequest req) {
     return User.builder()
+        .id(null) // Will be set by service layer
         .name(req.getName())
         .phone(req.getPhone())
         .address(req.getAddress())
+        .build();
+  }
+  
+  /**
+   * Map {@link UpdateUserRequest} to domain {@link User}.
+   *
+   * @param req update request payload
+   * @param id user id
+   * @return domain user
+   */
+  public static User toDomainFromUpdateRequest(UpdateUserRequest req, String id) {
+    return User.builder()
+        .id(id)
+        .name(req.getName())
+        .phone(req.getPhone())
+        .address(req.getAddress())
+        .status(req.getStatus() != null ? req.getStatus() : User.UserStatus.ACTIVE)
+        .role(req.getRole() != null ? req.getRole() : User.UserRole.USER)
+        .createdAt(null) // Will be preserved from existing user
+        .createdBy(null) // Will be preserved from existing user
+        .updatedAt(null) // Will be set by service
+        .updatedBy("admin")
+        .version(req.getVersion() != null ? req.getVersion() : 1)
+        .deleted(false)
+        .deletedAt(null)
+        .deletedBy(null)
         .build();
   }
 
@@ -43,6 +85,67 @@ public final class UserMapper {
         .name(user.getName())
         .phone(user.getPhone())
         .address(user.getAddress())
+        .status(user.getStatus())
+        .role(user.getRole())
+        .createdAt(user.getCreatedAt())
+        .createdBy(user.getCreatedBy())
+        .updatedAt(user.getUpdatedAt())
+        .updatedBy(user.getUpdatedBy())
+        .version(user.getVersion())
+        .build();
+  }
+
+  /**
+   * Set the ID of the user.
+   *
+   * @param user user
+   * @param id id
+   * @return user with id
+   */
+  public static User withId(User user, String id) {
+    return User.builder()
+        .id(id)
+        .name(user.getName())
+        .phone(user.getPhone())
+        .address(user.getAddress())
+        .build();
+  }
+
+  /**
+   * Map {@link ListUsersRequest} to domain {@link UserQueryCriteria}.
+   *
+   * @param req list request payload
+   * @return query criteria
+   */
+  public static UserQueryCriteria toQueryCriteria(ListUsersRequest req) {
+    List<String> sortByMultiple = null;
+    List<String> sortDirMultiple = null;
+    
+    if (req.getSortByMultiple() != null && !req.getSortByMultiple().trim().isEmpty()) {
+      sortByMultiple = Arrays.stream(req.getSortByMultiple().split(","))
+          .map(String::trim)
+          .collect(Collectors.toList());
+    }
+    
+    if (req.getSortDirMultiple() != null && !req.getSortDirMultiple().trim().isEmpty()) {
+      sortDirMultiple = Arrays.stream(req.getSortDirMultiple().split(","))
+          .map(String::trim)
+          .collect(Collectors.toList());
+    }
+    
+    return UserQueryCriteria.builder()
+        .page(req.getPage())
+        .size(req.getSize())
+        .search(req.getSearch())
+        .status(req.getStatus())
+        .role(req.getRole())
+        .includeDeleted(req.getIncludeDeleted())
+        .createdAfter(req.getCreatedAfter())
+        .createdBefore(req.getCreatedBefore())
+        .sortBy(req.getSortBy())
+        .sortDir(req.getSortDir())
+        .sortByMultiple(sortByMultiple)
+        .sortDirMultiple(sortDirMultiple)
         .build();
   }
 }

@@ -82,7 +82,7 @@ public class UserService {
       log.error("Failed to retrieve user via Thrift for ID: {}", id, e);
       // Check if it's a user not found scenario
       if (e.getMessage() != null && e.getMessage().contains("not found")) {
-        throw new UserNotFoundException(id, "Thrift service");
+        throw new UserNotFoundException(id, "Thrift service", e);
       }
       throw new ThriftServiceException("Failed to retrieve user via Thrift service", "getById", e);
     } finally {
@@ -186,6 +186,46 @@ public class UserService {
       throw new ThriftServiceException("Failed to count users via Thrift service", "count", e);
     } finally {
       metrics.recordThriftClientDuration(timer, "count");
+    }
+  }
+
+  @Timed(value = "service.rest.list.by.criteria", description = "Time taken to list users by criteria via Thrift")
+  public List<User> listByCriteria(com.example.rest.user.domain.UserQueryCriteria criteria) {
+    log.debug("Listing users by criteria via Thrift client: {}", criteria);
+    
+    var timer = metrics.startThriftClientTimer();
+    try {
+      metrics.incrementThriftClientRequests("listByCriteria");
+      
+      List<User> users = thriftClient.listByCriteria(criteria);
+      log.debug("Retrieved {} users via Thrift for criteria: {}", users.size(), criteria);
+      return users;
+    } catch (Exception e) {
+      metrics.incrementThriftClientErrors("listByCriteria", e.getClass().getSimpleName());
+      log.error("Failed to list users by criteria via Thrift: {}", criteria, e);
+      throw new ThriftServiceException("Failed to list users by criteria via Thrift service", "listByCriteria", e);
+    } finally {
+      metrics.recordThriftClientDuration(timer, "listByCriteria");
+    }
+  }
+
+  @Timed(value = "service.rest.count.by.criteria", description = "Time taken to count users by criteria via Thrift")
+  public long countByCriteria(com.example.rest.user.domain.UserQueryCriteria criteria) {
+    log.debug("Counting users by criteria via Thrift client: {}", criteria);
+    
+    var timer = metrics.startThriftClientTimer();
+    try {
+      metrics.incrementThriftClientRequests("countByCriteria");
+      
+      long count = thriftClient.countByCriteria(criteria);
+      log.debug("User count by criteria via Thrift: {}", count);
+      return count;
+    } catch (Exception e) {
+      metrics.incrementThriftClientErrors("countByCriteria", e.getClass().getSimpleName());
+      log.error("Failed to count users by criteria via Thrift: {}", criteria, e);
+      throw new ThriftServiceException("Failed to count users by criteria via Thrift service", "countByCriteria", e);
+    } finally {
+      metrics.recordThriftClientDuration(timer, "countByCriteria");
     }
   }
 }

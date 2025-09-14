@@ -19,7 +19,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.rest.user.dto.*;
@@ -200,7 +199,7 @@ public class UserController {
         return ResponseEntity.status(StatusCode.getHttpStatus(StatusCode.USER_NOT_FOUND)).body(response);
       }
       
-      var domainUser = UserMapper.toDomainFromUpdateRequest(request);
+      var domainUser = UserMapper.toDomainFromUpdateRequest(request, id);
       log.debug("Mapped request to domain user: {}", domainUser);
       
       var updated = userService.update(domainUser);
@@ -278,26 +277,28 @@ public class UserController {
   }
 
   @GetMapping
-  @Operation(summary = "List users with pagination")
+  @Operation(summary = "List users with advanced query support")
   @ApiResponse(
       responseCode = "200",
       description = "OK",
       content = @Content(schema = @Schema(implementation = ListUsersResponse.class)))
   @Timed(value = "rest.api.list.users", description = "Time taken to list users")
-  /** List users via Thrift server with pagination support. */
-  public ResponseEntity<ListUsersResponse> list(
-      @Parameter(description = "Zero-based page index") @RequestParam(defaultValue = "0") int page,
-      @Parameter(description = "Page size") @RequestParam(defaultValue = "20") int size) {
-    log.info("Listing users with pagination - page: {}, size: {}", page, size);
+  /** List users via Thrift server with advanced query support. */
+  public ResponseEntity<ListUsersResponse> list(@Validated ListUsersRequest request) {
+    log.info("Listing users with advanced query - {}", request);
     
     var timer = metrics.startRestApiTimer();
     try {
       metrics.incrementRestApiRequests("/users", "GET");
       metrics.incrementUserOperations("list");
       
-      var users = userService.listPaged(page, size);
-      var total = userService.count();
-      var totalPages = (int) Math.ceil((double) total / (double) size);
+      // Convert request to query criteria
+      var criteria = UserMapper.toQueryCriteria(request);
+      log.debug("Converted request to query criteria: {}", criteria);
+      
+      var users = userService.listByCriteria(criteria);
+      var total = userService.countByCriteria(criteria);
+      var totalPages = (int) Math.ceil((double) total / (double) request.getSize());
       log.debug("Retrieved {} users from service, total: {}", users.size(), total);
       
       var items = users.stream().map(user -> {
@@ -309,8 +310,8 @@ public class UserController {
           .status(StatusCode.SUCCESS)
           .message("Users retrieved successfully")
           .items(items)
-          .page(page)
-          .size(size)
+          .page(request.getPage())
+          .size(request.getSize())
           .total(total)
           .totalPages(totalPages)
           .timestamp(LocalDateTime.now())
@@ -318,12 +319,12 @@ public class UserController {
           .build();
       
       log.info("Successfully listed {} users for page: {}, size: {}, total: {}, totalPages: {}",
-               items.size(), page, size, total, totalPages);
+               items.size(), request.getPage(), request.getSize(), total, totalPages);
       return ResponseEntity.ok(response);
     } catch (Exception e) {
       metrics.incrementRestApiErrors("/users", "GET", e.getClass().getSimpleName());
       metrics.incrementUserOperationsErrors("list", e.getClass().getSimpleName());
-      log.error("Failed to list users for page: {}, size: {}", page, size, e);
+      log.error("Failed to list users with criteria: {}", request, e);
       throw e;
     } finally {
       metrics.recordRestApiDuration(timer, "/users", "GET");

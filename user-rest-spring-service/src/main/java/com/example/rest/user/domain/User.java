@@ -8,8 +8,10 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Data
-@Builder
+@Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(name = "User", description = "User resource exposed by REST facade")
@@ -30,4 +32,43 @@ public class User {
   @Schema(description = "Address", example = "123 Nguyen Trai, Ha Noi")
   @Size(max = 255)
   private String address;
+
+  @Schema(description = "User status", example = "ACTIVE")
+  private UserStatus status;
+
+  @Schema(description = "User role", example = "USER")
+  private UserRole role;
+
+  @Schema(description = "Creation timestamp")
+  private LocalDateTime createdAt;
+
+  @Schema(description = "User who created this user", example = "admin")
+  private String createdBy;
+
+  @Schema(description = "Last update timestamp")
+  private LocalDateTime updatedAt;
+
+  @Schema(description = "User who last updated this user", example = "admin")
+  private String updatedBy;
+
+  @Schema(description = "Version for optimistic locking", example = "1")
+  private Integer version;
+
+  @Schema(description = "Soft delete flag", example = "false")
+  private Boolean deleted;
+
+  @Schema(description = "Deletion timestamp")
+  private LocalDateTime deletedAt;
+
+  @Schema(description = "User who deleted this user", example = "admin")
+  private String deletedBy;
+
+  // Enums
+  public enum UserStatus {
+    ACTIVE, INACTIVE, SUSPENDED
+  }
+
+  public enum UserRole {
+    ADMIN, USER, MODERATOR, GUEST
+  }
 }

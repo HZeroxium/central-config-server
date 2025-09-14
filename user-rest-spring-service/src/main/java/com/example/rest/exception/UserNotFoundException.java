@@ -16,4 +16,9 @@ public class UserNotFoundException extends UserServiceException {
         super(ERROR_CODE, String.format("User with ID '%s' not found in context: %s", userId, context), 
               new Object[]{userId, context}, context);
     }
+    
+    public UserNotFoundException(String userId, String context, Throwable cause) {
+        super(ERROR_CODE, String.format("User with ID '%s' not found in context: %s", userId, context), 
+              new Object[]{userId, context}, context, cause);
+    }
 }

@@ -32,11 +32,25 @@ public class ThriftUserClientAdapter implements ThriftUserClientPort {
 
   private UserService.Client client() throws Exception {
     log.debug("Creating Thrift client connection to {}:{}", host, port);
-    TTransport transport = new TSocket(host, port, 5000);
+    TTransport transport = new TSocket(host, port, 10000); // Increased timeout
     transport.open();
     TBinaryProtocol protocol = new TBinaryProtocol(transport);
     log.debug("Thrift client connection established successfully");
     return new UserService.Client(protocol);
+  }
+  
+  private void closeClient(UserService.Client client) {
+    if (client != null && client.getInputProtocol() != null) {
+      try {
+        TTransport transport = client.getInputProtocol().getTransport();
+        if (transport != null && transport.isOpen()) {
+          transport.close();
+          log.debug("Thrift client connection closed successfully");
+        }
+      } catch (Exception e) {
+        log.warn("Failed to close Thrift client connection", e);
+      }
+    }
   }
 
 
@@ -46,14 +60,26 @@ public class ThriftUserClientAdapter implements ThriftUserClientPort {
         .name(t.getName())
         .phone(t.getPhone())
         .address(t.getAddress())
+        .status(t.getStatus() != null ? User.UserStatus.valueOf(t.getStatus().name()) : User.UserStatus.ACTIVE)
+        .role(t.getRole() != null ? User.UserRole.valueOf(t.getRole().name()) : User.UserRole.USER)
+        .createdAt(t.getCreatedAt() > 0 ? java.time.LocalDateTime.ofEpochSecond(t.getCreatedAt() / 1000, 0, java.time.ZoneOffset.UTC) : null)
+        .createdBy(t.getCreatedBy())
+        .updatedAt(t.getUpdatedAt() > 0 ? java.time.LocalDateTime.ofEpochSecond(t.getUpdatedAt() / 1000, 0, java.time.ZoneOffset.UTC) : null)
+        .updatedBy(t.getUpdatedBy())
+        .version(t.getVersion())
+        .deleted(t.isDeleted())
+        .deletedAt(t.getDeletedAt() > 0 ? java.time.LocalDateTime.ofEpochSecond(t.getDeletedAt() / 1000, 0, java.time.ZoneOffset.UTC) : null)
+        .deletedBy(t.getDeletedBy())
         .build();
   }
 
   @Override
   public String ping() {
     log.debug("Pinging Thrift service at {}:{}", host, port);
+    UserService.Client client = null;
     try {
-      TPingResponse response = client().ping();
+      client = client();
+      TPingResponse response = client.ping();
       if (response.getStatus() == 0) {
         log.debug("Thrift service ping successful: {}", response.getResponse());
         return response.getResponse();
@@ -64,19 +90,25 @@ public class ThriftUserClientAdapter implements ThriftUserClientPort {
     } catch (Exception e) {
       log.error("Thrift service ping failed to {}:{}", host, port, e);
       throw new ThriftServiceException("Failed to ping Thrift service", "ping", e);
+    } finally {
+      closeClient(client);
     }
   }
 
   @Override
   public User create(User user) {
     log.debug("Creating user via Thrift service: {}", user);
+    UserService.Client client = null;
     try {
+      client = client();
       TCreateUserRequest request = new TCreateUserRequest()
           .setName(user.getName())
           .setPhone(user.getPhone())
-          .setAddress(user.getAddress());
+          .setAddress(user.getAddress())
+          .setStatus(user.getStatus() != null ? TUserStatus.valueOf(user.getStatus().name()) : TUserStatus.ACTIVE)
+          .setRole(user.getRole() != null ? TUserRole.valueOf(user.getRole().name()) : TUserRole.USER);
       
-      TCreateUserResponse response = client().createUser(request);
+      TCreateUserResponse response = client.createUser(request);
       if (response.getStatus() == 0) {
         log.debug("User created via Thrift service: {}", response.getUser());
         User created = toDomain(response.getUser());
@@ -89,15 +121,19 @@ public class ThriftUserClientAdapter implements ThriftUserClientPort {
     } catch (Exception e) {
       log.error("Failed to create user via Thrift service: {}", user, e);
       throw new ThriftServiceException("Failed to create user via Thrift service", "create", e);
+    } finally {
+      closeClient(client);
     }
   }
 
   @Override
   public Optional<User> getById(String id) {
     log.debug("Retrieving user by ID via Thrift service: {}", id);
+    UserService.Client client = null;
     try {
+      client = client();
       TGetUserRequest request = new TGetUserRequest().setId(id);
-      TGetUserResponse response = client().getUser(request);
+      TGetUserResponse response = client.getUser(request);
       
       if (response.getStatus() == 0) {
         log.debug("User found via Thrift service: {}", response.getUser());
@@ -114,20 +150,27 @@ public class ThriftUserClientAdapter implements ThriftUserClientPort {
     } catch (Exception e) {
       log.error("Failed to retrieve user via Thrift service for ID: {}", id, e);
       throw new ThriftServiceException("Failed to retrieve user via Thrift service", "getById", e);
+    } finally {
+      closeClient(client);
     }
   }
 
   @Override
   public User update(User user) {
     log.debug("Updating user via Thrift service: {}", user);
+    UserService.Client client = null;
     try {
+      client = client();
       TUpdateUserRequest request = new TUpdateUserRequest()
           .setId(user.getId())
           .setName(user.getName())
           .setPhone(user.getPhone())
-          .setAddress(user.getAddress());
+          .setAddress(user.getAddress())
+          .setStatus(user.getStatus() != null ? TUserStatus.valueOf(user.getStatus().name()) : TUserStatus.ACTIVE)
+          .setRole(user.getRole() != null ? TUserRole.valueOf(user.getRole().name()) : TUserRole.USER)
+          .setVersion(user.getVersion() != null ? user.getVersion() : 1);
       
-      TUpdateUserResponse response = client().updateUser(request);
+      TUpdateUserResponse response = client.updateUser(request);
       if (response.getStatus() == 0) {
         log.debug("User updated via Thrift service: {}", response.getUser());
         User updated = toDomain(response.getUser());
@@ -143,15 +186,19 @@ public class ThriftUserClientAdapter implements ThriftUserClientPort {
     } catch (Exception e) {
       log.error("Failed to update user via Thrift service: {}", user, e);
       throw new ThriftServiceException("Failed to update user via Thrift service", "update", e);
+    } finally {
+      closeClient(client);
     }
   }
 
   @Override
   public void delete(String id) {
     log.debug("Deleting user via Thrift service: {}", id);
+    UserService.Client client = null;
     try {
+      client = client();
       TDeleteUserRequest request = new TDeleteUserRequest().setId(id);
-      TDeleteUserResponse response = client().deleteUser(request);
+      TDeleteUserResponse response = client.deleteUser(request);
       
       if (response.getStatus() == 0) {
         log.debug("User deleted successfully via Thrift service: {}", id);
@@ -165,18 +212,22 @@ public class ThriftUserClientAdapter implements ThriftUserClientPort {
     } catch (Exception e) {
       log.error("Failed to delete user via Thrift service for ID: {}", id, e);
       throw new ThriftServiceException("Failed to delete user via Thrift service", "delete", e);
+    } finally {
+      closeClient(client);
     }
   }
 
   @Override
   public List<User> list() {
     log.debug("Listing all users via Thrift service");
+    UserService.Client client = null;
     try {
+      client = client();
       TListUsersRequest request = new TListUsersRequest()
           .setPage(0)
           .setSize(Integer.MAX_VALUE);
       
-      TListUsersResponse response = client().listUsers(request);
+      TListUsersResponse response = client.listUsers(request);
       if (response.getStatus() == 0) {
         log.debug("Retrieved {} users via Thrift service", response.getItems().size());
         
@@ -196,18 +247,22 @@ public class ThriftUserClientAdapter implements ThriftUserClientPort {
     } catch (Exception e) {
       log.error("Failed to list users via Thrift service", e);
       throw new ThriftServiceException("Failed to list users via Thrift service", "list", e);
+    } finally {
+      closeClient(client);
     }
   }
 
   @Override
   public List<User> listPaged(int page, int size) {
     log.debug("Listing users with pagination via Thrift service - page: {}, size: {}", page, size);
+    UserService.Client client = null;
     try {
+      client = client();
       TListUsersRequest request = new TListUsersRequest()
           .setPage(page)
           .setSize(size);
       
-      TListUsersResponse response = client().listUsers(request);
+      TListUsersResponse response = client.listUsers(request);
       if (response.getStatus() == 0) {
         log.debug("Retrieved {} users via Thrift service for page: {}, size: {}", 
                   response.getItems().size(), page, size);
@@ -230,18 +285,22 @@ public class ThriftUserClientAdapter implements ThriftUserClientPort {
       log.error("Failed to list users with pagination via Thrift service - page: {}, size: {}", 
                 page, size, e);
       throw new ThriftServiceException("Failed to list users via Thrift service", "listPaged", e);
+    } finally {
+      closeClient(client);
     }
   }
 
   @Override
   public long count() {
     log.debug("Counting users via Thrift service");
+    UserService.Client client = null;
     try {
+      client = client();
       TListUsersRequest request = new TListUsersRequest()
           .setPage(0)
           .setSize(1);
       
-      TListUsersResponse response = client().listUsers(request);
+      TListUsersResponse response = client.listUsers(request);
       if (response.getStatus() == 0) {
         long count = response.getTotal();
         log.debug("User count via Thrift service: {}", count);
@@ -253,6 +312,111 @@ public class ThriftUserClientAdapter implements ThriftUserClientPort {
     } catch (Exception e) {
       log.error("Failed to count users via Thrift service", e);
       throw new ThriftServiceException("Failed to count users via Thrift service", "count", e);
+    } finally {
+      closeClient(client);
     }
+  }
+
+  @Override
+  public List<User> listByCriteria(com.example.rest.user.domain.UserQueryCriteria criteria) {
+    log.debug("Listing users by criteria via Thrift service: {}", criteria);
+    UserService.Client client = null;
+    try {
+      client = client();
+      TListUsersRequest request = toThriftRequest(criteria);
+      
+      TListUsersResponse response = client.listUsers(request);
+      if (response.getStatus() == 0) {
+        log.debug("Retrieved {} users via Thrift service for criteria", response.getItems().size());
+        
+        List<User> users = response.getItems().stream()
+            .map(thriftUser -> {
+              log.debug("Mapping Thrift user to domain user: {}", thriftUser);
+              return toDomain(thriftUser);
+            })
+            .collect(Collectors.toList());
+        
+        log.debug("Mapped {} Thrift users to domain users for criteria", users.size());
+        return users;
+      } else {
+        log.error("Failed to list users by criteria via Thrift service with status {}: {}", response.getStatus(), response.getMessage());
+        throw new ThriftServiceException("Failed to list users by criteria: " + response.getMessage(), "listByCriteria");
+      }
+    } catch (Exception e) {
+      log.error("Failed to list users by criteria via Thrift service: {}", criteria, e);
+      throw new ThriftServiceException("Failed to list users by criteria via Thrift service", "listByCriteria", e);
+    } finally {
+      closeClient(client);
+    }
+  }
+
+  @Override
+  public long countByCriteria(com.example.rest.user.domain.UserQueryCriteria criteria) {
+    log.debug("Counting users by criteria via Thrift service: {}", criteria);
+    UserService.Client client = null;
+    try {
+      client = client();
+      TListUsersRequest request = toThriftRequest(criteria);
+      
+      TListUsersResponse response = client.listUsers(request);
+      if (response.getStatus() == 0) {
+        long count = response.getTotal();
+        log.debug("User count by criteria via Thrift service: {}", count);
+        return count;
+      } else {
+        log.error("Failed to count users by criteria via Thrift service with status {}: {}", response.getStatus(), response.getMessage());
+        throw new ThriftServiceException("Failed to count users by criteria: " + response.getMessage(), "countByCriteria");
+      }
+    } catch (Exception e) {
+      log.error("Failed to count users by criteria via Thrift service: {}", criteria, e);
+      throw new ThriftServiceException("Failed to count users by criteria via Thrift service", "countByCriteria", e);
+    } finally {
+      closeClient(client);
+    }
+  }
+
+  /**
+   * Convert domain query criteria to Thrift request.
+   */
+  private TListUsersRequest toThriftRequest(com.example.rest.user.domain.UserQueryCriteria criteria) {
+    TListUsersRequest request = new TListUsersRequest()
+        .setPage(criteria.getPage())
+        .setSize(criteria.getSize())
+        .setSearch(criteria.getSearch())
+        .setIncludeDeleted(criteria.getIncludeDeleted() != null ? criteria.getIncludeDeleted() : false);
+    
+    if (criteria.getStatus() != null) {
+      request.setStatus(TUserStatus.valueOf(criteria.getStatus().name()));
+    }
+    
+    if (criteria.getRole() != null) {
+      request.setRole(TUserRole.valueOf(criteria.getRole().name()));
+    }
+    
+    if (criteria.getCreatedAfter() != null) {
+      request.setCreatedAfter(criteria.getCreatedAfter().atZone(java.time.ZoneOffset.UTC).toInstant().toEpochMilli());
+    }
+    
+    if (criteria.getCreatedBefore() != null) {
+      request.setCreatedBefore(criteria.getCreatedBefore().atZone(java.time.ZoneOffset.UTC).toInstant().toEpochMilli());
+    }
+    
+    if (criteria.getSortBy() != null) {
+      request.setSortBy(criteria.getSortBy());
+    }
+    
+    if (criteria.getSortDir() != null) {
+      request.setSortDir(criteria.getSortDir());
+    }
+    
+    if (criteria.getSortByMultiple() != null && !criteria.getSortByMultiple().isEmpty()) {
+      request.setSortByMultiple(String.join(",", criteria.getSortByMultiple()));
+    }
+    
+    if (criteria.getSortDirMultiple() != null && !criteria.getSortDirMultiple().isEmpty()) {
+      request.setSortDirMultiple(String.join(",", criteria.getSortDirMultiple()));
+    }
+    
+    return request;
   }
 }

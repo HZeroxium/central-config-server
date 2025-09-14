@@ -52,16 +52,39 @@ public final class StatusCode {
      * Get HTTP status code from status code.
      */
     public static int getHttpStatus(int statusCode) {
-        if (statusCode == SUCCESS) {
-            return 200;
-        } else if (statusCode >= VALIDATION_ERROR && statusCode <= TOO_MANY_REQUESTS) {
-            return 400 + (statusCode - VALIDATION_ERROR);
-        } else if (statusCode >= INTERNAL_SERVER_ERROR && statusCode <= BAD_GATEWAY) {
-            return 500 + (statusCode - INTERNAL_SERVER_ERROR);
-        } else if (statusCode >= BUSINESS_RULE_VIOLATION && statusCode <= OPERATION_NOT_SUPPORTED) {
-            return 422; // Unprocessable Entity
-        }
-        return 500; // Default to Internal Server Error
+        return switch (statusCode) {
+            case SUCCESS -> 200;
+            case VALIDATION_ERROR -> 400;
+            case USER_NOT_FOUND -> 404;
+            case USER_ALREADY_EXISTS -> 409;
+            case INVALID_INPUT -> 400;
+            case MISSING_REQUIRED_FIELD -> 400;
+            case INVALID_FORMAT -> 400;
+            case UNAUTHORIZED -> 401;
+            case FORBIDDEN -> 403;
+            case NOT_FOUND -> 404;
+            case METHOD_NOT_ALLOWED -> 405;
+            case CONFLICT -> 409;
+            case UNPROCESSABLE_ENTITY -> 422;
+            case TOO_MANY_REQUESTS -> 429;
+            case INTERNAL_SERVER_ERROR -> 500;
+            case DATABASE_ERROR -> 500;
+            case DATABASE_CONNECTION_FAILED -> 503;
+            case DATABASE_TIMEOUT -> 504;
+            case DATABASE_CONSTRAINT_VIOLATION -> 500;
+            case THRIFT_SERVICE_ERROR -> 502;
+            case THRIFT_SERVICE_UNAVAILABLE -> 503;
+            case THRIFT_SERVICE_TIMEOUT -> 504;
+            case THRIFT_SERVICE_CONNECTION_FAILED -> 502;
+            case SERVICE_UNAVAILABLE -> 503;
+            case GATEWAY_TIMEOUT -> 504;
+            case BAD_GATEWAY -> 502;
+            case BUSINESS_RULE_VIOLATION -> 422;
+            case INSUFFICIENT_PERMISSIONS -> 403;
+            case RESOURCE_LOCKED -> 423;
+            case OPERATION_NOT_SUPPORTED -> 501;
+            default -> 500; // Default to Internal Server Error
+        };
     }
     
     /**
