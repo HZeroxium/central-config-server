@@ -1,38 +1,79 @@
+server:
+  port: 8080
+
 spring:
+  application:
+    name: user-rpc-thrift-service
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:default}
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017/users}
+    jpa:
+      hibernate:
+        ddl-auto: create-drop
+      show-sql: false
+      properties:
+        hibernate:
+          format_sql: true
+          use_sql_comments: true
+      database-platform: org.hibernate.dialect.H2Dialect
   datasource:
     url: ${JDBC_URL:jdbc:h2:mem:userdb;DB_CLOSE_DELAY=-1;MODE=LEGACY}
     driver-class-name: org.h2.Driver
     username: sa
-    password: ''
-  jpa:
-    hibernate:
-      ddl-auto: update
-    properties:
-      hibernate:
-        format_sql: true
-    open-in-view: false
-  data:
-    mongodb:
-      uri: ${MONGODB_URI:mongodb://localhost:27017/users}
+    password: password
 
-server:
-  port: 8080
+# Thrift server configuration
+thrift:
+  port: ${THRIFT_PORT:9090}
 
+# Application configuration
+app:
+  name: user-rpc-thrift-service
+  version: 1.0.0
+  environment: ${ENVIRONMENT:development}
+  persistence:
+    type: ${PERSISTENCE_TYPE:mongo}
+
+# Management and monitoring configuration
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,prometheus
+        include: health,info,prometheus,metrics,env,beans,configprops,loggers,threaddump,heapdump
   endpoint:
     health:
       show-details: when_authorized
+      show-components: always
+    prometheus:
+      enabled: true
+    metrics:
+      enabled: true
   metrics:
     tags:
       application: user-rpc-thrift-service
+      service: user-rpc-thrift-service
+      environment: ${ENVIRONMENT:development}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+        http.client.requests: true
+      percentiles:
+        http.server.requests: 0.5, 0.9, 0.95, 0.99
+        http.client.requests: 0.5, 0.9, 0.95, 0.99
+      slo:
+        http.server.requests: 50ms, 100ms, 200ms, 500ms, 1s, 2s, 5s
+        http.client.requests: 50ms, 100ms, 200ms, 500ms, 1s, 2s, 5s
+  tracing:
+    sampling:
+      probability: 1.0
 
-thrift:
-  port: ${THRIFT_PORT:9090}
-
-app:
-  persistence:
-    type: ${PERSISTENCE_TYPE:mongo} # h2 | mongo
+# Logging configuration - using Log4j2
+logging:
+  level:
+    com.example.user: DEBUG
+    org.springframework.web: DEBUG
+    org.apache.thrift: DEBUG
+    io.micrometer: DEBUG
+  config: classpath:log4j2-spring.xml

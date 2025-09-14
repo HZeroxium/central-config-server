@@ -1,5 +1,5 @@
-<!-- user-rpc-thrift-service/src/main/resources/log4j2.xml -->
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- user-rpc-thrift-service/src/main/resources/log4j2.xml -->
 <Configuration status="WARN" monitorInterval="30">
   <Properties>
     <Property name="LOG_PATTERN">%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n</Property>
@@ -24,8 +24,9 @@
     </Console>
     
     <!-- File Appender for persistent logging -->
-    <RollingFile name="FileAppender" fileName="logs/user-rpc-service.log"
-                 filePattern="logs/user-rpc-service-%d{yyyy-MM-dd}-%i.log.gz">
+    <RollingFile name="FileAppender" fileName="/app/logs/user-rpc-service.log"
+                 filePattern="/app/logs/user-rpc-service-%d{yyyy-MM-dd}-%i.log.gz"
+                 immediateFlush="true" append="true">
       <PatternLayout pattern="${LOG_PATTERN}"/>
       <Policies>
         <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
@@ -35,8 +36,9 @@
     </RollingFile>
     
     <!-- Error File Appender for ERROR and FATAL logs -->
-    <RollingFile name="ErrorFileAppender" fileName="logs/user-rpc-service-error.log"
-                 filePattern="logs/user-rpc-service-error-%d{yyyy-MM-dd}-%i.log.gz">
+    <RollingFile name="ErrorFileAppender" fileName="/app/logs/user-rpc-service-error.log"
+                 filePattern="/app/logs/user-rpc-service-error-%d{yyyy-MM-dd}-%i.log.gz"
+                 immediateFlush="true" append="true">
       <PatternLayout pattern="${LOG_PATTERN}"/>
       <ThresholdFilter level="ERROR" onMatch="ACCEPT" onMismatch="DENY"/>
       <Policies>
