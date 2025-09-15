@@ -1,13 +1,16 @@
 package com.example.rest.user.dto;
 
 import com.example.rest.user.domain.User;
+import com.example.rest.user.domain.SortCriterion;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * Request DTO for listing users with pagination, sorting, filtering, and searching.
@@ -34,15 +37,6 @@ public class ListUsersRequest {
     @Schema(description = "Filter by user role", example = "USER")
     private User.UserRole role;
     
-    @Schema(description = "Sort by field", example = "createdAt")
-    @Pattern(regexp = "^(id|name|phone|address|status|role|createdAt|updatedAt|version)$", 
-             message = "Sort field must be one of: id, name, phone, address, status, role, createdAt, updatedAt, version")
-    private String sortBy = "createdAt";
-    
-    @Schema(description = "Sort direction: asc or desc", example = "desc")
-    @Pattern(regexp = "^(asc|desc)$", message = "Sort direction must be 'asc' or 'desc'")
-    private String sortDir = "desc";
-    
     @Schema(description = "Include soft-deleted users", example = "false")
     private Boolean includeDeleted = false;
     
@@ -51,12 +45,9 @@ public class ListUsersRequest {
     
     @Schema(description = "Created before (ISO date time)", example = "2025-12-31T23:59:59")
     private LocalDateTime createdBefore;
-        
-    @Schema(description = "Sort by multiple fields, comma separated", example = "status,createdAt")
-    @Pattern(regexp = "^[a-zA-Z,]+$", message = "Multiple sort fields must contain only letters and commas")
-    private String sortByMultiple;
     
-    @Schema(description = "Sort directions for multiple fields, comma separated matching sortByMultiple", example = "asc,desc")
-    @Pattern(regexp = "^[a-zA-Z,]+$", message = "Multiple sort directions must contain only letters and commas")
-    private String sortDirMultiple;
+    @Schema(description = "Sort criteria for flexible sorting", example = "[{\"fieldName\": \"createdAt\", \"direction\": \"desc\"}]")
+    @Valid
+    @Size(max = 5, message = "Maximum 5 sort criteria allowed")
+    private List<SortCriterion> sortCriteria;
 }

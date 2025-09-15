@@ -1,10 +1,10 @@
 package com.example.rest.user.mapper;
 
+import com.example.rest.user.domain.SortCriterion;
 import com.example.rest.user.domain.User;
 import com.example.rest.user.domain.UserQueryCriteria;
 import com.example.rest.user.dto.*;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -44,12 +44,7 @@ public final class UserMapper {
    * @return domain user
    */
   public static User toDomainFromUpdateRequest(UpdateUserRequest req) {
-    return User.builder()
-        .id(null) // Will be set by service layer
-        .name(req.getName())
-        .phone(req.getPhone())
-        .address(req.getAddress())
-        .build();
+    return toDomainFromUpdateRequest(req, null);
   }
   
   /**
@@ -108,6 +103,16 @@ public final class UserMapper {
         .name(user.getName())
         .phone(user.getPhone())
         .address(user.getAddress())
+        .status(user.getStatus())
+        .role(user.getRole())
+        .createdAt(user.getCreatedAt())
+        .createdBy(user.getCreatedBy())
+        .updatedAt(user.getUpdatedAt())
+        .updatedBy(user.getUpdatedBy())
+        .version(user.getVersion())
+        .deleted(user.getDeleted())
+        .deletedAt(user.getDeletedAt())
+        .deletedBy(user.getDeletedBy())
         .build();
   }
 
@@ -118,18 +123,15 @@ public final class UserMapper {
    * @return query criteria
    */
   public static UserQueryCriteria toQueryCriteria(ListUsersRequest req) {
-    List<String> sortByMultiple = null;
-    List<String> sortDirMultiple = null;
+    List<SortCriterion> sortCriteria = null;
     
-    if (req.getSortByMultiple() != null && !req.getSortByMultiple().trim().isEmpty()) {
-      sortByMultiple = Arrays.stream(req.getSortByMultiple().split(","))
-          .map(String::trim)
-          .collect(Collectors.toList());
-    }
-    
-    if (req.getSortDirMultiple() != null && !req.getSortDirMultiple().trim().isEmpty()) {
-      sortDirMultiple = Arrays.stream(req.getSortDirMultiple().split(","))
-          .map(String::trim)
+    if (req.getSortCriteria() != null && !req.getSortCriteria().isEmpty()) {
+      sortCriteria = req.getSortCriteria().stream()
+          .filter(sc -> sc.isValid())  // Only include valid sort criteria
+          .map(dto -> SortCriterion.builder()
+              .fieldName(dto.getFieldName())
+              .direction(dto.getDirection())
+              .build())
           .collect(Collectors.toList());
     }
     
@@ -139,13 +141,10 @@ public final class UserMapper {
         .search(req.getSearch())
         .status(req.getStatus())
         .role(req.getRole())
-        .includeDeleted(req.getIncludeDeleted())
+        .includeDeleted(req.getIncludeDeleted() != null ? req.getIncludeDeleted() : false)
         .createdAfter(req.getCreatedAfter())
         .createdBefore(req.getCreatedBefore())
-        .sortBy(req.getSortBy())
-        .sortDir(req.getSortDir())
-        .sortByMultiple(sortByMultiple)
-        .sortDirMultiple(sortDirMultiple)
+        .sortCriteria(sortCriteria)
         .build();
   }
 }

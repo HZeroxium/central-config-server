@@ -1,0 +1,56 @@
+# Test configuration for user-rest-spring-service
+spring:
+  profiles:
+    active: test
+  application:
+    name: user-rest-spring-service-test
+
+# Thrift client configuration for tests
+thrift:
+  host: localhost
+  port: 9090
+  timeout: 1000
+  retry-attempts: 1
+
+# Application configuration
+app:
+  name: user-rest-spring-service-test
+  version: 1.0.0-test
+  environment: test
+
+# Management and monitoring configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: when_authorized
+      show-components: always
+    prometheus:
+      enabled: true
+    metrics:
+      enabled: true
+  metrics:
+    tags:
+      application: user-rest-spring-service-test
+      service: user-rest-spring-service-test
+      environment: test
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+        step: 1s
+
+# Logging configuration for tests
+logging:
+  level:
+    com.example.rest: DEBUG
+    com.example.user: DEBUG
+    org.springframework.web: DEBUG
+    org.apache.thrift: DEBUG
+    io.micrometer: DEBUG
+    org.springframework.test: DEBUG
+    org.testcontainers: DEBUG
+  config: classpath:log4j2-test.xml

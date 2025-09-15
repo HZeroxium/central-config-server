@@ -401,20 +401,13 @@ public class ThriftUserClientAdapter implements ThriftUserClientPort {
       request.setCreatedBefore(criteria.getCreatedBefore().atZone(java.time.ZoneOffset.UTC).toInstant().toEpochMilli());
     }
     
-    if (criteria.getSortBy() != null) {
-      request.setSortBy(criteria.getSortBy());
-    }
-    
-    if (criteria.getSortDir() != null) {
-      request.setSortDir(criteria.getSortDir());
-    }
-    
-    if (criteria.getSortByMultiple() != null && !criteria.getSortByMultiple().isEmpty()) {
-      request.setSortByMultiple(String.join(",", criteria.getSortByMultiple()));
-    }
-    
-    if (criteria.getSortDirMultiple() != null && !criteria.getSortDirMultiple().isEmpty()) {
-      request.setSortDirMultiple(String.join(",", criteria.getSortDirMultiple()));
+    if (criteria.getSortCriteria() != null && !criteria.getSortCriteria().isEmpty()) {
+      List<SortCriterion> thriftSortCriteria = criteria.getSortCriteria().stream()
+          .map(sc -> new SortCriterion()
+              .setFieldName(sc.getFieldName())
+              .setDirection(sc.getDirection()))
+          .collect(Collectors.toList());
+      request.setSortCriteria(thriftSortCriteria);
     }
     
     return request;

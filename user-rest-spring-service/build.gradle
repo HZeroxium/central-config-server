@@ -99,7 +99,7 @@ tasks.register('buildDocker', Exec) {
     description = 'Build Docker image for user-rest-spring-service'
     dependsOn bootJar
     
-    commandLine 'docker', 'build', '-t', 'user-rest-spring-service:latest', '.'
+    commandLine 'docker', 'build', '-t', 'hzeroxium/user-rest-spring-service:latest', '.'
     
     doFirst {
         println "Building Docker image for user-rest-spring-service..."

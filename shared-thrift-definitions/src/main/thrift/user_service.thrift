@@ -1,3 +1,5 @@
+// user_service.thrift
+
 namespace java com.example.user.thrift
 
 // Enums
@@ -12,6 +14,12 @@ enum TUserRole {
   USER = 2,
   MODERATOR = 3,
   GUEST = 4
+}
+
+// Sort criterion for flexible sorting
+struct SortCriterion {
+  1: required string fieldName,
+  2: required string direction  // "asc" or "desc"
 }
 
 // Base User struct with audit fields and soft delete
@@ -83,18 +91,16 @@ struct TDeleteUserResponse {
 }
 
 struct TListUsersRequest {
-  1: i32 page,
-  2: i32 size,
-  3: string search,
-  4: TUserStatus status,
-  5: TUserRole role,
-  6: string sortBy,
-  7: string sortDir,
-  8: bool includeDeleted,
-  9: i64 createdAfter,
-  10: i64 createdBefore,
-  11: string sortByMultiple,
-  12: string sortDirMultiple
+  // All fields are optional - validation handled by services
+  1: optional i32 page,
+  2: optional i32 size,
+  3: optional string search,
+  4: optional TUserStatus status,
+  5: optional TUserRole role,
+  6: optional bool includeDeleted,
+  7: optional i64 createdAfter,
+  8: optional i64 createdBefore,
+  9: optional list<SortCriterion> sortCriteria
 }
 
 struct TListUsersResponse {

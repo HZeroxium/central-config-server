@@ -27,26 +27,17 @@ public class UserQueryCriteria {
     private LocalDateTime createdAfter;
     private LocalDateTime createdBefore;
     
-    // Single field sorting
-    private String sortBy;
-    private String sortDir;
-    
-    // Multiple field sorting
-    private List<String> sortByMultiple;
-    private List<String> sortDirMultiple;
+    // Flexible sorting criteria
+    private List<SortCriterion> sortCriteria;
     
     /**
-     * Get default sort field if not specified
+     * Get sort criteria with default if not specified
      */
-    public String getSortBy() {
-        return sortBy != null ? sortBy : "createdAt";
-    }
-    
-    /**
-     * Get default sort direction if not specified
-     */
-    public String getSortDir() {
-        return sortDir != null ? sortDir : "desc";
+    public List<SortCriterion> getSortCriteria() {
+        if (sortCriteria == null || sortCriteria.isEmpty()) {
+            return List.of(SortCriterion.getDefault());
+        }
+        return sortCriteria;
     }
     
     /**
@@ -78,9 +69,9 @@ public class UserQueryCriteria {
     }
     
     /**
-     * Check if multiple field sorting is enabled
+     * Check if sorting is enabled
      */
-    public boolean hasMultipleSorting() {
-        return sortByMultiple != null && !sortByMultiple.isEmpty();
+    public boolean hasSorting() {
+        return sortCriteria != null && !sortCriteria.isEmpty();
     }
 }
