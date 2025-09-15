@@ -1,10 +1,14 @@
 package com.example.user.adapter.thrift;
 
 import com.example.user.domain.User;
+import com.example.user.domain.UserQueryCriteria;
 import com.example.user.service.port.UserServicePort;
 import com.example.user.thrift.*;
 import com.example.user.exception.DatabaseException;
 import com.example.user.exception.UserServiceException;
+import com.example.user.metrics.ApplicationMetrics;
+import com.example.user.adapter.thrift.mapper.UserThriftMapper;
+import io.micrometer.core.annotation.Timed;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.thrift.TException;
 
@@ -15,49 +19,40 @@ import java.util.stream.Collectors;
 /**
  * Thrift service handler bridging Thrift-generated API to domain service port.
  * Performs translation between {@link TUser} wire model and domain {@link com.example.user.domain.User}.
+ * 
+ * Enhanced with comprehensive profiling and metrics collection.
  */
 @Slf4j
 public class UserServiceHandler implements UserService.Iface {
 
   private final UserServicePort userService;
+  private final ApplicationMetrics metrics;
 
   /**
-   * Construct handler with a domain service port.
+   * Construct handler with a domain service port and metrics.
    *
    * @param userService domain service to delegate business logic
+   * @param metrics application metrics for profiling
    */
-  public UserServiceHandler(UserServicePort userService) {
+  public UserServiceHandler(UserServicePort userService, ApplicationMetrics metrics) {
     this.userService = userService;
+    this.metrics = metrics;
   }
 
-  /** Convert domain to Thrift DTO. */
-  private static TUser toThrift(User user) {
-    TUser t = new TUser();
-    t.setId(user.getId());
-    t.setName(user.getName());
-    t.setPhone(user.getPhone());
-    t.setAddress(user.getAddress());
-    return t;
-  }
-
-  /** Convert Thrift DTO to domain. */
-  private static User toDomain(TUser t) {
-    return User.builder()
-        .id(t.getId())
-        .name(t.getName())
-        .phone(t.getPhone())
-        .address(t.getAddress())
-        .build();
-  }
-
-
+  // Mappings are delegated to UserThriftMapper
 
   // New structured API methods
 
   @Override
+  @Timed(value = "thrift.server.ping", description = "Time taken to handle Thrift ping request")
   public TPingResponse ping() throws TException {
     log.debug("Thrift structured ping request received");
+    
+    var timer = metrics.startThriftServerTimer();
     try {
+      metrics.incrementThriftServerRequests("ping");
+      metrics.incrementUserOperations("ping");
+      
       String response = userService.ping();
       log.debug("Thrift structured ping response: {}", response);
       
@@ -68,6 +63,8 @@ public class UserServiceHandler implements UserService.Iface {
       
       return pingResponse;
     } catch (UserServiceException e) {
+      metrics.incrementThriftServerErrors("ping", e.getClass().getSimpleName());
+      metrics.incrementUserOperationsErrors("ping", e.getClass().getSimpleName());
       log.error("Thrift structured ping failed: {}", e.getMessage(), e);
       TPingResponse pingResponse = new TPingResponse();
       pingResponse.setStatus(1); // SERVICE_ERROR
@@ -75,30 +72,50 @@ public class UserServiceHandler implements UserService.Iface {
       pingResponse.setResponse("");
       return pingResponse;
     } catch (Exception e) {
+      metrics.incrementThriftServerErrors("ping", e.getClass().getSimpleName());
+      metrics.incrementUserOperationsErrors("ping", e.getClass().getSimpleName());
       log.error("Unexpected error during Thrift structured ping", e);
       TPingResponse pingResponse = new TPingResponse();
       pingResponse.setStatus(1); // SERVICE_ERROR
       pingResponse.setMessage("Unexpected error during ping: " + e.getMessage());
       pingResponse.setResponse("");
       return pingResponse;
+    } finally {
+      metrics.recordThriftServerDuration(timer, "ping");
     }
   }
 
   @Override
+  @Timed(value = "thrift.server.create.user", description = "Time taken to handle Thrift create user request")
   public TCreateUserResponse createUser(TCreateUserRequest request) throws TException {
     log.debug("Thrift structured createUser request received: {}", request);
+    
+    var timer = metrics.startThriftServerTimer();
     try {
+      metrics.incrementThriftServerRequests("createUser");
+      metrics.incrementUserOperations("create");
+      
       User domainUser = User.builder()
           .id(null) // Will be generated
           .name(request.getName())
           .phone(request.getPhone())
           .address(request.getAddress())
+          .status(request.getStatus() != null ? User.UserStatus.valueOf(request.getStatus().name()) : User.UserStatus.ACTIVE)
+          .role(request.getRole() != null ? User.UserRole.valueOf(request.getRole().name()) : User.UserRole.USER)
+          .createdAt(java.time.LocalDateTime.now())
+          .createdBy("admin")
+          .updatedAt(java.time.LocalDateTime.now())
+          .updatedBy("admin")
+          .version(null) // Let repository handle version
+          .deleted(false)
+          .deletedAt(null)
+          .deletedBy(null)
           .build();
       
       User created = userService.create(domainUser);
       log.info("User created via Thrift structured API with ID: {}", created.getId());
       
-      TUser thriftUser = toThrift(created);
+      TUser thriftUser = UserThriftMapper.toThrift(created);
       TCreateUserResponse response = new TCreateUserResponse();
       response.setStatus(0); // SUCCESS
       response.setMessage("User created successfully");
@@ -106,6 +123,8 @@ public class UserServiceHandler implements UserService.Iface {
       
       return response;
     } catch (DatabaseException e) {
+      metrics.incrementThriftServerErrors("createUser", e.getClass().getSimpleName());
+      metrics.incrementUserOperationsErrors("create", e.getClass().getSimpleName());
       log.error("Database error during user creation: {}", e.getMessage(), e);
       TCreateUserResponse response = new TCreateUserResponse();
       response.setStatus(2); // DATABASE_ERROR
@@ -113,6 +132,8 @@ public class UserServiceHandler implements UserService.Iface {
       response.setUser(null);
       return response;
     } catch (UserServiceException e) {
+      metrics.incrementThriftServerErrors("createUser", e.getClass().getSimpleName());
+      metrics.incrementUserOperationsErrors("create", e.getClass().getSimpleName());
       log.error("Service error during user creation: {}", e.getMessage(), e);
       TCreateUserResponse response = new TCreateUserResponse();
       response.setStatus(1); // VALIDATION_ERROR
@@ -120,23 +141,33 @@ public class UserServiceHandler implements UserService.Iface {
       response.setUser(null);
       return response;
     } catch (Exception e) {
+      metrics.incrementThriftServerErrors("createUser", e.getClass().getSimpleName());
+      metrics.incrementUserOperationsErrors("create", e.getClass().getSimpleName());
       log.error("Unexpected error during user creation: {}", e.getMessage(), e);
       TCreateUserResponse response = new TCreateUserResponse();
       response.setStatus(100); // INTERNAL_SERVER_ERROR
       response.setMessage("Unexpected error during user creation: " + e.getMessage());
       response.setUser(null);
       return response;
+    } finally {
+      metrics.recordThriftServerDuration(timer, "createUser");
     }
   }
 
   @Override
+  @Timed(value = "thrift.server.get.user", description = "Time taken to handle Thrift get user request")
   public TGetUserResponse getUser(TGetUserRequest request) throws TException {
     log.debug("Thrift structured getUser request received for ID: {}", request.getId());
+    
+    var timer = metrics.startThriftServerTimer();
     try {
+      metrics.incrementThriftServerRequests("getUser");
+      metrics.incrementUserOperations("get");
+      
       return userService.getById(request.getId())
           .map(user -> {
             log.debug("User found via Thrift structured API: {}", user);
-            TUser thriftUser = toThrift(user);
+            TUser thriftUser = UserThriftMapper.toThrift(user);
             TGetUserResponse response = new TGetUserResponse();
             response.setStatus(0); // SUCCESS
             response.setMessage("User retrieved successfully");
@@ -152,6 +183,8 @@ public class UserServiceHandler implements UserService.Iface {
             return response;
           });
     } catch (DatabaseException e) {
+      metrics.incrementThriftServerErrors("getUser", e.getClass().getSimpleName());
+      metrics.incrementUserOperationsErrors("get", e.getClass().getSimpleName());
       log.error("Database error during user retrieval: {}", e.getMessage(), e);
       TGetUserResponse response = new TGetUserResponse();
       response.setStatus(101); // DATABASE_ERROR
@@ -159,19 +192,29 @@ public class UserServiceHandler implements UserService.Iface {
       response.setUser(null);
       return response;
     } catch (Exception e) {
+      metrics.incrementThriftServerErrors("getUser", e.getClass().getSimpleName());
+      metrics.incrementUserOperationsErrors("get", e.getClass().getSimpleName());
       log.error("Unexpected error during user retrieval: {}", e.getMessage(), e);
       TGetUserResponse response = new TGetUserResponse();
       response.setStatus(100); // INTERNAL_SERVER_ERROR
       response.setMessage("Unexpected error during user retrieval: " + e.getMessage());
       response.setUser(null);
       return response;
+    } finally {
+      metrics.recordThriftServerDuration(timer, "getUser");
     }
   }
 
   @Override
+  @Timed(value = "thrift.server.update.user", description = "Time taken to handle Thrift update user request")
   public TUpdateUserResponse updateUser(TUpdateUserRequest request) throws TException {
     log.debug("Thrift structured updateUser request received: {}", request);
+    
+    var timer = metrics.startThriftServerTimer();
     try {
+      metrics.incrementThriftServerRequests("updateUser");
+      metrics.incrementUserOperations("update");
+      
       // Check if user exists first
       Optional<User> existingUser = userService.getById(request.getId());
       if (existingUser.isEmpty()) {
@@ -188,12 +231,22 @@ public class UserServiceHandler implements UserService.Iface {
           .name(request.getName())
           .phone(request.getPhone())
           .address(request.getAddress())
+          .status(request.getStatus() != null ? User.UserStatus.valueOf(request.getStatus().name()) : User.UserStatus.ACTIVE)
+          .role(request.getRole() != null ? User.UserRole.valueOf(request.getRole().name()) : User.UserRole.USER)
+          .createdAt(existingUser.get().getCreatedAt()) // Preserve existing values
+          .createdBy(existingUser.get().getCreatedBy())
+          .updatedAt(java.time.LocalDateTime.now())
+          .updatedBy("admin")
+          .version(request.getVersion() > 0 ? request.getVersion() : existingUser.get().getVersion())
+          .deleted(false)
+          .deletedAt(null)
+          .deletedBy(null)
           .build();
       
       User updated = userService.update(domainUser);
       log.info("User updated via Thrift structured API with ID: {}", updated.getId());
       
-      TUser thriftUser = toThrift(updated);
+      TUser thriftUser = UserThriftMapper.toThrift(updated);
       TUpdateUserResponse response = new TUpdateUserResponse();
       response.setStatus(0); // SUCCESS
       response.setMessage("User updated successfully");
@@ -201,6 +254,8 @@ public class UserServiceHandler implements UserService.Iface {
       
       return response;
     } catch (DatabaseException e) {
+      metrics.incrementThriftServerErrors("updateUser", e.getClass().getSimpleName());
+      metrics.incrementUserOperationsErrors("update", e.getClass().getSimpleName());
       log.error("Database error during user update: {}", e.getMessage(), e);
       TUpdateUserResponse response = new TUpdateUserResponse();
       response.setStatus(3); // DATABASE_ERROR
@@ -208,6 +263,8 @@ public class UserServiceHandler implements UserService.Iface {
       response.setUser(null);
       return response;
     } catch (UserServiceException e) {
+      metrics.incrementThriftServerErrors("updateUser", e.getClass().getSimpleName());
+      metrics.incrementUserOperationsErrors("update", e.getClass().getSimpleName());
       log.error("Service error during user update: {}", e.getMessage(), e);
       TUpdateUserResponse response = new TUpdateUserResponse();
       response.setStatus(2); // VALIDATION_ERROR
@@ -215,19 +272,29 @@ public class UserServiceHandler implements UserService.Iface {
       response.setUser(null);
       return response;
     } catch (Exception e) {
+      metrics.incrementThriftServerErrors("updateUser", e.getClass().getSimpleName());
+      metrics.incrementUserOperationsErrors("update", e.getClass().getSimpleName());
       log.error("Unexpected error during user update: {}", e.getMessage(), e);
       TUpdateUserResponse response = new TUpdateUserResponse();
       response.setStatus(100); // INTERNAL_SERVER_ERROR
       response.setMessage("Unexpected error during user update: " + e.getMessage());
       response.setUser(null);
       return response;
+    } finally {
+      metrics.recordThriftServerDuration(timer, "updateUser");
     }
   }
 
   @Override
+  @Timed(value = "thrift.server.delete.user", description = "Time taken to handle Thrift delete user request")
   public TDeleteUserResponse deleteUser(TDeleteUserRequest request) throws TException {
     log.debug("Thrift structured deleteUser request received for ID: {}", request.getId());
+    
+    var timer = metrics.startThriftServerTimer();
     try {
+      metrics.incrementThriftServerRequests("deleteUser");
+      metrics.incrementUserOperations("delete");
+      
       // Check if user exists first
       Optional<User> existingUser = userService.getById(request.getId());
       if (existingUser.isEmpty()) {
@@ -246,42 +313,55 @@ public class UserServiceHandler implements UserService.Iface {
       response.setMessage("User deleted successfully");
       return response;
     } catch (DatabaseException e) {
+      metrics.incrementThriftServerErrors("deleteUser", e.getClass().getSimpleName());
+      metrics.incrementUserOperationsErrors("delete", e.getClass().getSimpleName());
       log.error("Database error during user deletion: {}", e.getMessage(), e);
       TDeleteUserResponse response = new TDeleteUserResponse();
       response.setStatus(2); // DATABASE_ERROR
       response.setMessage("Database error during user deletion: " + e.getMessage());
       return response;
     } catch (Exception e) {
+      metrics.incrementThriftServerErrors("deleteUser", e.getClass().getSimpleName());
+      metrics.incrementUserOperationsErrors("delete", e.getClass().getSimpleName());
       log.error("Unexpected error during user deletion: {}", e.getMessage(), e);
       TDeleteUserResponse response = new TDeleteUserResponse();
       response.setStatus(100); // INTERNAL_SERVER_ERROR
       response.setMessage("Unexpected error during user deletion: " + e.getMessage());
       return response;
+    } finally {
+      metrics.recordThriftServerDuration(timer, "deleteUser");
     }
   }
 
   @Override
+  @Timed(value = "thrift.server.list.users", description = "Time taken to handle Thrift list users request")
   public TListUsersResponse listUsers(TListUsersRequest request) throws TException {
     log.debug("Thrift structured listUsers request received - page: {}, size: {}", request.getPage(), request.getSize());
+    
+    var timer = metrics.startThriftServerTimer();
     try {
-      List<User> users = userService.listPaged(request.getPage(), request.getSize());
+      metrics.incrementThriftServerRequests("listUsers");
+      metrics.incrementUserOperations("list");
+      
+      // Convert Thrift request to domain criteria
+      UserQueryCriteria criteria = UserThriftMapper.toQueryCriteria(request);
+      log.debug("Converted Thrift request to query criteria: {}", criteria);
+      
+      List<User> users = userService.listByCriteria(UserThriftMapper.toQueryCriteria(request));
       log.debug("Retrieved {} users from service for Thrift structured API", users.size());
       
-      long total = userService.count();
+      long total = userService.countByCriteria(criteria);
       log.debug("Total user count for Thrift structured API: {}", total);
       
       int totalPages = (int) Math.ceil((double) total / (double) request.getSize());
       List<TUser> thriftUsers = users.stream()
-          .map(user -> {
-            log.debug("Mapping domain user to Thrift user: {}", user);
-            return toThrift(user);
-          })
+          .map(UserThriftMapper::toThrift)
           .collect(Collectors.toList());
       
       TListUsersResponse response = new TListUsersResponse();
       response.setStatus(0); // SUCCESS
       response.setMessage("Users retrieved successfully");
-      response.setItems(thriftUsers);
+      response.setItems(thriftUsers); 
       response.setPage(request.getPage());
       response.setSize(request.getSize());
       response.setTotal(total);
@@ -291,6 +371,8 @@ public class UserServiceHandler implements UserService.Iface {
                 thriftUsers.size(), request.getPage(), request.getSize(), total, totalPages);
       return response;
     } catch (DatabaseException e) {
+      metrics.incrementThriftServerErrors("listUsers", e.getClass().getSimpleName());
+      metrics.incrementUserOperationsErrors("list", e.getClass().getSimpleName());
       log.error("Database error during user listing: {}", e.getMessage(), e);
       TListUsersResponse response = new TListUsersResponse();
       response.setStatus(2); // DATABASE_ERROR
@@ -302,6 +384,8 @@ public class UserServiceHandler implements UserService.Iface {
       response.setTotalPages(0);
       return response;
     } catch (Exception e) {
+      metrics.incrementThriftServerErrors("listUsers", e.getClass().getSimpleName());
+      metrics.incrementUserOperationsErrors("list", e.getClass().getSimpleName());
       log.error("Unexpected error during user listing: {}", e.getMessage(), e);
       TListUsersResponse response = new TListUsersResponse();
       response.setStatus(100); // INTERNAL_SERVER_ERROR
@@ -312,60 +396,94 @@ public class UserServiceHandler implements UserService.Iface {
       response.setTotal(0);
       response.setTotalPages(0);
       return response;
+    } finally {
+      metrics.recordThriftServerDuration(timer, "listUsers");
     }
   }
 
   // Legacy API methods for backward compatibility
 
   @Override
+  @Timed(value = "thrift.server.ping.legacy", description = "Time taken to handle Thrift legacy ping request")
   public String pingLegacy() throws TException {
     log.debug("Thrift legacy ping request received");
+    
+    var timer = metrics.startThriftServerTimer();
     try {
+      metrics.incrementThriftServerRequests("pingLegacy");
+      metrics.incrementUserOperations("ping");
+      
       String response = userService.ping();
       log.debug("Thrift legacy ping response: {}", response);
       return response;
     } catch (UserServiceException e) {
+      metrics.incrementThriftServerErrors("pingLegacy", e.getClass().getSimpleName());
+      metrics.incrementUserOperationsErrors("ping", e.getClass().getSimpleName());
       log.error("Thrift legacy ping failed: {}", e.getMessage(), e);
       throw new TException("Service ping failed: " + e.getMessage(), e);
     } catch (Exception e) {
+      metrics.incrementThriftServerErrors("pingLegacy", e.getClass().getSimpleName());
+      metrics.incrementUserOperationsErrors("ping", e.getClass().getSimpleName());
       log.error("Unexpected error during Thrift legacy ping", e);
       throw new TException("Unexpected error during ping: " + e.getMessage(), e);
+    } finally {
+      metrics.recordThriftServerDuration(timer, "pingLegacy");
     }
   }
 
   @Override
+  @Timed(value = "thrift.server.create.user.legacy", description = "Time taken to handle Thrift legacy create user request")
   public TUser createUserLegacy(TUser user) throws TException {
     log.debug("Thrift legacy createUser request received: {}", user);
+    
+    var timer = metrics.startThriftServerTimer();
     try {
-      User domainUser = toDomain(user);
+      metrics.incrementThriftServerRequests("createUserLegacy");
+      metrics.incrementUserOperations("create");
+      
+      User domainUser = UserThriftMapper.toDomain(user);
       log.debug("Mapped Thrift user to domain user: {}", domainUser);
       
       User created = userService.create(domainUser);
       log.info("User created via Thrift legacy with ID: {}", created.getId());
       
-      TUser thriftUser = toThrift(created);
+      TUser thriftUser = UserThriftMapper.toThrift(created);
       log.debug("Mapped domain user to Thrift user: {}", thriftUser);
       return thriftUser;
     } catch (DatabaseException e) {
+      metrics.incrementThriftServerErrors("createUserLegacy", e.getClass().getSimpleName());
+      metrics.incrementUserOperationsErrors("create", e.getClass().getSimpleName());
       log.error("Database error during user creation: {}", e.getMessage(), e);
       throw new TException("Database error during user creation: " + e.getMessage(), e);
     } catch (UserServiceException e) {
+      metrics.incrementThriftServerErrors("createUserLegacy", e.getClass().getSimpleName());
+      metrics.incrementUserOperationsErrors("create", e.getClass().getSimpleName());
       log.error("Service error during user creation: {}", e.getMessage(), e);
       throw new TException("Service error during user creation: " + e.getMessage(), e);
     } catch (Exception e) {
+      metrics.incrementThriftServerErrors("createUserLegacy", e.getClass().getSimpleName());
+      metrics.incrementUserOperationsErrors("create", e.getClass().getSimpleName());
       log.error("Unexpected error during user creation: {}", e.getMessage(), e);
       throw new TException("Unexpected error during user creation: " + e.getMessage(), e);
+    } finally {
+      metrics.recordThriftServerDuration(timer, "createUserLegacy");
     }
   }
 
   @Override
+  @Timed(value = "thrift.server.get.user.legacy", description = "Time taken to handle Thrift legacy get user request")
   public TUser getUserLegacy(String id) throws TException {
     log.debug("Thrift legacy getUser request received for ID: {}", id);
+    
+    var timer = metrics.startThriftServerTimer();
     try {
+      metrics.incrementThriftServerRequests("getUserLegacy");
+      metrics.incrementUserOperations("get");
+      
       return userService.getById(id)
           .map(user -> {
             log.debug("User found via Thrift legacy: {}", user);
-            TUser thriftUser = toThrift(user);
+            TUser thriftUser = UserThriftMapper.toThrift(user);
             log.debug("Mapped domain user to Thrift user: {}", thriftUser);
             return thriftUser;
           })
@@ -374,65 +492,107 @@ public class UserServiceHandler implements UserService.Iface {
             return null;
           });
     } catch (DatabaseException e) {
+      metrics.incrementThriftServerErrors("getUserLegacy", e.getClass().getSimpleName());
+      metrics.incrementUserOperationsErrors("get", e.getClass().getSimpleName());
       log.error("Database error during user retrieval: {}", e.getMessage(), e);
       throw new TException("Database error during user retrieval: " + e.getMessage(), e);
     } catch (UserServiceException e) {
+      metrics.incrementThriftServerErrors("getUserLegacy", e.getClass().getSimpleName());
+      metrics.incrementUserOperationsErrors("get", e.getClass().getSimpleName());
       log.error("Service error during user retrieval: {}", e.getMessage(), e);
       throw new TException("Service error during user retrieval: " + e.getMessage(), e);
     } catch (Exception e) {
+      metrics.incrementThriftServerErrors("getUserLegacy", e.getClass().getSimpleName());
+      metrics.incrementUserOperationsErrors("get", e.getClass().getSimpleName());
       log.error("Unexpected error during user retrieval: {}", e.getMessage(), e);
       throw new TException("Unexpected error during user retrieval: " + e.getMessage(), e);
+    } finally {
+      metrics.recordThriftServerDuration(timer, "getUserLegacy");
     }
   }
 
   @Override
+  @Timed(value = "thrift.server.update.user.legacy", description = "Time taken to handle Thrift legacy update user request")
   public TUser updateUserLegacy(TUser user) throws TException {
     log.debug("Thrift legacy updateUser request received: {}", user);
+    
+    var timer = metrics.startThriftServerTimer();
     try {
-      User domainUser = toDomain(user);
+      metrics.incrementThriftServerRequests("updateUserLegacy");
+      metrics.incrementUserOperations("update");
+      
+      User domainUser = UserThriftMapper.toDomain(user);
       log.debug("Mapped Thrift user to domain user: {}", domainUser);
       
       User updated = userService.update(domainUser);
       log.info("User updated via Thrift legacy with ID: {}", updated.getId());
       
-      TUser thriftUser = toThrift(updated);
+      TUser thriftUser = UserThriftMapper.toThrift(updated);
       log.debug("Mapped domain user to Thrift user: {}", thriftUser);
       return thriftUser;
     } catch (DatabaseException e) {
+      metrics.incrementThriftServerErrors("updateUserLegacy", e.getClass().getSimpleName());
+      metrics.incrementUserOperationsErrors("update", e.getClass().getSimpleName());
       log.error("Database error during user update: {}", e.getMessage(), e);
       throw new TException("Database error during user update: " + e.getMessage(), e);
     } catch (UserServiceException e) {
+      metrics.incrementThriftServerErrors("updateUserLegacy", e.getClass().getSimpleName());
+      metrics.incrementUserOperationsErrors("update", e.getClass().getSimpleName());
       log.error("Service error during user update: {}", e.getMessage(), e);
       throw new TException("Service error during user update: " + e.getMessage(), e);
     } catch (Exception e) {
+      metrics.incrementThriftServerErrors("updateUserLegacy", e.getClass().getSimpleName());
+      metrics.incrementUserOperationsErrors("update", e.getClass().getSimpleName());
       log.error("Unexpected error during user update: {}", e.getMessage(), e);
       throw new TException("Unexpected error during user update: " + e.getMessage(), e);
+    } finally {
+      metrics.recordThriftServerDuration(timer, "updateUserLegacy");
     }
   }
 
   @Override
+  @Timed(value = "thrift.server.delete.user.legacy", description = "Time taken to handle Thrift legacy delete user request")
   public void deleteUserLegacy(String id) throws TException {
     log.debug("Thrift legacy deleteUser request received for ID: {}", id);
+    
+    var timer = metrics.startThriftServerTimer();
     try {
+      metrics.incrementThriftServerRequests("deleteUserLegacy");
+      metrics.incrementUserOperations("delete");
+      
       userService.delete(id);
       log.info("User deleted via Thrift legacy with ID: {}", id);
     } catch (DatabaseException e) {
+      metrics.incrementThriftServerErrors("deleteUserLegacy", e.getClass().getSimpleName());
+      metrics.incrementUserOperationsErrors("delete", e.getClass().getSimpleName());
       log.error("Database error during user deletion: {}", e.getMessage(), e);
       throw new TException("Database error during user deletion: " + e.getMessage(), e);
     } catch (UserServiceException e) {
+      metrics.incrementThriftServerErrors("deleteUserLegacy", e.getClass().getSimpleName());
+      metrics.incrementUserOperationsErrors("delete", e.getClass().getSimpleName());
       log.error("Service error during user deletion: {}", e.getMessage(), e);
       throw new TException("Service error during user deletion: " + e.getMessage(), e);
     } catch (Exception e) {
+      metrics.incrementThriftServerErrors("deleteUserLegacy", e.getClass().getSimpleName());
+      metrics.incrementUserOperationsErrors("delete", e.getClass().getSimpleName());
       log.error("Unexpected error during user deletion: {}", e.getMessage(), e);
       throw new TException("Unexpected error during user deletion: " + e.getMessage(), e);
+    } finally {
+      metrics.recordThriftServerDuration(timer, "deleteUserLegacy");
     }
   }
 
   @Override
+  @Timed(value = "thrift.server.list.users.legacy", description = "Time taken to handle Thrift legacy list users request")
   public TPagedUsers listUsersLegacy(int page, int size) throws TException {
     log.debug("Thrift legacy listUsers request received - page: {}, size: {}", page, size);
+    
+    var timer = metrics.startThriftServerTimer();
     try {
-      List<User> users = userService.listPaged(page, size);
+      metrics.incrementThriftServerRequests("listUsersLegacy");
+      metrics.incrementUserOperations("list");
+      
+      List<User> users = userService.list(page, size);
       log.debug("Retrieved {} users from service for Thrift legacy", users.size());
       
       long total = userService.count();
@@ -440,10 +600,7 @@ public class UserServiceHandler implements UserService.Iface {
       
       int totalPages = (int) Math.ceil((double) total / (double) size);
       List<TUser> thriftUsers = users.stream()
-          .map(user -> {
-            log.debug("Mapping domain user to Thrift user: {}", user);
-            return toThrift(user);
-          })
+          .map(UserThriftMapper::toThrift)
           .collect(Collectors.toList());
       
       TPagedUsers res = new TPagedUsers();
@@ -457,14 +614,22 @@ public class UserServiceHandler implements UserService.Iface {
                 thriftUsers.size(), page, size, total, totalPages);
       return res;
     } catch (DatabaseException e) {
+      metrics.incrementThriftServerErrors("listUsersLegacy", e.getClass().getSimpleName());
+      metrics.incrementUserOperationsErrors("list", e.getClass().getSimpleName());
       log.error("Database error during user listing: {}", e.getMessage(), e);
       throw new TException("Database error during user listing: " + e.getMessage(), e);
     } catch (UserServiceException e) {
+      metrics.incrementThriftServerErrors("listUsersLegacy", e.getClass().getSimpleName());
+      metrics.incrementUserOperationsErrors("list", e.getClass().getSimpleName());
       log.error("Service error during user listing: {}", e.getMessage(), e);
       throw new TException("Service error during user listing: " + e.getMessage(), e);
     } catch (Exception e) {
+      metrics.incrementThriftServerErrors("listUsersLegacy", e.getClass().getSimpleName());
+      metrics.incrementUserOperationsErrors("list", e.getClass().getSimpleName());
       log.error("Unexpected error during user listing: {}", e.getMessage(), e);
       throw new TException("Unexpected error during user listing: " + e.getMessage(), e);
+    } finally {
+      metrics.recordThriftServerDuration(timer, "listUsersLegacy");
     }
   }
 }

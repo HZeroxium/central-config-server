@@ -1,11 +1,15 @@
 package com.example.user.adapter.mongo;
 
+import com.example.user.domain.User;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Version;
 import org.springframework.data.mongodb.core.mapping.Document;
+
+import java.time.LocalDateTime;
 
 /**
  * MongoDB document for collection {@code users}.
@@ -22,4 +26,15 @@ public class UserDocument {
   private String name;
   private String phone;
   private String address;
+  private User.UserStatus status;
+  private User.UserRole role;
+  private LocalDateTime createdAt;
+  private String createdBy;
+  private LocalDateTime updatedAt;
+  private String updatedBy;
+  @Version
+  private Integer version;
+  private Boolean deleted;
+  private LocalDateTime deletedAt;
+  private String deletedBy;
 }

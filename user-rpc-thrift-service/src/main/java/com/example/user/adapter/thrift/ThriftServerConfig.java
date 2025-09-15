@@ -2,6 +2,7 @@ package com.example.user.adapter.thrift;
 
 import com.example.user.service.port.UserServicePort;
 import com.example.user.thrift.UserService;
+import com.example.user.metrics.ApplicationMetrics;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.thrift.TProcessor;
@@ -22,6 +23,8 @@ import org.springframework.context.annotation.Configuration;
  * Exposes a {@link TServer} via a background daemon thread to handle RPC calls using a
  * {@link TThreadPoolServer} and {@link TBinaryProtocol}. The handler delegates to
  * {@link com.example.user.service.port.UserServicePort}.
+ * 
+ * Enhanced with comprehensive profiling and metrics collection.
  */
 @Slf4j
 @Configuration
@@ -32,6 +35,7 @@ public class ThriftServerConfig implements ApplicationRunner {
   private int thriftPort;
 
   private final UserServicePort userServicePort;
+  private final ApplicationMetrics metrics;
 
   /**
    * Create the Thrift {@link TProcessor} for the user service.
@@ -40,9 +44,9 @@ public class ThriftServerConfig implements ApplicationRunner {
    */
   @Bean
   public TProcessor userServiceProcessor() {
-    log.info("Creating Thrift processor for UserService");
-    TProcessor processor = new UserService.Processor<>(new UserServiceHandler(userServicePort));
-    log.debug("Thrift processor created successfully");
+    log.info("Creating Thrift processor for UserService with profiling enabled");
+    TProcessor processor = new UserService.Processor<>(new UserServiceHandler(userServicePort, metrics));
+    log.debug("Thrift processor created successfully with metrics integration");
     return processor;
   }
 
@@ -54,7 +58,7 @@ public class ThriftServerConfig implements ApplicationRunner {
    */
   @Override
   public void run(ApplicationArguments args) throws Exception {
-    log.info("Starting Thrift server on port: {}", thriftPort);
+    log.info("Starting Thrift server on port: {} with profiling enabled", thriftPort);
     try {
       TServerTransport serverTransport = new TServerSocket(thriftPort);
       log.debug("Thrift server transport created on port: {}", thriftPort);
@@ -69,7 +73,7 @@ public class ThriftServerConfig implements ApplicationRunner {
       
       Thread serverThread = new Thread(() -> {
         try {
-          log.info("Thrift server starting to serve requests on port: {}", thriftPort);
+          log.info("Thrift server starting to serve requests on port: {} with profiling", thriftPort);
           server.serve();
         } catch (Exception e) {
           log.error("Thrift server failed to start or serve requests", e);
@@ -78,7 +82,7 @@ public class ThriftServerConfig implements ApplicationRunner {
       
       serverThread.setDaemon(true);
       serverThread.start();
-      log.info("Thrift server thread started successfully on port: {}", thriftPort);
+      log.info("Thrift server thread started successfully on port: {} with profiling", thriftPort);
     } catch (Exception e) {
       log.error("Failed to start Thrift server on port: {}", thriftPort, e);
       throw e;
