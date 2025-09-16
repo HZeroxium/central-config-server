@@ -5,7 +5,7 @@ import com.example.user.domain.SortCriterion;
 import com.example.user.domain.User;
 import com.example.user.domain.UserQueryCriteria;
 import com.example.user.service.port.UserRepositoryPort;
-import com.example.user.metrics.ApplicationMetrics;
+ 
 import io.micrometer.core.annotation.Timed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,7 +33,6 @@ import org.springframework.data.domain.Page;
 public class UserRepositoryAdapter implements UserRepositoryPort {
 
   private final UserMongoRepository repository;
-  private final ApplicationMetrics metrics;
 
   // Delegate mapping to mapper
 
@@ -41,10 +40,7 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
   @Timed(value = "database.mongo.save", description = "Time taken to save user via MongoDB")
   public User save(User user) {
     log.debug("Saving user to MongoDB: {}", user);
-    
-    var timer = metrics.startDatabaseTimer();
     try {
-      metrics.incrementDatabaseOperations("save", "users");
       
       // Check if this is a new user (no ID) or existing user
       boolean isNewUser = user.getId() == null || user.getId().isBlank();
@@ -78,11 +74,8 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
       log.debug("Mapped MongoDB document to domain user: {}", domainUser);
       return domainUser;
     } catch (Exception e) {
-      metrics.incrementDatabaseErrors("save", "users", e.getClass().getSimpleName());
       log.error("Failed to save user to MongoDB: {}", user, e);
       throw e;
-    } finally {
-      metrics.recordDatabaseDuration(timer, "save", "users");
     }
   }
 
@@ -90,19 +83,13 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
   @Timed(value = "database.mongo.find.by.id", description = "Time taken to find user by ID via MongoDB")
   public Optional<User> findById(String id) {
     log.debug("Finding user by ID in MongoDB: {}", id);
-    
-    var timer = metrics.startDatabaseTimer();
     try {
-      metrics.incrementDatabaseOperations("findById", "users");
       
       return repository.findByIdAndNotDeleted(id)
           .map(document -> UserMongoPersistenceMapper.toDomain(document));
     } catch (Exception e) {
-      metrics.incrementDatabaseErrors("findById", "users", e.getClass().getSimpleName());
       log.error("Failed to find user by ID in MongoDB: {}", id, e);
       throw e;
-    } finally {
-      metrics.recordDatabaseDuration(timer, "findById", "users");
     }
   }
 
@@ -110,10 +97,7 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
   @Timed(value = "database.mongo.find.all.paged", description = "Time taken to find all users with pagination via MongoDB")
   public List<User> findPage(int page, int size) {
     log.debug("Finding all users with pagination in MongoDB - page: {}, size: {}", page, size);
-    
-    var timer = metrics.startDatabaseTimer();
     try {
-      metrics.incrementDatabaseOperations("findAllPaged", "users");
       
       PageRequest pageRequest = PageRequest.of(page, size);
       Page<UserDocument> documentPage = repository.findAllNotDeleted(pageRequest);
@@ -126,11 +110,8 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
       log.debug("Mapped {} MongoDB documents to domain users", domainUsers.size());
       return domainUsers;
     } catch (Exception e) {
-      metrics.incrementDatabaseErrors("findAllPaged", "users", e.getClass().getSimpleName());
       log.error("Failed to find all users with pagination in MongoDB - page: {}, size: {}", page, size, e);
       throw e;
-    } finally {
-      metrics.recordDatabaseDuration(timer, "findAllPaged", "users");
     }
   }
 
@@ -138,20 +119,14 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
   @Timed(value = "database.mongo.count", description = "Time taken to count users via MongoDB")
   public long count() {
     log.debug("Counting users in MongoDB");
-    
-    var timer = metrics.startDatabaseTimer();
     try {
-      metrics.incrementDatabaseOperations("count", "users");
       
       long totalCount = repository.countNotDeleted();
       log.debug("Total user count in MongoDB: {}", totalCount);
       return totalCount;
     } catch (Exception e) {
-      metrics.incrementDatabaseErrors("count", "users", e.getClass().getSimpleName());
       log.error("Failed to count users in MongoDB", e);
       throw e;
-    } finally {
-      metrics.recordDatabaseDuration(timer, "count", "users");
     }
   }
 
@@ -159,10 +134,7 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
   @Timed(value = "database.mongo.delete.by.id", description = "Time taken to soft delete user by ID via MongoDB")
   public void deleteById(String id) {
     log.debug("Soft deleting user by ID in MongoDB: {}", id);
-    
-    var timer = metrics.startDatabaseTimer();
     try {
-      metrics.incrementDatabaseOperations("deleteById", "users");
       
       // Find the user first
       Optional<UserDocument> userDoc = repository.findByIdAndNotDeleted(id);
@@ -177,11 +149,8 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
         log.warn("User not found for soft deletion: {}", id);
       }
     } catch (Exception e) {
-      metrics.incrementDatabaseErrors("deleteById", "users", e.getClass().getSimpleName());
       log.error("Failed to soft delete user by ID in MongoDB: {}", id, e);
       throw e;
-    } finally {
-      metrics.recordDatabaseDuration(timer, "deleteById", "users");
     }
   }
 
@@ -189,10 +158,7 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
   @Timed(value = "database.mongo.find.by.criteria", description = "Time taken to find users by criteria via MongoDB")
   public List<User> findByCriteria(UserQueryCriteria criteria) {
     log.debug("Finding users by criteria in MongoDB: {}", criteria);
-    
-    var timer = metrics.startDatabaseTimer();
     try {
-      metrics.incrementDatabaseOperations("findByCriteria", "users");
       
       // Build pageable with sorting
       Pageable pageable = buildPageable(criteria);
@@ -220,11 +186,8 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
       log.debug("Mapped {} MongoDB documents to domain users", users.size());
       return users;
     } catch (Exception e) {
-      metrics.incrementDatabaseErrors("findByCriteria", "users", e.getClass().getSimpleName());
       log.error("Failed to find users by criteria in MongoDB: {}", criteria, e);
       throw e;
-    } finally {
-      metrics.recordDatabaseDuration(timer, "findByCriteria", "users");
     }
   }
 
@@ -232,10 +195,7 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
   @Timed(value = "database.mongo.count.by.criteria", description = "Time taken to count users by criteria via MongoDB")
   public long countByCriteria(UserQueryCriteria criteria) {
     log.debug("Counting users by criteria in MongoDB: {}", criteria);
-    
-    var timer = metrics.startDatabaseTimer();
     try {
-      metrics.incrementDatabaseOperations("countByCriteria", "users");
       
       // Prepare search term
       String searchTerm = criteria.hasSearch() ? criteria.getSearch() : "";
@@ -253,11 +213,8 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
       log.debug("User count by criteria in MongoDB: {}", count);
       return count;
     } catch (Exception e) {
-      metrics.incrementDatabaseErrors("countByCriteria", "users", e.getClass().getSimpleName());
       log.error("Failed to count users by criteria in MongoDB: {}", criteria, e);
       throw e;
-    } finally {
-      metrics.recordDatabaseDuration(timer, "countByCriteria", "users");
     }
   }
 

@@ -2,7 +2,6 @@ package com.example.rest.integration;
 
 import com.example.rest.user.dto.*;
 import com.example.rest.user.service.UserService;
-import com.example.rest.metrics.ApplicationMetrics;
 import com.example.rest.user.domain.User;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.*;
@@ -37,8 +36,6 @@ class UserControllerIntegrationTest {
     @MockBean
     private UserService userService;
 
-    @MockBean
-    private ApplicationMetrics metrics;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -46,7 +43,7 @@ class UserControllerIntegrationTest {
     @BeforeEach
     void setUp() {
         // Reset mocks before each test
-        reset(userService, metrics);
+        reset(userService);
     }
 
     @Nested

@@ -5,7 +5,7 @@ import com.example.user.domain.SortCriterion;
 import com.example.user.domain.User;
 import com.example.user.domain.UserQueryCriteria;
 import com.example.user.service.port.UserRepositoryPort;
-import com.example.user.metrics.ApplicationMetrics;
+ 
 import io.micrometer.core.annotation.Timed;
 import lombok.extern.slf4j.Slf4j;
 import java.util.List;
@@ -34,7 +34,6 @@ import org.springframework.stereotype.Component;
 @ConditionalOnProperty(name = "app.persistence.type", havingValue = "h2")
 public class UserJpaRepositoryAdapter implements UserRepositoryPort {
   private final UserJpaRepository repository;
-  private final ApplicationMetrics metrics;
 
   /**
    * Create adapter with the injected Spring Data JPA repository and metrics.
@@ -42,9 +41,8 @@ public class UserJpaRepositoryAdapter implements UserRepositoryPort {
    * @param repository concrete JPA repository
    * @param metrics application metrics for profiling
    */
-  public UserJpaRepositoryAdapter(UserJpaRepository repository, ApplicationMetrics metrics) {
+  public UserJpaRepositoryAdapter(UserJpaRepository repository) {
     this.repository = repository;
-    this.metrics = metrics;
   }
 
   // Delegate entity<->domain conversion to mapper
@@ -60,10 +58,7 @@ public class UserJpaRepositoryAdapter implements UserRepositoryPort {
   @Timed(value = "database.jpa.save", description = "Time taken to save user via JPA")
   public User save(User user) {
     log.debug("Saving user to H2 database: {}", user);
-    
-    var timer = metrics.startDatabaseTimer();
     try {
-      metrics.incrementDatabaseOperations("save", "users");
       
       // Check if this is a new user (no ID) or existing user
       boolean isNewUser = user.getId() == null || user.getId().isBlank();
@@ -97,11 +92,8 @@ public class UserJpaRepositoryAdapter implements UserRepositoryPort {
       log.debug("Mapped JPA entity to domain user: {}", domainUser);
       return domainUser;
     } catch (Exception e) {
-      metrics.incrementDatabaseErrors("save", "users", e.getClass().getSimpleName());
       log.error("Failed to save user to H2 database: {}", user, e);
       throw e;
-    } finally {
-      metrics.recordDatabaseDuration(timer, "save", "users");
     }
   }
 
@@ -115,19 +107,13 @@ public class UserJpaRepositoryAdapter implements UserRepositoryPort {
   @Timed(value = "database.jpa.find.by.id", description = "Time taken to find user by ID via JPA")
   public Optional<User> findById(String id) {
     log.debug("Finding user by ID in H2 database: {}", id);
-    
-    var timer = metrics.startDatabaseTimer();
     try {
-      metrics.incrementDatabaseOperations("findById", "users");
       
       return repository.findByIdAndNotDeleted(id)
           .map(entity -> UserPersistenceMapper.toDomain(entity));
     } catch (Exception e) {
-      metrics.incrementDatabaseErrors("findById", "users", e.getClass().getSimpleName());
       log.error("Failed to find user by ID in H2 database: {}", id, e);
       throw e;
-    } finally {
-      metrics.recordDatabaseDuration(timer, "findById", "users");
     }
   }
 
@@ -142,10 +128,7 @@ public class UserJpaRepositoryAdapter implements UserRepositoryPort {
   @Timed(value = "database.jpa.find.all.paged", description = "Time taken to find all users with pagination via JPA")
   public List<User> findPage(int page, int size) {
     log.debug("Finding all users with pagination in H2 database - page: {}, size: {}", page, size);
-    
-    var timer = metrics.startDatabaseTimer();
     try {
-      metrics.incrementDatabaseOperations("findAllPaged", "users");
       
       PageRequest pageRequest = PageRequest.of(page, size);
       Page<UserEntity> entityPage = repository.findAllNotDeleted(pageRequest);
@@ -158,11 +141,8 @@ public class UserJpaRepositoryAdapter implements UserRepositoryPort {
       log.debug("Mapped {} JPA entities to domain users", domainUsers.size());
       return domainUsers;
     } catch (Exception e) {
-      metrics.incrementDatabaseErrors("findAllPaged", "users", e.getClass().getSimpleName());
       log.error("Failed to find all users with pagination in H2 database - page: {}, size: {}", page, size, e);
       throw e;
-    } finally {
-      metrics.recordDatabaseDuration(timer, "findAllPaged", "users");
     }
   }
 
@@ -175,20 +155,14 @@ public class UserJpaRepositoryAdapter implements UserRepositoryPort {
   @Timed(value = "database.jpa.count", description = "Time taken to count users via JPA")
   public long count() {
     log.debug("Counting users in H2 database");
-    
-    var timer = metrics.startDatabaseTimer();
     try {
-      metrics.incrementDatabaseOperations("count", "users");
       
       long totalCount = repository.countNotDeleted();
       log.debug("Total user count in H2 database: {}", totalCount);
       return totalCount;
     } catch (Exception e) {
-      metrics.incrementDatabaseErrors("count", "users", e.getClass().getSimpleName());
       log.error("Failed to count users in H2 database", e);
       throw e;
-    } finally {
-      metrics.recordDatabaseDuration(timer, "count", "users");
     }
   }
 
@@ -201,10 +175,7 @@ public class UserJpaRepositoryAdapter implements UserRepositoryPort {
   @Timed(value = "database.jpa.delete.by.id", description = "Time taken to soft delete user by ID via JPA")
   public void deleteById(String id) {
     log.debug("Soft deleting user by ID in H2 database: {}", id);
-    
-    var timer = metrics.startDatabaseTimer();
     try {
-      metrics.incrementDatabaseOperations("deleteById", "users");
       
       // Find the user first
       Optional<UserEntity> userEntity = repository.findByIdAndNotDeleted(id);
@@ -219,11 +190,8 @@ public class UserJpaRepositoryAdapter implements UserRepositoryPort {
         log.warn("User not found for soft deletion: {}", id);
       }
     } catch (Exception e) {
-      metrics.incrementDatabaseErrors("deleteById", "users", e.getClass().getSimpleName());
       log.error("Failed to soft delete user by ID in H2 database: {}", id, e);
       throw e;
-    } finally {
-      metrics.recordDatabaseDuration(timer, "deleteById", "users");
     }
   }
 
@@ -231,10 +199,7 @@ public class UserJpaRepositoryAdapter implements UserRepositoryPort {
   @Timed(value = "database.jpa.find.by.criteria", description = "Time taken to find users by criteria via JPA")
   public List<User> findByCriteria(UserQueryCriteria criteria) {
     log.debug("Finding users by criteria in H2 database: {}", criteria);
-    
-    var timer = metrics.startDatabaseTimer();
     try {
-      metrics.incrementDatabaseOperations("findByCriteria", "users");
       
       // Build pageable with sorting
       Pageable pageable = buildPageable(criteria);
@@ -262,11 +227,8 @@ public class UserJpaRepositoryAdapter implements UserRepositoryPort {
       log.debug("Mapped {} JPA entities to domain users", users.size());
       return users;
     } catch (Exception e) {
-      metrics.incrementDatabaseErrors("findByCriteria", "users", e.getClass().getSimpleName());
       log.error("Failed to find users by criteria in H2 database: {}", criteria, e);
       throw e;
-    } finally {
-      metrics.recordDatabaseDuration(timer, "findByCriteria", "users");
     }
   }
 
@@ -274,10 +236,7 @@ public class UserJpaRepositoryAdapter implements UserRepositoryPort {
   @Timed(value = "database.jpa.count.by.criteria", description = "Time taken to count users by criteria via JPA")
   public long countByCriteria(UserQueryCriteria criteria) {
     log.debug("Counting users by criteria in H2 database: {}", criteria);
-    
-    var timer = metrics.startDatabaseTimer();
     try {
-      metrics.incrementDatabaseOperations("countByCriteria", "users");
       
       // Prepare search term
       String searchTerm = criteria.hasSearch() ? criteria.getSearch() : "";
@@ -295,11 +254,8 @@ public class UserJpaRepositoryAdapter implements UserRepositoryPort {
       log.debug("User count by criteria in H2 database: {}", count);
       return count;
     } catch (Exception e) {
-      metrics.incrementDatabaseErrors("countByCriteria", "users", e.getClass().getSimpleName());
       log.error("Failed to count users by criteria in H2 database: {}", criteria, e);
       throw e;
-    } finally {
-      metrics.recordDatabaseDuration(timer, "countByCriteria", "users");
     }
   }
 

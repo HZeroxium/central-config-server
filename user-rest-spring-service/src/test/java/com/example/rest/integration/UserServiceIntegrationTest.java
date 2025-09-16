@@ -2,7 +2,6 @@ package com.example.rest.integration;
 
 import com.example.rest.user.domain.User;
 import com.example.rest.user.service.UserService;
-import com.example.rest.metrics.ApplicationMetrics;
 import com.example.rest.user.port.ThriftUserClientPort;
 import com.example.rest.exception.ThriftServiceException;
 import com.example.rest.exception.UserNotFoundException;
@@ -17,7 +16,6 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 /**
@@ -35,13 +33,10 @@ class UserServiceIntegrationTest {
     @MockBean
     private ThriftUserClientPort thriftClient;
 
-    @MockBean
-    private ApplicationMetrics metrics;
-
     @BeforeEach
     void setUp() {
         // Reset mocks before each test
-        reset(thriftClient, metrics);
+        reset(thriftClient);
     }
 
     @Nested
@@ -61,7 +56,7 @@ class UserServiceIntegrationTest {
             // Then
             assertThat(result).isEqualTo(expectedResponse);
             verify(thriftClient).ping();
-            verify(metrics).incrementThriftClientRequests("ping");
+          
         }
 
         @Test
@@ -78,8 +73,7 @@ class UserServiceIntegrationTest {
                     .hasCause(cause);
 
             verify(thriftClient).ping();
-            verify(metrics).incrementThriftClientRequests("ping");
-            verify(metrics).incrementThriftClientErrors("ping", "RuntimeException");
+          
         }
     }
 
@@ -112,7 +106,6 @@ class UserServiceIntegrationTest {
             // Then
             assertThat(result).isEqualTo(expectedUser);
             verify(thriftClient).create(inputUser);
-            verify(metrics).incrementThriftClientRequests("create");
         }
 
         @Test
@@ -134,8 +127,6 @@ class UserServiceIntegrationTest {
                     .hasCause(cause);
 
             verify(thriftClient).create(inputUser);
-            verify(metrics).incrementThriftClientRequests("create");
-            verify(metrics).incrementThriftClientErrors("create", "RuntimeException");
         }
     }
 
@@ -164,7 +155,6 @@ class UserServiceIntegrationTest {
             assertThat(result).isPresent();
             assertThat(result.get()).isEqualTo(expectedUser);
             verify(thriftClient).getById(userId);
-            verify(metrics).incrementThriftClientRequests("getById");
         }
 
         @Test
@@ -180,7 +170,6 @@ class UserServiceIntegrationTest {
             // Then
             assertThat(result).isEmpty();
             verify(thriftClient).getById(userId);
-            verify(metrics).incrementThriftClientRequests("getById");
         }
 
         @Test
@@ -198,8 +187,6 @@ class UserServiceIntegrationTest {
                     .hasCause(cause);
 
             verify(thriftClient).getById(userId);
-            verify(metrics).incrementThriftClientRequests("getById");
-            verify(metrics).incrementThriftClientErrors("getById", "RuntimeException");
         }
     }
 
@@ -233,7 +220,6 @@ class UserServiceIntegrationTest {
             // Then
             assertThat(result).isEqualTo(expectedUser);
             verify(thriftClient).update(inputUser);
-            verify(metrics).incrementThriftClientRequests("update");
         }
 
         @Test
@@ -256,8 +242,6 @@ class UserServiceIntegrationTest {
                     .hasCause(cause);
 
             verify(thriftClient).update(inputUser);
-            verify(metrics).incrementThriftClientRequests("update");
-            verify(metrics).incrementThriftClientErrors("update", "RuntimeException");
         }
     }
 
@@ -278,7 +262,6 @@ class UserServiceIntegrationTest {
 
             // Then
             verify(thriftClient).delete(userId);
-            verify(metrics).incrementThriftClientRequests("delete");
         }
 
         @Test
@@ -296,8 +279,6 @@ class UserServiceIntegrationTest {
                     .hasCause(cause);
 
             verify(thriftClient).delete(userId);
-            verify(metrics).incrementThriftClientRequests("delete");
-            verify(metrics).incrementThriftClientErrors("delete", "RuntimeException");
         }
     }
 
@@ -322,7 +303,6 @@ class UserServiceIntegrationTest {
             // Then
             assertThat(result).isEqualTo(expectedUsers);
             verify(thriftClient).list();
-            verify(metrics).incrementThriftClientRequests("list");
         }
 
         @Test
@@ -344,7 +324,6 @@ class UserServiceIntegrationTest {
             // Then
             assertThat(result).isEqualTo(expectedUsers);
             verify(thriftClient).listPaged(page, size);
-            verify(metrics).incrementThriftClientRequests("listPaged");
         }
 
         @Test
@@ -360,7 +339,6 @@ class UserServiceIntegrationTest {
             // Then
             assertThat(result).isEqualTo(expectedCount);
             verify(thriftClient).count();
-            verify(metrics).incrementThriftClientRequests("count");
         }
     }
 }

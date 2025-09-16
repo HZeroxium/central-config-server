@@ -2,34 +2,21 @@ package com.example.rest.user.controller;
 
 import com.example.rest.user.domain.User;
 import com.example.rest.user.dto.*;
-import com.example.rest.user.mapper.UserMapper;
 import com.example.rest.user.service.UserService;
-import com.example.rest.metrics.ApplicationMetrics;
 import com.example.rest.exception.ThriftServiceException;
-import com.example.rest.exception.UserNotFoundException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.micrometer.core.instrument.Counter;
-import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Timer;
-import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -46,25 +33,18 @@ class UserControllerTest {
     @Mock
     private UserService userService;
 
-    @Mock
-    private ApplicationMetrics metrics;
 
     @InjectMocks
     private UserController userController;
 
     private MockMvc mockMvc;
     private ObjectMapper objectMapper;
-    private MeterRegistry meterRegistry;
 
     @BeforeEach
     void setUp() {
         objectMapper = new ObjectMapper();
-        meterRegistry = new SimpleMeterRegistry();
         mockMvc = MockMvcBuilders.standaloneSetup(userController).build();
         
-        // Use real metrics for more accurate testing
-        when(metrics.startRestApiTimer()).thenReturn(Timer.start(meterRegistry));
-        // Only mock startThriftClientTimer when needed in specific tests
     }
 
     @Nested
@@ -84,8 +64,7 @@ class UserControllerTest {
                     .andExpect(content().string(expectedResponse));
 
             verify(userService).ping();
-            verify(metrics).incrementRestApiRequests("/users/ping", "GET");
-            verify(metrics).recordRestApiDuration(any(Timer.Sample.class), eq("/users/ping"), eq("GET"));
+          
         }
 
         @Test
@@ -99,9 +78,7 @@ class UserControllerTest {
                     .andExpect(status().isInternalServerError());
 
             verify(userService).ping();
-            verify(metrics).incrementRestApiRequests("/users/ping", "GET");
-            verify(metrics).incrementRestApiErrors("/users/ping", "GET", "ThriftServiceException");
-            verify(metrics).recordRestApiDuration(any(Timer.Sample.class), eq("/users/ping"), eq("GET"));
+         
         }
     }
 
@@ -142,9 +119,7 @@ class UserControllerTest {
                     .andExpect(jsonPath("$.correlationId").exists());
 
             verify(userService).create(any(User.class));
-            verify(metrics).incrementRestApiRequests("/users", "POST");
-            verify(metrics).incrementUserOperations("create");
-            verify(metrics).recordRestApiDuration(any(Timer.Sample.class), eq("/users"), eq("POST"));
+
         }
 
         @Test
@@ -164,11 +139,7 @@ class UserControllerTest {
                     .andExpect(status().isInternalServerError());
 
             verify(userService).create(any(User.class));
-            verify(metrics).incrementRestApiRequests("/users", "POST");
-            verify(metrics).incrementUserOperations("create");
-            verify(metrics).incrementRestApiErrors("/users", "POST", "ThriftServiceException");
-            verify(metrics).incrementUserOperationsErrors("create", "ThriftServiceException");
-            verify(metrics).recordRestApiDuration(any(Timer.Sample.class), eq("/users"), eq("POST"));
+
         }
 
         @Test
@@ -217,9 +188,7 @@ class UserControllerTest {
                     .andExpect(jsonPath("$.correlationId").exists());
 
             verify(userService).getById(userId);
-            verify(metrics).incrementRestApiRequests("/users/{id}", "GET");
-            verify(metrics).incrementUserOperations("get");
-            verify(metrics).recordRestApiDuration(any(Timer.Sample.class), eq("/users/{id}"), eq("GET"));
+
         }
 
         @Test
@@ -239,9 +208,7 @@ class UserControllerTest {
                     .andExpect(jsonPath("$.correlationId").exists());
 
             verify(userService).getById(userId);
-            verify(metrics).incrementRestApiRequests("/users/{id}", "GET");
-            verify(metrics).incrementUserOperations("get");
-            verify(metrics).recordRestApiDuration(any(Timer.Sample.class), eq("/users/{id}"), eq("GET"));
+
         }
 
         @Test
@@ -256,11 +223,7 @@ class UserControllerTest {
                     .andExpect(status().isInternalServerError());
 
             verify(userService).getById(userId);
-            verify(metrics).incrementRestApiRequests("/users/{id}", "GET");
-            verify(metrics).incrementUserOperations("get");
-            verify(metrics).incrementRestApiErrors("/users/{id}", "GET", "ThriftServiceException");
-            verify(metrics).incrementUserOperationsErrors("get", "ThriftServiceException");
-            verify(metrics).recordRestApiDuration(any(Timer.Sample.class), eq("/users/{id}"), eq("GET"));
+
         }
     }
 
@@ -311,9 +274,7 @@ class UserControllerTest {
 
             verify(userService).getById(userId);
             verify(userService).update(any(User.class));
-            verify(metrics).incrementRestApiRequests("/users/{id}", "PUT");
-            verify(metrics).incrementUserOperations("update");
-            verify(metrics).recordRestApiDuration(any(Timer.Sample.class), eq("/users/{id}"), eq("PUT"));
+
         }
 
         @Test
@@ -339,9 +300,7 @@ class UserControllerTest {
 
             verify(userService).getById(userId);
             verify(userService, never()).update(any(User.class));
-            verify(metrics).incrementRestApiRequests("/users/{id}", "PUT");
-            verify(metrics).incrementUserOperations("update");
-            verify(metrics).recordRestApiDuration(any(Timer.Sample.class), eq("/users/{id}"), eq("PUT"));
+
         }
 
         @Test
@@ -370,11 +329,7 @@ class UserControllerTest {
 
             verify(userService).getById(userId);
             verify(userService).update(any(User.class));
-            verify(metrics).incrementRestApiRequests("/users/{id}", "PUT");
-            verify(metrics).incrementUserOperations("update");
-            verify(metrics).incrementRestApiErrors("/users/{id}", "PUT", "ThriftServiceException");
-            verify(metrics).incrementUserOperationsErrors("update", "ThriftServiceException");
-            verify(metrics).recordRestApiDuration(any(Timer.Sample.class), eq("/users/{id}"), eq("PUT"));
+
         }
     }
 
@@ -406,9 +361,7 @@ class UserControllerTest {
 
             verify(userService).getById(userId);
             verify(userService).delete(userId);
-            verify(metrics).incrementRestApiRequests("/users/{id}", "DELETE");
-            verify(metrics).incrementUserOperations("delete");
-            verify(metrics).recordRestApiDuration(any(Timer.Sample.class), eq("/users/{id}"), eq("DELETE"));
+ 
         }
 
         @Test
@@ -428,9 +381,7 @@ class UserControllerTest {
 
             verify(userService).getById(userId);
             verify(userService, never()).delete(anyString());
-            verify(metrics).incrementRestApiRequests("/users/{id}", "DELETE");
-            verify(metrics).incrementUserOperations("delete");
-            verify(metrics).recordRestApiDuration(any(Timer.Sample.class), eq("/users/{id}"), eq("DELETE"));
+       
         }
 
         @Test
@@ -454,11 +405,7 @@ class UserControllerTest {
 
             verify(userService).getById(userId);
             verify(userService).delete(userId);
-            verify(metrics).incrementRestApiRequests("/users/{id}", "DELETE");
-            verify(metrics).incrementUserOperations("delete");
-            verify(metrics).incrementRestApiErrors("/users/{id}", "DELETE", "ThriftServiceException");
-            verify(metrics).incrementUserOperationsErrors("delete", "ThriftServiceException");
-            verify(metrics).recordRestApiDuration(any(Timer.Sample.class), eq("/users/{id}"), eq("DELETE"));
+       
         }
     }
 
@@ -498,9 +445,7 @@ class UserControllerTest {
 
             verify(userService).listPaged(0, 20);
             verify(userService).count();
-            verify(metrics).incrementRestApiRequests("/users", "GET");
-            verify(metrics).incrementUserOperations("list");
-            verify(metrics).recordRestApiDuration(any(Timer.Sample.class), eq("/users"), eq("GET"));
+         
         }
 
         @Test
@@ -566,11 +511,7 @@ class UserControllerTest {
                     .andExpect(status().isInternalServerError());
 
             verify(userService).listPaged(0, 20);
-            verify(metrics).incrementRestApiRequests("/users", "GET");
-            verify(metrics).incrementUserOperations("list");
-            verify(metrics).incrementRestApiErrors("/users", "GET", "ThriftServiceException");
-            verify(metrics).incrementUserOperationsErrors("list", "ThriftServiceException");
-            verify(metrics).recordRestApiDuration(any(Timer.Sample.class), eq("/users"), eq("GET"));
+         
         }
     }
 

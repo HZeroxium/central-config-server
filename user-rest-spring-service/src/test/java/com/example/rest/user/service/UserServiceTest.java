@@ -4,11 +4,6 @@ import com.example.rest.user.domain.User;
 import com.example.rest.user.port.ThriftUserClientPort;
 import com.example.rest.exception.ThriftServiceException;
 import com.example.rest.exception.UserNotFoundException;
-import com.example.rest.metrics.ApplicationMetrics;
-import io.micrometer.core.instrument.Counter;
-import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Timer;
-import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -20,8 +15,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.*;    
 
 /**
  * Comprehensive unit tests for UserService class.
@@ -34,19 +28,14 @@ class UserServiceTest {
     @Mock
     private ThriftUserClientPort thriftClient;
 
-    @Mock
-    private ApplicationMetrics metrics;
 
     @InjectMocks
     private UserService userService;
 
-    private MeterRegistry meterRegistry;
 
     @BeforeEach
     void setUp() {
-        meterRegistry = new SimpleMeterRegistry();
-        // Use real metrics for more accurate testing
-        when(metrics.startThriftClientTimer()).thenReturn(Timer.start(meterRegistry));
+
     }
 
     @Nested
@@ -66,8 +55,7 @@ class UserServiceTest {
             // Then
             assertThat(result).isEqualTo(expectedResponse);
             verify(thriftClient).ping();
-            verify(metrics).incrementThriftClientRequests("ping");
-            verify(metrics).recordThriftClientDuration(any(Timer.Sample.class), eq("ping"));
+
         }
 
         @Test
@@ -84,9 +72,7 @@ class UserServiceTest {
                     .hasCause(cause);
 
             verify(thriftClient).ping();
-            verify(metrics).incrementThriftClientRequests("ping");
-            verify(metrics).incrementThriftClientErrors("ping", "RuntimeException");
-            verify(metrics).recordThriftClientDuration(any(Timer.Sample.class), eq("ping"));
+
         }
     }
 
@@ -119,8 +105,8 @@ class UserServiceTest {
             // Then
             assertThat(result).isEqualTo(expectedUser);
             verify(thriftClient).create(inputUser);
-            verify(metrics).incrementThriftClientRequests("create");
-            verify(metrics).recordThriftClientDuration(any(Timer.Sample.class), eq("create"));
+
+           
         }
 
         @Test
@@ -142,9 +128,7 @@ class UserServiceTest {
                     .hasCause(cause);
 
             verify(thriftClient).create(inputUser);
-            verify(metrics).incrementThriftClientRequests("create");
-            verify(metrics).incrementThriftClientErrors("create", "RuntimeException");
-            verify(metrics).recordThriftClientDuration(any(Timer.Sample.class), eq("create"));
+
         }
     }
 
@@ -173,8 +157,7 @@ class UserServiceTest {
             assertThat(result).isPresent();
             assertThat(result.get()).isEqualTo(expectedUser);
             verify(thriftClient).getById(userId);
-            verify(metrics).incrementThriftClientRequests("getById");
-            verify(metrics).recordThriftClientDuration(any(Timer.Sample.class), eq("getById"));
+
         }
 
         @Test
@@ -190,8 +173,7 @@ class UserServiceTest {
             // Then
             assertThat(result).isEmpty();
             verify(thriftClient).getById(userId);
-            verify(metrics).incrementThriftClientRequests("getById");
-            verify(metrics).recordThriftClientDuration(any(Timer.Sample.class), eq("getById"));
+
         }
 
         @Test
@@ -209,9 +191,7 @@ class UserServiceTest {
                     .hasCause(cause);
 
             verify(thriftClient).getById(userId);
-            verify(metrics).incrementThriftClientRequests("getById");
-            verify(metrics).incrementThriftClientErrors("getById", "RuntimeException");
-            verify(metrics).recordThriftClientDuration(any(Timer.Sample.class), eq("getById"));
+
         }
 
         @Test
@@ -229,9 +209,7 @@ class UserServiceTest {
                     .hasCause(cause);
 
             verify(thriftClient).getById(userId);
-            verify(metrics).incrementThriftClientRequests("getById");
-            verify(metrics).incrementThriftClientErrors("getById", "RuntimeException");
-            verify(metrics).recordThriftClientDuration(any(Timer.Sample.class), eq("getById"));
+
         }
     }
 
@@ -265,8 +243,7 @@ class UserServiceTest {
             // Then
             assertThat(result).isEqualTo(expectedUser);
             verify(thriftClient).update(inputUser);
-            verify(metrics).incrementThriftClientRequests("update");
-            verify(metrics).recordThriftClientDuration(any(Timer.Sample.class), eq("update"));
+
         }
 
         @Test
@@ -289,9 +266,7 @@ class UserServiceTest {
                     .hasCause(cause);
 
             verify(thriftClient).update(inputUser);
-            verify(metrics).incrementThriftClientRequests("update");
-            verify(metrics).incrementThriftClientErrors("update", "RuntimeException");
-            verify(metrics).recordThriftClientDuration(any(Timer.Sample.class), eq("update"));
+           
         }
     }
 
@@ -312,8 +287,7 @@ class UserServiceTest {
 
             // Then
             verify(thriftClient).delete(userId);
-            verify(metrics).incrementThriftClientRequests("delete");
-            verify(metrics).recordThriftClientDuration(any(Timer.Sample.class), eq("delete"));
+           
         }
 
         @Test
@@ -331,9 +305,7 @@ class UserServiceTest {
                     .hasCause(cause);
 
             verify(thriftClient).delete(userId);
-            verify(metrics).incrementThriftClientRequests("delete");
-            verify(metrics).incrementThriftClientErrors("delete", "RuntimeException");
-            verify(metrics).recordThriftClientDuration(any(Timer.Sample.class), eq("delete"));
+           
         }
     }
 
@@ -358,8 +330,7 @@ class UserServiceTest {
             // Then
             assertThat(result).isEqualTo(expectedUsers);
             verify(thriftClient).list();
-            verify(metrics).incrementThriftClientRequests("list");
-            verify(metrics).recordThriftClientDuration(any(Timer.Sample.class), eq("list"));
+           
         }
 
         @Test
@@ -374,8 +345,7 @@ class UserServiceTest {
             // Then
             assertThat(result).isEmpty();
             verify(thriftClient).list();
-            verify(metrics).incrementThriftClientRequests("list");
-            verify(metrics).recordThriftClientDuration(any(Timer.Sample.class), eq("list"));
+           
         }
 
         @Test
@@ -392,9 +362,7 @@ class UserServiceTest {
                     .hasCause(cause);
 
             verify(thriftClient).list();
-            verify(metrics).incrementThriftClientRequests("list");
-            verify(metrics).incrementThriftClientErrors("list", "RuntimeException");
-            verify(metrics).recordThriftClientDuration(any(Timer.Sample.class), eq("list"));
+           
         }
     }
 
@@ -421,8 +389,7 @@ class UserServiceTest {
             // Then
             assertThat(result).isEqualTo(expectedUsers);
             verify(thriftClient).listPaged(page, size);
-            verify(metrics).incrementThriftClientRequests("listPaged");
-            verify(metrics).recordThriftClientDuration(any(Timer.Sample.class), eq("listPaged"));
+           
         }
 
         @Test
@@ -443,8 +410,7 @@ class UserServiceTest {
             // Then
             assertThat(result).isEqualTo(expectedUsers);
             verify(thriftClient).listPaged(page, size);
-            verify(metrics).incrementThriftClientRequests("listPaged");
-            verify(metrics).recordThriftClientDuration(any(Timer.Sample.class), eq("listPaged"));
+           
         }
 
         @Test
@@ -463,9 +429,7 @@ class UserServiceTest {
                     .hasCause(cause);
 
             verify(thriftClient).listPaged(page, size);
-            verify(metrics).incrementThriftClientRequests("listPaged");
-            verify(metrics).incrementThriftClientErrors("listPaged", "RuntimeException");
-            verify(metrics).recordThriftClientDuration(any(Timer.Sample.class), eq("listPaged"));
+           
         }
     }
 
@@ -486,8 +450,7 @@ class UserServiceTest {
             // Then
             assertThat(result).isEqualTo(expectedCount);
             verify(thriftClient).count();
-            verify(metrics).incrementThriftClientRequests("count");
-            verify(metrics).recordThriftClientDuration(any(Timer.Sample.class), eq("count"));
+           
         }
 
         @Test
@@ -502,8 +465,7 @@ class UserServiceTest {
             // Then
             assertThat(result).isZero();
             verify(thriftClient).count();
-            verify(metrics).incrementThriftClientRequests("count");
-            verify(metrics).recordThriftClientDuration(any(Timer.Sample.class), eq("count"));
+           
         }
 
         @Test
@@ -520,9 +482,7 @@ class UserServiceTest {
                     .hasCause(cause);
 
             verify(thriftClient).count();
-            verify(metrics).incrementThriftClientRequests("count");
-            verify(metrics).incrementThriftClientErrors("count", "RuntimeException");
-            verify(metrics).recordThriftClientDuration(any(Timer.Sample.class), eq("count"));
+            
         }
     }
 
@@ -542,8 +502,6 @@ class UserServiceTest {
                     .isInstanceOf(ThriftServiceException.class);
 
             verify(thriftClient).create(nullUser);
-            verify(metrics).incrementThriftClientRequests("create");
-            verify(metrics).incrementThriftClientErrors("create", "NullPointerException");
         }
 
         @Test

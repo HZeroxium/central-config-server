@@ -3,7 +3,6 @@ package com.example.rest.integration;
 import com.example.rest.user.domain.User;
 import com.example.rest.user.service.UserService;
 import com.example.rest.user.port.ThriftUserClientPort;
-import com.example.rest.metrics.ApplicationMetrics;
 import com.example.rest.exception.ThriftServiceException;
 import com.example.rest.exception.UserNotFoundException;
 import org.junit.jupiter.api.*;
@@ -35,13 +34,11 @@ class CrossServiceIntegrationTest {
     @MockBean
     private ThriftUserClientPort thriftClient;
 
-    @MockBean
-    private ApplicationMetrics metrics;
 
     @BeforeEach
     void setUp() {
         // Reset mocks before each test
-        reset(thriftClient, metrics);
+        reset(thriftClient);
     }
 
     @Nested
@@ -84,39 +81,33 @@ class CrossServiceIntegrationTest {
             User result1 = userService.create(createUser);
             assertThat(result1).isEqualTo(createdUser);
             verify(thriftClient).create(any(User.class));
-            verify(metrics).incrementThriftClientRequests("create");
 
             // When & Then - Get User
             Optional<User> result2 = userService.getById("user-123");
             assertThat(result2).isPresent();
             assertThat(result2.get()).isEqualTo(createdUser);
             verify(thriftClient).getById("user-123");
-            verify(metrics).incrementThriftClientRequests("getById");
 
             // When & Then - Update User
             User result3 = userService.update(updatedUser);
             assertThat(result3).isEqualTo(updatedUser);
             verify(thriftClient).update(any(User.class));
-            verify(metrics).incrementThriftClientRequests("update");
 
             // When & Then - List Users
             List<User> result4 = userService.list();
             assertThat(result4).hasSize(1);
             assertThat(result4.get(0)).isEqualTo(createdUser);
             verify(thriftClient).list();
-            verify(metrics).incrementThriftClientRequests("list");
 
             // When & Then - Count Users
             long result5 = userService.count();
             assertThat(result5).isEqualTo(1L);
             verify(thriftClient).count();
-            verify(metrics).incrementThriftClientRequests("count");
 
             // When & Then - Delete User
             assertThatCode(() -> userService.delete("user-123"))
                     .doesNotThrowAnyException();
             verify(thriftClient).delete("user-123");
-            verify(metrics).incrementThriftClientRequests("delete");
         }
 
         @Test
@@ -138,8 +129,7 @@ class CrossServiceIntegrationTest {
                     .hasCause(cause);
 
             verify(thriftClient).create(any(User.class));
-            verify(metrics).incrementThriftClientRequests("create");
-            verify(metrics).incrementThriftClientErrors("create", "ThriftServiceException");
+
         }
 
         @Test
@@ -161,8 +151,7 @@ class CrossServiceIntegrationTest {
                     .hasCause(cause);
 
             verify(thriftClient).create(any(User.class));
-            verify(metrics).incrementThriftClientRequests("create");
-            verify(metrics).incrementThriftClientErrors("create", "RuntimeException");
+
         }
     }
 
@@ -185,8 +174,7 @@ class CrossServiceIntegrationTest {
                     .hasCause(cause);
 
             verify(thriftClient).getById(userId);
-            verify(metrics).incrementThriftClientRequests("getById");
-            verify(metrics).incrementThriftClientErrors("getById", "RuntimeException");
+
         }
 
         @Test
@@ -208,8 +196,7 @@ class CrossServiceIntegrationTest {
                     .hasCause(cause);
 
             verify(thriftClient).create(any(User.class));
-            verify(metrics).incrementThriftClientRequests("create");
-            verify(metrics).incrementThriftClientErrors("create", "RuntimeException");
+
         }
     }
 
@@ -245,7 +232,6 @@ class CrossServiceIntegrationTest {
             assertThat(results).hasSize(3);
             assertThat(results).allMatch(u -> u.getId().equals("user-123"));
             verify(thriftClient, times(3)).create(any(User.class));
-            verify(metrics, times(3)).incrementThriftClientRequests("create");
         }
 
         @Test
@@ -270,8 +256,7 @@ class CrossServiceIntegrationTest {
             assertThat(result2).isEqualTo(3L);
             verify(thriftClient).list();
             verify(thriftClient).count();
-            verify(metrics).incrementThriftClientRequests("list");
-            verify(metrics).incrementThriftClientRequests("count");
+
         }
     }
 
@@ -303,7 +288,6 @@ class CrossServiceIntegrationTest {
             // Then
             assertThat(userService).isNotNull();
             assertThat(thriftClient).isNotNull();
-            assertThat(metrics).isNotNull();
         }
     }
 }
