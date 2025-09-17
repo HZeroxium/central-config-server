@@ -23,6 +23,13 @@ spring:
     driver-class-name: org.h2.Driver
     username: sa
     password: password
+  cache:
+    cache-names: userById, usersByCriteria, countByCriteria
+  autoconfigure:
+    exclude: 
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+
 
 # Thrift server configuration
 thrift:
@@ -41,7 +48,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,prometheus,metrics,env,beans,configprops,loggers,threaddump,heapdump
+        include: health,info,prometheus,metrics,env,beans,configprops,loggers,threaddump,heapdump,cache
   endpoint:
     health:
       show-details: when_authorized
@@ -51,6 +58,8 @@ management:
     metrics:
       enabled: true
   metrics:
+    enable:
+      cache: true
     tags:
       application: user-rpc-thrift-service
       service: user-rpc-thrift-service

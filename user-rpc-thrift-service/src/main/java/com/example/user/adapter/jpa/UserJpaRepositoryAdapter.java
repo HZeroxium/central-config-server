@@ -11,8 +11,6 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -117,54 +115,7 @@ public class UserJpaRepositoryAdapter implements UserRepositoryPort {
     }
   }
 
-  /**
-   * Find all users with pagination.
-   *
-   * @param page zero-based page index
-   * @param size page size
-   * @return list of domain users
-   */
-  @Override
-  @Timed(value = "database.jpa.find.all.paged", description = "Time taken to find all users with pagination via JPA")
-  public List<User> findPage(int page, int size) {
-    log.debug("Finding all users with pagination in H2 database - page: {}, size: {}", page, size);
-    try {
-      
-      PageRequest pageRequest = PageRequest.of(page, size);
-      Page<UserEntity> entityPage = repository.findAllNotDeleted(pageRequest);
-      log.debug("Retrieved {} users from H2 database for page: {}, size: {}", entityPage.getContent().size(), page, size);
-      
-      List<User> domainUsers = entityPage.getContent().stream()
-          .map(UserPersistenceMapper::toDomain)
-          .collect(Collectors.toList());
-      
-      log.debug("Mapped {} JPA entities to domain users", domainUsers.size());
-      return domainUsers;
-    } catch (Exception e) {
-      log.error("Failed to find all users with pagination in H2 database - page: {}, size: {}", page, size, e);
-      throw e;
-    }
-  }
-
-  /**
-   * Count total number of users.
-   *
-   * @return total count
-   */
-  @Override
-  @Timed(value = "database.jpa.count", description = "Time taken to count users via JPA")
-  public long count() {
-    log.debug("Counting users in H2 database");
-    try {
-      
-      long totalCount = repository.countNotDeleted();
-      log.debug("Total user count in H2 database: {}", totalCount);
-      return totalCount;
-    } catch (Exception e) {
-      log.error("Failed to count users in H2 database", e);
-      throw e;
-    }
-  }
+  
 
   /**
    * Soft delete a user by id.

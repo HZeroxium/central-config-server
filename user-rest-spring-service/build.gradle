@@ -38,6 +38,14 @@ dependencies {
     implementation 'io.micrometer:micrometer-tracing-bridge-brave'
     implementation 'io.zipkin.brave:brave'
     implementation 'io.zipkin.reporter2:zipkin-reporter-brave'
+
+    // Spring Cache + providers
+    implementation 'org.springframework.boot:spring-boot-starter-cache'
+    implementation 'com.github.ben-manes.caffeine:caffeine:3.1.8'
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    implementation 'io.lettuce:lettuce-core'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
     
     // AOP for method-level profiling
     implementation 'org.springframework:spring-aop'

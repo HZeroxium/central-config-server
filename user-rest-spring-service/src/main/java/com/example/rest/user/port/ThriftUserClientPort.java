@@ -17,13 +17,7 @@ public interface ThriftUserClientPort {
 
   void delete(String id);
 
-  List<User> list();
-
-  List<User> listPaged(int page, int size);
-
   List<User> listByCriteria(UserQueryCriteria criteria);
-
-  long count();
 
   long countByCriteria(UserQueryCriteria criteria);
 }

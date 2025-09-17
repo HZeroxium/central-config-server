@@ -7,6 +7,9 @@ import com.example.user.service.port.UserServicePort;
 import com.example.user.exception.DatabaseException;
  
 import io.micrometer.core.annotation.Timed;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -45,6 +48,11 @@ public class UserServiceImpl implements UserServicePort {
   /** {@inheritDoc} */
   @Override
   @Timed(value = "service.user.create", description = "Time taken to create user")
+  @Caching(evict = {
+    @CacheEvict(value = "userById", key = "'UserServiceImpl:getById:v1:' + #user.id", condition = "#user != null && #user.id != null"),
+    @CacheEvict(value = "usersByCriteria", allEntries = true),
+    @CacheEvict(value = "countByCriteria", allEntries = true)
+  })
   public User create(User user) {
     log.debug("Creating user in repository: {}", user);
     try {
@@ -72,6 +80,7 @@ public class UserServiceImpl implements UserServicePort {
   /** {@inheritDoc} */
   @Override
   @Timed(value = "service.user.get.by.id", description = "Time taken to get user by ID")
+  @Cacheable(value = "userById", key = "'UserServiceImpl:getById:v1:' + #id", sync = true)
   public Optional<User> getById(String id) {
     log.debug("Retrieving user by ID from repository: {}", id);
     try {
@@ -91,6 +100,11 @@ public class UserServiceImpl implements UserServicePort {
   /** {@inheritDoc} */
   @Override
   @Timed(value = "service.user.update", description = "Time taken to update user")
+  @Caching(evict = {
+    @CacheEvict(value = "userById", key = "'UserServiceImpl:getById:v1:' + #user.id"),
+    @CacheEvict(value = "usersByCriteria", allEntries = true),
+    @CacheEvict(value = "countByCriteria", allEntries = true)
+  })
   public User update(User user) {
     log.debug("Updating user in repository: {}", user);
     try {
@@ -124,6 +138,11 @@ public class UserServiceImpl implements UserServicePort {
   /** {@inheritDoc} */
   @Override
   @Timed(value = "service.user.delete", description = "Time taken to delete user")
+  @Caching(evict = {
+    @CacheEvict(value = "userById", key = "'UserServiceImpl:getById:v1:' + #id"),
+    @CacheEvict(value = "usersByCriteria", allEntries = true),
+    @CacheEvict(value = "countByCriteria", allEntries = true)
+  })
   public void delete(String id) {
     log.debug("Deleting user from repository: {}", id);
     try {
@@ -135,39 +154,12 @@ public class UserServiceImpl implements UserServicePort {
     }
   }
 
-  /** {@inheritDoc} */
-  @Override
-  @Timed(value = "service.user.list.paged", description = "Time taken to list users with pagination")
-  public List<User> list(int page, int size) {
-    log.debug("Listing users with pagination from repository - page: {}, size: {}", page, size);
-    try {
-      List<User> users = userRepository.findPage(page, size);
-      log.debug("Retrieved {} users from repository for page: {}, size: {}", users.size(), page, size);
-      return users;
-    } catch (Exception e) {
-      log.error("Failed to list users with pagination from repository - page: {}, size: {}", page, size, e);
-      throw new DatabaseException("Failed to list users with pagination from database", "listPaged", e);
-    }
-  }
-
-  /** {@inheritDoc} */
-  @Override
-  @Timed(value = "service.user.count", description = "Time taken to count users")
-  public long count() {
-    log.debug("Counting users in repository");
-    try {
-      long count = userRepository.count();
-      log.debug("User count in repository: {}", count);
-      return count;
-    } catch (Exception e) {
-      log.error("Failed to count users in repository", e);
-      throw new DatabaseException("Failed to count users in database", "count", e);
-    }
-  }
+  
 
   /** {@inheritDoc} */
   @Override
   @Timed(value = "service.user.list.by.criteria", description = "Time taken to list users by criteria")
+  @Cacheable(value = "usersByCriteria", key = "'UserServiceImpl:listByCriteria:v1:' + #criteria.hashCode()", sync = true)
   public List<User> listByCriteria(UserQueryCriteria criteria) {
     log.debug("Listing users by criteria from repository: {}", criteria);
     try {
@@ -183,6 +175,7 @@ public class UserServiceImpl implements UserServicePort {
   /** {@inheritDoc} */
   @Override
   @Timed(value = "service.user.count.by.criteria", description = "Time taken to count users by criteria")
+  @Cacheable(value = "countByCriteria", key = "'UserServiceImpl:countByCriteria:v1:' + #criteria.hashCode()", sync = true)
   public long countByCriteria(UserQueryCriteria criteria) {
     log.debug("Counting users by criteria in repository: {}", criteria);
     try {

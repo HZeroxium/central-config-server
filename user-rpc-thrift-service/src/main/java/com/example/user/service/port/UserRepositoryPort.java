@@ -19,14 +19,7 @@ public interface UserRepositoryPort {
   /** Delete a user by id. */
   void deleteById(String id);
 
-  /**
-   * Find users with pagination.
-   *
-   * @param page zero-based page index
-   * @param size page size
-   * @return list of users for the current page
-   */
-  List<User> findPage(int page, int size);
+  
 
   /**
    * Find users with advanced query criteria.
@@ -44,8 +37,5 @@ public interface UserRepositoryPort {
    */
   long countByCriteria(UserQueryCriteria criteria);
 
-  /**
-   * @return total number of users
-   */
-  long count();
+  
 }

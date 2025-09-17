@@ -26,15 +26,6 @@ public interface UserServicePort {
   void delete(String id);
 
   /**
-   * List users with pagination.
-   *
-   * @param page zero-based page index
-   * @param size page size
-   * @return list of users in current page
-   */
-  List<User> list(int page, int size);
-
-  /**
    * List users with advanced query criteria.
    *
    * @param criteria query criteria including search, filters, sorting
@@ -49,7 +40,4 @@ public interface UserServicePort {
    * @return number of users matching the criteria
    */
   long countByCriteria(UserQueryCriteria criteria);
-
-  /** Total users count. */
-  long count();
 }

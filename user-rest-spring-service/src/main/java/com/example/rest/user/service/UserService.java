@@ -6,6 +6,9 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 
 import com.example.rest.user.domain.User;
@@ -34,6 +37,11 @@ public class UserService {
   }
 
   @Timed(value = "service.rest.create", description = "Time taken to create user via Thrift")
+  @Caching(evict = {
+    @CacheEvict(value = "userById", key = "'UserService:getById:v1:' + #user.id", condition = "#user != null && #user.id != null"),
+    @CacheEvict(value = "usersByCriteria", allEntries = true),
+    @CacheEvict(value = "countByCriteria", allEntries = true)
+  })
   public User create(User user) {
     log.debug("Creating user via Thrift client: {}", user);
     try {
@@ -47,6 +55,7 @@ public class UserService {
   }
 
   @Timed(value = "service.rest.get.by.id", description = "Time taken to get user by ID via Thrift")
+  @Cacheable(value = "userById", key = "'UserService:getById:v1:' + #id", sync = true)
   public Optional<User> getById(String id) {
     log.debug("Retrieving user by ID via Thrift client: {}", id);
     try {
@@ -68,6 +77,9 @@ public class UserService {
   }
 
   @Timed(value = "service.rest.update", description = "Time taken to update user via Thrift")
+  @Caching(evict = {
+    @CacheEvict(value = "userById", key = "'UserService:getById:v1:' + #user.id")
+  })
   public User update(User user) {
     log.debug("Updating user via Thrift client: {}", user);
     try {
@@ -81,6 +93,9 @@ public class UserService {
   }
 
   @Timed(value = "service.rest.delete", description = "Time taken to delete user via Thrift")
+  @Caching(evict = {
+    @CacheEvict(value = "userById", key = "'UserService:getById:v1:' + #id")
+  })
   public void delete(String id) {
     log.debug("Deleting user via Thrift client: {}", id);
     try {
@@ -92,46 +107,8 @@ public class UserService {
     }
   }
 
-  @Timed(value = "service.rest.list", description = "Time taken to list all users via Thrift")
-  public List<User> list() {
-    log.debug("Listing all users via Thrift client");
-    try {
-      List<User> users = thriftClient.list();
-      log.debug("Retrieved {} users via Thrift", users.size());
-      return users;
-    } catch (Exception e) {
-      log.error("Failed to list users via Thrift", e);
-      throw new ThriftServiceException("Failed to list users via Thrift service", "list", e);
-    }
-  }
-
-  @Timed(value = "service.rest.list.paged", description = "Time taken to list users with pagination via Thrift")
-  public List<User> listPaged(int page, int size) {
-    log.debug("Listing users with pagination via Thrift client - page: {}, size: {}", page, size);
-    try {
-      List<User> users = thriftClient.listPaged(page, size);
-      log.debug("Retrieved {} users via Thrift for page: {}, size: {}", users.size(), page, size);
-      return users;
-    } catch (Exception e) {
-      log.error("Failed to list users with pagination via Thrift - page: {}, size: {}", page, size, e);
-      throw new ThriftServiceException("Failed to list users with pagination via Thrift service", "listPaged", e);
-    }
-  }
-
-  @Timed(value = "service.rest.count", description = "Time taken to count users via Thrift")
-  public long count() {
-    log.debug("Counting users via Thrift client");
-    try {
-      long count = thriftClient.count();
-      log.debug("User count via Thrift: {}", count);
-      return count;
-    } catch (Exception e) {
-      log.error("Failed to count users via Thrift", e);
-      throw new ThriftServiceException("Failed to count users via Thrift service", "count", e);
-    }
-  }
-
   @Timed(value = "service.rest.list.by.criteria", description = "Time taken to list users by criteria via Thrift")
+  @Cacheable(value = "usersByCriteria", key = "'UserService:listByCriteria:v1:' + #criteria.hashCode()", sync = true)
   public List<User> listByCriteria(com.example.rest.user.domain.UserQueryCriteria criteria) {
     log.debug("Listing users by criteria via Thrift client: {}", criteria);
     try {
@@ -145,6 +122,7 @@ public class UserService {
   }
 
   @Timed(value = "service.rest.count.by.criteria", description = "Time taken to count users by criteria via Thrift")
+  @Cacheable(value = "countByCriteria", key = "'UserService:countByCriteria:v1:' + #criteria.hashCode()", sync = true)
   public long countByCriteria(com.example.rest.user.domain.UserQueryCriteria criteria) {
     log.debug("Counting users by criteria via Thrift client: {}", criteria);
     try {

@@ -15,10 +15,8 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.data.domain.Page;
 
 /**
  * MongoDB-based adapter implementing {@link UserRepositoryPort}.
@@ -93,42 +91,7 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
     }
   }
 
-  @Override
-  @Timed(value = "database.mongo.find.all.paged", description = "Time taken to find all users with pagination via MongoDB")
-  public List<User> findPage(int page, int size) {
-    log.debug("Finding all users with pagination in MongoDB - page: {}, size: {}", page, size);
-    try {
-      
-      PageRequest pageRequest = PageRequest.of(page, size);
-      Page<UserDocument> documentPage = repository.findAllNotDeleted(pageRequest);
-      log.debug("Retrieved {} users from MongoDB for page: {}, size: {}", documentPage.getContent().size(), page, size);
-      
-      List<User> domainUsers = documentPage.getContent().stream()
-          .map(UserMongoPersistenceMapper::toDomain)
-          .collect(Collectors.toList());
-      
-      log.debug("Mapped {} MongoDB documents to domain users", domainUsers.size());
-      return domainUsers;
-    } catch (Exception e) {
-      log.error("Failed to find all users with pagination in MongoDB - page: {}, size: {}", page, size, e);
-      throw e;
-    }
-  }
-
-  @Override
-  @Timed(value = "database.mongo.count", description = "Time taken to count users via MongoDB")
-  public long count() {
-    log.debug("Counting users in MongoDB");
-    try {
-      
-      long totalCount = repository.countNotDeleted();
-      log.debug("Total user count in MongoDB: {}", totalCount);
-      return totalCount;
-    } catch (Exception e) {
-      log.error("Failed to count users in MongoDB", e);
-      throw e;
-    }
-  }
+  
 
   @Override
   @Timed(value = "database.mongo.delete.by.id", description = "Time taken to soft delete user by ID via MongoDB")

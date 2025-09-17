@@ -119,15 +119,6 @@ struct TPingResponse {
   3: string response
 }
 
-// Legacy structs for backward compatibility
-struct TPagedUsers {
-  1: list<TUser> items,
-  2: i32 page,
-  3: i32 size,
-  4: i64 total,
-  5: i32 totalPages
-}
-
 service UserService {
   // New structured API
   TPingResponse ping(),
@@ -135,14 +126,6 @@ service UserService {
   TGetUserResponse getUser(1: TGetUserRequest request),
   TUpdateUserResponse updateUser(1: TUpdateUserRequest request),
   TDeleteUserResponse deleteUser(1: TDeleteUserRequest request),
-  TListUsersResponse listUsers(1: TListUsersRequest request),
-  
-  // Legacy API for backward compatibility
-  string pingLegacy(),
-  TUser createUserLegacy(1: TUser user),
-  TUser getUserLegacy(1: string id),
-  TUser updateUserLegacy(1: TUser user),
-  void deleteUserLegacy(1: string id),
-  TPagedUsers listUsersLegacy(1: i32 page, 2: i32 size)
+  TListUsersResponse listUsers(1: TListUsersRequest request)
 }
 
