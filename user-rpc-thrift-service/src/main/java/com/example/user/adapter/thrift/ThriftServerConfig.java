@@ -1,6 +1,5 @@
 package com.example.user.adapter.thrift;
 
-import com.example.user.service.port.UserServicePort;
 import com.example.user.thrift.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,7 +32,7 @@ public class ThriftServerConfig implements ApplicationRunner {
   @Value("${thrift.port:9090}")
   private int thriftPort;
 
-  private final UserServicePort userServicePort;
+  private final UserServiceHandler userServiceHandler;
 
   /**
    * Create the Thrift {@link TProcessor} for the user service.
@@ -43,7 +42,7 @@ public class ThriftServerConfig implements ApplicationRunner {
   @Bean
   public TProcessor userServiceProcessor() {
     log.info("Creating Thrift processor for UserService with profiling enabled");
-    TProcessor processor = new UserService.Processor<>(new UserServiceHandler(userServicePort));
+    TProcessor processor = new UserService.Processor<>(userServiceHandler);
     log.debug("Thrift processor created successfully with metrics integration");
     return processor;
   }

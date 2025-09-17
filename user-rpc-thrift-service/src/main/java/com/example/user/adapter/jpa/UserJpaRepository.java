@@ -67,6 +67,8 @@ public interface UserJpaRepository extends JpaRepository<UserEntity, String> {
       @Param("role") User.UserRole role,
       @Param("createdAfter") LocalDateTime createdAfter,
       @Param("createdBefore") LocalDateTime createdBefore);
+
+
 }
 
 
