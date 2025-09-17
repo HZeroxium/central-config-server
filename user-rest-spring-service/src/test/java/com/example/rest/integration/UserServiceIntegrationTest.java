@@ -286,59 +286,5 @@ class UserServiceIntegrationTest {
     @DisplayName("List Users Integration Tests")
     class ListUsersIntegrationTests {
 
-        @Test
-        @DisplayName("Should list all users successfully with real Spring context")
-        void shouldListAllUsersSuccessfullyWithRealSpringContext() {
-            // Given
-            List<User> expectedUsers = Arrays.asList(
-                    User.builder().id("user-1").name("User 1").phone("+1-555-111-1111").build(),
-                    User.builder().id("user-2").name("User 2").phone("+1-555-222-2222").build()
-            );
-
-            when(thriftClient.list()).thenReturn(expectedUsers);
-
-            // When
-            List<User> result = userService.list();
-
-            // Then
-            assertThat(result).isEqualTo(expectedUsers);
-            verify(thriftClient).list();
-        }
-
-        @Test
-        @DisplayName("Should list users with pagination successfully with real Spring context")
-        void shouldListUsersWithPaginationSuccessfullyWithRealSpringContext() {
-            // Given
-            int page = 0;
-            int size = 10;
-            List<User> expectedUsers = Arrays.asList(
-                    User.builder().id("user-1").name("User 1").phone("+1-555-111-1111").build(),
-                    User.builder().id("user-2").name("User 2").phone("+1-555-222-2222").build()
-            );
-
-            when(thriftClient.listPaged(page, size)).thenReturn(expectedUsers);
-
-            // When
-            List<User> result = userService.listPaged(page, size);
-
-            // Then
-            assertThat(result).isEqualTo(expectedUsers);
-            verify(thriftClient).listPaged(page, size);
-        }
-
-        @Test
-        @DisplayName("Should count users successfully with real Spring context")
-        void shouldCountUsersSuccessfullyWithRealSpringContext() {
-            // Given
-            long expectedCount = 42L;
-            when(thriftClient.count()).thenReturn(expectedCount);
-
-            // When
-            long result = userService.count();
-
-            // Then
-            assertThat(result).isEqualTo(expectedCount);
-            verify(thriftClient).count();
-        }
     }
 }

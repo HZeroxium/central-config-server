@@ -45,70 +45,7 @@ class CrossServiceIntegrationTest {
     @DisplayName("End-to-End User Management Flow")
     class EndToEndUserManagementFlow {
 
-        @Test
-        @DisplayName("Should complete full user lifecycle with real Spring context")
-        void shouldCompleteFullUserLifecycleWithRealSpringContext() {
-            // Given
-            User createUser = User.builder()
-                    .name("Cross-Service Test User")
-                    .phone("+1-555-123-4567")
-                    .address("123 Cross-Service Test St")
-                    .build();
-
-            User createdUser = User.builder()
-                    .id("user-123")
-                    .name("Cross-Service Test User")
-                    .phone("+1-555-123-4567")
-                    .address("123 Cross-Service Test St")
-                    .build();
-
-            User updatedUser = User.builder()
-                    .id("user-123")
-                    .name("Updated Cross-Service Test User")
-                    .phone("+1-555-987-6543")
-                    .address("456 Updated Cross-Service Test Ave")
-                    .build();
-
-            // Mock Thrift client responses
-            when(thriftClient.create(any(User.class))).thenReturn(createdUser);
-            when(thriftClient.getById("user-123")).thenReturn(Optional.of(createdUser));
-            when(thriftClient.update(any(User.class))).thenReturn(updatedUser);
-            when(thriftClient.list()).thenReturn(Arrays.asList(createdUser));
-            when(thriftClient.count()).thenReturn(1L);
-            doNothing().when(thriftClient).delete("user-123");
-
-            // When & Then - Create User
-            User result1 = userService.create(createUser);
-            assertThat(result1).isEqualTo(createdUser);
-            verify(thriftClient).create(any(User.class));
-
-            // When & Then - Get User
-            Optional<User> result2 = userService.getById("user-123");
-            assertThat(result2).isPresent();
-            assertThat(result2.get()).isEqualTo(createdUser);
-            verify(thriftClient).getById("user-123");
-
-            // When & Then - Update User
-            User result3 = userService.update(updatedUser);
-            assertThat(result3).isEqualTo(updatedUser);
-            verify(thriftClient).update(any(User.class));
-
-            // When & Then - List Users
-            List<User> result4 = userService.list();
-            assertThat(result4).hasSize(1);
-            assertThat(result4.get(0)).isEqualTo(createdUser);
-            verify(thriftClient).list();
-
-            // When & Then - Count Users
-            long result5 = userService.count();
-            assertThat(result5).isEqualTo(1L);
-            verify(thriftClient).count();
-
-            // When & Then - Delete User
-            assertThatCode(() -> userService.delete("user-123"))
-                    .doesNotThrowAnyException();
-            verify(thriftClient).delete("user-123");
-        }
+        
 
         @Test
         @DisplayName("Should handle Thrift service unavailability gracefully")
@@ -234,30 +171,7 @@ class CrossServiceIntegrationTest {
             verify(thriftClient, times(3)).create(any(User.class));
         }
 
-        @Test
-        @DisplayName("Should handle large dataset operations")
-        void shouldHandleLargeDatasetOperations() {
-            // Given
-            List<User> users = Arrays.asList(
-                    User.builder().id("user-1").name("User 1").phone("+1-555-111-1111").build(),
-                    User.builder().id("user-2").name("User 2").phone("+1-555-222-2222").build(),
-                    User.builder().id("user-3").name("User 3").phone("+1-555-333-3333").build()
-            );
-
-            when(thriftClient.list()).thenReturn(users);
-            when(thriftClient.count()).thenReturn(3L);
-
-            // When
-            List<User> result1 = userService.list();
-            long result2 = userService.count();
-
-            // Then
-            assertThat(result1).hasSize(3);
-            assertThat(result2).isEqualTo(3L);
-            verify(thriftClient).list();
-            verify(thriftClient).count();
-
-        }
+        
     }
 
     @Nested

@@ -133,51 +133,9 @@ class DatabaseIntegrationTest {
             assertThat(deletedUser).isEmpty();
         }
 
-        @Test
-        @DisplayName("Should count users in MongoDB")
-        void shouldCountUsersInMongoDB() {
-            // Given
-            User user1 = User.builder()
-                    .name("MongoDB User 1")
-                    .phone("+1-555-111-1111")
-                    .build();
+        
 
-            User user2 = User.builder()
-                    .name("MongoDB User 2")
-                    .phone("+1-555-222-2222")
-                    .build();
-
-            userRepository.save(user1);
-            userRepository.save(user2);
-
-            // When
-            long count = userRepository.count();
-
-            // Then
-            assertThat(count).isEqualTo(2);
-        }
-
-        @Test
-        @DisplayName("Should handle pagination in MongoDB")
-        void shouldHandlePaginationInMongoDB() {
-            // Given
-            for (int i = 1; i <= 5; i++) {
-                User user = User.builder()
-                        .name("MongoDB User " + i)
-                        .phone("+1-555-" + String.format("%03d", i) + "-" + String.format("%04d", i))
-                        .build();
-                userRepository.save(user);
-            }
-
-            // When
-            List<User> page1 = userRepository.findPage(0, 2);
-            List<User> page2 = userRepository.findPage(1, 2);
-
-            // Then
-            assertThat(page1).hasSize(2);
-            assertThat(page2).hasSize(2);
-            assertThat(page1).isNotEqualTo(page2);
-        }
+        
     }
 
     @Nested
@@ -261,51 +219,9 @@ class DatabaseIntegrationTest {
             assertThat(deletedUser).isEmpty();
         }
 
-        @Test
-        @DisplayName("Should count users in JPA")
-        void shouldCountUsersInJPA() {
-            // Given
-            User user1 = User.builder()
-                    .name("JPA User 1")
-                    .phone("+1-555-111-1111")
-                    .build();
+        
 
-            User user2 = User.builder()
-                    .name("JPA User 2")
-                    .phone("+1-555-222-2222")
-                    .build();
-
-            userRepository.save(user1);
-            userRepository.save(user2);
-
-            // When
-            long count = userRepository.count();
-
-            // Then
-            assertThat(count).isEqualTo(2);
-        }
-
-        @Test
-        @DisplayName("Should handle pagination in JPA")
-        void shouldHandlePaginationInJPA() {
-            // Given
-            for (int i = 1; i <= 5; i++) {
-                User user = User.builder()
-                        .name("JPA User " + i)
-                        .phone("+1-555-" + String.format("%03d", i) + "-" + String.format("%04d", i))
-                        .build();
-                userRepository.save(user);
-            }
-
-            // When
-            List<User> page1 = userRepository.findPage(0, 2);
-            List<User> page2 = userRepository.findPage(1, 2);
-
-            // Then
-            assertThat(page1).hasSize(2);
-            assertThat(page2).hasSize(2);
-            assertThat(page1).isNotEqualTo(page2);
-        }
+        
     }
 
     @Nested

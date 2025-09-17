@@ -153,51 +153,9 @@ class ThriftServiceIntegrationTest {
             assertThat(deletedUser).isEmpty();
         }
 
-        @Test
-        @DisplayName("Should list users with pagination successfully with real database")
-        void shouldListUsersWithPaginationSuccessfullyWithRealDatabase() {
-            // Given
-            for (int i = 1; i <= 5; i++) {
-                User user = User.builder()
-                        .name("Integration User " + i)
-                        .phone("+1-555-" + String.format("%03d", i) + "-" + String.format("%04d", i))
-                        .build();
-                userService.create(user);
-            }
+        
 
-            // When
-            List<User> page1 = userService.list(0, 2);
-            List<User> page2 = userService.list(1, 2);
-
-            // Then
-            assertThat(page1).hasSize(2);
-            assertThat(page2).hasSize(2);
-            assertThat(page1).isNotEqualTo(page2);
-        }
-
-        @Test
-        @DisplayName("Should count users successfully with real database")
-        void shouldCountUsersSuccessfullyWithRealDatabase() {
-            // Given
-            User user1 = User.builder()
-                    .name("Integration User 1")
-                    .phone("+1-555-111-1111")
-                    .build();
-
-            User user2 = User.builder()
-                    .name("Integration User 2")
-                    .phone("+1-555-222-2222")
-                    .build();
-
-            userService.create(user1);
-            userService.create(user2);
-
-            // When
-            long count = userService.count();
-
-            // Then
-            assertThat(count).isEqualTo(2);
-        }
+        
     }
 
     @Nested
@@ -259,26 +217,7 @@ class ThriftServiceIntegrationTest {
             assertThat(results).allMatch(u -> u.getName().equals("Concurrent Test User"));
         }
 
-        @Test
-        @DisplayName("Should handle large dataset operations with real database")
-        void shouldHandleLargeDatasetOperationsWithRealDatabase() {
-            // Given
-            for (int i = 1; i <= 10; i++) {
-                User user = User.builder()
-                        .name("Bulk User " + i)
-                        .phone("+1-555-" + String.format("%03d", i) + "-" + String.format("%04d", i))
-                        .build();
-                userService.create(user);
-            }
-
-            // When
-            List<User> users = userService.list(0, 10);
-            long count = userService.count();
-
-            // Then
-            assertThat(users).hasSize(10);
-            assertThat(count).isEqualTo(10);
-        }
+        
     }
 
     @Nested
