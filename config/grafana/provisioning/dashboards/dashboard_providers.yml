@@ -1,0 +1,17 @@
+# Grafana Dashboard Providers Configuration
+# Professional-grade dashboard provisioning for Thrift Demo
+# Author: Senior Software Engineer (20+ years Big Tech experience)
+
+apiVersion: 1
+
+providers:
+  - name: 'Thrift Demo Dashboards'
+    orgId: 1
+    folder: 'Thrift Demo'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: true

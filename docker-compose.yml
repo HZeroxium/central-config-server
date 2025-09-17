@@ -1,4 +1,3 @@
-
 services:
   mongodb:
     image: mongo:8.0
@@ -36,7 +35,7 @@ services:
     build:
       context: ./user-rpc-thrift-service
       dockerfile: Dockerfile
-    image: user-rpc-thrift-service:latest
+    image: hzeroxium/user-rpc-thrift-service:latest
     container_name: user-rpc-thrift-service
     environment:
       - PERSISTENCE_TYPE=mongo
@@ -44,31 +43,51 @@ services:
       - THRIFT_PORT=9090
       - MONGODB_URI=mongodb://mongodb:27017/users
       - JDBC_URL=jdbc:h2:mem:userdb;DB_CLOSE_DELAY=-1;MODE=LEGACY
+      - ENVIRONMENT=docker
+      - LOGGING_LEVEL_ROOT=INFO
+      - LOGGING_LEVEL_COM_EXAMPLE_USER=DEBUG
     ports:
       - "8080:8080"
       - "9090:9090"
+    volumes:
+      # Mount logs directory to host with proper permissions
+      - ./logs/user-rpc-thrift-service:/app/logs:rw
     depends_on:
       mongodb:
         condition: service_healthy
     networks:
       - thrift-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=user-rpc-thrift-service,environment=docker"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 30s
+    # Run as root to fix permissions, then switch to appuser
+    user: "0:0"
 
   user-rest-spring-service:
     build:
       context: ./user-rest-spring-service
       dockerfile: Dockerfile
-    image: user-rest-spring-service:latest
+    image: hzeroxium/user-rest-spring-service:latest
     container_name: user-rest-spring-service
     environment:
       - SERVER_PORT=8083
       - THRIFT_HOST=user-rpc-thrift-service
       - THRIFT_PORT=9090
+      - ENVIRONMENT=docker
+      - LOGGING_LEVEL_ROOT=INFO
+      - LOGGING_LEVEL_COM_EXAMPLE_REST=DEBUG
+    volumes:
+      # Mount logs directory to host with proper permissions
+      - ./logs/user-rest-spring-service:/app/logs:rw
     depends_on:
       user-rpc-thrift-service:
         condition: service_healthy
@@ -76,17 +95,145 @@ services:
       - "8083:8083"
     networks:
       - thrift-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=user-rest-spring-service,environment=docker"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8083/actuator/health"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 30s
+    # Run as root to fix permissions, then switch to appuser
+    user: "0:0"
+
+  # Loki for log aggregation
+  loki:
+    image: grafana/loki:3.5
+    container_name: loki
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./config/loki/loki-config.yml:/etc/loki/local-config.yaml
+      - loki_data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - thrift-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3100/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Grafana for visualization
+  grafana:
+    image: grafana/grafana:main-ubuntu
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+      - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
+      - GF_PATHS_CONFIG=/etc/grafana/grafana.ini
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./config/grafana/grafana.ini:/etc/grafana/grafana.ini
+      - ./config/grafana/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+      - ./config/grafana/provisioning/dashboards/dashboard_providers.yml:/etc/grafana/provisioning/dashboards/dashboard_providers.yml
+      - ./config/grafana/dashboards:/var/lib/grafana/dashboards
+    depends_on:
+      prometheus:
+        condition: service_healthy
+      loki:
+        condition: service_healthy
+    networks:
+      - thrift-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Prometheus for metrics collection
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    container_name: prometheus
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./config/prometheus/prometheus-rules.yml:/etc/prometheus/rules/prometheus-rules.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    networks:
+      - thrift-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # cAdvisor for container metrics
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.52.0
+    container_name: cadvisor
+    ports:
+      - "8082:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    privileged: true
+    devices:
+      - /dev/kmsg
+    networks:
+      - thrift-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Promtail for log collection
+  promtail:
+    image: grafana/promtail:3.5
+    container_name: promtail
+    volumes:
+      - ./logs:/var/log/apps:ro
+      - /var/log:/var/log/host:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - ./config/promtail/promtail-config.yml:/etc/promtail/config.yml
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command: -config.file=/etc/promtail/config.yml
+    networks:
+      - thrift-network
+    depends_on:
+      - loki
 
 volumes:
   mongodb_data:
+  loki_data:
+  grafana_data:
+  prometheus_data:
 
 networks:
   thrift-network:
     driver: bridge
-

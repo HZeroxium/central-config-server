@@ -1,0 +1,169 @@
+groups:
+  - name: thrift-demo-application-rules
+    rules:
+      # REST API Alerts
+      - alert: HighRestApiErrorRate
+        expr: rate(rest_api_errors_total[5m]) / rate(rest_api_requests_total[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+          service: rest-api
+        annotations:
+          summary: "High REST API error rate detected"
+          description: "REST API error rate is {{ $value | humanizePercentage }} for the last 5 minutes"
+
+      - alert: HighRestApiResponseTime
+        expr: histogram_quantile(0.95, rate(rest_api_duration_seconds_bucket[5m])) > 1
+        for: 2m
+        labels:
+          severity: warning
+          service: rest-api
+        annotations:
+          summary: "High REST API response time"
+          description: "95th percentile REST API response time is {{ $value }}s"
+
+      # Thrift Server Alerts
+      - alert: HighThriftServerErrorRate
+        expr: rate(thrift_server_errors_total[5m]) / rate(thrift_server_requests_total[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+          service: thrift-server
+        annotations:
+          summary: "High Thrift server error rate detected"
+          description: "Thrift server error rate is {{ $value | humanizePercentage }} for the last 5 minutes"
+
+      - alert: HighThriftServerResponseTime
+        expr: histogram_quantile(0.95, rate(thrift_server_duration_seconds_bucket[5m])) > 1
+        for: 2m
+        labels:
+          severity: warning
+          service: thrift-server
+        annotations:
+          summary: "High Thrift server response time"
+          description: "95th percentile Thrift server response time is {{ $value }}s"
+
+      # Thrift Client Alerts
+      - alert: HighThriftClientErrorRate
+        expr: rate(thrift_client_errors_total[5m]) / rate(thrift_client_requests_total[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+          service: thrift-client
+        annotations:
+          summary: "High Thrift client error rate detected"
+          description: "Thrift client error rate is {{ $value | humanizePercentage }} for the last 5 minutes"
+
+      - alert: HighThriftClientResponseTime
+        expr: histogram_quantile(0.95, rate(thrift_client_duration_seconds_bucket[5m])) > 1
+        for: 2m
+        labels:
+          severity: warning
+          service: thrift-client
+        annotations:
+          summary: "High Thrift client response time"
+          description: "95th percentile Thrift client response time is {{ $value }}s"
+
+      # Database Alerts
+      - alert: HighDatabaseErrorRate
+        expr: rate(database_errors_total[5m]) / rate(database_operations_total[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+          service: database
+        annotations:
+          summary: "High database error rate detected"
+          description: "Database error rate is {{ $value | humanizePercentage }} for the last 5 minutes"
+
+      - alert: HighDatabaseResponseTime
+        expr: histogram_quantile(0.95, rate(database_duration_seconds_bucket[5m])) > 0.5
+        for: 2m
+        labels:
+          severity: warning
+          service: database
+        annotations:
+          summary: "High database response time"
+          description: "95th percentile database response time is {{ $value }}s"
+
+      # User Operations Alerts
+      - alert: HighUserOperationErrorRate
+        expr: rate(user_operations_errors_total[5m]) / rate(user_operations_total[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+          service: user-operations
+        annotations:
+          summary: "High user operation error rate detected"
+          description: "User operation error rate is {{ $value | humanizePercentage }} for the last 5 minutes"
+
+      - alert: HighUserOperationResponseTime
+        expr: histogram_quantile(0.95, rate(user_operations_duration_seconds_bucket[5m])) > 1
+        for: 2m
+        labels:
+          severity: warning
+          service: user-operations
+        annotations:
+          summary: "High user operation response time"
+          description: "95th percentile user operation response time is {{ $value }}s"
+
+  - name: thrift-demo-system-rules
+    rules:
+      # Service Health Alerts
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.instance }} is down"
+          description: "Service {{ $labels.instance }} has been down for more than 1 minute"
+
+      # Memory Usage Alerts
+      - alert: HighMemoryUsage
+        expr: (jvm_memory_used_bytes / jvm_memory_max_bytes) > 0.8
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage is {{ $value | humanizePercentage }} for {{ $labels.instance }}"
+
+      # CPU Usage Alerts
+      - alert: HighCPUUsage
+        expr: rate(process_cpu_seconds_total[5m]) > 0.8
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage detected"
+          description: "CPU usage is {{ $value | humanizePercentage }} for {{ $labels.instance }}"
+
+      # GC Alerts
+      - alert: HighGCTime
+        expr: rate(jvm_gc_pause_seconds_sum[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High GC time detected"
+          description: "GC time is {{ $value | humanizePercentage }} for {{ $labels.instance }}"
+
+      # Thread Pool Alerts
+      - alert: ThreadPoolExhaustion
+        expr: jvm_threads_states_threads{state="blocked"} > 10
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Thread pool exhaustion detected"
+          description: "{{ $value }} threads are blocked for {{ $labels.instance }}"
+
+      # Circuit Breaker Alerts
+      - alert: CircuitBreakerOpen
+        expr: resilience4j_circuitbreaker_state{state="OPEN"} == 1
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Circuit breaker is open"
+          description: "Circuit breaker {{ $labels.name }} is open for {{ $labels.instance }}"
