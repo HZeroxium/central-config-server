@@ -7,7 +7,7 @@ import static org.mockito.Mockito.when;
 
 import java.time.LocalDateTime;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -44,6 +44,7 @@ public class UserServiceImplTest {
         @Test
         @DisplayName("Should create user successfully")
         void shouldCreateUserSuccessfully() {
+            // ARRANGE
             User inputUser = User.builder()
                     .name(VALID_USER_NAME)
                     .phone(VALID_USER_PHONE)
