@@ -1,6 +1,10 @@
+// shared-thrift-definitions/build.gradle
+
 plugins {
     id 'java'
     id 'idea'
+    id 'org.springframework.boot' version '3.3.13' apply false
+    id 'io.spring.dependency-management' version '1.1.6'
 }
 
 java {
@@ -23,6 +27,15 @@ dependencies {
     
     // SLF4J for generated Thrift code
     implementation 'org.slf4j:slf4j-api:2.0.12'
+    
+    // Spring Boot dependencies for Kafka
+    implementation 'org.springframework.boot:spring-boot-starter:3.3.13'
+    implementation 'org.springframework.kafka:spring-kafka:3.3.0'
+    implementation 'org.apache.kafka:kafka-clients:3.7.0'
+    
+    // Jackson for JSON processing
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.18.2'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.18.2'
     
     // Lombok
     compileOnly 'org.projectlombok:lombok:1.18.32'

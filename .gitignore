@@ -4,3 +4,6 @@ docs/
 .gradle/
 build/
 logs/
+.env
+scripts/
+test/

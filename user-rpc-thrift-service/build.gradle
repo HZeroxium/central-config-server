@@ -1,3 +1,5 @@
+// user-rpc-thrift-service/build.gradle
+
 plugins {
     id 'java'
     id 'idea'

@@ -13,6 +13,35 @@ spring:
   # Don't exclude Redis auto-configuration for redis-cache profile
   autoconfigure:
     exclude: []
+  
+  # Kafka configuration for Workers (inherited from default profile)
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
+    
+    consumer:
+      group-id: user-update-workers
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      properties:
+        partition.assignment.strategy: org.apache.kafka.clients.consumer.CooperativeStickyAssignor
+    
+    listener:
+      ack-mode: record
+      missing-topics-fatal: false
+    
+    producer:
+      acks: all
+      compression-type: snappy
+      retries: 2147483647
+      properties:
+        enable.idempotence: true
+        delivery.timeout.ms: 120000
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      # Transactional producer for EOS
+      transaction-id-prefix: worker-tx-
 
 
 # Management and monitoring configuration
