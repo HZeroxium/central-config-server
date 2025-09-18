@@ -1,5 +1,6 @@
 package com.example.kafka.util;
 
+import com.example.kafka.constants.KafkaConstants;
 import org.apache.kafka.clients.producer.ProducerRecord;
 
 import java.nio.charset.StandardCharsets;
@@ -17,12 +18,12 @@ public class KafkaHeadersUtil {
                                         String eventId, 
                                         String source, 
                                         String type) {
-        record.headers().add("sagaId", sagaId.getBytes(StandardCharsets.UTF_8));
-        record.headers().add("correlationId", correlationId.getBytes(StandardCharsets.UTF_8));
-        record.headers().add("causationId", causationId.getBytes(StandardCharsets.UTF_8));
-        record.headers().add("eventId", eventId.getBytes(StandardCharsets.UTF_8));
-        record.headers().add("source", source.getBytes(StandardCharsets.UTF_8));
-        record.headers().add("type", type.getBytes(StandardCharsets.UTF_8));
+        record.headers().add(KafkaConstants.HEADER_SAGA_ID, sagaId.getBytes(StandardCharsets.UTF_8));
+        record.headers().add(KafkaConstants.HEADER_CORRELATION_ID, correlationId.getBytes(StandardCharsets.UTF_8));
+        record.headers().add(KafkaConstants.HEADER_CAUSATION_ID, causationId.getBytes(StandardCharsets.UTF_8));
+        record.headers().add(KafkaConstants.HEADER_EVENT_ID, eventId.getBytes(StandardCharsets.UTF_8));
+        record.headers().add(KafkaConstants.HEADER_SOURCE, source.getBytes(StandardCharsets.UTF_8));
+        record.headers().add(KafkaConstants.HEADER_TYPE, type.getBytes(StandardCharsets.UTF_8));
     }
     
     public static void addStandardHeaders(ProducerRecord<String, String> record, 
@@ -39,26 +40,26 @@ public class KafkaHeadersUtil {
     }
     
     public static String getSagaId(org.apache.kafka.common.header.Headers headers) {
-        return getHeaderAsString(headers, "sagaId");
+        return getHeaderAsString(headers, KafkaConstants.HEADER_SAGA_ID);
     }
     
     public static String getCorrelationId(org.apache.kafka.common.header.Headers headers) {
-        return getHeaderAsString(headers, "correlationId");
+        return getHeaderAsString(headers, KafkaConstants.HEADER_CORRELATION_ID);
     }
     
     public static String getCausationId(org.apache.kafka.common.header.Headers headers) {
-        return getHeaderAsString(headers, "causationId");
+        return getHeaderAsString(headers, KafkaConstants.HEADER_CAUSATION_ID);
     }
     
     public static String getEventId(org.apache.kafka.common.header.Headers headers) {
-        return getHeaderAsString(headers, "eventId");
+        return getHeaderAsString(headers, KafkaConstants.HEADER_EVENT_ID);
     }
     
     public static String getSource(org.apache.kafka.common.header.Headers headers) {
-        return getHeaderAsString(headers, "source");
+        return getHeaderAsString(headers, KafkaConstants.HEADER_SOURCE);
     }
     
     public static String getType(org.apache.kafka.common.header.Headers headers) {
-        return getHeaderAsString(headers, "type");
+        return getHeaderAsString(headers, KafkaConstants.HEADER_TYPE);
     }
 }

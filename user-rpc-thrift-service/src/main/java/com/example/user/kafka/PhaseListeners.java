@@ -1,6 +1,7 @@
 package com.example.user.kafka;
 
-import com.example.kafka.model.SagaEvent;
+import com.example.kafka.constants.KafkaConstants;
+import com.example.kafka.dto.PhaseEvent;
 import com.example.kafka.service.WorkerSettings;
 import com.example.kafka.util.KafkaHeadersUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -10,6 +11,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.messaging.handler.annotation.Header;
+import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
@@ -37,13 +40,13 @@ public class PhaseListeners {
      * Phase 1 Worker: Validation
      */
     @KafkaListener(id = "P1", 
-                   topics = "user.update.phase_1.command", 
-                   groupId = "user-update-workers", 
-                   containerFactory = "txFactory", 
+                   topics = KafkaConstants.TOPIC_USER_UPDATE_PHASE_1_COMMAND, 
+                   groupId = KafkaConstants.GROUP_USER_UPDATE_WORKERS, 
+                   containerFactory = KafkaConstants.CONTAINER_FACTORY_TX, 
                    concurrency = "3")
-    public void onPhase1Command(@org.springframework.messaging.handler.annotation.Payload String command,
-                               @org.springframework.messaging.handler.annotation.Header("sagaId") String sagaId,
-                               @org.springframework.messaging.handler.annotation.Header(value = "eventId", required = false) byte[] eventId) {
+    public void onPhase1Command(@Payload String command,
+                               @Header(KafkaConstants.HEADER_SAGA_ID) String sagaId,
+                               @Header(value = KafkaConstants.HEADER_EVENT_ID, required = false) byte[] eventId) {
         try {
             String eventIdStr = eventId != null ? new String(eventId, StandardCharsets.UTF_8) : null;
             
@@ -65,8 +68,19 @@ public class PhaseListeners {
             }
             
             // Send success event
-            sendPhaseEvent("user.update.phase_1.event", sagaId, "UserUpdatePhase1Done", 
-                          Map.of("phase", 1, "validation", "passed"));
+            PhaseEvent event = new PhaseEvent(
+                sagaId,
+                "phase1",
+                KafkaConstants.EVENT_TYPE_PHASE_1_COMPLETED,
+                Map.of("phase", 1, "validation", "passed"),
+                sagaId, // correlationId
+                sagaId, // causationId
+                eventIdStr,
+                KafkaConstants.SOURCE_WORKER,
+                System.currentTimeMillis(),
+                null
+            );
+            sendPhaseEvent(KafkaConstants.TOPIC_USER_UPDATE_PHASE_1_EVENT, event);
             
             log.info("[P1] Validation completed for saga {}", sagaId);
             
@@ -80,12 +94,12 @@ public class PhaseListeners {
      * Phase 2 Worker: Enrichment
      */
     @KafkaListener(id = "P2", 
-                   topics = "user.update.phase_2.command", 
-                   groupId = "user-update-workers", 
-                   containerFactory = "txFactory", 
+                   topics = KafkaConstants.TOPIC_USER_UPDATE_PHASE_2_COMMAND, 
+                   groupId = KafkaConstants.GROUP_USER_UPDATE_WORKERS, 
+                   containerFactory = KafkaConstants.CONTAINER_FACTORY_TX, 
                    concurrency = "3")
-    public void onPhase2Command(@org.springframework.messaging.handler.annotation.Payload String command,
-                               @org.springframework.messaging.handler.annotation.Header("sagaId") String sagaId) {
+    public void onPhase2Command(@Payload String command,
+                               @Header(KafkaConstants.HEADER_SAGA_ID) String sagaId) {
         try {
             log.info("[P2] Processing enrichment for saga {}", sagaId);
             
@@ -96,8 +110,19 @@ public class PhaseListeners {
                 throw new RuntimeException("P2 enrichment failed");
             }
             
-            sendPhaseEvent("user.update.phase_2.event", sagaId, "UserUpdatePhase2Done", 
-                          Map.of("phase", 2, "enrichment", "completed"));
+            PhaseEvent event = new PhaseEvent(
+                sagaId,
+                "phase2",
+                KafkaConstants.EVENT_TYPE_PHASE_2_COMPLETED,
+                Map.of("phase", 2, "enrichment", "completed"),
+                sagaId, // correlationId
+                sagaId, // causationId
+                null, // eventId
+                KafkaConstants.SOURCE_WORKER,
+                System.currentTimeMillis(),
+                null
+            );
+            sendPhaseEvent(KafkaConstants.TOPIC_USER_UPDATE_PHASE_2_EVENT, event);
             
             log.info("[P2] Enrichment completed for saga {}", sagaId);
             
@@ -111,12 +136,12 @@ public class PhaseListeners {
      * Phase 3 Worker: Persistence
      */
     @KafkaListener(id = "P3", 
-                   topics = "user.update.phase_3.command", 
-                   groupId = "user-update-workers", 
-                   containerFactory = "txFactory", 
+                   topics = KafkaConstants.TOPIC_USER_UPDATE_PHASE_3_COMMAND, 
+                   groupId = KafkaConstants.GROUP_USER_UPDATE_WORKERS, 
+                   containerFactory = KafkaConstants.CONTAINER_FACTORY_TX, 
                    concurrency = "3")
-    public void onPhase3Command(@org.springframework.messaging.handler.annotation.Payload String command,
-                               @org.springframework.messaging.handler.annotation.Header("sagaId") String sagaId) {
+    public void onPhase3Command(@Payload String command,
+                               @Header(KafkaConstants.HEADER_SAGA_ID) String sagaId) {
         try {
             log.info("[P3] Processing persistence for saga {}", sagaId);
             
@@ -127,8 +152,19 @@ public class PhaseListeners {
                 throw new RuntimeException("P3 persistence failed");
             }
             
-            sendPhaseEvent("user.update.phase_3.event", sagaId, "UserUpdatePhase3Done", 
-                          Map.of("phase", 3, "persistence", "completed"));
+            PhaseEvent event = new PhaseEvent(
+                sagaId,
+                "phase3",
+                KafkaConstants.EVENT_TYPE_PHASE_3_COMPLETED,
+                Map.of("phase", 3, "persistence", "completed"),
+                sagaId, // correlationId
+                sagaId, // causationId
+                null, // eventId
+                KafkaConstants.SOURCE_WORKER,
+                System.currentTimeMillis(),
+                null
+            );
+            sendPhaseEvent(KafkaConstants.TOPIC_USER_UPDATE_PHASE_3_EVENT, event);
             
             log.info("[P3] Persistence completed for saga {}", sagaId);
             
@@ -142,12 +178,12 @@ public class PhaseListeners {
      * Phase 4 Worker: Notification
      */
     @KafkaListener(id = "P4", 
-                   topics = "user.update.phase_4.command", 
-                   groupId = "user-update-workers", 
-                   containerFactory = "txFactory", 
+                   topics = KafkaConstants.TOPIC_USER_UPDATE_PHASE_4_COMMAND, 
+                   groupId = KafkaConstants.GROUP_USER_UPDATE_WORKERS, 
+                   containerFactory = KafkaConstants.CONTAINER_FACTORY_TX, 
                    concurrency = "3")
-    public void onPhase4Command(@org.springframework.messaging.handler.annotation.Payload String command,
-                               @org.springframework.messaging.handler.annotation.Header("sagaId") String sagaId) {
+    public void onPhase4Command(@Payload String command,
+                               @Header(KafkaConstants.HEADER_SAGA_ID) String sagaId) {
         try {
             log.info("[P4] Processing notification for saga {}", sagaId);
             
@@ -158,8 +194,19 @@ public class PhaseListeners {
                 throw new RuntimeException("P4 notification failed");
             }
             
-            sendPhaseEvent("user.update.phase_4.event", sagaId, "UserUpdatePhase4Done", 
-                          Map.of("phase", 4, "notification", "sent"));
+            PhaseEvent event = new PhaseEvent(
+                sagaId,
+                "phase4",
+                KafkaConstants.EVENT_TYPE_PHASE_4_COMPLETED,
+                Map.of("phase", 4, "notification", "sent"),
+                sagaId, // correlationId
+                sagaId, // causationId
+                null, // eventId
+                KafkaConstants.SOURCE_WORKER,
+                System.currentTimeMillis(),
+                null
+            );
+            sendPhaseEvent(KafkaConstants.TOPIC_USER_UPDATE_PHASE_4_EVENT, event);
             
             log.info("[P4] Notification completed for saga {}", sagaId);
             
@@ -173,36 +220,36 @@ public class PhaseListeners {
      * DLT Listener for monitoring failed messages
      */
     @KafkaListener(topics = {
-        "user.update.phase_1.command.DLT",
-        "user.update.phase_2.command.DLT", 
-        "user.update.phase_3.command.DLT",
-        "user.update.phase_4.command.DLT"
-    }, groupId = "user-update-dlt")
-    public void onDltMessage(@org.springframework.messaging.handler.annotation.Payload String message,
-                           @org.springframework.messaging.handler.annotation.Header(org.springframework.kafka.support.KafkaHeaders.RECEIVED_TOPIC) String topic) {
+        KafkaConstants.TOPIC_USER_UPDATE_PHASE_1_COMMAND_DLT,
+        KafkaConstants.TOPIC_USER_UPDATE_PHASE_2_COMMAND_DLT, 
+        KafkaConstants.TOPIC_USER_UPDATE_PHASE_3_COMMAND_DLT,
+        KafkaConstants.TOPIC_USER_UPDATE_PHASE_4_COMMAND_DLT
+    }, groupId = KafkaConstants.GROUP_USER_UPDATE_DLT)
+    public void onDltMessage(@Payload String message,
+                           @Header(org.springframework.kafka.support.KafkaHeaders.RECEIVED_TOPIC) String topic) {
         log.warn("[DLT] Received failed message on topic {}: {}", topic, message);
     }
 
     /**
-     * Send phase completion event
+     * Send phase completion event using DTO
      */
-    private void sendPhaseEvent(String topic, String sagaId, String eventType, Map<String, Object> result) {
+    private void sendPhaseEvent(String topic, PhaseEvent event) {
         try {
-            SagaEvent event = SagaEvent.event(eventType, sagaId, "thrift-server-service", result);
-            
-            ProducerRecord<String, String> record = new ProducerRecord<>(topic, sagaId, objectMapper.writeValueAsString(event));
-            KafkaHeadersUtil.addStandardHeaders(record, sagaId, "thrift-server-service", eventType);
+            ProducerRecord<String, String> record = new ProducerRecord<>(topic, event.sagaId(), objectMapper.writeValueAsString(event));
+            KafkaHeadersUtil.addStandardHeaders(record, event.sagaId(), event.correlationId(), event.causationId(), 
+                event.eventId(), event.source(), event.eventType());
             
             kafkaTemplate.send(record);
             
         } catch (JsonProcessingException e) {
-            log.error("Failed to serialize event {} for saga {}", eventType, sagaId, e);
+            log.error("Failed to serialize event {} for saga {}", event.eventType(), event.sagaId(), e);
             throw new RuntimeException("Failed to serialize event", e);
         } catch (Exception e) {
-            log.error("Failed to send event {} for saga {}", eventType, sagaId, e);
+            log.error("Failed to send event {} for saga {}", event.eventType(), event.sagaId(), e);
             throw new RuntimeException("Failed to send event", e);
         }
     }
+
 
     /**
      * Simulate processing time

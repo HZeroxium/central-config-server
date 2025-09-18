@@ -37,6 +37,12 @@ dependencies {
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.18.2'
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.18.2'
     
+    // Validation
+    implementation 'jakarta.validation:jakarta.validation-api:3.0.2'
+
+    // OpenAPI/Swagger annotations for DTOs
+    implementation 'io.swagger.core.v3:swagger-annotations:2.2.22'
+    
     // Lombok
     compileOnly 'org.projectlombok:lombok:1.18.32'
     annotationProcessor 'org.projectlombok:lombok:1.18.32'

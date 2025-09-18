@@ -1,6 +1,18 @@
 package com.example.user.kafka;
 
+import com.example.kafka.dto.AssignmentsResponse;
+import com.example.kafka.dto.ListenerActionResponse;
+import com.example.kafka.dto.ListenerStatusesResponse;
+import com.example.kafka.dto.SimpleStatusResponse;
+import com.example.kafka.dto.WorkerSettingsRequest;
+import com.example.kafka.dto.WorkerSettingsResponse;
 import com.example.kafka.service.WorkerSettings;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
@@ -18,6 +30,7 @@ import java.util.Set;
 @RequestMapping("/control")
 @RequiredArgsConstructor
 @Slf4j
+@Tag(name = "Worker Control", description = "Control endpoints for Worker service")
 public class WorkerControlController {
 
     private final WorkerSettings workerSettings;
@@ -27,7 +40,10 @@ public class WorkerControlController {
      * Set fail rate for a specific phase
      */
     @PostMapping("/fail-rate")
-    public Map<String, Object> setFailRate(@RequestParam int phase, @RequestParam double rate) {
+    @Operation(summary = "Set fail rate of a phase", responses = {
+        @ApiResponse(responseCode = "200", description = "Updated", content = @Content(schema = @Schema(implementation = SimpleStatusResponse.class)))
+    })
+    public SimpleStatusResponse setFailRate(@RequestParam int phase, @RequestParam double rate) {
         if (phase < 1 || phase > 4) {
             throw new IllegalArgumentException("Phase must be between 1 and 4");
         }
@@ -35,14 +51,17 @@ public class WorkerControlController {
         workerSettings.setFailRate(phase, rate);
         log.info("Set fail rate for phase {} to {}", phase, rate);
         
-        return Map.of("phase", phase, "failRate", rate, "status", "updated");
+        return new SimpleStatusResponse("updated", "phase=" + phase + ", failRate=" + rate);
     }
 
     /**
      * Set sleep time for a specific phase
      */
     @PostMapping("/sleep")
-    public Map<String, Object> setSleep(@RequestParam int phase, @RequestParam long ms) {
+    @Operation(summary = "Set sleep (ms) of a phase", responses = {
+        @ApiResponse(responseCode = "200", description = "Updated", content = @Content(schema = @Schema(implementation = SimpleStatusResponse.class)))
+    })
+    public SimpleStatusResponse setSleep(@RequestParam int phase, @RequestParam long ms) {
         if (phase < 1 || phase > 4) {
             throw new IllegalArgumentException("Phase must be between 1 and 4");
         }
@@ -50,56 +69,65 @@ public class WorkerControlController {
         workerSettings.setSleepMs(phase, ms);
         log.info("Set sleep time for phase {} to {}ms", phase, ms);
         
-        return Map.of("phase", phase, "sleepMs", ms, "status", "updated");
+        return new SimpleStatusResponse("updated", "phase=" + phase + ", sleepMs=" + ms);
     }
 
     /**
      * Pause a specific listener
      */
     @PostMapping("/pause/{listenerId}")
-    public Map<String, Object> pauseListener(@PathVariable String listenerId) {
+    @Operation(summary = "Pause a listener", responses = {
+        @ApiResponse(responseCode = "200", description = "Paused", content = @Content(schema = @Schema(implementation = ListenerActionResponse.class)))
+    })
+    public ListenerActionResponse pauseListener(@PathVariable String listenerId) {
         MessageListenerContainer container = registry.getListenerContainer(listenerId);
         if (container == null) {
-            return Map.of("listenerId", listenerId, "status", "not found");
+            return new ListenerActionResponse(listenerId, "not found");
         }
         
         container.pause();
         log.info("Paused listener {}", listenerId);
         
-        return Map.of("listenerId", listenerId, "status", "paused");
+        return new ListenerActionResponse(listenerId, "paused");
     }
 
     /**
      * Resume a specific listener
      */
     @PostMapping("/resume/{listenerId}")
-    public Map<String, Object> resumeListener(@PathVariable String listenerId) {
+    @Operation(summary = "Resume a listener", responses = {
+        @ApiResponse(responseCode = "200", description = "Resumed", content = @Content(schema = @Schema(implementation = ListenerActionResponse.class)))
+    })
+    public ListenerActionResponse resumeListener(@PathVariable String listenerId) {
         MessageListenerContainer container = registry.getListenerContainer(listenerId);
         if (container == null) {
-            return Map.of("listenerId", listenerId, "status", "not found");
+            return new ListenerActionResponse(listenerId, "not found");
         }
         
         container.resume();
         log.info("Resumed listener {}", listenerId);
         
-        return Map.of("listenerId", listenerId, "status", "resumed");
+        return new ListenerActionResponse(listenerId, "resumed");
     }
 
     /**
      * Get listener assignments
      */
     @GetMapping("/assignments/{listenerId}")
-    public Map<String, Object> getAssignments(@PathVariable String listenerId) {
+    @Operation(summary = "Get listener assignments and state", responses = {
+        @ApiResponse(responseCode = "200", description = "Assignments", content = @Content(schema = @Schema(implementation = AssignmentsResponse.class)))
+    })
+    public AssignmentsResponse getAssignments(@PathVariable String listenerId) {
         MessageListenerContainer container = registry.getListenerContainer(listenerId);
         if (container == null) {
-            return Map.of("listenerId", listenerId, "status", "not found");
+            return new AssignmentsResponse(listenerId, Set.of(), false, false);
         }
         
-        return Map.of(
-            "listenerId", listenerId,
-            "assignments", container.getAssignedPartitions() != null ? container.getAssignedPartitions() : Set.of(),
-            "running", container.isRunning(),
-            "paused", container.isPauseRequested()
+        return new AssignmentsResponse(
+            listenerId,
+            container.getAssignedPartitions() != null ? container.getAssignedPartitions() : Set.of(),
+            container.isRunning(),
+            container.isPauseRequested()
         );
     }
 
@@ -107,37 +135,104 @@ public class WorkerControlController {
      * Get current worker settings
      */
     @GetMapping("/settings")
-    public Map<String, Object> getSettings() {
-        return Map.of(
-            "failRates", workerSettings.getAllFailRates(),
-            "sleepMs", workerSettings.getAllSleepMs()
+    @Operation(summary = "Get current worker settings", responses = {
+        @ApiResponse(responseCode = "200", description = "Settings", content = @Content(schema = @Schema(implementation = WorkerSettingsResponse.class)))
+    })
+    public WorkerSettingsResponse getSettings() {
+        MessageListenerContainer container = registry.getListenerContainer("P1");
+        Map<String, Object> containerStatus = Map.of(
+            "running", container != null && container.isRunning(),
+            "paused", container != null && container.isPauseRequested(),
+            "assignments", container != null && container.getAssignedPartitions() != null ? 
+                container.getAssignedPartitions().size() : 0
         );
+        
+        return new WorkerSettingsResponse(
+            (int) workerSettings.getSleepMs(1),
+            (int) workerSettings.getSleepMs(2),
+            (int) workerSettings.getSleepMs(3),
+            (int) workerSettings.getSleepMs(4),
+            workerSettings.getFailRate(1),
+            workerSettings.getFailRate(2),
+            workerSettings.getFailRate(3),
+            workerSettings.getFailRate(4),
+            containerStatus
+        );
+    }
+
+    /**
+     * Update worker settings using DTO
+     */
+    @PostMapping("/settings")
+    @Operation(summary = "Update worker settings", requestBody = @RequestBody(required = true, content = @Content(schema = @Schema(implementation = WorkerSettingsRequest.class))),
+        responses = {
+            @ApiResponse(responseCode = "200", description = "Updated", content = @Content(schema = @Schema(implementation = WorkerSettingsResponse.class)))
+        })
+    public WorkerSettingsResponse updateSettings(@org.springframework.web.bind.annotation.RequestBody WorkerSettingsRequest request) {
+        if (request.phase1SleepMs() != null) {
+            workerSettings.setSleepMs(1, request.phase1SleepMs());
+        }
+        if (request.phase2SleepMs() != null) {
+            workerSettings.setSleepMs(2, request.phase2SleepMs());
+        }
+        if (request.phase3SleepMs() != null) {
+            workerSettings.setSleepMs(3, request.phase3SleepMs());
+        }
+        if (request.phase4SleepMs() != null) {
+            workerSettings.setSleepMs(4, request.phase4SleepMs());
+        }
+        
+        if (request.phase1FailRate() != null) {
+            workerSettings.setFailRate(1, request.phase1FailRate());
+        }
+        if (request.phase2FailRate() != null) {
+            workerSettings.setFailRate(2, request.phase2FailRate());
+        }
+        if (request.phase3FailRate() != null) {
+            workerSettings.setFailRate(3, request.phase3FailRate());
+        }
+        if (request.phase4FailRate() != null) {
+            workerSettings.setFailRate(4, request.phase4FailRate());
+        }
+        
+        log.info("Updated worker settings: {}", request);
+        return getSettings();
     }
 
     /**
      * Reset all settings to defaults
      */
     @PostMapping("/reset")
-    public Map<String, Object> resetSettings() {
+    @Operation(summary = "Reset settings to defaults", responses = {
+        @ApiResponse(responseCode = "200", description = "Reset", content = @Content(schema = @Schema(implementation = SimpleStatusResponse.class)))
+    })
+    public SimpleStatusResponse resetSettings() {
         workerSettings.reset();
         log.info("Reset all worker settings to defaults");
         
-        return Map.of("status", "reset", "message", "All settings reset to defaults");
+        return new SimpleStatusResponse("reset", "All settings reset to defaults");
     }
 
     /**
      * Get listener status for all phases
      */
     @GetMapping("/status")
-    public Map<String, Object> getStatus() {
-        Map<String, Object> status = Map.of(
-            "P1", getListenerStatus("P1"),
-            "P2", getListenerStatus("P2"),
-            "P3", getListenerStatus("P3"),
-            "P4", getListenerStatus("P4")
+    @Operation(summary = "Get listeners status and current settings", responses = {
+        @ApiResponse(responseCode = "200", description = "Statuses", content = @Content(schema = @Schema(implementation = ListenerStatusesResponse.class)))
+    })
+    public ListenerStatusesResponse getStatus() {
+        Map<String, Object> p1 = getListenerStatus("P1");
+        Map<String, Object> p2 = getListenerStatus("P2");
+        Map<String, Object> p3 = getListenerStatus("P3");
+        Map<String, Object> p4 = getListenerStatus("P4");
+        Map<String, java.util.Map<String, Object>> listeners = Map.of(
+            "P1", (java.util.Map<String, Object>) p1,
+            "P2", (java.util.Map<String, Object>) p2,
+            "P3", (java.util.Map<String, Object>) p3,
+            "P4", (java.util.Map<String, Object>) p4
         );
         
-        return Map.of("listeners", status, "settings", getSettings());
+        return new ListenerStatusesResponse(listeners, getSettings());
     }
 
     private Map<String, Object> getListenerStatus(String listenerId) {
