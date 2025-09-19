@@ -59,7 +59,10 @@ public class OrchestratorListeners {
                 KafkaConstants.SOURCE_ORCHESTRATOR,
                 System.currentTimeMillis()
             );
-            sendPhaseCommand(KafkaConstants.TOPIC_USER_UPDATE_PHASE_2_COMMAND, command);
+            kafkaTemplate.executeInTransaction(kt -> {
+                sendPhaseCommand(KafkaConstants.TOPIC_USER_UPDATE_PHASE_2_COMMAND, command);
+                return null;
+            });
             log.info("Phase 2 command sent for saga {}", sagaId);
             
         } catch (Exception e) {
@@ -96,7 +99,10 @@ public class OrchestratorListeners {
                 KafkaConstants.SOURCE_ORCHESTRATOR,
                 System.currentTimeMillis()
             );
-            sendPhaseCommand(KafkaConstants.TOPIC_USER_UPDATE_PHASE_3_COMMAND, command);
+            kafkaTemplate.executeInTransaction(kt -> {
+                sendPhaseCommand(KafkaConstants.TOPIC_USER_UPDATE_PHASE_3_COMMAND, command);
+                return null;
+            });
             log.info("Phase 3 command sent for saga {}", sagaId);
             
         } catch (Exception e) {
@@ -133,7 +139,10 @@ public class OrchestratorListeners {
                 KafkaConstants.SOURCE_ORCHESTRATOR,
                 System.currentTimeMillis()
             );
-            sendPhaseCommand(KafkaConstants.TOPIC_USER_UPDATE_PHASE_4_COMMAND, command);
+            kafkaTemplate.executeInTransaction(kt -> {
+                sendPhaseCommand(KafkaConstants.TOPIC_USER_UPDATE_PHASE_4_COMMAND, command);
+                return null;
+            });
             log.info("Phase 4 command sent for saga {}", sagaId);
             
         } catch (Exception e) {

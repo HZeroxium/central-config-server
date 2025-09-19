@@ -1,12 +1,11 @@
 package com.example.user.integration;
 
-import com.example.user.domain.User;
+import com.example.common.domain.User;
+import com.example.common.exception.DatabaseException;
 import com.example.user.service.UserServiceImpl;
-import com.example.user.exception.DatabaseException;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;

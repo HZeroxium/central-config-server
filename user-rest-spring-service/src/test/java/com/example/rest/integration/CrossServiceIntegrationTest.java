@@ -1,10 +1,10 @@
 package com.example.rest.integration;
 
-import com.example.rest.user.domain.User;
+import com.example.common.domain.User;
 import com.example.rest.user.service.UserService;
 import com.example.rest.user.port.ThriftUserClientPort;
-import com.example.rest.exception.ThriftServiceException;
-import com.example.rest.exception.UserNotFoundException;
+import com.example.common.exception.ThriftServiceException;
+import com.example.common.exception.UserNotFoundException;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;

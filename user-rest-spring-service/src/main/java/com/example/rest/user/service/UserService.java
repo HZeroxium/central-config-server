@@ -11,10 +11,10 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 
-import com.example.rest.user.domain.User;
+import com.example.common.domain.User;
 import com.example.rest.user.port.ThriftUserClientPort;
-import com.example.rest.exception.ThriftServiceException;
-import com.example.rest.exception.UserNotFoundException;
+import com.example.common.exception.ThriftServiceException;
+import com.example.common.exception.UserNotFoundException;
 import io.micrometer.core.annotation.Timed;
 
 @Slf4j
@@ -109,7 +109,7 @@ public class UserService {
 
   @Timed(value = "service.rest.list.by.criteria", description = "Time taken to list users by criteria via Thrift")
   @Cacheable(value = "usersByCriteria", key = "'UserService:listByCriteria:v1:' + #criteria.hashCode()", sync = true)
-  public List<User> listByCriteria(com.example.rest.user.domain.UserQueryCriteria criteria) {
+  public List<User> listByCriteria(com.example.common.domain.UserQueryCriteria criteria) {
     log.debug("Listing users by criteria via Thrift client: {}", criteria);
     try {
       List<User> users = thriftClient.listByCriteria(criteria);
@@ -123,7 +123,7 @@ public class UserService {
 
   @Timed(value = "service.rest.count.by.criteria", description = "Time taken to count users by criteria via Thrift")
   @Cacheable(value = "countByCriteria", key = "'UserService:countByCriteria:v1:' + #criteria.hashCode()", sync = true)
-  public long countByCriteria(com.example.rest.user.domain.UserQueryCriteria criteria) {
+  public long countByCriteria(com.example.common.domain.UserQueryCriteria criteria) {
     log.debug("Counting users by criteria via Thrift client: {}", criteria);
     try {
       long count = thriftClient.countByCriteria(criteria);

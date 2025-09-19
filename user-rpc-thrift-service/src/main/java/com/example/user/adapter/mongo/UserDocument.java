@@ -1,6 +1,6 @@
 package com.example.user.adapter.mongo;
 
-import com.example.user.domain.User;
+import com.example.common.domain.User;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

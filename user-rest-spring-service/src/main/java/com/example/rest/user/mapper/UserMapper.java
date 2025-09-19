@@ -1,8 +1,8 @@
 package com.example.rest.user.mapper;
 
-import com.example.rest.user.domain.SortCriterion;
-import com.example.rest.user.domain.User;
-import com.example.rest.user.domain.UserQueryCriteria;
+import com.example.common.domain.SortCriterion;
+import com.example.common.domain.User;
+import com.example.common.domain.UserQueryCriteria;
 import com.example.rest.user.dto.*;
 
 import java.util.List;

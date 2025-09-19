@@ -1,9 +1,9 @@
 package com.example.rest.user.controller;
 
-import com.example.rest.user.domain.User;
+import com.example.common.domain.User;
 import com.example.rest.user.dto.*;
 import com.example.rest.user.service.UserService;
-import com.example.rest.exception.ThriftServiceException;
+import com.example.common.exception.ThriftServiceException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;

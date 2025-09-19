@@ -1,10 +1,10 @@
 package com.example.user.service;
 
-import com.example.user.domain.User;
-import com.example.user.domain.UserQueryCriteria;
+import com.example.common.domain.User;
+import com.example.common.domain.UserQueryCriteria;
 import com.example.user.service.port.UserRepositoryPort;
 import com.example.user.service.port.UserServicePort;
-import com.example.user.exception.DatabaseException;
+import com.example.common.exception.DatabaseException;
  
 import io.micrometer.core.annotation.Timed;
 import org.springframework.cache.annotation.CacheEvict;

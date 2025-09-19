@@ -18,8 +18,9 @@ configurations.configureEach {
 }
 
 dependencies {
-    // Shared Thrift definitions
-    implementation project(':shared-thrift-definitions')
+    // Shared common library
+    implementation project(':shared-common')
+    testImplementation project(':shared-common')
     
     implementation('org.springframework.boot:spring-boot-starter-web') {
         exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
@@ -96,7 +97,7 @@ sourceSets {
 // Compile Java configuration
 compileJava {
     options.encoding = 'UTF-8'
-    dependsOn ':shared-thrift-definitions:generateThrift'
+    dependsOn ':shared-common:generateThrift'
 }
 
 bootJar {

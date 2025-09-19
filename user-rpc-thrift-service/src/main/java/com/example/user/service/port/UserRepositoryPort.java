@@ -1,7 +1,7 @@
 package com.example.user.service.port;
 
-import com.example.user.domain.User;
-import com.example.user.domain.UserQueryCriteria;
+import com.example.common.domain.User;
+import com.example.common.domain.UserQueryCriteria;
 
 import java.util.List;
 import java.util.Optional;

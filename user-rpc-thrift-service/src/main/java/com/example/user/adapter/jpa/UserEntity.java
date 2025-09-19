@@ -1,6 +1,6 @@
 package com.example.user.adapter.jpa;
 
-import com.example.user.domain.User;
+import com.example.common.domain.User;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

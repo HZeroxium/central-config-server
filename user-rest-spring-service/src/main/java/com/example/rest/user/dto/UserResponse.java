@@ -1,6 +1,6 @@
 package com.example.rest.user.dto;
 
-import com.example.rest.user.domain.User;
+import com.example.common.domain.User;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Value;

@@ -1,7 +1,7 @@
 package com.example.rest.user.dto;
 
-import com.example.rest.user.domain.User;
-import com.example.rest.user.domain.SortCriterion;
+import com.example.common.domain.User;
+import com.example.common.domain.SortCriterion;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;

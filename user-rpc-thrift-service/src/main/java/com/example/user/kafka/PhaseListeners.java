@@ -80,7 +80,10 @@ public class PhaseListeners {
                 System.currentTimeMillis(),
                 null
             );
-            sendPhaseEvent(KafkaConstants.TOPIC_USER_UPDATE_PHASE_1_EVENT, event);
+            kafkaTemplate.executeInTransaction(kt -> {
+                sendPhaseEvent(KafkaConstants.TOPIC_USER_UPDATE_PHASE_1_EVENT, event);
+                return null;
+            });
             
             log.info("[P1] Validation completed for saga {}", sagaId);
             
@@ -122,7 +125,10 @@ public class PhaseListeners {
                 System.currentTimeMillis(),
                 null
             );
-            sendPhaseEvent(KafkaConstants.TOPIC_USER_UPDATE_PHASE_2_EVENT, event);
+            kafkaTemplate.executeInTransaction(kt -> {
+                sendPhaseEvent(KafkaConstants.TOPIC_USER_UPDATE_PHASE_2_EVENT, event);
+                return null;
+            });
             
             log.info("[P2] Enrichment completed for saga {}", sagaId);
             
@@ -164,7 +170,10 @@ public class PhaseListeners {
                 System.currentTimeMillis(),
                 null
             );
-            sendPhaseEvent(KafkaConstants.TOPIC_USER_UPDATE_PHASE_3_EVENT, event);
+            kafkaTemplate.executeInTransaction(kt -> {
+                sendPhaseEvent(KafkaConstants.TOPIC_USER_UPDATE_PHASE_3_EVENT, event);
+                return null;
+            });
             
             log.info("[P3] Persistence completed for saga {}", sagaId);
             
@@ -206,7 +215,10 @@ public class PhaseListeners {
                 System.currentTimeMillis(),
                 null
             );
-            sendPhaseEvent(KafkaConstants.TOPIC_USER_UPDATE_PHASE_4_EVENT, event);
+            kafkaTemplate.executeInTransaction(kt -> {
+                sendPhaseEvent(KafkaConstants.TOPIC_USER_UPDATE_PHASE_4_EVENT, event);
+                return null;
+            });
             
             log.info("[P4] Notification completed for saga {}", sagaId);
             

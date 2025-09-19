@@ -25,10 +25,10 @@ spring:
     password: password
   cache:
     cache-names: userById, usersByCriteria, countByCriteria
+    type: caffeine
   autoconfigure:
     exclude: 
-      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
-      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+      # Use profile-based enabling; default uses caffeine. Redis profile enables redis auto-config.
   
   # Kafka configuration for Workers
   kafka:

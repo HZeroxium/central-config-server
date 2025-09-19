@@ -1,7 +1,6 @@
 package com.example.user.adapter.mongo;
 
-import com.example.user.domain.User;
-import org.springframework.data.domain.Page;
+import com.example.common.domain.User;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
@@ -15,15 +14,6 @@ public interface UserMongoRepository extends MongoRepository<UserDocument, Strin
   
   @Query("{ '_id': ?0, $or: [{ 'deleted': { $exists: false } }, { 'deleted': false }] }")
   Optional<UserDocument> findByIdAndNotDeleted(String id);
-  
-  @Query("{ $or: [{ 'deleted': { $exists: false } }, { 'deleted': false }] }")
-  List<UserDocument> findAllNotDeleted();
-  
-  @Query("{ $or: [{ 'deleted': { $exists: false } }, { 'deleted': false }] }")
-  Page<UserDocument> findAllNotDeleted(Pageable pageable);
-  
-  @Query(value = "{ $or: [{ 'deleted': { $exists: false } }, { 'deleted': false }] }", count = true)
-  long countNotDeleted();
   
   // Advanced query methods
   @Query("{ $and: [ " +

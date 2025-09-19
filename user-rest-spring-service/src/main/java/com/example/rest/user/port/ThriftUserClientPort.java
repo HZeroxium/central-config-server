@@ -3,8 +3,8 @@ package com.example.rest.user.port;
 import java.util.List;
 import java.util.Optional;
 
-import com.example.rest.user.domain.User;
-import com.example.rest.user.domain.UserQueryCriteria;
+import com.example.common.domain.User;
+import com.example.common.domain.UserQueryCriteria;
 
 public interface ThriftUserClientPort {
   String ping();

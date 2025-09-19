@@ -1,6 +1,6 @@
 package com.example.rest.user.mapper;
 
-import com.example.rest.user.domain.User;
+import com.example.common.domain.User;
 import com.example.rest.user.dto.*;
 import org.junit.jupiter.api.*;
 

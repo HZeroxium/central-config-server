@@ -1,7 +1,7 @@
 package com.example.user.adapter.jpa.mapper;
 
 import com.example.user.adapter.jpa.UserEntity;
-import com.example.user.domain.User;
+import com.example.common.domain.User;
 import java.util.UUID;
 
 /** Manual mapper for converting between JPA entity and domain model. */

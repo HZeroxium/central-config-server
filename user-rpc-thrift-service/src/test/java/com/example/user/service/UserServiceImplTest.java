@@ -15,7 +15,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.example.user.domain.User;
+import com.example.common.domain.User;
 import com.example.user.service.port.UserRepositoryPort;
 
 @ExtendWith(MockitoExtension.class)

@@ -1,6 +1,6 @@
 package com.example.user.integration;
 
-import com.example.user.domain.User;
+import com.example.common.domain.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;

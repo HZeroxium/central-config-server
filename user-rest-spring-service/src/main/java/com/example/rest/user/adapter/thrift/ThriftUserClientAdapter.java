@@ -13,11 +13,11 @@ import org.apache.thrift.transport.TTransport;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import com.example.rest.user.domain.User;
+import com.example.common.domain.User;
 import com.example.rest.user.port.ThriftUserClientPort;
 import com.example.user.thrift.*;
-import com.example.rest.exception.UserNotFoundException;
-import com.example.rest.exception.ThriftServiceException;
+import com.example.common.exception.UserNotFoundException;
+import com.example.common.exception.ThriftServiceException;
 
 @Slf4j
 @Component
@@ -220,7 +220,7 @@ public class ThriftUserClientAdapter implements ThriftUserClientPort {
   
 
   @Override
-  public List<User> listByCriteria(com.example.rest.user.domain.UserQueryCriteria criteria) {
+  public List<User> listByCriteria(com.example.common.domain.UserQueryCriteria criteria) {
     log.debug("Listing users by criteria via Thrift service: {}", criteria);
     UserService.Client client = null;
     try {
@@ -253,7 +253,7 @@ public class ThriftUserClientAdapter implements ThriftUserClientPort {
   }
 
   @Override
-  public long countByCriteria(com.example.rest.user.domain.UserQueryCriteria criteria) {
+  public long countByCriteria(com.example.common.domain.UserQueryCriteria criteria) {
     log.debug("Counting users by criteria via Thrift service: {}", criteria);
     UserService.Client client = null;
     try {
@@ -280,7 +280,7 @@ public class ThriftUserClientAdapter implements ThriftUserClientPort {
   /**
    * Convert domain query criteria to Thrift request.
    */
-  private TListUsersRequest toThriftRequest(com.example.rest.user.domain.UserQueryCriteria criteria) {
+  private TListUsersRequest toThriftRequest(com.example.common.domain.UserQueryCriteria criteria) {
     TListUsersRequest request = new TListUsersRequest()
         .setPage(criteria.getPage())
         .setSize(criteria.getSize())

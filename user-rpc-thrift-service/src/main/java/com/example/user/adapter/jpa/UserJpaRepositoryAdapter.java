@@ -1,9 +1,9 @@
 package com.example.user.adapter.jpa;
 
 import com.example.user.adapter.jpa.mapper.UserPersistenceMapper;
-import com.example.user.domain.SortCriterion;
-import com.example.user.domain.User;
-import com.example.user.domain.UserQueryCriteria;
+import com.example.common.domain.SortCriterion;
+import com.example.common.domain.User;
+import com.example.common.domain.UserQueryCriteria;
 import com.example.user.service.port.UserRepositoryPort;
  
 import io.micrometer.core.annotation.Timed;
@@ -21,7 +21,7 @@ import org.springframework.stereotype.Component;
 /**
  * JPA-based adapter implementing {@link UserRepositoryPort}.
  * <p>
- * Active when property {@code app.persistence.type=h2}. Maps the domain model {@link com.example.user.domain.User}
+ * Active when property {@code app.persistence.type=h2}. Maps the domain model {@link com.example.common.domain.User}
  * to the persistence entity {@link UserEntity} and delegates operations to {@link UserJpaRepository}.
  * 
  * Enhanced with comprehensive profiling and metrics collection.

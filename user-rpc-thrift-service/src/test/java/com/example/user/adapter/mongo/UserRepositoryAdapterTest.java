@@ -1,6 +1,6 @@
 package com.example.user.adapter.mongo;
 
-import com.example.user.domain.User;
+import com.example.common.domain.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

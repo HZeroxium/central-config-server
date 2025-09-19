@@ -1,7 +1,7 @@
 package com.example.user.adapter.mongo.mapper;
 
 import com.example.user.adapter.mongo.UserDocument;
-import com.example.user.domain.User;
+import com.example.common.domain.User;
 import java.util.UUID;
 
 /** Manual mapper for converting between Mongo document and domain model. */

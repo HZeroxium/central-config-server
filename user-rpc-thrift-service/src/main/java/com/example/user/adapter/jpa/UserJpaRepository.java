@@ -1,6 +1,6 @@
 package com.example.user.adapter.jpa;
 
-import com.example.user.domain.User;
+import com.example.common.domain.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

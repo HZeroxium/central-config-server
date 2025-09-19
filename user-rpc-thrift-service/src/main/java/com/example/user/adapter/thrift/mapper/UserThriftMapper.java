@@ -1,7 +1,7 @@
 package com.example.user.adapter.thrift.mapper;
 
-import com.example.user.domain.User;
-import com.example.user.domain.UserQueryCriteria;
+import com.example.common.domain.User;
+import com.example.common.domain.UserQueryCriteria;
 import com.example.user.thrift.TListUsersRequest;
 import com.example.user.thrift.TUser;
 import com.example.user.thrift.TUserRole;
@@ -60,10 +60,10 @@ public final class UserThriftMapper {
 
   /** Convert Thrift list request to domain query criteria. */
   public static UserQueryCriteria toQueryCriteria(TListUsersRequest request) {
-    List<com.example.user.domain.SortCriterion> sortCriteria = null;
+    List<com.example.common.domain.SortCriterion> sortCriteria = null;
     if (request.getSortCriteria() != null && !request.getSortCriteria().isEmpty()) {
       sortCriteria = request.getSortCriteria().stream()
-          .map(sc -> com.example.user.domain.SortCriterion.builder()
+          .map(sc -> com.example.common.domain.SortCriterion.builder()
               .fieldName(sc.getFieldName())
               .direction(sc.getDirection())
               .build())

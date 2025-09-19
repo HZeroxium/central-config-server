@@ -1,9 +1,9 @@
 package com.example.user.adapter.mongo;
 
 import com.example.user.adapter.mongo.mapper.UserMongoPersistenceMapper;
-import com.example.user.domain.SortCriterion;
-import com.example.user.domain.User;
-import com.example.user.domain.UserQueryCriteria;
+import com.example.common.domain.SortCriterion;
+import com.example.common.domain.User;
+import com.example.common.domain.UserQueryCriteria;
 import com.example.user.service.port.UserRepositoryPort;
  
 import io.micrometer.core.annotation.Timed;

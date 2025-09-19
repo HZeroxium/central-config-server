@@ -1,11 +1,11 @@
 package com.example.user.adapter.thrift;
 
-import com.example.user.domain.User;
-import com.example.user.domain.UserQueryCriteria;
+import com.example.common.domain.User;
+import com.example.common.domain.UserQueryCriteria;
 import com.example.user.service.port.UserServicePort;
 import com.example.user.thrift.*;
-import com.example.user.exception.DatabaseException;
-import com.example.user.exception.UserServiceException;
+import com.example.common.exception.DatabaseException;
+import com.example.common.exception.UserServiceException;
 import com.example.user.adapter.thrift.mapper.UserThriftMapper;
 import io.micrometer.core.annotation.Timed;
 import lombok.extern.slf4j.Slf4j;
@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 
 /**
  * Thrift service handler bridging Thrift-generated API to domain service port.
- * Performs translation between {@link TUser} wire model and domain {@link com.example.user.domain.User}.
+ * Performs translation between {@link TUser} wire model and domain {@link com.example.common.domain.User}.
  * 
  * Enhanced with comprehensive profiling via @Timed.
  */

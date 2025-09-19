@@ -1,9 +1,9 @@
 package com.example.rest.user.service;
 
-import com.example.rest.user.domain.User;
+import com.example.common.domain.User;
 import com.example.rest.user.port.ThriftUserClientPort;
-import com.example.rest.exception.ThriftServiceException;
-import com.example.rest.exception.UserNotFoundException;
+import com.example.common.exception.ThriftServiceException;
+import com.example.common.exception.UserNotFoundException;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
