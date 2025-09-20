@@ -40,12 +40,20 @@ spring:
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       properties:
         isolation.level: read_committed
+        # Avro deserializer configuration
+        value.deserializer.delegate.class: io.confluent.kafka.serializers.KafkaAvroDeserializer
+        schema.registry.url: ${SCHEMA_REGISTRY_URL:http://schema-registry:8081}
+        specific.avro.reader: true
     producer:
       acks: all
       retries: 2147483647
       properties:
         enable.idempotence: true
         delivery.timeout.ms: 120000
+        # Avro serializer configuration
+        value.serializer.delegate.class: io.confluent.kafka.serializers.KafkaAvroSerializer
+        schema.registry.url: ${SCHEMA_REGISTRY_URL:http://schema-registry:8081}
+        auto.register.schemas: true
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
     listener:

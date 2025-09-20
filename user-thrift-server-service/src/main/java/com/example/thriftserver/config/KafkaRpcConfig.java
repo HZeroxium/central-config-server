@@ -15,6 +15,8 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.listener.ContainerProperties;
 import org.springframework.kafka.requestreply.ReplyingKafkaTemplate;
+import com.example.kafka.serialization.AvroSerializer;
+import com.example.kafka.serialization.AvroDeserializer;
 
 import java.util.Map;
 
@@ -77,5 +79,38 @@ public class KafkaRpcConfig {
     f.getContainerProperties().setAckMode(ContainerProperties.AckMode.RECORD);
     f.setBatchListener(false); // Ensure it's not a batch listener
     return f;
+  }
+
+  // Avro Producer Factory
+  @Bean
+  public ProducerFactory<String, Object> avroProducerFactory(KafkaProperties props) {
+    Map<String, Object> cfg = props.buildProducerProperties();
+    cfg.putIfAbsent(ProducerConfig.ACKS_CONFIG, "all");
+    cfg.putIfAbsent(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
+        "org.apache.kafka.common.serialization.StringSerializer");
+    cfg.putIfAbsent(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, AvroSerializer.class.getName());
+    cfg.putIfAbsent("schema.registry.url", "http://localhost:8087");
+    cfg.putIfAbsent("auto.register.schemas", "true");
+    return new DefaultKafkaProducerFactory<>(cfg);
+  }
+
+  // Avro Consumer Factory
+  @Bean
+  public ConsumerFactory<String, Object> avroConsumerFactory(KafkaProperties props) {
+    Map<String, Object> cfg = props.buildConsumerProperties();
+    cfg.putIfAbsent(ConsumerConfig.GROUP_ID_CONFIG, "user-thrift-server-avro");
+    cfg.putIfAbsent(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
+        "org.apache.kafka.common.serialization.StringDeserializer");
+    cfg.putIfAbsent(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, AvroDeserializer.class.getName());
+    cfg.putIfAbsent("schema.registry.url", "http://localhost:8087");
+    cfg.putIfAbsent("specific.avro.reader", "true");
+    return new DefaultKafkaConsumerFactory<>(cfg);
+  }
+
+  // Avro Kafka Template
+  @Bean
+  public KafkaTemplate<String, Object> avroKafkaTemplate(
+      @Qualifier("avroProducerFactory") ProducerFactory<String, Object> pf) {
+    return new KafkaTemplate<>(pf);
   }
 }

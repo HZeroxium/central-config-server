@@ -1,0 +1,21 @@
+{
+  "type": "record",
+  "name": "UserCreateRequest",
+  "namespace": "com.example.kafka.avro",
+  "doc": "Request to create a new user",
+  "fields": [
+    { "name": "name", "type": "string", "doc": "User's full name" },
+    { "name": "phone", "type": "string", "doc": "User's phone number" },
+    { "name": "address", "type": "string", "doc": "User's address" },
+    {
+      "name": "status",
+      "type": "com.example.kafka.avro.UserStatus",
+      "default": "ACTIVE"
+    },
+    {
+      "name": "role",
+      "type": "com.example.kafka.avro.UserRole",
+      "default": "USER"
+    }
+  ]
+}

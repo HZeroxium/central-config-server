@@ -1,0 +1,6 @@
+{
+  "type": "enum",
+  "name": "UserRole",
+  "namespace": "com.example.kafka.avro",
+  "symbols": ["ADMIN", "USER", "MODERATOR", "GUEST"]
+}

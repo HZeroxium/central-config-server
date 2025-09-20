@@ -3,6 +3,7 @@ package com.example.thriftserver.service;
 import com.example.kafka.constants.KafkaConstants;
 import com.example.kafka.dto.RpcRequest;
 import com.example.kafka.dto.RpcResponse;
+import com.example.kafka.avro.*;
 import com.example.user.thrift.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +17,7 @@ import org.springframework.kafka.requestreply.RequestReplyFuture;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -33,7 +35,10 @@ public class UserServiceRpcBridge implements UserService.Iface {
 
     private RpcResponse sendRpcRequest(String action, Object payload) throws TException {
         String correlationId = UUID.randomUUID().toString();
-        RpcRequest request = new RpcRequest(correlationId, action, payload);
+
+        // Convert Avro objects to JSON-compatible objects
+        Object jsonCompatiblePayload = convertAvroToJsonCompatible(payload);
+        RpcRequest request = RpcRequest.of(correlationId, action, jsonCompatiblePayload);
 
         try {
             log.debug("Sending RPC request: action={}, correlationId={}", action, correlationId);
@@ -73,105 +78,102 @@ public class UserServiceRpcBridge implements UserService.Iface {
 
     @Override
     public TCreateUserResponse createUser(TCreateUserRequest request) throws TException {
-        Map<String, Object> userData = Map.of(
-                "name", request.getName(),
-                "phone", request.getPhone(),
-                "address", request.getAddress() != null ? request.getAddress() : "",
-                "status", request.getStatus() != null ? request.getStatus().name() : "ACTIVE",
-                "role", request.getRole() != null ? request.getRole().name() : "USER");
+        UserCreateRequest userCreateRequest = new UserCreateRequest(
+                request.getName(),
+                request.getPhone(),
+                request.getAddress() != null ? request.getAddress() : "",
+                request.getStatus() != null ? UserStatus.valueOf(request.getStatus().name()) : UserStatus.ACTIVE,
+                request.getRole() != null ? UserRole.valueOf(request.getRole().name()) : UserRole.USER);
 
-        RpcResponse response = sendRpcRequest("createUser", userData);
+        RpcResponse response = sendRpcRequest("createUser", userCreateRequest);
         if (!"ok".equals(response.status())) {
             throw new TException(response.error());
         }
 
-        @SuppressWarnings("unchecked")
-        Map<String, Object> createdUser = (Map<String, Object>) response.payload();
+        Map<String, Object> userMap = (Map<String, Object>) response.payload();
 
         TUser tUser = new TUser();
-        tUser.setId((String) createdUser.get("id"));
-        tUser.setName((String) createdUser.get("name"));
-        tUser.setPhone((String) createdUser.get("phone"));
-        tUser.setAddress((String) createdUser.get("address"));
-        tUser.setStatus(TUserStatus.valueOf((String) createdUser.get("status")));
-        tUser.setRole(TUserRole.valueOf((String) createdUser.get("role")));
-        tUser.setCreatedAt(0L); // Set default timestamp
-        tUser.setCreatedBy((String) createdUser.get("createdBy"));
-        tUser.setUpdatedAt(0L); // Set default timestamp
-        tUser.setUpdatedBy((String) createdUser.get("updatedBy"));
-        tUser.setVersion((Integer) createdUser.get("version"));
+        tUser.setId((String) userMap.get("id"));
+        tUser.setName((String) userMap.get("name"));
+        tUser.setPhone((String) userMap.get("phone"));
+        tUser.setAddress((String) userMap.get("address"));
+        tUser.setStatus(TUserStatus.valueOf((String) userMap.get("status")));
+        tUser.setRole(TUserRole.valueOf((String) userMap.get("role")));
+        tUser.setCreatedAt(userMap.get("createdAt") != null ? ((Number) userMap.get("createdAt")).longValue() : 0L);
+        tUser.setCreatedBy((String) userMap.get("createdBy"));
+        tUser.setUpdatedAt(userMap.get("updatedAt") != null ? ((Number) userMap.get("updatedAt")).longValue() : 0L);
+        tUser.setUpdatedBy((String) userMap.get("updatedBy"));
+        tUser.setVersion(userMap.get("version") != null ? ((Number) userMap.get("version")).intValue() : 1);
 
         return new TCreateUserResponse(0, "User created successfully", tUser);
     }
 
     @Override
     public TGetUserResponse getUser(TGetUserRequest request) throws TException {
-        Map<String, Object> requestData = Map.of("id", request.getId());
+        UserGetRequest userGetRequest = new UserGetRequest(request.getId());
 
-        RpcResponse response = sendRpcRequest("getUser", requestData);
+        RpcResponse response = sendRpcRequest("getUser", userGetRequest);
         if (!"ok".equals(response.status())) {
             return new TGetUserResponse(2, response.error(), null);
         }
 
-        @SuppressWarnings("unchecked")
-        Map<String, Object> user = (Map<String, Object>) response.payload();
+        Map<String, Object> userMap = (Map<String, Object>) response.payload();
 
         TUser tUser = new TUser();
-        tUser.setId((String) user.get("id"));
-        tUser.setName((String) user.get("name"));
-        tUser.setPhone((String) user.get("phone"));
-        tUser.setAddress((String) user.get("address"));
-        tUser.setStatus(TUserStatus.valueOf((String) user.get("status")));
-        tUser.setRole(TUserRole.valueOf((String) user.get("role")));
-        tUser.setCreatedAt(0L); // Set default timestamp
-        tUser.setCreatedBy((String) user.get("createdBy"));
-        tUser.setUpdatedAt(0L); // Set default timestamp
-        tUser.setUpdatedBy((String) user.get("updatedBy"));
-        tUser.setVersion((Integer) user.get("version"));
+        tUser.setId((String) userMap.get("id"));
+        tUser.setName((String) userMap.get("name"));
+        tUser.setPhone((String) userMap.get("phone"));
+        tUser.setAddress((String) userMap.get("address"));
+        tUser.setStatus(TUserStatus.valueOf((String) userMap.get("status")));
+        tUser.setRole(TUserRole.valueOf((String) userMap.get("role")));
+        tUser.setCreatedAt(userMap.get("createdAt") != null ? ((Number) userMap.get("createdAt")).longValue() : 0L);
+        tUser.setCreatedBy((String) userMap.get("createdBy"));
+        tUser.setUpdatedAt(userMap.get("updatedAt") != null ? ((Number) userMap.get("updatedAt")).longValue() : 0L);
+        tUser.setUpdatedBy((String) userMap.get("updatedBy"));
+        tUser.setVersion(userMap.get("version") != null ? ((Number) userMap.get("version")).intValue() : 1);
 
         return new TGetUserResponse(0, "User retrieved successfully", tUser);
     }
 
     @Override
     public TUpdateUserResponse updateUser(TUpdateUserRequest request) throws TException {
-        Map<String, Object> requestData = Map.of(
-                "id", request.getId(),
-                "name", request.getName(),
-                "phone", request.getPhone(),
-                "address", request.getAddress() != null ? request.getAddress() : "",
-                "status", request.getStatus() != null ? request.getStatus().name() : "ACTIVE",
-                "role", request.getRole() != null ? request.getRole().name() : "USER",
-                "version", request.getVersion());
+        UserUpdateRequest userUpdateRequest = new UserUpdateRequest(
+                request.getId(),
+                request.getName(),
+                request.getPhone(),
+                request.getAddress() != null ? request.getAddress() : "",
+                request.getStatus() != null ? UserStatus.valueOf(request.getStatus().name()) : UserStatus.ACTIVE,
+                request.getRole() != null ? UserRole.valueOf(request.getRole().name()) : UserRole.USER,
+                request.getVersion());
 
-        RpcResponse response = sendRpcRequest("updateUser", requestData);
+        RpcResponse response = sendRpcRequest("updateUser", userUpdateRequest);
         if (!"ok".equals(response.status())) {
             return new TUpdateUserResponse(1, response.error(), null);
         }
 
-        @SuppressWarnings("unchecked")
-        Map<String, Object> user = (Map<String, Object>) response.payload();
+        Map<String, Object> userMap = (Map<String, Object>) response.payload();
 
         TUser tUser = new TUser();
-        tUser.setId((String) user.get("id"));
-        tUser.setName((String) user.get("name"));
-        tUser.setPhone((String) user.get("phone"));
-        tUser.setAddress((String) user.get("address"));
-        tUser.setStatus(TUserStatus.valueOf((String) user.get("status")));
-        tUser.setRole(TUserRole.valueOf((String) user.get("role")));
-        tUser.setCreatedAt(0L); // Set default timestamp
-        tUser.setCreatedBy((String) user.get("createdBy"));
-        tUser.setUpdatedAt(0L); // Set default timestamp
-        tUser.setUpdatedBy((String) user.get("updatedBy"));
-        tUser.setVersion((Integer) user.get("version"));
+        tUser.setId((String) userMap.get("id"));
+        tUser.setName((String) userMap.get("name"));
+        tUser.setPhone((String) userMap.get("phone"));
+        tUser.setAddress((String) userMap.get("address"));
+        tUser.setStatus(TUserStatus.valueOf((String) userMap.get("status")));
+        tUser.setRole(TUserRole.valueOf((String) userMap.get("role")));
+        tUser.setCreatedAt(userMap.get("createdAt") != null ? ((Number) userMap.get("createdAt")).longValue() : 0L);
+        tUser.setCreatedBy((String) userMap.get("createdBy"));
+        tUser.setUpdatedAt(userMap.get("updatedAt") != null ? ((Number) userMap.get("updatedAt")).longValue() : 0L);
+        tUser.setUpdatedBy((String) userMap.get("updatedBy"));
+        tUser.setVersion(userMap.get("version") != null ? ((Number) userMap.get("version")).intValue() : 1);
 
         return new TUpdateUserResponse(0, "User updated successfully", tUser);
     }
 
     @Override
     public TDeleteUserResponse deleteUser(TDeleteUserRequest request) throws TException {
-        Map<String, Object> requestData = Map.of("id", request.getId());
+        UserDeleteRequest userDeleteRequest = new UserDeleteRequest(request.getId());
 
-        RpcResponse response = sendRpcRequest("deleteUser", requestData);
+        RpcResponse response = sendRpcRequest("deleteUser", userDeleteRequest);
         if (!"ok".equals(response.status())) {
             return new TDeleteUserResponse(1, response.error());
         }
@@ -181,42 +183,35 @@ public class UserServiceRpcBridge implements UserService.Iface {
 
     @Override
     public TListUsersResponse listUsers(TListUsersRequest request) throws TException {
-        Map<String, Object> requestData = new java.util.HashMap<>();
-        requestData.put("page", request.getPage());
-        requestData.put("size", request.getSize());
-        requestData.put("search", request.getSearch() != null ? request.getSearch() : "");
-        if (request.getStatus() != null) {
-            requestData.put("status", request.getStatus().name());
-        }
-        if (request.getRole() != null) {
-            requestData.put("role", request.getRole().name());
-        }
-        requestData.put("includeDeleted", request.isIncludeDeleted());
+        UserListRequest userListRequest = new UserListRequest(
+                request.getPage(),
+                request.getSize(),
+                request.getSearch(),
+                request.getStatus() != null ? UserStatus.valueOf(request.getStatus().name()) : null,
+                request.getRole() != null ? UserRole.valueOf(request.getRole().name()) : null,
+                request.isIncludeDeleted());
 
-        RpcResponse response = sendRpcRequest("listUsers", requestData);
+        RpcResponse response = sendRpcRequest("listUsers", userListRequest);
         if (!"ok".equals(response.status())) {
             throw new TException(response.error());
         }
 
-        @SuppressWarnings("unchecked")
-        Map<String, Object> result = (Map<String, Object>) response.payload();
+        Map<String, Object> resultMap = (Map<String, Object>) response.payload();
+        List<Map<String, Object>> items = (List<Map<String, Object>>) resultMap.get("items");
 
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
-
-        List<TUser> tUsers = items.stream().map(user -> {
+        List<TUser> tUsers = items.stream().map(userMap -> {
             TUser tUser = new TUser();
-            tUser.setId((String) user.get("id"));
-            tUser.setName((String) user.get("name"));
-            tUser.setPhone((String) user.get("phone"));
-            tUser.setAddress((String) user.get("address"));
-            tUser.setStatus(TUserStatus.valueOf((String) user.get("status")));
-            tUser.setRole(TUserRole.valueOf((String) user.get("role")));
-            tUser.setCreatedAt(0L); // Set default timestamp
-            tUser.setCreatedBy((String) user.get("createdBy"));
-            tUser.setUpdatedAt(0L); // Set default timestamp
-            tUser.setUpdatedBy((String) user.get("updatedBy"));
-            tUser.setVersion((Integer) user.get("version"));
+            tUser.setId((String) userMap.get("id"));
+            tUser.setName((String) userMap.get("name"));
+            tUser.setPhone((String) userMap.get("phone"));
+            tUser.setAddress((String) userMap.get("address"));
+            tUser.setStatus(TUserStatus.valueOf((String) userMap.get("status")));
+            tUser.setRole(TUserRole.valueOf((String) userMap.get("role")));
+            tUser.setCreatedAt(userMap.get("createdAt") != null ? ((Number) userMap.get("createdAt")).longValue() : 0L);
+            tUser.setCreatedBy((String) userMap.get("createdBy"));
+            tUser.setUpdatedAt(userMap.get("updatedAt") != null ? ((Number) userMap.get("updatedAt")).longValue() : 0L);
+            tUser.setUpdatedBy((String) userMap.get("updatedBy"));
+            tUser.setVersion(userMap.get("version") != null ? ((Number) userMap.get("version")).intValue() : 1);
             return tUser;
         }).toList();
 
@@ -224,9 +219,59 @@ public class UserServiceRpcBridge implements UserService.Iface {
                 0,
                 "Users retrieved successfully",
                 tUsers,
-                (Integer) result.get("page"),
-                (Integer) result.get("size"),
-                ((Number) result.get("total")).longValue(),
-                (Integer) result.get("totalPages"));
+                ((Number) resultMap.get("page")).intValue(),
+                ((Number) resultMap.get("size")).intValue(),
+                ((Number) resultMap.get("total")).longValue(),
+                ((Number) resultMap.get("totalPages")).intValue());
+    }
+
+    private Object convertAvroToJsonCompatible(Object payload) {
+        if (payload == null) {
+            return null;
+        }
+
+        if (payload instanceof UserCreateRequest) {
+            UserCreateRequest request = (UserCreateRequest) payload;
+            Map<String, Object> map = new HashMap<>();
+            map.put("name", request.getName());
+            map.put("phone", request.getPhone());
+            map.put("address", request.getAddress());
+            map.put("status", request.getStatus() != null ? request.getStatus().name() : null);
+            map.put("role", request.getRole() != null ? request.getRole().name() : null);
+            return map;
+        } else if (payload instanceof UserGetRequest) {
+            UserGetRequest request = (UserGetRequest) payload;
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", request.getId());
+            return map;
+        } else if (payload instanceof UserUpdateRequest) {
+            UserUpdateRequest request = (UserUpdateRequest) payload;
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", request.getId());
+            map.put("name", request.getName());
+            map.put("phone", request.getPhone());
+            map.put("address", request.getAddress());
+            map.put("status", request.getStatus() != null ? request.getStatus().name() : null);
+            map.put("role", request.getRole() != null ? request.getRole().name() : null);
+            map.put("version", request.getVersion());
+            return map;
+        } else if (payload instanceof UserDeleteRequest) {
+            UserDeleteRequest request = (UserDeleteRequest) payload;
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", request.getId());
+            return map;
+        } else if (payload instanceof UserListRequest) {
+            UserListRequest request = (UserListRequest) payload;
+            Map<String, Object> map = new HashMap<>();
+            map.put("page", request.getPage());
+            map.put("size", request.getSize());
+            map.put("search", request.getSearch());
+            map.put("status", request.getStatus() != null ? request.getStatus().name() : null);
+            map.put("role", request.getRole() != null ? request.getRole().name() : null);
+            map.put("includeDeleted", request.getIncludeDeleted());
+            return map;
+        }
+
+        return payload;
     }
 }

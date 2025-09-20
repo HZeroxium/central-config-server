@@ -1,0 +1,7 @@
+{
+  "type": "record",
+  "name": "UserDeleteRequest",
+  "namespace": "com.example.kafka.avro",
+  "doc": "Request to delete a user",
+  "fields": [{ "name": "id", "type": "string", "doc": "User ID" }]
+}

@@ -12,6 +12,13 @@ java {
     toolchain { languageVersion = JavaLanguageVersion.of(libs.versions.java.get().toInteger()) }
 }
 
+repositories {
+    mavenCentral()
+    maven {
+        url "https://packages.confluent.io/maven/"
+    }
+}
+
 configurations.all {
     exclude group: 'ch.qos.logback', module: 'logback-classic'
     exclude group: 'ch.qos.logback', module: 'logback-core'
@@ -40,6 +47,11 @@ dependencies {
     // Jackson
     implementation libs.jackson.databind
     implementation libs.jackson.datatype.jsr310
+
+    // Schema Registry & Avro
+    implementation libs.confluent.schema.registry.client
+    implementation libs.confluent.avro.serializer
+    implementation libs.avro
 
     // Micrometer
     runtimeOnly libs.micrometer.registry.prometheus

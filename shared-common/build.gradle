@@ -5,6 +5,8 @@ plugins {
     alias(libs.plugins.idea)
     alias(libs.plugins.spring.boot) apply false
     alias(libs.plugins.spring.dependency.management)
+    alias(libs.plugins.avro)
+    alias(libs.plugins.kafka.schema.registry)
 }
 
 java {
@@ -18,6 +20,9 @@ version = '1.0.0'
 
 repositories {
     mavenCentral()
+    maven {
+        url "https://packages.confluent.io/maven/"
+    }
 }
 
 dependencyManagement {
@@ -45,6 +50,11 @@ dependencies {
     
     // Validation
     implementation libs.jakarta.validation.api
+
+    // Schema Registry & Avro
+    implementation libs.confluent.schema.registry.client
+    implementation libs.confluent.avro.serializer
+    implementation libs.avro
 
     // OpenAPI/Swagger annotations for DTOs
     implementation libs.swagger.annotations
@@ -76,13 +86,49 @@ def thriftSrcDir = file('src/main/thrift')
 // Generated sources directory
 def generatedSourcesDir = file('build/generated-sources/thrift')
 
+// Avro configuration
+avro {
+    createSetters = true
+    createOptionalGetters = false
+    gettersReturnOptional = false
+    optionalGettersForNullableFieldsOnly = false
+    fieldVisibility = "PRIVATE"
+    outputCharacterEncoding = "UTF-8"
+    stringType = "String"
+}
+
+// Kafka Schema Registry configuration
+schemaRegistry {
+    url = 'http://localhost:8087'
+    // Temporarily comment out schema registration to focus on system startup
+    // register {
+    //     // Register enums first (no dependencies)
+    //     subject('user-status', 'shared-common/src/main/avro/UserStatus.avsc', 'AVRO')
+    //     subject('user-role', 'shared-common/src/main/avro/UserRole.avsc', 'AVRO')
+    //     
+    //     // Register request schemas (no dependencies)
+    //     subject('user-create-request', 'shared-common/src/main/avro/UserCreateRequest.avsc', 'AVRO')
+    //     subject('user-get-request', 'shared-common/src/main/avro/UserGetRequest.avsc', 'AVRO')
+    //     subject('user-update-request', 'shared-common/src/main/avro/UserUpdateRequest.avsc', 'AVRO')
+    //     subject('user-delete-request', 'shared-common/src/main/avro/UserDeleteRequest.avsc', 'AVRO')
+    //     subject('user-list-request', 'shared-common/src/main/avro/UserListRequest.avsc', 'AVRO')
+    //     
+    //     // Register UserResponse (depends on UserStatus and UserRole)
+    //     subject('user-response', 'shared-common/src/main/avro/UserResponse.avsc', 'AVRO')
+    //     
+    //     // Register UserListResponse last (depends on UserResponse)
+    //     subject('user-list-response', 'shared-common/src/main/avro/UserListResponse.avsc', 'AVRO')
+    // }
+}
+
 // Source sets configuration
 sourceSets {
     main {
         java {
             srcDirs = [
                 'src/main/java',
-                generatedSourcesDir
+                generatedSourcesDir,
+                'build/generated-main-avro-java'
             ]
         }
         resources.srcDirs = ['src/main/resources']
@@ -130,9 +176,10 @@ tasks.register('generateThrift', Exec) {
     args thriftFiles.collect { it.absolutePath }
 }
 
-// Compile Java depends on Thrift generation
+// Compile Java depends on Thrift generation and Avro generation
 compileJava {
     dependsOn tasks.named('generateThrift')
+    dependsOn tasks.named('generateAvroJava')
     options.encoding = 'UTF-8'
 }
 

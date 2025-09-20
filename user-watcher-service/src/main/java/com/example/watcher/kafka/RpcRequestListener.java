@@ -3,6 +3,7 @@ package com.example.watcher.kafka;
 import com.example.kafka.constants.KafkaConstants;
 import com.example.kafka.dto.RpcRequest;
 import com.example.kafka.dto.RpcResponse;
+import com.example.kafka.avro.*;
 import com.example.common.domain.User;
 import com.example.common.domain.UserQueryCriteria;
 import com.example.user.service.port.UserServicePort;
@@ -20,6 +21,7 @@ import org.springframework.stereotype.Component;
 import java.nio.charset.StandardCharsets;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -103,95 +105,231 @@ public class RpcRequestListener {
         yield new RpcResponse(req.correlationId(), "ok", null, result);
       }
       case "createUser" -> {
-        @SuppressWarnings("unchecked")
-        Map<String, Object> userData = (Map<String, Object>) payload;
-        User domain = createUserFromMap(userData);
+        UserCreateRequest userCreateRequest = convertToUserCreateRequest(payload);
+        User domain = createUserFromRequest(userCreateRequest);
         User created = userService.create(domain);
-        yield new RpcResponse(req.correlationId(), "ok", null, created);
+        UserResponse userResponse = createUserResponse(created);
+        yield RpcResponse.success(req.correlationId(), convertUserResponseToJsonCompatible(userResponse));
       }
       case "getUser" -> {
-        @SuppressWarnings("unchecked")
-        Map<String, Object> requestData = (Map<String, Object>) payload;
-        String id = (String) requestData.get("id");
-        Optional<User> user = userService.getById(id);
+        UserGetRequest userGetRequest = convertToUserGetRequest(payload);
+        Optional<User> user = userService.getById(userGetRequest.getId());
         if (user.isPresent()) {
-          yield new RpcResponse(req.correlationId(), "ok", null, user.get());
+          UserResponse userResponse = createUserResponse(user.get());
+          yield RpcResponse.success(req.correlationId(), convertUserResponseToJsonCompatible(userResponse));
         } else {
-          yield new RpcResponse(req.correlationId(), "not_found", "User not found", null);
+          yield RpcResponse.notFound(req.correlationId(), "User not found");
         }
       }
       case "updateUser" -> {
-        @SuppressWarnings("unchecked")
-        Map<String, Object> requestData = (Map<String, Object>) payload;
-        String id = (String) requestData.get("id");
-        Optional<User> existing = userService.getById(id);
+        UserUpdateRequest userUpdateRequest = convertToUserUpdateRequest(payload);
+        Optional<User> existing = userService.getById(userUpdateRequest.getId());
         if (existing.isEmpty()) {
-          yield new RpcResponse(req.correlationId(), "not_found", "User not found", null);
+          yield RpcResponse.notFound(req.correlationId(), "User not found");
         }
-        User domain = createUserFromMap(requestData);
+        User domain = createUserFromUpdateRequest(userUpdateRequest);
         User updated = userService.update(domain);
-        yield new RpcResponse(req.correlationId(), "ok", null, updated);
+        UserResponse userResponse = createUserResponse(updated);
+        yield RpcResponse.success(req.correlationId(), convertUserResponseToJsonCompatible(userResponse));
       }
       case "deleteUser" -> {
-        @SuppressWarnings("unchecked")
-        Map<String, Object> requestData = (Map<String, Object>) payload;
-        String id = (String) requestData.get("id");
-        Optional<User> existing = userService.getById(id);
+        UserDeleteRequest userDeleteRequest = convertToUserDeleteRequest(payload);
+        Optional<User> existing = userService.getById(userDeleteRequest.getId());
         if (existing.isEmpty()) {
-          yield new RpcResponse(req.correlationId(), "not_found", "User not found", null);
+          yield RpcResponse.notFound(req.correlationId(), "User not found");
         }
-        userService.delete(id);
-        yield new RpcResponse(req.correlationId(), "ok", null, null);
+        userService.delete(userDeleteRequest.getId());
+        yield RpcResponse.success(req.correlationId(), null);
       }
       case "listUsers" -> {
-        @SuppressWarnings("unchecked")
-        Map<String, Object> requestData = (Map<String, Object>) payload;
-        UserQueryCriteria criteria = createCriteriaFromMap(requestData);
+        UserListRequest userListRequest = convertToUserListRequest(payload);
+        UserQueryCriteria criteria = createCriteriaFromRequest(userListRequest);
         List<User> users = userService.listByCriteria(criteria);
         long total = userService.countByCriteria(criteria);
-        Map<String, Object> result = Map.of(
-            "items", users,
-            "page", criteria.getPage(),
-            "size", criteria.getSize(),
-            "total", total,
-            "totalPages", (int) Math.ceil((double) total / criteria.getSize()));
-        yield new RpcResponse(req.correlationId(), "ok", null, result);
+        List<UserResponse> userResponses = users.stream()
+            .map(this::createUserResponse)
+            .toList();
+        UserListResponse result = new UserListResponse(
+            userResponses,
+            criteria.getPage(),
+            criteria.getSize(),
+            total,
+            (int) Math.ceil((double) total / criteria.getSize()));
+        yield RpcResponse.success(req.correlationId(), convertUserListResponseToJsonCompatible(result));
       }
       default -> new RpcResponse(req.correlationId(), "error", "Unknown action: " + action, null);
     };
   }
 
-  private User createUserFromMap(Map<String, Object> data) {
+  private User createUserFromRequest(UserCreateRequest request) {
     return User.builder()
-        .id((String) data.get("id"))
-        .name((String) data.get("name"))
-        .phone((String) data.get("phone"))
-        .address((String) data.get("address"))
-        .status(
-            data.get("status") != null ? User.UserStatus.valueOf((String) data.get("status")) : User.UserStatus.ACTIVE)
-        .role(data.get("role") != null ? User.UserRole.valueOf((String) data.get("role")) : User.UserRole.USER)
-        .version((Integer) data.get("version"))
-        .createdAt((LocalDateTime) data.get("createdAt"))
-        .createdBy((String) data.get("createdBy"))
-        .updatedAt((LocalDateTime) data.get("updatedAt"))
-        .updatedBy((String) data.get("updatedBy"))
-        .deleted((Boolean) data.get("deleted"))
-        .deletedAt((LocalDateTime) data.get("deletedAt"))
-        .deletedBy((String) data.get("deletedBy"))
+        .name(request.getName())
+        .phone(request.getPhone())
+        .address(request.getAddress())
+        .status(convertUserStatus(request.getStatus()))
+        .role(convertUserRole(request.getRole()))
         .build();
   }
 
-  private UserQueryCriteria createCriteriaFromMap(Map<String, Object> data) {
-    return UserQueryCriteria.builder()
-        .page((Integer) data.getOrDefault("page", 0))
-        .size((Integer) data.getOrDefault("size", 20))
-        .search((String) data.get("search"))
-        .status(data.get("status") != null ? User.UserStatus.valueOf((String) data.get("status")) : null)
-        .role(data.get("role") != null ? User.UserRole.valueOf((String) data.get("role")) : null)
-        .includeDeleted((Boolean) data.getOrDefault("includeDeleted", false))
-        .createdAfter((LocalDateTime) data.get("createdAfter"))
-        .createdBefore((LocalDateTime) data.get("createdBefore"))
-        .sortCriteria((List<com.example.common.domain.SortCriterion>) data.get("sortCriteria"))
+  private User createUserFromUpdateRequest(UserUpdateRequest request) {
+    return User.builder()
+        .id(request.getId())
+        .name(request.getName())
+        .phone(request.getPhone())
+        .address(request.getAddress())
+        .status(convertUserStatus(request.getStatus()))
+        .role(convertUserRole(request.getRole()))
+        .version(request.getVersion())
         .build();
   }
+
+  private UserResponse createUserResponse(User user) {
+    return new UserResponse(
+        user.getId(),
+        user.getName(),
+        user.getPhone(),
+        user.getAddress(),
+        convertToAvroUserStatus(user.getStatus()),
+        convertToAvroUserRole(user.getRole()),
+        user.getCreatedAt() != null
+            ? user.getCreatedAt().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+            : null,
+        user.getCreatedBy(),
+        user.getUpdatedAt() != null
+            ? user.getUpdatedAt().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+            : null,
+        user.getUpdatedBy(),
+        user.getVersion(),
+        user.getDeleted(),
+        user.getDeletedAt() != null
+            ? user.getDeletedAt().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+            : null,
+        user.getDeletedBy());
+  }
+
+  private UserQueryCriteria createCriteriaFromRequest(UserListRequest request) {
+    return UserQueryCriteria.builder()
+        .page(request.getPage() != null ? request.getPage() : 0)
+        .size(request.getSize() != null ? request.getSize() : 20)
+        .search(request.getSearch())
+        .status(request.getStatus() != null ? convertUserStatus(request.getStatus()) : null)
+        .role(request.getRole() != null ? convertUserRole(request.getRole()) : null)
+        .includeDeleted(request.getIncludeDeleted() != null ? request.getIncludeDeleted() : false)
+        .build();
+  }
+
+  // Helper methods for enum conversion
+  private User.UserStatus convertUserStatus(UserStatus status) {
+    return User.UserStatus.valueOf(status.name());
+  }
+
+  private User.UserRole convertUserRole(UserRole role) {
+    return User.UserRole.valueOf(role.name());
+  }
+
+  private UserStatus convertToAvroUserStatus(User.UserStatus status) {
+    return UserStatus.valueOf(status.name());
+  }
+
+  private UserRole convertToAvroUserRole(User.UserRole role) {
+    return UserRole.valueOf(role.name());
+  }
+
+  // Conversion methods from JSON-compatible objects to Avro objects
+  private UserCreateRequest convertToUserCreateRequest(Object payload) {
+    if (payload instanceof Map) {
+      @SuppressWarnings("unchecked")
+      Map<String, Object> map = (Map<String, Object>) payload;
+      return new UserCreateRequest(
+          (String) map.get("name"),
+          (String) map.get("phone"),
+          (String) map.get("address"),
+          map.get("status") != null ? UserStatus.valueOf((String) map.get("status")) : null,
+          map.get("role") != null ? UserRole.valueOf((String) map.get("role")) : null);
+    }
+    return (UserCreateRequest) payload;
+  }
+
+  private UserGetRequest convertToUserGetRequest(Object payload) {
+    if (payload instanceof Map) {
+      @SuppressWarnings("unchecked")
+      Map<String, Object> map = (Map<String, Object>) payload;
+      return new UserGetRequest((String) map.get("id"));
+    }
+    return (UserGetRequest) payload;
+  }
+
+  private UserUpdateRequest convertToUserUpdateRequest(Object payload) {
+    if (payload instanceof Map) {
+      @SuppressWarnings("unchecked")
+      Map<String, Object> map = (Map<String, Object>) payload;
+      return new UserUpdateRequest(
+          (String) map.get("id"),
+          (String) map.get("name"),
+          (String) map.get("phone"),
+          (String) map.get("address"),
+          map.get("status") != null ? UserStatus.valueOf((String) map.get("status")) : null,
+          map.get("role") != null ? UserRole.valueOf((String) map.get("role")) : null,
+          (Integer) map.get("version"));
+    }
+    return (UserUpdateRequest) payload;
+  }
+
+  private UserDeleteRequest convertToUserDeleteRequest(Object payload) {
+    if (payload instanceof Map) {
+      @SuppressWarnings("unchecked")
+      Map<String, Object> map = (Map<String, Object>) payload;
+      return new UserDeleteRequest((String) map.get("id"));
+    }
+    return (UserDeleteRequest) payload;
+  }
+
+  private UserListRequest convertToUserListRequest(Object payload) {
+    if (payload instanceof Map) {
+      @SuppressWarnings("unchecked")
+      Map<String, Object> map = (Map<String, Object>) payload;
+      return new UserListRequest(
+          (Integer) map.get("page"),
+          (Integer) map.get("size"),
+          (String) map.get("search"),
+          map.get("status") != null ? UserStatus.valueOf((String) map.get("status")) : null,
+          map.get("role") != null ? UserRole.valueOf((String) map.get("role")) : null,
+          (Boolean) map.get("includeDeleted"));
+    }
+    return (UserListRequest) payload;
+  }
+
+  // Conversion methods from Avro objects to JSON-compatible objects
+  private Map<String, Object> convertUserResponseToJsonCompatible(UserResponse userResponse) {
+    Map<String, Object> map = new HashMap<>();
+    map.put("id", userResponse.getId());
+    map.put("name", userResponse.getName());
+    map.put("phone", userResponse.getPhone());
+    map.put("address", userResponse.getAddress());
+    map.put("status", userResponse.getStatus() != null ? userResponse.getStatus().name() : null);
+    map.put("role", userResponse.getRole() != null ? userResponse.getRole().name() : null);
+    map.put("createdAt", userResponse.getCreatedAt());
+    map.put("createdBy", userResponse.getCreatedBy());
+    map.put("updatedAt", userResponse.getUpdatedAt());
+    map.put("updatedBy", userResponse.getUpdatedBy());
+    map.put("version", userResponse.getVersion());
+    map.put("deleted", userResponse.getDeleted());
+    map.put("deletedAt", userResponse.getDeletedAt());
+    map.put("deletedBy", userResponse.getDeletedBy());
+    return map;
+  }
+
+  private Map<String, Object> convertUserListResponseToJsonCompatible(UserListResponse listResponse) {
+    Map<String, Object> map = new HashMap<>();
+    List<Map<String, Object>> items = listResponse.getItems().stream()
+        .map(this::convertUserResponseToJsonCompatible)
+        .toList();
+    map.put("items", items);
+    map.put("page", listResponse.getPage());
+    map.put("size", listResponse.getSize());
+    map.put("total", listResponse.getTotal());
+    map.put("totalPages", listResponse.getTotalPages());
+    return map;
+  }
+
 }

@@ -1,0 +1,20 @@
+{
+  "type": "record",
+  "name": "UserListResponse",
+  "namespace": "com.example.kafka.avro",
+  "doc": "Response containing a list of users with pagination",
+  "fields": [
+    {
+      "name": "items",
+      "type": {
+        "type": "array",
+        "items": "com.example.kafka.avro.UserResponse"
+      },
+      "doc": "List of users"
+    },
+    { "name": "page", "type": "int", "doc": "Current page number" },
+    { "name": "size", "type": "int", "doc": "Page size" },
+    { "name": "total", "type": "long", "doc": "Total number of items" },
+    { "name": "totalPages", "type": "int", "doc": "Total number of pages" }
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "type": "enum",
+  "name": "UserStatus",
+  "namespace": "com.example.kafka.avro",
+  "symbols": ["ACTIVE", "INACTIVE", "SUSPENDED"]
+}

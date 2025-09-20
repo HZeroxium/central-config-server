@@ -144,6 +144,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      schema-registry:
+        condition: service_healthy
     ports:
       - "8083:8080"
     networks:
@@ -311,6 +313,28 @@ services:
     depends_on:
       - loki
 
+  # Confluent Schema Registry
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.6.0
+    container_name: schema-registry
+    ports:
+      - "8087:8081"
+    environment:
+      - SCHEMA_REGISTRY_HOST_NAME=schema-registry
+      - SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS=kafka:9092
+      - SCHEMA_REGISTRY_LISTENERS=http://0.0.0.0:8081
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - thrift-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/subjects"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
   kafbat-ui:
     image: ghcr.io/kafbat/kafka-ui:main
     container_name: kafbat-ui
@@ -320,9 +344,12 @@ services:
       - DYNAMIC_CONFIG_ENABLED=true
       - KAFKA_CLUSTERS_0_NAME=local
       - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9092
+      - KAFKA_CLUSTERS_0_SCHEMAREGISTRY=http://schema-registry:8081
 
     depends_on:
       kafka:
+        condition: service_healthy
+      schema-registry:
         condition: service_healthy
     networks:
       - thrift-network
@@ -374,6 +401,8 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      schema-registry:
+        condition: service_healthy
     networks:
       - thrift-network
     logging:
@@ -414,6 +443,8 @@ services:
         condition: service_healthy
       user-watcher-service:
         condition: service_started
+      schema-registry:
+        condition: service_healthy
     networks:
       - thrift-network
     logging:
