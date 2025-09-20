@@ -12,7 +12,7 @@ import lombok.Data;
 @Data
 @Schema(name = "UpdateUserRequest", description = "Request payload to update a user")
 public class UpdateUserRequest {
-    
+
     @Schema(description = "Full name", example = "Alice Nguyen Updated", required = true)
     @NotBlank(message = "Name is required")
     @Size(max = 100, message = "Name must not exceed 100 characters")

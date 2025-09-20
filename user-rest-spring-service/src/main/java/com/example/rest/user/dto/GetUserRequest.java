@@ -10,7 +10,7 @@ import lombok.Data;
 @Data
 @Schema(name = "GetUserRequest", description = "Request payload to get a user by ID")
 public class GetUserRequest {
-    
+
     @Schema(description = "User ID", example = "user123", required = true)
     @NotBlank(message = "User ID is required")
     private String id;

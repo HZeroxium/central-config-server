@@ -1,16 +1,44 @@
-# Test configuration for user-rest-spring-service
+# Test configuration for E2E tests
+server:
+  port: 0 # Random port for testing
+
 spring:
-  profiles:
-    active: test
   application:
     name: user-rest-spring-service-test
+  profiles:
+    active: test
+  cache:
+    type: none # Disable caching for tests
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.cache.CacheAutoConfiguration
+
+  # Kafka configuration for tests
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      acks: all
+      retries: 3
+      properties:
+        enable.idempotence: true
+    consumer:
+      group-id: user-rest-spring-service-test
+      auto-offset-reset: earliest
+      enable-auto-commit: false
 
 # Thrift client configuration for tests
 thrift:
-  host: localhost
-  port: 9090
-  timeout: 1000
-  retry-attempts: 1
+  host: ${THRIFT_HOST:localhost}
+  port: ${THRIFT_PORT:9090}
+  timeout: 5000
+  retry-attempts: 3
+
+thrift.client:
+  host: ${THRIFT_HOST:localhost}
+  port: ${THRIFT_PORT:9090}
+  timeout: 5000
+  retry-attempts: 3
+  connection-pool-size: 5
 
 # Application configuration
 app:
@@ -23,34 +51,25 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,prometheus,metrics
+        include: health,info,metrics
   endpoint:
     health:
-      show-details: when_authorized
+      show-details: always
       show-components: always
-    prometheus:
-      enabled: true
-    metrics:
-      enabled: true
   metrics:
+    enable:
+      cache: false
     tags:
       application: user-rest-spring-service-test
       service: user-rest-spring-service-test
       environment: test
-  prometheus:
-    metrics:
-      export:
-        enabled: true
-        step: 1s
 
 # Logging configuration for tests
 logging:
   level:
-    com.example.rest: DEBUG
-    com.example.user: DEBUG
-    org.springframework.web: DEBUG
-    org.apache.thrift: DEBUG
-    io.micrometer: DEBUG
-    org.springframework.test: DEBUG
-    org.testcontainers: DEBUG
-  config: classpath:log4j2-test.xml
+    com.example.rest: INFO
+    com.example.user: INFO
+    org.springframework.web: WARN
+    org.apache.thrift: WARN
+    io.micrometer: WARN
+    org.testcontainers: INFO

@@ -81,6 +81,34 @@ tasks.withType(Test).configureEach {
     useJUnitPlatform()
 }
 
+// E2E test task
+tasks.register('e2eTest', Test) {
+    group = 'verification'
+    description = 'Run end-to-end tests against running system'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    include '**/e2e/UserE2ESimpleTest.class'
+    
+    // Ensure system is running
+    doFirst {
+        println "Running E2E tests against running system..."
+        println "Make sure to run 'docker-compose up -d' first!"
+    }
+}
+
+// Integration test task with Testcontainers
+tasks.register('integrationTest', Test) {
+    group = 'verification'
+    description = 'Run integration tests with Testcontainers'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    include '**/e2e/UserE2ETest.class'
+    
+    doFirst {
+        println "Running integration tests with Testcontainers..."
+    }
+}
+
 // Source sets configuration - no longer need Thrift generation here
 sourceSets {
     main {

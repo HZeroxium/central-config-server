@@ -4,13 +4,15 @@ import com.example.common.domain.SortCriterion;
 import com.example.common.domain.User;
 import com.example.common.domain.UserQueryCriteria;
 import com.example.rest.user.dto.*;
+import com.example.rest.user.constants.ApiConstants;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 /** Utility mapping functions between REST DTOs and domain model. */
 public final class UserMapper {
-  private UserMapper() {}
+  private UserMapper() {
+  }
 
   /**
    * Map {@link CreateUserRequest} to domain {@link User}.
@@ -27,10 +29,10 @@ public final class UserMapper {
         .status(req.getStatus() != null ? req.getStatus() : User.UserStatus.ACTIVE)
         .role(req.getRole() != null ? req.getRole() : User.UserRole.USER)
         .createdAt(null) // Will be set by service
-        .createdBy("admin")
+        .createdBy(ApiConstants.DEFAULT_CREATED_BY)
         .updatedAt(null) // Will be set by service
-        .updatedBy("admin")
-        .version(1)
+        .updatedBy(ApiConstants.DEFAULT_UPDATED_BY)
+        .version(ApiConstants.DEFAULT_VERSION)
         .deleted(false)
         .deletedAt(null)
         .deletedBy(null)
@@ -46,12 +48,12 @@ public final class UserMapper {
   public static User toDomainFromUpdateRequest(UpdateUserRequest req) {
     return toDomainFromUpdateRequest(req, null);
   }
-  
+
   /**
    * Map {@link UpdateUserRequest} to domain {@link User}.
    *
    * @param req update request payload
-   * @param id user id
+   * @param id  user id
    * @return domain user
    */
   public static User toDomainFromUpdateRequest(UpdateUserRequest req, String id) {
@@ -65,8 +67,8 @@ public final class UserMapper {
         .createdAt(null) // Will be preserved from existing user
         .createdBy(null) // Will be preserved from existing user
         .updatedAt(null) // Will be set by service
-        .updatedBy("admin")
-        .version(req.getVersion() != null ? req.getVersion() : 1)
+        .updatedBy(ApiConstants.DEFAULT_UPDATED_BY)
+        .version(req.getVersion() != null ? req.getVersion() : ApiConstants.DEFAULT_VERSION)
         .deleted(false)
         .deletedAt(null)
         .deletedBy(null)
@@ -94,7 +96,7 @@ public final class UserMapper {
    * Set the ID of the user.
    *
    * @param user user
-   * @param id id
+   * @param id   id
    * @return user with id
    */
   public static User withId(User user, String id) {
@@ -124,17 +126,17 @@ public final class UserMapper {
    */
   public static UserQueryCriteria toQueryCriteria(ListUsersRequest req) {
     List<SortCriterion> sortCriteria = null;
-    
+
     if (req.getSortCriteria() != null && !req.getSortCriteria().isEmpty()) {
       sortCriteria = req.getSortCriteria().stream()
-          .filter(sc -> sc.isValid())  // Only include valid sort criteria
+          .filter(sc -> sc.isValid()) // Only include valid sort criteria
           .map(dto -> SortCriterion.builder()
               .fieldName(dto.getFieldName())
               .direction(dto.getDirection())
               .build())
           .collect(Collectors.toList());
     }
-    
+
     return UserQueryCriteria.builder()
         .page(req.getPage())
         .size(req.getSize())
@@ -148,5 +150,3 @@ public final class UserMapper {
         .build();
   }
 }
-
-

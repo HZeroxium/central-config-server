@@ -5,10 +5,10 @@ package com.example.rest.user.dto;
  * Using integers instead of booleans for better extensibility.
  */
 public final class StatusCode {
-    
+
     // Success codes
     public static final int SUCCESS = 0;
-    
+
     // Client error codes (1-99)
     public static final int VALIDATION_ERROR = 1;
     public static final int USER_NOT_FOUND = 2;
@@ -23,7 +23,7 @@ public final class StatusCode {
     public static final int CONFLICT = 11;
     public static final int UNPROCESSABLE_ENTITY = 12;
     public static final int TOO_MANY_REQUESTS = 13;
-    
+
     // Server error codes (100-199)
     public static final int INTERNAL_SERVER_ERROR = 100;
     public static final int DATABASE_ERROR = 101;
@@ -37,17 +37,17 @@ public final class StatusCode {
     public static final int SERVICE_UNAVAILABLE = 109;
     public static final int GATEWAY_TIMEOUT = 110;
     public static final int BAD_GATEWAY = 111;
-    
+
     // Business logic error codes (200-299)
     public static final int BUSINESS_RULE_VIOLATION = 200;
     public static final int INSUFFICIENT_PERMISSIONS = 201;
     public static final int RESOURCE_LOCKED = 202;
     public static final int OPERATION_NOT_SUPPORTED = 203;
-    
+
     private StatusCode() {
         // Utility class
     }
-    
+
     /**
      * Get HTTP status code from status code.
      */
@@ -86,7 +86,7 @@ public final class StatusCode {
             default -> 500; // Default to Internal Server Error
         };
     }
-    
+
     /**
      * Get status message from status code.
      */

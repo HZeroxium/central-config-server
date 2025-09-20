@@ -10,7 +10,7 @@ import lombok.Data;
 @Data
 @Schema(name = "DeleteUserRequest", description = "Request payload to delete a user")
 public class DeleteUserRequest {
-    
+
     @Schema(description = "User ID", example = "user123", required = true)
     @NotBlank(message = "User ID is required")
     private String id;

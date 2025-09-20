@@ -12,16 +12,16 @@ spring:
     cache-names: userById, usersByCriteria, countByCriteria
     type: caffeine
   autoconfigure:
-    exclude: 
+    exclude:
       # Default profile uses caffeine; enable Redis via profile override file
-  
+
   # Kafka configuration for Orchestrator
   kafka:
     bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
-    
+
     producer:
       acks: all
-      batch-size: 65536          # 64KB
+      batch-size: 65536 # 64KB
       linger-ms: 30
       compression-type: snappy
       retries: 2147483647
@@ -32,7 +32,7 @@ spring:
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
       # Transactional producer for EOS
       transaction-id-prefix: orchestrator-tx-
-    
+
     consumer:
       group-id: user-update-orchestrator
       auto-offset-reset: earliest
@@ -54,11 +54,10 @@ spring:
         # Security and reliability
         enable.auto.commit: false
         isolation.level: read_committed
-    
+
     listener:
       ack-mode: record
       missing-topics-fatal: false
-
 
 # Thrift client configuration
 thrift:
@@ -66,6 +65,14 @@ thrift:
   port: ${THRIFT_PORT:9090}
   timeout: 5000
   retry-attempts: 3
+
+# Thrift client properties with validation
+thrift.client:
+  host: ${THRIFT_HOST:localhost}
+  port: ${THRIFT_PORT:9090}
+  timeout: ${THRIFT_TIMEOUT:10000}
+  retry-attempts: ${THRIFT_RETRY_ATTEMPTS:3}
+  connection-pool-size: ${THRIFT_CONNECTION_POOL_SIZE:10}
 
 # Application configuration
 app:

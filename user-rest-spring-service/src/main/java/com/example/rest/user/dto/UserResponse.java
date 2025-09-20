@@ -45,5 +45,3 @@ public class UserResponse {
   @Schema(description = "Version for optimistic locking", example = "1")
   Integer version;
 }
-
-

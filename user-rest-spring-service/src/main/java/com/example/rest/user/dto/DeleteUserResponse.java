@@ -14,17 +14,17 @@ import java.time.LocalDateTime;
 @Builder
 @Schema(name = "DeleteUserResponse", description = "Response after deleting a user")
 public class DeleteUserResponse {
-    
+
     @Schema(description = "Status code", example = "0", required = true)
     private int status; // 0 = success, 1 = not found, 2 = database error, etc.
-    
+
     @Schema(description = "Response message", example = "User deleted successfully")
     private String message;
-    
+
     @Schema(description = "Timestamp when user was deleted")
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
     private LocalDateTime timestamp;
-    
+
     @Schema(description = "Request correlation ID for tracing")
     private String correlationId;
 }
