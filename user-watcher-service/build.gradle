@@ -1,0 +1,70 @@
+plugins {
+    alias(libs.plugins.java)
+    alias(libs.plugins.idea)
+    alias(libs.plugins.spring.boot)
+    alias(libs.plugins.spring.dependency.management)
+}
+
+group = 'com.example'
+version = '1.0.0'
+
+java {
+    toolchain { languageVersion = JavaLanguageVersion.of(libs.versions.java.get().toInteger()) }
+}
+
+configurations.all {
+    exclude group: 'ch.qos.logback', module: 'logback-classic'
+    exclude group: 'ch.qos.logback', module: 'logback-core'
+    exclude group: 'org.apache.logging.log4j', module: 'log4j-to-slf4j'
+}
+
+dependencies {
+    implementation project(':shared-common')
+
+    // Spring Boot starters with proper logging exclusions
+    implementation(libs.spring.boot.starter.web) {
+        exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
+    }
+    implementation libs.spring.boot.starter.actuator
+    implementation libs.spring.boot.starter.validation
+    implementation libs.spring.boot.starter.log4j2
+
+    // Data access
+    implementation libs.spring.boot.starter.data.mongodb
+    implementation libs.spring.boot.starter.data.jpa
+
+    // Kafka
+    implementation libs.spring.kafka
+    implementation libs.kafka.clients
+
+    // Jackson
+    implementation libs.jackson.databind
+    implementation libs.jackson.datatype.jsr310
+
+    // Micrometer
+    runtimeOnly libs.micrometer.registry.prometheus
+
+    // Database
+    runtimeOnly libs.h2
+
+    // Test dependencies
+    testImplementation(libs.spring.boot.starter.test) {
+        exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
+    }
+    testImplementation libs.spring.boot.testcontainers
+    testImplementation libs.testcontainers.junit.jupiter
+    testImplementation libs.testcontainers.mongodb
+    testImplementation libs.testcontainers.postgresql
+}
+
+tasks.withType(Test).configureEach { useJUnitPlatform() }
+
+bootJar { archiveFileName = 'user-watcher-service.jar' }
+
+tasks.register('buildDocker', Exec) {
+    group = 'docker'
+    description = 'Build Docker image for user-watcher-service'
+    dependsOn bootJar
+    commandLine 'docker', 'build', '-t', 'hzeroxium/user-watcher-service:latest', '.'
+}
+

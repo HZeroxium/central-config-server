@@ -1,0 +1,90 @@
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  application:
+    name: user-watcher-service
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:default}
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017/users}
+    jpa:
+      hibernate:
+        ddl-auto: create-drop
+      show-sql: false
+      properties:
+        hibernate:
+          format_sql: true
+          use_sql_comments: true
+      database-platform: org.hibernate.dialect.H2Dialect
+  datasource:
+    url: ${JDBC_URL:jdbc:h2:mem:userdb;DB_CLOSE_DELAY=-1;MODE=LEGACY}
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: password
+  cache:
+    cache-names: userById, usersByCriteria, countByCriteria
+    type: caffeine
+  autoconfigure:
+    exclude:
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
+    consumer:
+      group-id: user-watcher-group
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.example.kafka.dto, com.example.common.domain"
+        isolation.level: read_committed
+    producer:
+      acks: all
+      retries: 2147483647
+      properties:
+        enable.idempotence: true
+        delivery.timeout.ms: 120000
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    listener:
+      ack-mode: record
+      missing-topics-fatal: false
+
+app:
+  name: user-watcher-service
+  version: 1.0.0
+  environment: ${ENVIRONMENT:development}
+  persistence:
+    type: ${PERSISTENCE_TYPE:mongo}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics,env,beans,configprops,loggers,threaddump,heapdump,cache
+  endpoint:
+    health:
+      show-details: when_authorized
+      show-components: always
+    prometheus:
+      enabled: true
+    metrics:
+      enabled: true
+  metrics:
+    enable:
+      cache: true
+    tags:
+      application: user-watcher-service
+      service: user-watcher-service
+      environment: ${ENVIRONMENT:development}
+
+logging:
+  level:
+    com.example.watcher: DEBUG
+    com.example.user: DEBUG
+    org.springframework.web: INFO
+    org.apache.kafka: INFO
+    io.micrometer: INFO
+  config: classpath:log4j2-spring.xml
+
