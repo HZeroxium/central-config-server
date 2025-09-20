@@ -1,9 +1,9 @@
 // Root build.gradle
 plugins {
-    id 'java'
-    id 'idea'
-    id 'org.springframework.boot' version '3.3.13' apply false
-    id 'io.spring.dependency-management' version '1.1.6' apply false
+    alias(libs.plugins.java)
+    alias(libs.plugins.idea)
+    alias(libs.plugins.spring.boot) apply false
+    alias(libs.plugins.spring.dependency.management) apply false
 }
 
 // Common configuration for all subprojects
@@ -16,10 +16,12 @@ allprojects {
     }
     
     // Common Java configuration
-    plugins.withType(JavaPlugin) {
-        java {
-            toolchain {
-                languageVersion = JavaLanguageVersion.of(21)
+    plugins.withType(JavaPlugin).tap {
+        configureEach {
+            java {
+                toolchain {
+                    languageVersion = JavaLanguageVersion.of(libs.versions.java.get().toInteger())
+                }
             }
         }
     }
@@ -33,20 +35,20 @@ subprojects {
     // Common dependencies
     dependencies {
         // Thrift dependencies
-        implementation 'org.apache.thrift:libthrift:0.22.0'
-        compileOnly 'javax.annotation:javax.annotation-api:1.3.2'
+        implementation libs.thrift.lib
+        compileOnly libs.javax.annotation.api
         
         // Kafka dependencies (common for all services)
-        implementation 'org.springframework.kafka:spring-kafka'
-        implementation 'org.apache.kafka:kafka-clients'
+        implementation libs.spring.kafka
+        implementation libs.kafka.clients
         
         // Lombok
-        compileOnly 'org.projectlombok:lombok:1.18.32'
-        annotationProcessor 'org.projectlombok:lombok:1.18.32'
+        compileOnly libs.lombok
+        annotationProcessor libs.lombok
         
         // Test dependencies
-        testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
-        testImplementation 'org.mockito:mockito-core:5.12.0'
+        testImplementation libs.junit.jupiter
+        testImplementation libs.mockito.core
     }
     
     // Common test configuration
@@ -67,32 +69,27 @@ subprojects {
     }
 }
 
-// Thrift version configuration
-ext {
-    thriftVersion = '0.22.0'
-}
-
 // Task to build all modules
-task buildAll {
+tasks.register('buildAll') {
     group = 'build'
     description = 'Build all modules'
-    dependsOn ':shared-thrift-definitions:build'
+    dependsOn ':shared-common:build'
     dependsOn ':user-rpc-thrift-service:build'
     dependsOn ':user-rest-spring-service:build'
 }
 
 // Task to clean all modules
-task cleanAll {
+tasks.register('cleanAll') {
     group = 'build'
     description = 'Clean all modules'
-    dependsOn ':shared-thrift-definitions:clean'
+    dependsOn ':shared-common:clean'
     dependsOn ':user-rpc-thrift-service:clean'
     dependsOn ':user-rest-spring-service:clean'
 }
 
 // Task to generate Thrift for all modules
-task generateThriftAll {
+tasks.register('generateThriftAll') {
     group = 'thrift'
     description = 'Generate Thrift classes for all modules'
-    dependsOn ':shared-thrift-definitions:generateThrift'
+    dependsOn ':shared-common:generateThrift'
 }

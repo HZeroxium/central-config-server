@@ -10,10 +10,9 @@ services:
     environment:
       - KAFKA_CFG_NODE_ID=1
       - KAFKA_CFG_PROCESS_ROLES=broker,controller
-      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093
-
-      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
-      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093,PLAINTEXT_HOST://:9094
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:9094
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=PLAINTEXT
       - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
       - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@kafka:9093
@@ -64,52 +63,54 @@ services:
     networks:
       - thrift-network
 
-  user-rpc-thrift-service:
-    build:
-      context: ./user-rpc-thrift-service
-      dockerfile: Dockerfile
-    image: hzeroxium/user-rpc-thrift-service:latest
-    container_name: user-rpc-thrift-service
-    env_file:
-      - .env
-    environment:
-      - PERSISTENCE_TYPE=mongo
-      - SERVER_PORT=8080
-      - THRIFT_PORT=9090
-      - MONGODB_URI=mongodb://mongodb:27017/users
-      - JDBC_URL=jdbc:h2:mem:userdb;DB_CLOSE_DELAY=-1;MODE=LEGACY
-      - ENVIRONMENT=docker
-      - LOGGING_LEVEL_ROOT=INFO
-      - LOGGING_LEVEL_COM_EXAMPLE_USER=DEBUG
-      # Kafka configuration
-      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
-    ports:
-      - "8080:8080"
-      - "9090:9090"
-    volumes:
-      # Mount logs directory to host with proper permissions
-      - ./logs/user-rpc-thrift-service:/app/logs:rw
-    depends_on:
-      mongodb:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-    networks:
-      - thrift-network
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-        labels: "service=user-rpc-thrift-service,environment=docker"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-    # Run as root to fix permissions, then switch to appuser
-    user: "0:0"
+  # user-rpc-thrift-service:
+  #   build:
+  #     context: ./user-rpc-thrift-service
+  #     dockerfile: Dockerfile
+  #   image: hzeroxium/user-rpc-thrift-service:latest
+  #   container_name: user-rpc-thrift-service
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     - PERSISTENCE_TYPE=mongo
+  #     - SERVER_PORT=8080
+  #     - THRIFT_PORT=9090
+  #     - MONGODB_URI=mongodb://mongodb:27017/users
+  #     - JDBC_URL=jdbc:h2:mem:userdb;DB_CLOSE_DELAY=-1;MODE=LEGACY
+  #     - ENVIRONMENT=docker
+  #     - LOGGING_LEVEL_ROOT=INFO
+  #     - LOGGING_LEVEL_COM_EXAMPLE_USER=DEBUG
+  #     # Kafka configuration
+  #     - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+  #   ports:
+  #     - "8080:8080"
+  #     - "9090:9090"
+  #   volumes:
+  #     # Mount logs directory to host with proper permissions
+  #     - ./logs/user-rpc-thrift-service:/app/logs:rw
+  #   depends_on:
+  #     mongodb:
+  #       condition: service_healthy
+  #     kafka:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+  #   networks:
+  #     - thrift-network
+  #   logging:
+  #     driver: "json-file"
+  #     options:
+  #       max-size: "10m"
+  #       max-file: "3"
+  #       labels: "service=user-rpc-thrift-service,environment=docker"
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #     start_period: 30s
+  #   # Run as root to fix permissions, then switch to appuser
+  #   user: "0:0"
 
   user-rest-spring-service:
     build:
@@ -120,8 +121,8 @@ services:
     env_file:
       - .env
     environment:  
-      - SERVER_PORT=8083
-      - THRIFT_HOST=user-rpc-thrift-service
+      - SERVER_PORT=8080
+      - THRIFT_HOST=user-thrift-server-service
       - THRIFT_PORT=9090
       - ENVIRONMENT=docker
       - LOGGING_LEVEL_ROOT=INFO
@@ -132,12 +133,16 @@ services:
       # Mount logs directory to host with proper permissions
       - ./logs/user-rest-spring-service:/app/logs:rw
     depends_on:
-      user-rpc-thrift-service:
+      # user-rpc-thrift-service:
+      #   condition: service_healthy
+      user-thrift-server-service:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     ports:
-      - "8083:8083"
+      - "8083:8080"
     networks:
       - thrift-network
     logging:
@@ -147,7 +152,7 @@ services:
         max-file: "3"
         labels: "service=user-rest-spring-service,environment=docker"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8083/actuator/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -272,20 +277,118 @@ services:
       - thrift-network
     depends_on:
       - loki
-
-  kafka-ui:
-    image: provectuslabs/kafka-ui:latest
-    container_name: kafka-ui
-    environment:
-      KAFKA_CLUSTERS_0_NAME: local
-      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+  
+  kafbat-ui:
+    image: ghcr.io/kafbat/kafka-ui:main
+    container_name: kafbat-ui
     ports:
-      - "8085:8080"
+      - "8084:8080"
+    environment:
+      - DYNAMIC_CONFIG_ENABLED=true
+      - KAFKA_CLUSTERS_0_NAME=local
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9092
+      
     depends_on:
       kafka:
         condition: service_healthy
     networks:
       - thrift-network
+
+  redis:
+    image: redis:latest
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - thrift-network
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  user-watcher-service:
+    build:
+      context: ./user-watcher-service
+      dockerfile: Dockerfile
+    image: hzeroxium/user-watcher-service:latest
+    container_name: user-watcher-service
+    environment:
+      - SERVER_PORT=8080
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - MONGODB_URI=mongodb://mongodb:27017/users
+      - JDBC_URL=jdbc:h2:mem:userdb;DB_CLOSE_DELAY=-1;MODE=LEGACY
+      - PERSISTENCE_TYPE=mongo
+      - ENVIRONMENT=docker
+      - LOGGING_LEVEL_ROOT=INFO
+      - LOGGING_LEVEL_COM_EXAMPLE_WATCHER=DEBUG
+      - LOGGING_LEVEL_COM_EXAMPLE_USER=DEBUG
+    ports:
+      - "8086:8080"
+    volumes:
+      - ./logs/user-watcher-service:/app/logs:rw
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - thrift-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=user-watcher-service,environment=docker"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8086/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    user: "0:0"
+
+  user-thrift-server-service:
+    build:
+      context: ./user-thrift-server-service
+      dockerfile: Dockerfile
+    image: hzeroxium/user-thrift-server-service:latest
+    container_name: user-thrift-server-service
+    environment:
+      - SERVER_PORT=8080
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - THRIFT_PORT=9090
+      - ENVIRONMENT=docker
+      - LOGGING_LEVEL_ROOT=INFO
+      - LOGGING_LEVEL_COM_EXAMPLE_THRIFTSERVER=DEBUG
+    ports:
+      - "8085:8080"
+      - "9090:9090"
+    volumes:
+      - ./logs/user-thrift-server-service:/app/logs:rw
+    depends_on:
+      kafka:
+        condition: service_healthy
+      user-watcher-service:
+        condition: service_started
+    networks:
+      - thrift-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=user-thrift-server-service,environment=docker"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    user: "0:0"
 
 volumes:
   mongodb_data:
@@ -293,6 +396,7 @@ volumes:
   loki_data:
   grafana_data:
   prometheus_data:
+  redis_data:
 networks:
   thrift-network:
     driver: bridge

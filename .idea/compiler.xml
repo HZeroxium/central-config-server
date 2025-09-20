@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <annotationProcessing>
+      <profile default="true" name="Default" enabled="true" />
+      <profile name="Gradle Imported" enabled="true">
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="false">
+          <entry name="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.projectlombok/lombok/1.18.32/17d46b3e205515e1e8efd3ee4d57ce8018914163/lombok-1.18.32.jar" />
+        </processorPath>
+        <module name="thrift-demo.shared-common.main" />
+        <module name="thrift-demo.user-rest-spring-service.main" />
+        <module name="thrift-demo.user-watcher-service.main" />
+        <module name="thrift-demo.user-rpc-thrift-service.main" />
+        <module name="thrift-demo.user-thrift-server-service.main" />
+      </profile>
+    </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="thrift-demo.shared-thrift-definitions" target="21" />
+      <module name="thrift-demo.shared-thrift-definitions.main" target="21" />
+      <module name="thrift-demo.shared-thrift-definitions.test" target="21" />
+    </bytecodeTargetLevel>
+  </component>
+  <component name="JavacSettings">
+    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="thrift-demo.user-rest-spring-service" options="-parameters" />
+      <module name="thrift-demo.user-rest-spring-service.main" options="-parameters" />
+      <module name="thrift-demo.user-rest-spring-service.test" options="-parameters" />
+      <module name="thrift-demo.user-rpc-thrift-service" options="-parameters" />
+      <module name="thrift-demo.user-rpc-thrift-service.main" options="-parameters" />
+      <module name="thrift-demo.user-rpc-thrift-service.test" options="-parameters" />
+      <module name="thrift-demo.user-thrift-server-service" options="-parameters" />
+      <module name="thrift-demo.user-thrift-server-service.main" options="-parameters" />
+      <module name="thrift-demo.user-thrift-server-service.test" options="-parameters" />
+      <module name="thrift-demo.user-watcher-service" options="-parameters" />
+      <module name="thrift-demo.user-watcher-service.main" options="-parameters" />
+      <module name="thrift-demo.user-watcher-service.test" options="-parameters" />
+      <module name="user-rest-spring-service" options="-parameters" />
+      <module name="user-rest-spring-service.main" options="-parameters" />
+      <module name="user-rest-spring-service.test" options="-parameters" />
+      <module name="user-rpc-thrift-service" options="-parameters" />
+      <module name="user-rpc-thrift-service.main" options="-parameters" />
+      <module name="user-rpc-thrift-service.test" options="-parameters" />
+    </option>
+  </component>
+</project>
