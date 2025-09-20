@@ -7,18 +7,22 @@ alwaysApply: false
 ---
 
 # Topics & Schemas
+
 - Manage topics via IaC or admin client; document partitions/replication/retention/SLA.
 - Version schemas (Avro/JSON Schema/Protobuf); require compatibility in schema registry.
 
 # Producers
+
 - Enable idempotence; `acks=all`; bounded retries with backoff; set delivery timeout; compress (lz4/zstd).
 - Set correlation/causation IDs in headers; include schema version; propagate tracing headers.
 
 # Consumers
+
 - Consumer groups per bounded context; explicit `max.poll.interval.ms` and `max.poll.records`.
 - Prefer batch listeners for throughput; manual acks in at-least-once flows; DLT for poison messages.
 - Consider non-blocking retry topics for transient failures; blocking retries for truly idempotent handlers.
 
 # Error Handling & Observability
+
 - Central error handler with retry, backoff, DLQ routing; emit structured error events.
 - Metrics: throughput, consumer lag, error rate; traces across producers/consumers; log key offsets for auditability.

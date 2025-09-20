@@ -7,8 +7,10 @@ alwaysApply: false
 ---
 
 # Error Model
+
 - Centralize exception handling; map domain/integration errors to problem+json with `traceId`, `timestamp`, `code`, `detail`, `instance`.
 - Do not leak internals; client-facing messages actionable and localized where needed.
 
 # Logging & Alerts
+
 - Log once at the boundary; attach context; emit metrics; page on error budget burn or elevated 5xx.

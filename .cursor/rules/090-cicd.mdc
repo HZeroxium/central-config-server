@@ -11,13 +11,16 @@ alwaysApply: false
 ---
 
 # Build & Package
+
 - Lock versions; fail on dependency convergence; SBOM+SCA scanning; sign artifacts if supported.
 - Layered Docker images (buildpacks or Jib); run as non-root; healthcheck; JVM flags tuned for containers.
 
 # CI
+
 - Stages: format/lint → unit → integration (Testcontainers) → contract → build image → scan → deploy to staging → smoke → promote.
 - Cache Gradle and Docker layers; parallelize; upload test/coverage reports; fail fast on vulnerabilities.
 
 # CD
+
 - Helm/Kustomize manifests; canary/blue-green; progressive delivery via feature flags and SLO gates.
 - Rollback plan, DB migration pre-checks, and post-deploy verifications; record release notes automatically.

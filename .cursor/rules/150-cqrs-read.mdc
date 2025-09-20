@@ -7,8 +7,10 @@ alwaysApply: false
 ---
 
 # Read Models
+
 - Use projections/DTOs; avoid loading full aggregates on queries; cache read views with explicit TTLs.
 - For high read volumes, consider CQRS with denormalized stores updated by events.
 
 # Reporting & Analytics
+
 - Offload heavy analytics to separate pipelines or warehouses; prohibit long OLTP queries in request paths.

@@ -7,12 +7,15 @@ alwaysApply: false
 ---
 
 # Defaults
+
 - Global timeouts < downstream SLA; circuit breaker with count- or time-based windows; failure rate thresholds defined.
 - Bulkhead per critical client to cap concurrency; thread-pool bulkhead for blocking clients.
 
 # Policy
+
 - Retries only for idempotent operations; exponential backoff with jitter; retry budgets to prevent storms.
 - Decorate at the edge (controller/service client boundary) and measure success rate and slow-call rate.
 
 # Observability
+
 - Emit metrics (state transitions, slow calls, rejected calls); add trace attributes for breaker state.

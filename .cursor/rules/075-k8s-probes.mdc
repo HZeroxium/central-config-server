@@ -8,11 +8,14 @@ alwaysApply: false
 ---
 
 # Probes
+
 - Enable actuator probes: `management.endpoint.health.probes.enabled=true`.
 - Distinct readiness vs liveness checks; readiness should gate traffic; liveness restarts only on unrecoverable states.
 
 # Startup
+
 - Use startup probe for slow-booting apps; higher failureThreshold for liveness; document probe thresholds.
 
 # Safety
+
 - Do not couple readiness to external alerts; readiness should reflect ability to serve (DB/Kafka/Redis dependencies included).

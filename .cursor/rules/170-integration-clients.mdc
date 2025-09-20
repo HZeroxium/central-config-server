@@ -7,8 +7,10 @@ alwaysApply: false
 ---
 
 # HTTP Clients
+
 - Use WebClient/RestClient with timeouts, connection pools, retries (idempotent only), circuit breakers, and metrics.
 - Map external errors to domain errors; include correlation IDs; exponential backoff + jitter for retries.
 
 # Contracts
+
 - Pin API versions; backward-compatible adapters; consumer-driven contract tests; capture request/response samples in tests.

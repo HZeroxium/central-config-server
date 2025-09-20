@@ -4,21 +4,25 @@ alwaysApply: true
 ---
 
 # Language & Style
+
 - Target JDK 21; use records for DTOs/value objects; sealed classes for closed hierarchies; pattern matching where clear.
 - Prefer immutability; minimize shared mutable state; avoid `null` in public APIs; use `Optional` for absence.
 - Naming: classes PascalCase, methods/fields camelCase, constants UPPER_SNAKE_CASE, packages lowercase.singular.
 - No wildcard imports; explicit static imports for assertions only; keep method size small (<50 LOC when possible).
 
 # Gradle (Kotlin DSL)
+
 - Use version catalogs (`libs.versions.toml`); separate `api` vs `implementation`; prefer BOMs for Spring families.
 - Reproducible builds; enable caching & parallel; configure test retries for flaky-only with limits; publish build scans optionally.
 - Common tasks: `format`, `lint`, `test`, `integrationTest`, `contractTest`, `jibDockerBuild` (or buildpacks).
 
 # Spring Patterns
+
 - Constructor injection only; avoid field injection; prefer `@Qualifier` over `@Primary`.
 - Use `@ConfigurationProperties` for structured settings; avoid scattered `@Value`.
 - Keep configuration classes focused; minimal component scanning; register beans explicitly where clarity is needed.
 
 # API Surface
+
 - Separate API DTOs from domain entities; map via MapStruct; use Jakarta Validation on DTOs.
 - Apply RFC-7807 error responses; never leak stack traces or internal IDs to clients.

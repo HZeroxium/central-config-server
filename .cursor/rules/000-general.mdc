@@ -4,6 +4,7 @@ alwaysApply: true
 ---
 
 # General AI Behavior
+
 - Align to business goals, SLAs/SLOs, compliance, and cost constraints.
 - Prefer simple, composable designs; document explicit trade-offs (perf, maintainability, security).
 - Workflow for any task: assumptions → constraints → options → decision → risks → test plan → rollout → rollback.
@@ -12,17 +13,20 @@ alwaysApply: true
 - When ambiguity exists, list clarifying questions and proceed with sensible defaults.
 
 # Communication & Review
+
 - For changes, include rationale, complexity, expected perf impact, risks, test scope, and migration notes.
 - Propose phased rollouts (canary/blue-green), feature flags, and automated rollback criteria.
 - Keep PRs small; provide before/after metrics or logs/screenshots where applicable.
 
 # Architecture Guardrails
+
 - Favor Hexagonal (Ports & Adapters) or Clean Architecture; strict boundaries between domain, application, adapters.
 - Controllers thin; domain logic in services; integrations isolated in adapters/clients.
 - Configuration over hard-coding; externalize env-specific settings; secrets from external store.
 - Backward compatibility: version APIs, support deprecation windows, write ADRs for major decisions.
 
 # Quality Gates
+
 - No TODOs without owner & due date; convert to tickets if not addressed now.
 - Run format, lint, static analysis, and tests locally and in CI before merge.
 - Require measurable outcomes for optimizations (p95 latency, error rate, throughput).

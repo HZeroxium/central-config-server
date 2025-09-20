@@ -7,13 +7,16 @@ alwaysApply: false
 ---
 
 # Telemetry
+
 - Micrometer metrics with exemplars; `/actuator/prometheus` enabled; high-cardinality labels carefully controlled.
 - OpenTelemetry tracing: propagate trace/span across HTTP and Kafka; instrument DB and client calls; OTLP exporter configured.
 
 # Logging
+
 - JSON logs with requestId/trace/span/user/flag-state; single-line logs; consistent keys across services.
 - INFO for state changes, WARN for recoverable conditions, ERROR for actionable failures; avoid debug in prod.
 
 # Health & Readiness
+
 - Liveness and readiness probes; dependency health indicators (DB/Kafka/Redis/external APIs).
 - Graceful shutdown hooks; on critical alerts, capture heap/thread dumps with rate limits.

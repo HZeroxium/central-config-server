@@ -7,9 +7,11 @@ alwaysApply: false
 ---
 
 # Mapping
+
 - MapStruct for compile-time mapping; avoid reflection mappers in hot paths; unit test mappings for critical DTOs.
 - Separate internal vs external DTOs; never expose entities; avoid leaking internal enums/IDs.
 
 # Serialization
+
 - Jackson with stable naming strategy; non-null inclusion; strict deserialization (`FAIL_ON_UNKNOWN_PROPERTIES=true`).
 - Consider gzip for large payloads; limit response sizes; ETag support for cacheable GETs.

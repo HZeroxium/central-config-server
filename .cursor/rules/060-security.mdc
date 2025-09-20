@@ -7,15 +7,19 @@ alwaysApply: false
 ---
 
 # Authentication & Authorization
+
 - OAuth2 Resource Server with JWT; validate iss/aud/exp/nbf/signature and key rotation; short token TTLs.
 - Principle of least privilege; role-to-permission mapping; method security for sensitive operations.
 
 # Input/Output Safety
+
 - Centralized validation and sanitization; content-type allowlist; log redaction for secrets/PII.
 - HTTPS everywhere; HSTS; secure cookies; CSRF for browser flows; CORS allowlist not wildcard.
 
 # Secrets & Keys
+
 - External secret store; rotate regularly; never log/echo; encrypt at rest; signed/hashed identifiers.
 
 # Auditing
+
 - Emit authZ decisions and sensitive events with correlation IDs; threshold-based alerts; account lockout policies with backoff.

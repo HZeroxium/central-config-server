@@ -8,14 +8,17 @@ alwaysApply: false
 ---
 
 # Boot Setup
+
 - Spring Boot 3.x; keep `Application.java` slim; fail fast on missing/invalid config; disable banner in prod.
 - Profiles: `local`, `dev`, `staging`, `prod`; explicit activation via env var; no defaulting to prod.
 
 # Configuration Strategy
+
 - `application.yml` for sane defaults; overlay `application-<env>.yml` only for env-specific settings.
 - Never commit secrets; mount from secret store or env; validate at startup with `@ConfigurationProperties`.
 - Feature flags for risky changes; document all properties with descriptions and defaults.
 
 # Web Layer
+
 - `@RestController` only; explicit DTOs; `@Validated` on controllers; `@ControllerAdvice` for global problems.
 - Rate limit hot endpoints; configure request size/time limits; consistent pagination/sorting conventions with caps.
