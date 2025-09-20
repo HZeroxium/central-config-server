@@ -1,0 +1,30 @@
+---
+description: Spring Cloud Gateway — edge routing, filters, auth offload, and rate limiting.
+globs:
+  - "gateway/**"
+  - "src/main/java/**/gateway/**"
+  - "src/main/resources/**/gateway*.yml"
+alwaysApply: false
+---
+
+# Routing & Predicates
+- Define routes per bounded context; use path/host/header predicates with explicit priorities.
+- Enforce per-route timeouts and retry policies; fail fast for non-idempotent routes (no auto-retry).
+- Normalize headers (correlation, trace/span, user agent), preserve client IPs (X-Forwarded-For).
+
+# Filters (Pre/Post)
+- Pre-filters: auth/JWT validation (or forward to auth service), request size limits, schema guards, CORS allowlists.
+- Post-filters: response compression, problem+json error shaping, redaction of sensitive headers.
+- Apply circuit breakers and time limiters at the route level; define fallback URIs for safe degradation.
+
+# Rate Limiting & Quotas
+- Gateway-level rate limit by API key/client/tenant; burst + sustained settings, with 429 and Retry-After.
+- Partition limits per route to protect critical downstreams; block abusive patterns early.
+
+# API Composition & BFF
+- For complex UIs, prefer a dedicated BFF service rather than heavy gateway scripting.
+- Aggregate calls with backpressure; cap fan-out; enforce SLAs and return partials with clear status fields.
+
+# Operations
+- Expose actuator selectively; include per-route metrics (requests, latency, error rate).
+- Canary new routes behind flags; rollback by route disable toggle.

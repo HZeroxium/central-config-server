@@ -1,0 +1,15 @@
+---
+description: Local development ergonomics and DX.
+globs:
+  - "docker-compose*.yml"
+  - "Makefile"
+  - "scripts/**"
+alwaysApply: false
+---
+
+# Developer Experience
+- Provide `make` or Gradle tasks for run/test/debug; Testcontainers-first local runs; hot reload when safe.
+- Seed data scripts; stable port mappings; `.env.example` for local overrides; pre-commit hooks (format, lint, fast tests, SCA).
+
+# Troubleshooting
+- Document common failures and fixes; add diagnostic endpoints guarded by profile; include sample curl/HTTPie commands.

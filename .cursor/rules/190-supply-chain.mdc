@@ -1,0 +1,15 @@
+---
+description: Build reproducibility and supply-chain security.
+globs:
+  - "build.gradle*"
+  - ".github/workflows/**"
+  - "Jenkinsfile"
+alwaysApply: false
+---
+
+# Supply Chain
+- Lock versions; verify checksums; trusted registries; SBOM generation; SCA/secret scanning as CI gates.
+- Sign images/artifacts; provenance/attestations when supported; block on critical CVEs.
+
+# Reproducibility
+- Pin JVM and toolchain versions; deterministic builds; cache Gradle and Docker layers; document build environments.

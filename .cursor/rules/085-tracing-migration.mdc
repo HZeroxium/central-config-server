@@ -1,0 +1,17 @@
+---
+description: Tracing — Micrometer Tracing + OpenTelemetry (Sleuth deprecated).
+globs:
+  - "src/main/java/**/observability/**"
+  - "src/main/resources/**/otel*.yml"
+alwaysApply: false
+---
+
+# Policy
+- Use Micrometer Tracing with OTel bridge; standardize on W3C Trace Context headers.
+- Tag spans with service/version/region/route; record exceptions with error.code/error.message but redact PII.
+
+# Migration
+- For legacy Sleuth apps, plan one-time migration; ensure header propagation compatibility at boundaries; update dashboards and alerts.
+
+# Sampling
+- Default head-based sampling rate per environment; raise in staging for diagnostics; keep prod rates cost-aware.

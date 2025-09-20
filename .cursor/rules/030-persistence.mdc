@@ -1,0 +1,24 @@
+---
+description: Persistence with Spring Data JPA/JDBC, Flyway, and transactional boundaries.
+globs:
+  - "src/main/java/**/repository/**"
+  - "src/main/java/**/entity/**"
+  - "src/main/resources/db/migration/**"
+alwaysApply: false
+---
+
+# Data Modeling
+- JPA for OLTP CRUD; avoid bi-directional relationships unless justified; annotate columns and indexes explicitly.
+- FetchType.LAZY by default; use projections/DTOs or `@EntityGraph` for read models; avoid N+1 queries.
+
+# Transactions
+- Transactions at service layer; mark read-only where applicable; keep scopes tight; avoid long transactions.
+- Optimistic locking via `@Version`; handle conflicts with bounded retries where safe.
+
+# Migrations
+- Schema managed by Flyway under `db/migration`; one logical change per migration; include rollback notes.
+- Data fixes separate from schema migrations; idempotent scripts for hotfixes; pre-deploy validation steps.
+
+# Performance
+- Page/stream large reads; criteria/specification for dynamic filtering; judicious fetch joins.
+- Batch writes: `saveAll` with chunk size; JDBC batch size configured; second-level cache off by default unless measured.

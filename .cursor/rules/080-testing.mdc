@@ -1,0 +1,23 @@
+---
+description: Testing strategy with JUnit 5, Testcontainers, Spring Boot test slices, and contract tests.
+globs:
+  - "src/test/java/**"
+  - "src/test/resources/**"
+alwaysApply: false
+---
+
+# Pyramid
+- Unit tests fast and isolated; use slices for web/data; integration with Testcontainers; minimal E2E happy-paths.
+- Coverage thresholds enforced in CI; mutation tests for core domain logic where feasible.
+
+# Testcontainers
+- Ephemeral DB/Kafka/Redis; reuse locally to speed feedback; deterministic seeds; network aliases stable.
+
+# Contract & API Tests
+- Spring Cloud Contract or Pact for consumer/provider verification; versions pinned; verify in CI before deploy.
+
+# Data & Fixtures
+- Builders/factories; no shared mutable fixtures; realistic datasets for performance-sensitive code paths.
+
+# Non-Functionals
+- Add performance smoke tests for critical endpoints; security tests for authZ boundaries; resilience tests for timeouts/circuit-breakers.

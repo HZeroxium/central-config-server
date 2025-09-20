@@ -1,0 +1,17 @@
+---
+description: Performance, resilience, and cost efficiency guidelines.
+globs:
+  - "src/main/java/**"
+alwaysApply: false
+---
+
+# Performance
+- Define p50/p95/p99 budgets per endpoint; add Micrometer timers with percentiles; use JFR for CPU/alloc hotspots.
+- Avoid blocking I/O; size thread pools; prefer backpressure-aware designs; batch and pipeline where applicable.
+
+# Resilience
+- Resilience4j for retries (idempotent only), circuit breakers, bulkheads, rate limiters; timeouts everywhere.
+- Isolate external dependencies; hedging/timeout racing for critical idempotent reads; degrade gracefully.
+
+# Cost
+- Right-size memory/CPU; tune G1/ZGC for workload; reduce cardinality in metrics; eliminate idle autoscaling floors where safe.

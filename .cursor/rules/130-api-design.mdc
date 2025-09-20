@@ -1,0 +1,17 @@
+---
+description: API design, versioning, pagination, and compatibility policies.
+globs:
+  - "src/main/java/**/web/**"
+  - "src/main/java/**/api/**"
+alwaysApply: false
+---
+
+# REST Guidelines
+- Resource-oriented URIs; standard verbs/status; idempotency for PUT/DELETE; 429 for throttling; 503 for overload.
+- Version via `/v1` or header; advertise deprecation with Sunset headers; publish OpenAPI with examples/constraints.
+
+# DTOs & Validation
+- Strict JSON schemas; reject unknown fields; `application/problem+json` error model; include trace correlation.
+
+# Pagination & Filtering
+- Cursor-based where feasible; default/maximum limits enforced; stable sort keys; HATEOAS links when useful.

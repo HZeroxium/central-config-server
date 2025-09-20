@@ -1,0 +1,19 @@
+---
+description: Spring Cloud Bus — safe propagation of configuration changes.
+globs:
+  - "bus/**"
+  - "src/main/resources/**/bus*.yml"
+alwaysApply: false
+---
+
+# Bus Refresh
+- Enable `/actuator/busrefresh` exposure only in trusted networks; require authN/authZ; audit all triggers.
+- Use Kafka or RabbitMQ transport; isolate management topics; avoid cross-tenant broadcast.
+
+# Change Management
+- Announce config change windows; attach change IDs and correlating commit SHAs.
+- Blue/green test of config in staging before broadcast; define rollback config commits.
+
+# Safety
+- Use RefreshScope only for components proven safe to hot-reload; restart pods for risky changes.
+- Record a post-change health snapshot (error rate, latency, GC, thread pools).

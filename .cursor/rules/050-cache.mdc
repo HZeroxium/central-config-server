@@ -1,0 +1,18 @@
+---
+description: Caching with Redis (Lettuce) and Caffeine; cache-aside patterns.
+globs:
+  - "src/main/java/**/cache/**"
+  - "src/main/resources/**/redis*.yml"
+alwaysApply: false
+---
+
+# Strategy
+- Cache-aside as default; TTLs per data class; avoid caching mutable aggregates without versioned keys.
+- Layered cache: Caffeine (local) + Redis (distributed) where helpful; document coherence and invalidation rules.
+
+# Configuration
+- Lettuce pooled connections; key namespaces with hashing; serialization via Jackson (stable naming) or compact binary if measured.
+- Define per-cache TTL/size; no unbounded caches; expose hit/miss/eviction metrics.
+
+# Correctness
+- Invalidate on write; version tokens in keys; provide warmers for critical datasets; protect against thundering herds with locks or request coalescing.

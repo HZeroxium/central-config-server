@@ -1,0 +1,20 @@
+---
+description: Spring Cloud Config — centralized configuration and refresh strategy.
+globs:
+  - "config-server/**"
+  - "src/main/resources/**/application*.yml"
+  - "src/main/java/**/config/**"
+alwaysApply: false
+---
+
+# Sources & Hierarchy
+- Source of truth: Git-backed config repo; branch per environment; directory per service.
+- Override order documented; environment-specific overlays only where necessary; secrets excluded.
+
+# Client Policy
+- Bind with @ConfigurationProperties; avoid @Value for complex objects; validate at startup.
+- No dynamic refresh for risky properties (DB pool sizes, circuit thresholds) without guardrails.
+
+# Profiles & Tenancy
+- Profiles: local/dev/staging/prod; forbid silent fallbacks; fail fast on missing required properties.
+- For multi-tenant apps, segregate tenant-level config and restrict refresh scope appropriately.

@@ -1,0 +1,14 @@
+---
+description: Feature flags and configuration strategy.
+globs:
+  - "src/main/java/**/featureflag/**"
+  - "src/main/resources/**/features*.yml"
+alwaysApply: false
+---
+
+# Feature Flags
+- Typed flags with owners and expiry dates; default off; kill-switch documented; observable and auditable.
+- Gate risky paths; schedule cleanup after GA; ensure flags are evaluated server-side and cached.
+
+# Configuration
+- Centralize configuration; validate at startup; allow dynamic refresh only for safe toggles; audit runtime changes.

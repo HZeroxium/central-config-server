@@ -1,0 +1,20 @@
+---
+description: Service Discovery — Eureka (or alternative DiscoveryClient) and metadata policy.
+globs:
+  - "discovery/**"
+  - "src/main/java/**/discovery/**"
+  - "src/main/resources/**/eureka*.yml"
+alwaysApply: false
+---
+
+# Registration
+- Register with Eureka under a stable, semantic serviceId; include instance metadata (version, region, zone).
+- Healthcheck endpoints must reflect readiness (not just liveness); prefer secure registration over plaintext.
+
+# Discovery & Load Balancing
+- Use logical service names from DiscoveryClient in clients/OpenFeign; avoid hardcoded hosts in app code.
+- Stick to client-side LB with consistent hashing where idempotency benefits caching; fall back to round-robin as default.
+
+# Failover
+- Short TTLs and quick eviction for unhealthy instances; aggressive self-preservation disabled in tightly managed clusters.
+- Prefer retries across distinct instances; avoid retry storms with jitter and budgets.

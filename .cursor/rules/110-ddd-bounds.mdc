@@ -1,0 +1,19 @@
+---
+description: Domain-driven design and modular monolith/microservices guidance.
+globs:
+  - "src/main/java/**/domain/**"
+  - "src/main/java/**/application/**"
+  - "src/main/java/**/infrastructure/**"
+alwaysApply: false
+---
+
+# Domain Model
+- Ubiquitous language; enforce invariants in aggregates; publish domain events on state changes.
+- Anti-corruption layer for external systems; explicit mapping between domain and external schemas.
+
+# Service Boundaries
+- Stable contracts; versioned APIs; avoid chatty sync calls; prefer async events for cross-boundary flows.
+- True autonomy: data + deploy + runtime isolation; avoid distributed transactions; use outbox + transactional messaging.
+
+# Documentation
+- Maintain ADRs for significant decisions; C4 diagrams (Context/Container/Component); keep updated with releases.

@@ -1,0 +1,12 @@
+---
+description: Team collaboration, PR discipline, and documentation.
+alwaysApply: true
+---
+
+# Collaboration
+- PRs <300 lines changed where possible; clear titles; context, screenshots/metrics if relevant.
+- CODEOWNERS enforced; at least one domain reviewer; no self-merge without prior approval.
+
+# Knowledge
+- Keep README accurate (run, test, debug, env vars, troubleshooting); update after significant changes.
+- Generate docs (OpenAPI/config reference) on each release; maintain changelog for externally visible changes.

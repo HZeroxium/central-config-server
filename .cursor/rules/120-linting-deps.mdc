@@ -1,0 +1,16 @@
+---
+description: Linting, static analysis, and dependency hygiene for Spring projects.
+globs:
+  - "build.gradle*"
+  - "gradle/**"
+  - "config/spotless/**"
+alwaysApply: false
+---
+
+# Static Analysis
+- Spotless for formatting; Checkstyle for conventions; SpotBugs/PMD/Error Prone for correctness/perf issues.
+- Critical rules as errors; baseline file only for legacy repos with explicit TODO cleanup plan.
+
+# Dependency Management
+- Prefer BOMs; limit direct deps; prune unused; block deprecated/vulnerable libs; SCA scanning in CI.
+- Document any `force`/`exclude` with rationale and ticket reference; periodic refresh of transitive graph.
