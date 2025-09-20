@@ -134,4 +134,8 @@ public class KafkaCommonConfig {
     @Bean NewTopic p2Dlt() { return evt("user.update.phase_2.command.DLT"); }
     @Bean NewTopic p3Dlt() { return evt("user.update.phase_3.command.DLT"); }
     @Bean NewTopic p4Dlt() { return evt("user.update.phase_4.command.DLT"); }
+
+    // RPC topics
+    @Bean NewTopic userRpcRequest() { return evt(com.example.kafka.constants.KafkaConstants.TOPIC_USER_RPC_REQUEST); }
+    @Bean NewTopic userRpcReply() { return evt(com.example.kafka.constants.KafkaConstants.TOPIC_USER_RPC_REPLY); }
 }

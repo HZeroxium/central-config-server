@@ -27,6 +27,7 @@ import org.springframework.context.annotation.Configuration;
 @Slf4j
 @Configuration
 @RequiredArgsConstructor
+@org.springframework.context.annotation.Profile("thrift-server")
 public class ThriftServerConfig implements ApplicationRunner {
 
   @Value("${thrift.port:9090}")

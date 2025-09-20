@@ -21,10 +21,15 @@ public final class KafkaConstants {
     public static final String TOPIC_USER_UPDATE_PHASE_3_COMMAND_DLT = "user.update.phase_3.command.DLT";
     public static final String TOPIC_USER_UPDATE_PHASE_4_COMMAND_DLT = "user.update.phase_4.command.DLT";
     
+    // RPC bridging topics between ThriftServerService and WatcherService
+    public static final String TOPIC_USER_RPC_REQUEST = "user.rpc.request";
+    public static final String TOPIC_USER_RPC_REPLY = "user.rpc.reply";
+    
     // Consumer groups
     public static final String GROUP_USER_UPDATE_WORKERS = "user-update-workers";
     public static final String GROUP_USER_UPDATE_ORCHESTRATOR = "user-update-orchestrator";
     public static final String GROUP_USER_UPDATE_DLT = "user-update-dlt";
+    public static final String GROUP_USER_RPC = "user-rpc-group";
     
     // Container factories
     public static final String CONTAINER_FACTORY_TX = "txFactory";

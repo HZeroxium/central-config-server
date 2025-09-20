@@ -1,17 +1,15 @@
 // shared-common/build.gradle
 
 plugins {
-    id 'java'
-    id 'idea'
-    id 'org.springframework.boot' version '3.3.13' apply false
-    id 'io.spring.dependency-management' version '1.1.6'
+    alias(libs.plugins.java)
+    alias(libs.plugins.idea)
+    alias(libs.plugins.spring.boot) apply false
+    alias(libs.plugins.spring.dependency.management)
 }
-
-apply plugin: 'io.spring.dependency-management'
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
+        languageVersion = JavaLanguageVersion.of(libs.versions.java.get().toInteger())
     }
 }
 
@@ -29,52 +27,44 @@ dependencyManagement {
 }
 
 dependencies {
-    // Thrift dependencies
-    implementation 'org.apache.thrift:libthrift:0.22.0'
-    compileOnly 'javax.annotation:javax.annotation-api:1.3.2'
-    
     // SLF4J for generated Thrift code
     implementation 'org.slf4j:slf4j-api'
     
     // Spring Boot dependencies for Kafka and common configs
-    implementation 'org.springframework.boot:spring-boot-starter'
-    implementation 'org.springframework.kafka:spring-kafka'
-    implementation 'org.apache.kafka:kafka-clients'
+    implementation libs.spring.boot.starter
+    implementation libs.spring.kafka
+    implementation libs.kafka.clients
     
     // Spring Cache + Redis for shared cache config
-    implementation 'org.springframework.boot:spring-boot-starter-cache'
-    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
-    implementation 'io.lettuce:lettuce-core'
-    implementation 'com.github.ben-manes.caffeine:caffeine'
+    implementation libs.spring.boot.starter.cache
+    implementation libs.spring.boot.starter.data.redis
+    implementation libs.lettuce.core
+    implementation libs.caffeine
     
     // Jackson for JSON processing
-    implementation 'com.fasterxml.jackson.core:jackson-databind'
-    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+    implementation libs.jackson.databind
+    implementation libs.jackson.datatype.jsr310
     
     // Validation
-    implementation 'jakarta.validation:jakarta.validation-api'
+    implementation libs.jakarta.validation.api
 
     // OpenAPI/Swagger annotations for DTOs
-    implementation 'io.swagger.core.v3:swagger-annotations:2.2.22'
+    implementation libs.swagger.annotations
     
     // Micrometer for shared profiling config
-    implementation 'io.micrometer:micrometer-core'
-    implementation 'io.micrometer:micrometer-registry-prometheus'
+    implementation libs.micrometer.core
+    implementation libs.micrometer.registry.prometheus
     
     // AOP for shared profiling config
-    implementation 'org.springframework:spring-aop'
-    implementation 'org.aspectj:aspectjweaver'
-    
-    // Lombok
-    compileOnly 'org.projectlombok:lombok'
-    annotationProcessor 'org.projectlombok:lombok'
+    implementation libs.spring.aop
+    implementation libs.aspectjweaver
     
     // Test dependencies
-    testImplementation 'org.junit.jupiter:junit-jupiter'
-    testImplementation 'org.assertj:assertj-core'
-    testImplementation 'org.mockito:mockito-core'
-    testImplementation 'org.mockito:mockito-junit-jupiter'
-    testImplementation 'jakarta.validation:jakarta.validation-api'
+    testImplementation libs.junit.jupiter
+    testImplementation libs.assertj.core
+    testImplementation libs.mockito.core
+    testImplementation libs.mockito.junit.jupiter
+    testImplementation libs.jakarta.validation.api
 }
 
 // Thrift version configuration

@@ -1,10 +1,10 @@
 // user-rest-spring-service/build.gradle
 
 plugins {
-    id 'java'
-    id 'idea'
-    id 'org.springframework.boot' version '3.3.13'
-    id 'io.spring.dependency-management' version '1.1.6'
+    alias(libs.plugins.java)
+    alias(libs.plugins.idea)
+    alias(libs.plugins.spring.boot)
+    alias(libs.plugins.spring.dependency.management)
 }
 
 // Inherit from parent project
@@ -22,60 +22,59 @@ dependencies {
     implementation project(':shared-common')
     testImplementation project(':shared-common')
     
-    implementation('org.springframework.boot:spring-boot-starter-web') {
+    // Spring Boot starters with proper logging exclusions
+    implementation(libs.spring.boot.starter.web) {
         exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
     }
-    implementation 'org.springframework.boot:spring-boot-starter-actuator'
-    implementation 'org.springframework.boot:spring-boot-starter-log4j2'
-    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation libs.spring.boot.starter.actuator
+    implementation libs.spring.boot.starter.log4j2
+    implementation libs.spring.boot.starter.validation
 
     // Resilience4j for circuit breaker, retry, timeout
-    implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.2.0'
-    implementation 'io.github.resilience4j:resilience4j-circuitbreaker:2.2.0'
-    implementation 'io.github.resilience4j:resilience4j-retry:2.2.0'
-    implementation 'io.github.resilience4j:resilience4j-timelimiter:2.2.0'
+    implementation libs.resilience4j.spring.boot3
+    implementation libs.resilience4j.circuitbreaker
+    implementation libs.resilience4j.retry
+    implementation libs.resilience4j.timelimiter
 
     // Micrometer for metrics and profiling
-    implementation 'io.micrometer:micrometer-core'
-    implementation 'io.micrometer:micrometer-registry-prometheus'
-    implementation 'io.micrometer:micrometer-tracing-bridge-brave'
-    implementation 'io.zipkin.brave:brave'
-    implementation 'io.zipkin.reporter2:zipkin-reporter-brave'
+    implementation libs.micrometer.core
+    implementation libs.micrometer.registry.prometheus
+    implementation libs.micrometer.tracing.bridge.brave
+    implementation libs.brave
+    implementation libs.zipkin.reporter.brave
 
     // Spring Cache + providers
-    implementation 'org.springframework.boot:spring-boot-starter-cache'
-    implementation 'com.github.ben-manes.caffeine:caffeine:3.1.8'
-    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
-    implementation 'io.lettuce:lettuce-core'
-    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
-    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation libs.spring.boot.starter.cache
+    implementation libs.caffeine
+    implementation libs.spring.boot.starter.data.redis
+    implementation libs.lettuce.core
+    implementation libs.jackson.datatype.jsr310
     
     // AOP for method-level profiling
-    implementation 'org.springframework:spring-aop'
-    implementation 'org.aspectj:aspectjweaver'
+    implementation libs.spring.aop
+    implementation libs.aspectjweaver
 
     // OpenAPI/Swagger UI for Spring Boot 3
-    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0'
+    implementation libs.springdoc.openapi.starter.webmvc.ui
 
-    testImplementation('org.springframework.boot:spring-boot-starter-test') {
+    // Test dependencies
+    testImplementation(libs.spring.boot.starter.test) {
         exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
     }
-    testImplementation 'org.mockito:mockito-core:5.12.0'
-    testImplementation 'org.mockito:mockito-junit-jupiter:5.12.0'
-    testImplementation 'org.assertj:assertj-core:3.25.3'
-    testImplementation 'org.testcontainers:junit-jupiter:1.20.1'
-    testImplementation 'org.testcontainers:mongodb:1.20.1'
-    testImplementation 'com.h2database:h2:2.3.232'
-    testImplementation 'io.micrometer:micrometer-test:1.12.0'
+    testImplementation libs.mockito.core
+    testImplementation libs.mockito.junit.jupiter
+    testImplementation libs.assertj.core
+    testImplementation libs.testcontainers.junit.jupiter
+    testImplementation libs.testcontainers.mongodb
+    testImplementation libs.testcontainers.postgresql
+    testImplementation libs.h2
+    testImplementation libs.micrometer.test
     
     // Integration test dependencies
-    testImplementation 'org.springframework.boot:spring-boot-testcontainers'
-    testImplementation 'org.testcontainers:junit-jupiter:1.20.1'
-    testImplementation 'org.testcontainers:mongodb:1.20.1'
-    testImplementation 'org.testcontainers:postgresql:1.20.1'
-    testImplementation 'com.github.tomakehurst:wiremock-jre8:2.35.0'
-    testImplementation 'io.rest-assured:rest-assured:5.4.0'
-    testImplementation 'io.rest-assured:json-schema-validator:5.4.0'
+    testImplementation libs.spring.boot.testcontainers
+    testImplementation libs.wiremock.jre8
+    testImplementation libs.rest.assured
+    testImplementation libs.rest.assured.json.schema.validator
 }
 
 tasks.withType(Test).configureEach {
