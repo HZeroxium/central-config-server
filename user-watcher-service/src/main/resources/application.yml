@@ -28,6 +28,8 @@ spring:
     type: caffeine
   autoconfigure:
     exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
   kafka:
     bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
     consumer:
@@ -35,9 +37,8 @@ spring:
       auto-offset-reset: earliest
       enable-auto-commit: false
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       properties:
-        spring.json.trusted.packages: "com.example.kafka.dto, com.example.common.domain"
         isolation.level: read_committed
     producer:
       acks: all
@@ -46,7 +47,7 @@ spring:
         enable.idempotence: true
         delivery.timeout.ms: 120000
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
     listener:
       ack-mode: record
       missing-topics-fatal: false
@@ -87,4 +88,3 @@ logging:
     org.apache.kafka: INFO
     io.micrometer: INFO
   config: classpath:log4j2-spring.xml
-

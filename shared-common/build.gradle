@@ -30,10 +30,8 @@ dependencies {
     // SLF4J for generated Thrift code
     implementation 'org.slf4j:slf4j-api'
     
-    // Spring Boot dependencies for Kafka and common configs
+    // Spring Boot dependencies for common configs
     implementation libs.spring.boot.starter
-    implementation libs.spring.kafka
-    implementation libs.kafka.clients
     
     // Spring Cache + Redis for shared cache config
     implementation libs.spring.boot.starter.cache

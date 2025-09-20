@@ -1,16 +1,13 @@
 package com.example.watcher;
 
-import com.example.kafka.config.KafkaCommonConfig;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Import;
 import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
 
 @SpringBootApplication
-@ComponentScan(basePackages = {"com.example.watcher", "com.example.kafka", "com.example.user", "com.example.common"})
-@Import(KafkaCommonConfig.class)
+@ComponentScan(basePackages = { "com.example.watcher", "com.example.kafka", "com.example.user", "com.example.common" })
 @EnableCaching
 @EnableMongoRepositories(basePackages = "com.example.user.adapter.mongo")
 public class Application {
@@ -18,5 +15,3 @@ public class Application {
     SpringApplication.run(Application.class, args);
   }
 }
-
-

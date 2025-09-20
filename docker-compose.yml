@@ -25,7 +25,8 @@ services:
     networks:
       - thrift-network
     healthcheck:
-      test: ["CMD", "kafka-topics.sh", "--bootstrap-server", "kafka:9092", "--list"]
+      test:
+        ["CMD", "kafka-topics.sh", "--bootstrap-server", "kafka:9092", "--list"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -119,8 +120,8 @@ services:
     image: hzeroxium/user-rest-spring-service:latest
     container_name: user-rest-spring-service
     env_file:
-      - .env
-    environment:  
+      - env.example
+    environment:
       - SERVER_PORT=8080
       - THRIFT_HOST=user-thrift-server-service
       - THRIFT_PORT=9090
@@ -129,12 +130,14 @@ services:
       - LOGGING_LEVEL_COM_EXAMPLE_REST=DEBUG
       # Kafka configuration
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      # Redis configuration
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SPRING_DATA_REDIS_URL=redis://redis:6379
     volumes:
       # Mount logs directory to host with proper permissions
       - ./logs/user-rest-spring-service:/app/logs:rw
     depends_on:
-      # user-rpc-thrift-service:
-      #   condition: service_healthy
       user-thrift-server-service:
         condition: service_healthy
       kafka:
@@ -157,8 +160,6 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
-    # Run as root to fix permissions, then switch to appuser
-    user: "0:0"
 
   # Loki for log aggregation
   loki:
@@ -173,7 +174,15 @@ services:
     networks:
       - thrift-network
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3100/ready"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:3100/ready",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -205,7 +214,15 @@ services:
     networks:
       - thrift-network
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:3000/api/health",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -222,17 +239,25 @@ services:
       - ./config/prometheus/prometheus-rules.yml:/etc/prometheus/rules/prometheus-rules.yml
       - prometheus_data:/prometheus
     command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
-      - '--storage.tsdb.retention.time=200h'
-      - '--web.enable-lifecycle'
-      - '--web.enable-admin-api'
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/etc/prometheus/console_libraries"
+      - "--web.console.templates=/etc/prometheus/consoles"
+      - "--storage.tsdb.retention.time=200h"
+      - "--web.enable-lifecycle"
+      - "--web.enable-admin-api"
     networks:
       - thrift-network
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:9090/-/healthy",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -256,7 +281,15 @@ services:
     networks:
       - thrift-network
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/healthz"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8080/healthz",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -277,7 +310,7 @@ services:
       - thrift-network
     depends_on:
       - loki
-  
+
   kafbat-ui:
     image: ghcr.io/kafbat/kafka-ui:main
     container_name: kafbat-ui
@@ -287,7 +320,7 @@ services:
       - DYNAMIC_CONFIG_ENABLED=true
       - KAFKA_CLUSTERS_0_NAME=local
       - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9092
-      
+
     depends_on:
       kafka:
         condition: service_healthy
@@ -316,6 +349,8 @@ services:
       dockerfile: Dockerfile
     image: hzeroxium/user-watcher-service:latest
     container_name: user-watcher-service
+    env_file:
+      - env.example
     environment:
       - SERVER_PORT=8080
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
@@ -326,6 +361,10 @@ services:
       - LOGGING_LEVEL_ROOT=INFO
       - LOGGING_LEVEL_COM_EXAMPLE_WATCHER=DEBUG
       - LOGGING_LEVEL_COM_EXAMPLE_USER=DEBUG
+      # Redis configuration
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SPRING_DATA_REDIS_URL=redis://redis:6379
     ports:
       - "8086:8080"
     volumes:
@@ -344,12 +383,11 @@ services:
         max-file: "3"
         labels: "service=user-watcher-service,environment=docker"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8086/actuator/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 30s
-    user: "0:0"
 
   user-thrift-server-service:
     build:
@@ -357,6 +395,8 @@ services:
       dockerfile: Dockerfile
     image: hzeroxium/user-thrift-server-service:latest
     container_name: user-thrift-server-service
+    env_file:
+      - env.example
     environment:
       - SERVER_PORT=8080
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
@@ -388,7 +428,6 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
-    user: "0:0"
 
 volumes:
   mongodb_data:

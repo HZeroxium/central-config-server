@@ -1,6 +1,6 @@
 spring:
   application:
-    name: user-rest-spring-service
+    name: user-watcher-service
   cache:
     cache-names: userById, usersByCriteria, countByCriteria
     redis:
@@ -14,38 +14,36 @@ spring:
   autoconfigure:
     exclude: []
 
-  # Kafka configuration for Orchestrator (inherited from default profile)
+  # Kafka configuration for RPC handling (inherited from default profile)
   kafka:
     bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
-
+    consumer:
+      group-id: user-watcher-group
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      properties:
+        isolation.level: read_committed
     producer:
       acks: all
-      batch-size: 65536 # 64KB
-      linger-ms: 30
-      compression-type: snappy
       retries: 2147483647
       properties:
         enable.idempotence: true
         delivery.timeout.ms: 120000
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
-      # Transactional producer for EOS
-      transaction-id-prefix: orchestrator-tx-
-
-    consumer:
-      group-id: user-update-orchestrator
-      auto-offset-reset: earliest
-      enable-auto-commit: false
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      properties:
-        partition.assignment.strategy: org.apache.kafka.clients.consumer.CooperativeStickyAssignor
-
     listener:
       ack-mode: record
       missing-topics-fatal: false
 
-# Management and monitoring configuration
+app:
+  name: user-watcher-service
+  version: 1.0.0
+  environment: ${ENVIRONMENT:development}
+  persistence:
+    type: ${PERSISTENCE_TYPE:mongo}
+
 management:
   endpoints:
     web:
@@ -63,8 +61,8 @@ management:
     enable:
       cache: true
     tags:
-      application: user-rest-spring-service
-      service: user-rest-spring-service
+      application: user-watcher-service
+      service: user-watcher-service
       environment: ${ENVIRONMENT:development}
     distribution:
       percentiles-histogram:
@@ -90,10 +88,10 @@ management:
 # Logging configuration - using Log4j2
 logging:
   level:
-    com.example.rest: DEBUG
+    com.example.watcher: DEBUG
     com.example.user: DEBUG
-    org.springframework.web: DEBUG
-    org.apache.thrift: DEBUG
-    io.micrometer: DEBUG
+    org.springframework.web: INFO
+    org.apache.kafka: INFO
+    io.micrometer: INFO
     org.springframework.cache: DEBUG
   config: classpath:log4j2-spring.xml
