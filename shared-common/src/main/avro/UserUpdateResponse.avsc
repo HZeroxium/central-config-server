@@ -1,0 +1,14 @@
+{
+  "type": "record",
+  "name": "UserUpdateResponse",
+  "namespace": "com.example.kafka.avro",
+  "doc": "Response for updating a user",
+  "fields": [
+    {
+      "name": "user",
+      "type": ["null", "com.example.kafka.avro.UserResponse"],
+      "default": null
+    },
+    { "name": "updated", "type": "boolean", "doc": "Whether user was updated" }
+  ]
+}

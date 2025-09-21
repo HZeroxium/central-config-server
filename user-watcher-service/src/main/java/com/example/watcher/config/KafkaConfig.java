@@ -24,32 +24,15 @@ import java.util.Map;
 public class KafkaConfig {
 
   @Bean
-  public ProducerFactory<String, String> producerFactory(KafkaProperties props) {
-    Map<String, Object> cfg = props.buildProducerProperties();
-    cfg.putIfAbsent(ProducerConfig.ACKS_CONFIG, "all");
-    cfg.putIfAbsent(ProducerConfig.RETRIES_CONFIG, 2147483647);
-    cfg.putIfAbsent(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
-    cfg.putIfAbsent(ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, 120000);
-    return new DefaultKafkaProducerFactory<>(cfg);
-  }
-
-  @Bean
-  public ConsumerFactory<String, String> consumerFactory(KafkaProperties props) {
-    Map<String, Object> cfg = props.buildConsumerProperties();
-    cfg.putIfAbsent(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
-    cfg.putIfAbsent(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed");
-    return new DefaultKafkaConsumerFactory<>(cfg);
-  }
-
-  @Bean
-  public KafkaTemplate<String, String> kafkaTemplate(ProducerFactory<String, String> pf) {
+  public KafkaTemplate<String, Object> kafkaTemplate(
+      @Qualifier("avroProducerFactory") ProducerFactory<String, Object> pf) {
     return new KafkaTemplate<>(pf);
   }
 
   @Bean
-  public ConcurrentKafkaListenerContainerFactory<String, String> kafkaListenerContainerFactory(
-      ConsumerFactory<String, String> cf) {
-    ConcurrentKafkaListenerContainerFactory<String, String> f = new ConcurrentKafkaListenerContainerFactory<>();
+  public ConcurrentKafkaListenerContainerFactory<String, Object> kafkaListenerContainerFactory(
+      @Qualifier("avroConsumerFactory") ConsumerFactory<String, Object> cf) {
+    ConcurrentKafkaListenerContainerFactory<String, Object> f = new ConcurrentKafkaListenerContainerFactory<>();
     f.setConsumerFactory(cf);
     f.getContainerProperties().setAckMode(ContainerProperties.AckMode.RECORD);
     f.setBatchListener(false);

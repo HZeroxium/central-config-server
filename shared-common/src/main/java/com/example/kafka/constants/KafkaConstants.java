@@ -22,8 +22,18 @@ public final class KafkaConstants {
     public static final String TOPIC_USER_UPDATE_PHASE_4_COMMAND_DLT = "user.update.phase_4.command.DLT";
 
     // RPC bridging topics between ThriftServerService and WatcherService
-    public static final String TOPIC_USER_RPC_REQUEST = "user.rpc.request";
-    public static final String TOPIC_USER_RPC_REPLY = "user.rpc.reply";
+    public static final String TOPIC_USER_CREATE_REQUEST = "user.create.request";
+    public static final String TOPIC_USER_CREATE_RESPONSE = "user.create.response";
+    public static final String TOPIC_USER_GET_REQUEST = "user.get.request";
+    public static final String TOPIC_USER_GET_RESPONSE = "user.get.response";
+    public static final String TOPIC_USER_UPDATE_REQUEST = "user.update.request";
+    public static final String TOPIC_USER_UPDATE_RESPONSE = "user.update.response";
+    public static final String TOPIC_USER_DELETE_REQUEST = "user.delete.request";
+    public static final String TOPIC_USER_DELETE_RESPONSE = "user.delete.response";
+    public static final String TOPIC_USER_LIST_REQUEST = "user.list.request";
+    public static final String TOPIC_USER_LIST_RESPONSE = "user.list.response";
+    public static final String TOPIC_PING_REQUEST = "ping.request";
+    public static final String TOPIC_PING_RESPONSE = "ping.response";
 
     // Consumer groups
     public static final String GROUP_USER_UPDATE_WORKERS = "user-update-workers";

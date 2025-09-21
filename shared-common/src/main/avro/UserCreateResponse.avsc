@@ -1,0 +1,7 @@
+{
+  "type": "record",
+  "name": "UserCreateResponse",
+  "namespace": "com.example.kafka.avro",
+  "doc": "Response for user creation",
+  "fields": [{ "name": "user", "type": "com.example.kafka.avro.UserResponse" }]
+}

@@ -25,46 +25,26 @@ import java.util.Map;
 public class KafkaRpcConfig {
 
   @Bean
-  public ProducerFactory<String, String> rpcProducerFactory(KafkaProperties props) {
-    Map<String, Object> cfg = props.buildProducerProperties();
-    cfg.putIfAbsent(ProducerConfig.ACKS_CONFIG, "all");
-    return new DefaultKafkaProducerFactory<>(cfg);
-  }
-
-  @Bean
-  public ConsumerFactory<String, String> rpcConsumerFactory(KafkaProperties props) {
-    Map<String, Object> cfg = props.buildConsumerProperties();
-    cfg.putIfAbsent(ConsumerConfig.GROUP_ID_CONFIG, "user-thrift-server");
-    return new DefaultKafkaConsumerFactory<>(cfg);
-  }
-
-  @Bean
-  public KafkaTemplate<String, String> kafkaTemplate(
-      @Qualifier("rpcProducerFactory") ProducerFactory<String, String> pf) {
-    return new KafkaTemplate<>(pf);
-  }
-
-  @Bean
-  public ReplyingKafkaTemplate<String, String, String> replyingKafkaTemplate(
-      @Qualifier("rpcProducerFactory") ProducerFactory<String, String> pf,
-      @Qualifier("rpcConsumerFactory") ConsumerFactory<String, String> cf) {
+  public ReplyingKafkaTemplate<String, Object, Object> replyingKafkaTemplate(
+      @Qualifier("avroProducerFactory") ProducerFactory<String, Object> pf,
+      @Qualifier("avroConsumerFactory") ConsumerFactory<String, Object> cf) {
     // Create a separate container factory for RPC template
-    ConcurrentKafkaListenerContainerFactory<String, String> rpcFactory = new ConcurrentKafkaListenerContainerFactory<>();
+    ConcurrentKafkaListenerContainerFactory<String, Object> rpcFactory = new ConcurrentKafkaListenerContainerFactory<>();
     rpcFactory.setConsumerFactory(cf);
     rpcFactory.getContainerProperties().setAckMode(ContainerProperties.AckMode.BATCH);
     rpcFactory.setBatchListener(false); // Ensure it's not a batch listener
 
-    // Use a template that waits for replies from topic configured at send time (via
-    // headers)
-    ReplyingKafkaTemplate<String, String, String> template = new ReplyingKafkaTemplate<>(pf,
-        rpcFactory.createContainer("user.rpc.reply"));
+    // Create a template that can handle dynamic reply topics
+    // We need to provide at least one topic for the container to be valid
+    ReplyingKafkaTemplate<String, Object, Object> template = new ReplyingKafkaTemplate<String, Object, Object>(pf,
+        rpcFactory.createContainer("temp-reply-topic"));
     return template;
   }
 
   @Bean
-  public ConcurrentKafkaListenerContainerFactory<String, String> kafkaListenerContainerFactory(
-      @Qualifier("rpcConsumerFactory") ConsumerFactory<String, String> cf) {
-    ConcurrentKafkaListenerContainerFactory<String, String> f = new ConcurrentKafkaListenerContainerFactory<>();
+  public ConcurrentKafkaListenerContainerFactory<String, Object> kafkaListenerContainerFactory(
+      @Qualifier("avroConsumerFactory") ConsumerFactory<String, Object> cf) {
+    ConcurrentKafkaListenerContainerFactory<String, Object> f = new ConcurrentKafkaListenerContainerFactory<>();
     f.setConsumerFactory(cf);
     f.getContainerProperties().setAckMode(ContainerProperties.AckMode.RECORD);
     f.setBatchListener(false);
@@ -72,9 +52,9 @@ public class KafkaRpcConfig {
   }
 
   @Bean
-  public ConcurrentKafkaListenerContainerFactory<String, String> rpcListenerFactory(
-      @Qualifier("rpcConsumerFactory") ConsumerFactory<String, String> cf) {
-    ConcurrentKafkaListenerContainerFactory<String, String> f = new ConcurrentKafkaListenerContainerFactory<>();
+  public ConcurrentKafkaListenerContainerFactory<String, Object> rpcListenerFactory(
+      @Qualifier("avroConsumerFactory") ConsumerFactory<String, Object> cf) {
+    ConcurrentKafkaListenerContainerFactory<String, Object> f = new ConcurrentKafkaListenerContainerFactory<>();
     f.setConsumerFactory(cf);
     f.getContainerProperties().setAckMode(ContainerProperties.AckMode.RECORD);
     f.setBatchListener(false); // Ensure it's not a batch listener

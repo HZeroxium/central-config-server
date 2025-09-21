@@ -23,26 +23,21 @@ spring:
       auto-offset-reset: earliest
       enable-auto-commit: false
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
       properties:
-        spring.json.trusted.packages: "com.example.kafka.dto"
-        isolation.level: read_committed
-        # Avro deserializer configuration
-        value.deserializer.delegate.class: io.confluent.kafka.serializers.KafkaAvroDeserializer
         schema.registry.url: ${SCHEMA_REGISTRY_URL:http://schema-registry:8081}
         specific.avro.reader: true
+        isolation.level: read_committed
     producer:
       acks: all
       retries: 2147483647
       properties:
         enable.idempotence: true
         delivery.timeout.ms: 120000
-        # Avro serializer configuration
-        value.serializer.delegate.class: io.confluent.kafka.serializers.KafkaAvroSerializer
         schema.registry.url: ${SCHEMA_REGISTRY_URL:http://schema-registry:8081}
         auto.register.schemas: true
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
     listener:
       ack-mode: record
       missing-topics-fatal: false
