@@ -9,7 +9,6 @@ import org.apache.thrift.server.TServer;
 import org.apache.thrift.server.TThreadPoolServer;
 import org.apache.thrift.transport.TServerSocket;
 import org.apache.thrift.transport.TServerTransport;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
@@ -20,9 +19,7 @@ import org.springframework.context.annotation.Configuration;
 @RequiredArgsConstructor
 public class ThriftServerConfig implements ApplicationRunner {
 
-  @Value("${thrift.port:9090}")
-  private int thriftPort;
-
+  private final ThriftProperties thriftProperties;
   private final UserService.Iface handler;
 
   @Bean
@@ -32,16 +29,18 @@ public class ThriftServerConfig implements ApplicationRunner {
 
   @Override
   public void run(ApplicationArguments args) throws Exception {
-    TServerTransport serverTransport = new TServerSocket(thriftPort);
+    TServerTransport serverTransport = new TServerSocket(thriftProperties.getPort());
     TThreadPoolServer.Args serverArgs = new TThreadPoolServer.Args(serverTransport)
         .processor(userServiceProcessor())
-        .protocolFactory(new TBinaryProtocol.Factory());
+        .protocolFactory(new TBinaryProtocol.Factory())
+        .minWorkerThreads(thriftProperties.getMinThreads())
+        .maxWorkerThreads(thriftProperties.getMaxThreads());
+
     TServer server = new TThreadPoolServer(serverArgs);
-    Thread serverThread = new Thread(server::serve, "thrift-server");
+    Thread serverThread = new Thread(server::serve, thriftProperties.getServerName());
     serverThread.setDaemon(true);
     serverThread.start();
-    log.info("Thrift server started on port {}", thriftPort);
+    log.info("Thrift server started on port {} with {} threads",
+        thriftProperties.getPort(), thriftProperties.getMaxThreads());
   }
 }
-
-

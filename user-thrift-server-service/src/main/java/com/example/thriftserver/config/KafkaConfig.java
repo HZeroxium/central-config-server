@@ -1,5 +1,6 @@
 package com.example.thriftserver.config;
 
+import com.example.thriftserver.constants.ThriftConstants;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
@@ -20,7 +21,7 @@ import java.util.Map;
 
 @EnableKafka
 @Configuration
-public class KafkaRpcConfig {
+public class KafkaConfig {
 
   @Bean
   public ConcurrentKafkaListenerContainerFactory<String, Object> kafkaListenerContainerFactory(
@@ -55,9 +56,6 @@ public class KafkaRpcConfig {
     cfg.put("schema.registry.url", "http://schema-registry:8081");
     cfg.put("auto.register.schemas", "true");
 
-    // Log the configuration to debug
-    System.out.println("Avro Producer Factory Configuration: " + cfg);
-
     return new DefaultKafkaProducerFactory<>(cfg);
   }
 
@@ -66,15 +64,13 @@ public class KafkaRpcConfig {
   @Primary
   public ConsumerFactory<String, Object> avroConsumerFactory(KafkaProperties props) {
     Map<String, Object> cfg = props.buildConsumerProperties();
-    cfg.put(ConsumerConfig.GROUP_ID_CONFIG, "user-thrift-server-avro");
+    cfg.put(ConsumerConfig.GROUP_ID_CONFIG, ThriftConstants.CONSUMER_GROUP_ID);
     cfg.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
         "org.apache.kafka.common.serialization.StringDeserializer");
     cfg.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
         "io.confluent.kafka.serializers.KafkaAvroDeserializer");
     cfg.put("schema.registry.url", "http://schema-registry:8081");
     cfg.put("specific.avro.reader", "true");
-
-    System.out.println("Avro Consumer Factory Configuration: " + cfg);
 
     return new DefaultKafkaConsumerFactory<>(cfg);
   }

@@ -87,7 +87,7 @@ tasks.register('e2eTest', Test) {
     description = 'Run end-to-end tests against running system'
     testClassesDirs = sourceSets.test.output.classesDirs
     classpath = sourceSets.test.runtimeClasspath
-    include '**/e2e/UserE2ESimpleTest.class'
+    include 'com/example/rest/user/e2e/UserE2ESimpleTest.class'
     
     // Ensure system is running
     doFirst {

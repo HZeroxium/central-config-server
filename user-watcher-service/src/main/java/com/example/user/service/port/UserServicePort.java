@@ -7,7 +7,8 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Port exposing domain-level user operations used by external interfaces (REST/Thrift).
+ * Port exposing domain-level user operations used by external interfaces
+ * (REST/Thrift).
  */
 public interface UserServicePort {
   /** Health probe. */

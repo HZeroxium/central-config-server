@@ -19,8 +19,6 @@ public interface UserRepositoryPort {
   /** Delete a user by id. */
   void deleteById(String id);
 
-  
-
   /**
    * Find users with advanced query criteria.
    *
@@ -37,5 +35,4 @@ public interface UserRepositoryPort {
    */
   long countByCriteria(UserQueryCriteria criteria);
 
-  
 }

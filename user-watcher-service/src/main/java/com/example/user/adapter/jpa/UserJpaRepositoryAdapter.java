@@ -5,7 +5,7 @@ import com.example.common.domain.SortCriterion;
 import com.example.common.domain.User;
 import com.example.common.domain.UserQueryCriteria;
 import com.example.user.service.port.UserRepositoryPort;
- 
+
 import io.micrometer.core.annotation.Timed;
 import lombok.extern.slf4j.Slf4j;
 import java.util.List;
@@ -21,8 +21,10 @@ import org.springframework.stereotype.Component;
 /**
  * JPA-based adapter implementing {@link UserRepositoryPort}.
  * <p>
- * Active when property {@code app.persistence.type=h2}. Maps the domain model {@link com.example.common.domain.User}
- * to the persistence entity {@link UserEntity} and delegates operations to {@link UserJpaRepository}.
+ * Active when property {@code app.persistence.type=h2}. Maps the domain model
+ * {@link com.example.common.domain.User}
+ * to the persistence entity {@link UserEntity} and delegates operations to
+ * {@link UserJpaRepository}.
  * 
  * Enhanced with comprehensive profiling and metrics collection.
  */
@@ -37,7 +39,7 @@ public class UserJpaRepositoryAdapter implements UserRepositoryPort {
    * Create adapter with the injected Spring Data JPA repository and metrics.
    *
    * @param repository concrete JPA repository
-   * @param metrics application metrics for profiling
+   * @param metrics    application metrics for profiling
    */
   public UserJpaRepositoryAdapter(UserJpaRepository repository) {
     this.repository = repository;
@@ -57,10 +59,10 @@ public class UserJpaRepositoryAdapter implements UserRepositoryPort {
   public User save(User user) {
     log.debug("Saving user to H2 database: {}", user);
     try {
-      
+
       // Check if this is a new user (no ID) or existing user
       boolean isNewUser = user.getId() == null || user.getId().isBlank();
-      
+
       if (isNewUser) {
         log.debug("Creating new user in H2 database");
         // Generate new ID for new user and ensure no version is set
@@ -79,13 +81,13 @@ public class UserJpaRepositoryAdapter implements UserRepositoryPort {
           user = user.toBuilder().version(existing.get().getVersion()).build();
         }
       }
-      
+
       UserEntity entity = UserPersistenceMapper.toEntity(user);
       log.debug("Mapped domain user to JPA entity: {}", entity);
-      
+
       UserEntity saved = repository.save(entity);
       log.debug("User saved to H2 database: {}", saved);
-      
+
       User domainUser = UserPersistenceMapper.toDomain(saved);
       log.debug("Mapped JPA entity to domain user: {}", domainUser);
       return domainUser;
@@ -106,7 +108,7 @@ public class UserJpaRepositoryAdapter implements UserRepositoryPort {
   public Optional<User> findById(String id) {
     log.debug("Finding user by ID in H2 database: {}", id);
     try {
-      
+
       return repository.findByIdAndNotDeleted(id)
           .map(entity -> UserPersistenceMapper.toDomain(entity));
     } catch (Exception e) {
@@ -114,8 +116,6 @@ public class UserJpaRepositoryAdapter implements UserRepositoryPort {
       throw e;
     }
   }
-
-  
 
   /**
    * Soft delete a user by id.
@@ -127,7 +127,7 @@ public class UserJpaRepositoryAdapter implements UserRepositoryPort {
   public void deleteById(String id) {
     log.debug("Soft deleting user by ID in H2 database: {}", id);
     try {
-      
+
       // Find the user first
       Optional<UserEntity> userEntity = repository.findByIdAndNotDeleted(id);
       if (userEntity.isPresent()) {
@@ -151,13 +151,13 @@ public class UserJpaRepositoryAdapter implements UserRepositoryPort {
   public List<User> findByCriteria(UserQueryCriteria criteria) {
     log.debug("Finding users by criteria in H2 database: {}", criteria);
     try {
-      
+
       // Build pageable with sorting
       Pageable pageable = buildPageable(criteria);
-      
+
       // Prepare search term
       String searchTerm = criteria.hasSearch() ? criteria.getSearch() : "";
-      
+
       // Call repository method
       List<UserEntity> entities = repository.findByAdvancedCriteria(
           criteria.getIncludeDeleted(),
@@ -166,15 +166,14 @@ public class UserJpaRepositoryAdapter implements UserRepositoryPort {
           criteria.getRole(),
           criteria.getCreatedAfter(),
           criteria.getCreatedBefore(),
-          pageable
-      );
-      
+          pageable);
+
       log.debug("Found {} users matching criteria in H2 database", entities.size());
-      
+
       List<User> users = entities.stream()
           .map(UserPersistenceMapper::toDomain)
           .collect(java.util.stream.Collectors.toList());
-      
+
       log.debug("Mapped {} JPA entities to domain users", users.size());
       return users;
     } catch (Exception e) {
@@ -188,10 +187,10 @@ public class UserJpaRepositoryAdapter implements UserRepositoryPort {
   public long countByCriteria(UserQueryCriteria criteria) {
     log.debug("Counting users by criteria in H2 database: {}", criteria);
     try {
-      
+
       // Prepare search term
       String searchTerm = criteria.hasSearch() ? criteria.getSearch() : "";
-      
+
       // Call repository method
       long count = repository.countByAdvancedCriteria(
           criteria.getIncludeDeleted(),
@@ -199,9 +198,8 @@ public class UserJpaRepositoryAdapter implements UserRepositoryPort {
           criteria.getStatus(),
           criteria.getRole(),
           criteria.getCreatedAfter(),
-          criteria.getCreatedBefore()
-      );
-      
+          criteria.getCreatedBefore());
+
       log.debug("User count by criteria in H2 database: {}", count);
       return count;
     } catch (Exception e) {
@@ -216,27 +214,24 @@ public class UserJpaRepositoryAdapter implements UserRepositoryPort {
   private Pageable buildPageable(UserQueryCriteria criteria) {
     PageRequest pageRequest = PageRequest.of(
         criteria.getPage(),
-        criteria.getSize()
-    );
-    
+        criteria.getSize());
+
     List<SortCriterion> sortCriteria = criteria.getSortCriteria();
     if (sortCriteria != null && !sortCriteria.isEmpty()) {
       List<Sort.Order> orders = sortCriteria.stream()
           .filter(SortCriterion::isValid)
           .map(sc -> {
-            Sort.Direction sortDirection = 
-                "desc".equalsIgnoreCase(sc.getDirection()) ? 
-                Sort.Direction.DESC : 
-                Sort.Direction.ASC;
+            Sort.Direction sortDirection = "desc".equalsIgnoreCase(sc.getDirection()) ? Sort.Direction.DESC
+                : Sort.Direction.ASC;
             return new Sort.Order(sortDirection, sc.getFieldName());
           })
           .collect(java.util.stream.Collectors.toList());
-      
+
       if (!orders.isEmpty()) {
         return pageRequest.withSort(Sort.by(orders));
       }
     }
-    
+
     // Default sorting if no valid criteria provided
     return pageRequest.withSort(Sort.by(
         Sort.Direction.DESC, "createdAt"));

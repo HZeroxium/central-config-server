@@ -5,7 +5,7 @@ import com.example.common.domain.UserQueryCriteria;
 import com.example.user.service.port.UserRepositoryPort;
 import com.example.user.service.port.UserServicePort;
 import com.example.common.exception.DatabaseException;
- 
+
 import io.micrometer.core.annotation.Timed;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -18,8 +18,10 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Application service implementing {@link UserServicePort} to orchestrate domain operations.
- * Delegates persistence to {@link com.example.user.service.port.UserRepositoryPort}.
+ * Application service implementing {@link UserServicePort} to orchestrate
+ * domain operations.
+ * Delegates persistence to
+ * {@link com.example.user.service.port.UserRepositoryPort}.
  * 
  * Enhanced with comprehensive profiling and metrics collection.
  */
@@ -49,9 +51,9 @@ public class UserServiceImpl implements UserServicePort {
   @Override
   @Timed(value = "service.user.create", description = "Time taken to create user")
   @Caching(evict = {
-    @CacheEvict(value = "userById", key = "'UserServiceImpl:getById:v1:' + #user.id", condition = "#user != null && #user.id != null"),
-    @CacheEvict(value = "usersByCriteria", allEntries = true),
-    @CacheEvict(value = "countByCriteria", allEntries = true)
+      @CacheEvict(value = "userById", key = "'UserServiceImpl:getById:v1:' + #user.id", condition = "#user != null && #user.id != null"),
+      @CacheEvict(value = "usersByCriteria", allEntries = true),
+      @CacheEvict(value = "countByCriteria", allEntries = true)
   })
   public User create(User user) {
     log.debug("Creating user in repository: {}", user);
@@ -67,7 +69,7 @@ public class UserServiceImpl implements UserServicePort {
           .deletedAt(null)
           .deletedBy(null)
           .build();
-      
+
       User created = userRepository.save(userWithAudit);
       log.info("User created successfully with ID: {}", created.getId());
       return created;
@@ -101,9 +103,9 @@ public class UserServiceImpl implements UserServicePort {
   @Override
   @Timed(value = "service.user.update", description = "Time taken to update user")
   @Caching(evict = {
-    @CacheEvict(value = "userById", key = "'UserServiceImpl:getById:v1:' + #user.id"),
-    @CacheEvict(value = "usersByCriteria", allEntries = true),
-    @CacheEvict(value = "countByCriteria", allEntries = true)
+      @CacheEvict(value = "userById", key = "'UserServiceImpl:getById:v1:' + #user.id"),
+      @CacheEvict(value = "usersByCriteria", allEntries = true),
+      @CacheEvict(value = "countByCriteria", allEntries = true)
   })
   public User update(User user) {
     log.debug("Updating user in repository: {}", user);
@@ -113,19 +115,20 @@ public class UserServiceImpl implements UserServicePort {
       if (existingUser.isEmpty()) {
         throw new DatabaseException("User not found for update: " + user.getId(), "update");
       }
-      
+
       // Preserve audit fields and update only what's needed
       User userWithAudit = user.toBuilder()
           .createdAt(existingUser.get().getCreatedAt()) // Preserve original
           .createdBy(existingUser.get().getCreatedBy()) // Preserve original
           .updatedAt(java.time.LocalDateTime.now()) // Update timestamp
           .updatedBy("admin") // Update user
-          .version(user.getVersion() != null ? user.getVersion() : existingUser.get().getVersion()) // Use provided or existing
+          .version(user.getVersion() != null ? user.getVersion() : existingUser.get().getVersion()) // Use provided or
+                                                                                                    // existing
           .deleted(false) // Ensure not deleted
           .deletedAt(null) // Clear deletion
           .deletedBy(null) // Clear deletion
           .build();
-      
+
       User updated = userRepository.save(userWithAudit);
       log.info("User updated successfully with ID: {}", updated.getId());
       return updated;
@@ -139,9 +142,9 @@ public class UserServiceImpl implements UserServicePort {
   @Override
   @Timed(value = "service.user.delete", description = "Time taken to delete user")
   @Caching(evict = {
-    @CacheEvict(value = "userById", key = "'UserServiceImpl:getById:v1:' + #id"),
-    @CacheEvict(value = "usersByCriteria", allEntries = true),
-    @CacheEvict(value = "countByCriteria", allEntries = true)
+      @CacheEvict(value = "userById", key = "'UserServiceImpl:getById:v1:' + #id"),
+      @CacheEvict(value = "usersByCriteria", allEntries = true),
+      @CacheEvict(value = "countByCriteria", allEntries = true)
   })
   public void delete(String id) {
     log.debug("Deleting user from repository: {}", id);
@@ -153,8 +156,6 @@ public class UserServiceImpl implements UserServicePort {
       throw new DatabaseException("Failed to delete user from database", "delete", e);
     }
   }
-
-  
 
   /** {@inheritDoc} */
   @Override
