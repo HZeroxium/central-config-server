@@ -11,9 +11,9 @@ public final class CacheConstants {
   public static final String COUNT_BY_CRITERIA_CACHE = "countByCriteria";
 
   // Cache key prefixes
-  public static final String USER_SERVICE_GET_BY_ID_KEY_PREFIX = "UserService:getById:v1:";
-  public static final String USER_SERVICE_LIST_BY_CRITERIA_KEY_PREFIX = "UserService:listByCriteria:v1:";
-  public static final String USER_SERVICE_COUNT_BY_CRITERIA_KEY_PREFIX = "UserService:countByCriteria:v1:";
+  public static final String USER_SERVICE_GET_BY_ID_KEY_PREFIX = "UserService-getById-v1-";
+  public static final String USER_SERVICE_LIST_BY_CRITERIA_KEY_PREFIX = "UserService-listByCriteria-v1-";
+  public static final String USER_SERVICE_COUNT_BY_CRITERIA_KEY_PREFIX = "UserService-countByCriteria-v1-";
 
   private CacheConstants() {
     // Utility class

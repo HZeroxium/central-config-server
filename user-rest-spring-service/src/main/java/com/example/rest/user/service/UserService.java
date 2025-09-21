@@ -40,8 +40,8 @@ public class UserService {
 
   @Timed(value = MetricsConstants.SERVICE_CREATE, description = MetricsConstants.CREATE_DESCRIPTION)
   @Caching(evict = {
-      @CacheEvict(value = CacheConstants.USER_BY_ID_CACHE, key = CacheConstants.USER_SERVICE_GET_BY_ID_KEY_PREFIX
-          + "#user.id", condition = "#user != null && #user.id != null"),
+      @CacheEvict(value = CacheConstants.USER_BY_ID_CACHE, key = "'" + CacheConstants.USER_SERVICE_GET_BY_ID_KEY_PREFIX
+          + "' + #user.id", condition = "#user != null && #user.id != null"),
       @CacheEvict(value = CacheConstants.USERS_BY_CRITERIA_CACHE, allEntries = true),
       @CacheEvict(value = CacheConstants.COUNT_BY_CRITERIA_CACHE, allEntries = true)
   })
@@ -58,8 +58,8 @@ public class UserService {
   }
 
   @Timed(value = MetricsConstants.SERVICE_GET_BY_ID, description = MetricsConstants.GET_BY_ID_DESCRIPTION)
-  @Cacheable(value = CacheConstants.USER_BY_ID_CACHE, key = CacheConstants.USER_SERVICE_GET_BY_ID_KEY_PREFIX
-      + "#id", sync = true)
+  @Cacheable(value = CacheConstants.USER_BY_ID_CACHE, key = "'" + CacheConstants.USER_SERVICE_GET_BY_ID_KEY_PREFIX
+      + "' + #id", sync = true)
   public Optional<User> getById(String id) {
     log.debug("Retrieving user by ID via Thrift client: {}", id);
     try {
@@ -82,8 +82,8 @@ public class UserService {
 
   @Timed(value = MetricsConstants.SERVICE_UPDATE, description = MetricsConstants.UPDATE_DESCRIPTION)
   @Caching(evict = {
-      @CacheEvict(value = CacheConstants.USER_BY_ID_CACHE, key = CacheConstants.USER_SERVICE_GET_BY_ID_KEY_PREFIX
-          + "#user.id")
+      @CacheEvict(value = CacheConstants.USER_BY_ID_CACHE, key = "'" + CacheConstants.USER_SERVICE_GET_BY_ID_KEY_PREFIX
+          + "' + #user.id")
   })
   public User update(User user) {
     log.debug("Updating user via Thrift client: {}", user);
@@ -99,8 +99,8 @@ public class UserService {
 
   @Timed(value = MetricsConstants.SERVICE_DELETE, description = MetricsConstants.DELETE_DESCRIPTION)
   @Caching(evict = {
-      @CacheEvict(value = CacheConstants.USER_BY_ID_CACHE, key = CacheConstants.USER_SERVICE_GET_BY_ID_KEY_PREFIX
-          + "#id")
+      @CacheEvict(value = CacheConstants.USER_BY_ID_CACHE, key = "'" + CacheConstants.USER_SERVICE_GET_BY_ID_KEY_PREFIX
+          + "' + #id")
   })
   public void delete(String id) {
     log.debug("Deleting user via Thrift client: {}", id);
@@ -114,8 +114,8 @@ public class UserService {
   }
 
   @Timed(value = MetricsConstants.SERVICE_LIST_BY_CRITERIA, description = MetricsConstants.LIST_BY_CRITERIA_DESCRIPTION)
-  @Cacheable(value = CacheConstants.USERS_BY_CRITERIA_CACHE, key = CacheConstants.USER_SERVICE_LIST_BY_CRITERIA_KEY_PREFIX
-      + "#criteria.hashCode()", sync = true)
+  @Cacheable(value = CacheConstants.USERS_BY_CRITERIA_CACHE, key = "'"
+      + CacheConstants.USER_SERVICE_LIST_BY_CRITERIA_KEY_PREFIX + "' + #criteria.hashCode()", sync = true)
   public List<User> listByCriteria(com.example.common.domain.UserQueryCriteria criteria) {
     log.debug("Listing users by criteria via Thrift client: {}", criteria);
     try {
@@ -129,8 +129,8 @@ public class UserService {
   }
 
   @Timed(value = MetricsConstants.SERVICE_COUNT_BY_CRITERIA, description = MetricsConstants.COUNT_BY_CRITERIA_DESCRIPTION)
-  @Cacheable(value = CacheConstants.COUNT_BY_CRITERIA_CACHE, key = CacheConstants.USER_SERVICE_COUNT_BY_CRITERIA_KEY_PREFIX
-      + "#criteria.hashCode()", sync = true)
+  @Cacheable(value = CacheConstants.COUNT_BY_CRITERIA_CACHE, key = "'"
+      + CacheConstants.USER_SERVICE_COUNT_BY_CRITERIA_KEY_PREFIX + "' + #criteria.hashCode()", sync = true)
   public long countByCriteria(com.example.common.domain.UserQueryCriteria criteria) {
     log.debug("Counting users by criteria via Thrift client: {}", criteria);
     try {
