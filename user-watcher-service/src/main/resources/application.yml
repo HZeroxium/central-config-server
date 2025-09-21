@@ -86,9 +86,11 @@ management:
 
 logging:
   level:
+    root: DEBUG
     com.example.watcher: DEBUG
     com.example.user: DEBUG
+    org.springframework.kafka: DEBUG
+    org.apache.kafka: DEBUG
     org.springframework.web: INFO
-    org.apache.kafka: INFO
     io.micrometer: INFO
   config: classpath:log4j2-spring.xml

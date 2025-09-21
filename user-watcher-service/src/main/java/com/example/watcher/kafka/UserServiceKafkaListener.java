@@ -5,60 +5,91 @@ import com.example.kafka.avro.*;
 import com.example.common.domain.User;
 import com.example.common.domain.UserQueryCriteria;
 import com.example.user.service.port.UserServicePort;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.stereotype.Component;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.producer.ProducerRecord;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class UserServiceKafkaListener {
 
   private final UserServicePort userService;
   private final KafkaTemplate<String, Object> kafkaTemplate;
+
+  public UserServiceKafkaListener(
+      UserServicePort userService,
+      @Qualifier("avroKafkaTemplate") KafkaTemplate<String, Object> kafkaTemplate) {
+    this.userService = userService;
+    this.kafkaTemplate = kafkaTemplate;
+  }
 
   @javax.annotation.PostConstruct
   public void init() {
     log.info("=== UserServiceKafkaListener initialized ===");
   }
 
-  @KafkaListener(topics = KafkaConstants.TOPIC_PING_REQUEST, groupId = "user-watcher-group", containerFactory = "kafkaListenerContainerFactory")
-  public void onPingRequest(PingRequest request) {
-    log.info("Received ping request");
+  @KafkaListener(topics = KafkaConstants.TOPIC_PING_REQUEST, groupId = "user-watcher-group", containerFactory = "avroKafkaListenerContainerFactory")
+  public void onPingRequest(ConsumerRecord<String, PingRequest> record) {
+    String correlationId = new String(record.headers().lastHeader(KafkaHeaders.CORRELATION_ID).value());
+    String replyTopic = new String(record.headers().lastHeader(KafkaHeaders.REPLY_TOPIC).value());
+    PingRequest request = record.value();
+
+    log.info("Received ping request with correlationId: {}", correlationId);
     try {
       String result = userService.ping();
       PingResponse response = new PingResponse(result);
-      kafkaTemplate.send(KafkaConstants.TOPIC_PING_RESPONSE, response);
-      log.debug("Sent ping response: {}", result);
+
+      // Create ProducerRecord with correlationId header for ReplyingKafkaTemplate
+      ProducerRecord<String, Object> producerRecord = new ProducerRecord<>(replyTopic, response);
+      producerRecord.headers().add(KafkaHeaders.CORRELATION_ID, correlationId.getBytes());
+
+      kafkaTemplate.send(producerRecord);
+      log.info("Successfully sent ping response: {} with correlationId: {}", result, correlationId);
     } catch (Exception e) {
       log.error("Error handling ping request", e);
     }
   }
 
-  @KafkaListener(topics = KafkaConstants.TOPIC_USER_CREATE_REQUEST, groupId = "user-watcher-group", containerFactory = "kafkaListenerContainerFactory")
-  public void onCreateUserRequest(UserCreateRequest request) {
-    log.info("Received create user request: name={}", request.getName());
+  @KafkaListener(topics = KafkaConstants.TOPIC_USER_CREATE_REQUEST, groupId = "user-watcher-group", containerFactory = "avroKafkaListenerContainerFactory")
+  public void onCreateUserRequest(ConsumerRecord<String, UserCreateRequest> record) {
+    String correlationId = new String(record.headers().lastHeader(KafkaHeaders.CORRELATION_ID).value());
+    String replyTopic = new String(record.headers().lastHeader(KafkaHeaders.REPLY_TOPIC).value());
+    UserCreateRequest request = record.value();
+
+    log.info("Received create user request: name={} with correlationId: {}", request.getName(), correlationId);
     try {
       User domain = createUserFromRequest(request);
       User created = userService.create(domain);
       UserResponse userResponse = createUserResponse(created);
       UserCreateResponse response = new UserCreateResponse(userResponse);
-      kafkaTemplate.send(KafkaConstants.TOPIC_USER_CREATE_RESPONSE, response);
-      log.debug("Sent create user response for user: {}", created.getId());
+
+      // Create ProducerRecord with correlationId header
+      ProducerRecord<String, Object> producerRecord = new ProducerRecord<>(replyTopic, response);
+      producerRecord.headers().add(KafkaHeaders.CORRELATION_ID, correlationId.getBytes());
+
+      kafkaTemplate.send(producerRecord);
+      log.info("Successfully sent create user response for user: {} with correlationId: {}", created.getId(),
+          correlationId);
     } catch (Exception e) {
       log.error("Error handling create user request", e);
     }
   }
 
-  @KafkaListener(topics = KafkaConstants.TOPIC_USER_GET_REQUEST, groupId = "user-watcher-group", containerFactory = "kafkaListenerContainerFactory")
-  public void onGetUserRequest(UserGetRequest request) {
-    log.info("Received get user request: id={}", request.getId());
+  @KafkaListener(topics = KafkaConstants.TOPIC_USER_GET_REQUEST, groupId = "user-watcher-group", containerFactory = "avroKafkaListenerContainerFactory")
+  public void onGetUserRequest(ConsumerRecord<String, UserGetRequest> record) {
+    String correlationId = new String(record.headers().lastHeader(KafkaHeaders.CORRELATION_ID).value());
+    String replyTopic = new String(record.headers().lastHeader(KafkaHeaders.REPLY_TOPIC).value());
+    UserGetRequest request = record.value();
+
+    log.info("Received get user request: id={} with correlationId: {}", request.getId(), correlationId);
     try {
       Optional<User> user = userService.getById(request.getId());
       UserGetResponse response;
@@ -68,16 +99,25 @@ public class UserServiceKafkaListener {
       } else {
         response = new UserGetResponse(null, false);
       }
-      kafkaTemplate.send(KafkaConstants.TOPIC_USER_GET_RESPONSE, response);
-      log.debug("Sent get user response: found={}", user.isPresent());
+
+      // Create ProducerRecord with correlationId header
+      ProducerRecord<String, Object> producerRecord = new ProducerRecord<>(replyTopic, response);
+      producerRecord.headers().add(KafkaHeaders.CORRELATION_ID, correlationId.getBytes());
+
+      kafkaTemplate.send(producerRecord);
+      log.info("Successfully sent get user response: found={} with correlationId: {}", user.isPresent(), correlationId);
     } catch (Exception e) {
       log.error("Error handling get user request", e);
     }
   }
 
-  @KafkaListener(topics = KafkaConstants.TOPIC_USER_UPDATE_REQUEST, groupId = "user-watcher-group", containerFactory = "kafkaListenerContainerFactory")
-  public void onUpdateUserRequest(UserUpdateRequest request) {
-    log.info("Received update user request: id={}", request.getId());
+  @KafkaListener(topics = KafkaConstants.TOPIC_USER_UPDATE_REQUEST, groupId = "user-watcher-group", containerFactory = "avroKafkaListenerContainerFactory")
+  public void onUpdateUserRequest(ConsumerRecord<String, UserUpdateRequest> record) {
+    String correlationId = new String(record.headers().lastHeader(KafkaHeaders.CORRELATION_ID).value());
+    String replyTopic = new String(record.headers().lastHeader(KafkaHeaders.REPLY_TOPIC).value());
+    UserUpdateRequest request = record.value();
+
+    log.info("Received update user request: id={} with correlationId: {}", request.getId(), correlationId);
     try {
       Optional<User> existing = userService.getById(request.getId());
       UserUpdateResponse response;
@@ -89,16 +129,26 @@ public class UserServiceKafkaListener {
         UserResponse userResponse = createUserResponse(updated);
         response = new UserUpdateResponse(userResponse, true);
       }
-      kafkaTemplate.send(KafkaConstants.TOPIC_USER_UPDATE_RESPONSE, response);
-      log.debug("Sent update user response: updated={}", existing.isPresent());
+
+      // Create ProducerRecord with correlationId header
+      ProducerRecord<String, Object> producerRecord = new ProducerRecord<>(replyTopic, response);
+      producerRecord.headers().add(KafkaHeaders.CORRELATION_ID, correlationId.getBytes());
+
+      kafkaTemplate.send(producerRecord);
+      log.info("Successfully sent update user response: updated={} with correlationId: {}", existing.isPresent(),
+          correlationId);
     } catch (Exception e) {
       log.error("Error handling update user request", e);
     }
   }
 
-  @KafkaListener(topics = KafkaConstants.TOPIC_USER_DELETE_REQUEST, groupId = "user-watcher-group", containerFactory = "kafkaListenerContainerFactory")
-  public void onDeleteUserRequest(UserDeleteRequest request) {
-    log.info("Received delete user request: id={}", request.getId());
+  @KafkaListener(topics = KafkaConstants.TOPIC_USER_DELETE_REQUEST, groupId = "user-watcher-group", containerFactory = "avroKafkaListenerContainerFactory")
+  public void onDeleteUserRequest(ConsumerRecord<String, UserDeleteRequest> record) {
+    String correlationId = new String(record.headers().lastHeader(KafkaHeaders.CORRELATION_ID).value());
+    String replyTopic = new String(record.headers().lastHeader(KafkaHeaders.REPLY_TOPIC).value());
+    UserDeleteRequest request = record.value();
+
+    log.info("Received delete user request: id={} with correlationId: {}", request.getId(), correlationId);
     try {
       Optional<User> existing = userService.getById(request.getId());
       UserDeleteResponse response;
@@ -108,16 +158,27 @@ public class UserServiceKafkaListener {
         userService.delete(request.getId());
         response = new UserDeleteResponse(true);
       }
-      kafkaTemplate.send(KafkaConstants.TOPIC_USER_DELETE_RESPONSE, response);
-      log.debug("Sent delete user response: deleted={}", existing.isPresent());
+
+      // Create ProducerRecord with correlationId header
+      ProducerRecord<String, Object> producerRecord = new ProducerRecord<>(replyTopic, response);
+      producerRecord.headers().add(KafkaHeaders.CORRELATION_ID, correlationId.getBytes());
+
+      kafkaTemplate.send(producerRecord);
+      log.info("Successfully sent delete user response: deleted={} with correlationId: {}", existing.isPresent(),
+          correlationId);
     } catch (Exception e) {
       log.error("Error handling delete user request", e);
     }
   }
 
-  @KafkaListener(topics = KafkaConstants.TOPIC_USER_LIST_REQUEST, groupId = "user-watcher-group", containerFactory = "kafkaListenerContainerFactory")
-  public void onListUsersRequest(UserListRequest request) {
-    log.info("Received list users request: page={}, size={}", request.getPage(), request.getSize());
+  @KafkaListener(topics = KafkaConstants.TOPIC_USER_LIST_REQUEST, groupId = "user-watcher-group", containerFactory = "avroKafkaListenerContainerFactory")
+  public void onListUsersRequest(ConsumerRecord<String, UserListRequest> record) {
+    String correlationId = new String(record.headers().lastHeader(KafkaHeaders.CORRELATION_ID).value());
+    String replyTopic = new String(record.headers().lastHeader(KafkaHeaders.REPLY_TOPIC).value());
+    UserListRequest request = record.value();
+
+    log.info("Received list users request: page={}, size={} with correlationId: {}", request.getPage(),
+        request.getSize(), correlationId);
     try {
       UserQueryCriteria criteria = createCriteriaFromRequest(request);
       List<User> users = userService.listByCriteria(criteria);
@@ -131,8 +192,13 @@ public class UserServiceKafkaListener {
           criteria.getSize(),
           total,
           (int) Math.ceil((double) total / criteria.getSize()));
-      kafkaTemplate.send(KafkaConstants.TOPIC_USER_LIST_RESPONSE, response);
-      log.debug("Sent list users response: {} users", users.size());
+
+      // Create ProducerRecord with correlationId header
+      ProducerRecord<String, Object> producerRecord = new ProducerRecord<>(replyTopic, response);
+      producerRecord.headers().add(KafkaHeaders.CORRELATION_ID, correlationId.getBytes());
+
+      kafkaTemplate.send(producerRecord);
+      log.info("Successfully sent list users response: {} users with correlationId: {}", users.size(), correlationId);
     } catch (Exception e) {
       log.error("Error handling list users request", e);
     }

@@ -22,8 +22,6 @@ spring:
       group-id: user-thrift-server-group
       auto-offset-reset: earliest
       enable-auto-commit: false
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
       properties:
         schema.registry.url: ${SCHEMA_REGISTRY_URL:http://schema-registry:8081}
         specific.avro.reader: true
@@ -36,8 +34,6 @@ spring:
         delivery.timeout.ms: 120000
         schema.registry.url: ${SCHEMA_REGISTRY_URL:http://schema-registry:8081}
         auto.register.schemas: true
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
     listener:
       ack-mode: record
       missing-topics-fatal: false
@@ -49,6 +45,28 @@ app:
   name: user-thrift-server-service
   version: 1.0.0
   environment: ${ENVIRONMENT:development}
+
+kafka:
+  topics:
+    ping:
+      request: ping.request
+      response: ping.response
+    user:
+      create:
+        request: user.create.request
+        response: user.create.response
+      get:
+        request: user.get.request
+        response: user.get.response
+      update:
+        request: user.update.request
+        response: user.update.response
+      delete:
+        request: user.delete.request
+        response: user.delete.response
+      list:
+        request: user.list.request
+        response: user.list.response
 
 management:
   endpoints:
@@ -71,8 +89,10 @@ management:
 
 logging:
   level:
+    root: DEBUG
     com.example.thriftserver: DEBUG
+    org.springframework.kafka: DEBUG
+    org.apache.kafka: DEBUG
     org.springframework.web: INFO
-    org.apache.kafka: INFO
     io.micrometer: INFO
   config: classpath:log4j2-spring.xml

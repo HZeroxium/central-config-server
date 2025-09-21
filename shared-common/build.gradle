@@ -101,28 +101,28 @@ avro {
 schemaRegistry {
     url = 'http://localhost:8087'
     register {
-        // Register enums first (no dependencies)
-        subject('user-status', 'shared-common/src/main/avro/UserStatus.avsc', 'AVRO')
-        subject('user-role', 'shared-common/src/main/avro/UserRole.avsc', 'AVRO')
+        // Register enums first (no dependencies) - these are used as types in other schemas
+        subject('UserStatus', 'shared-common/src/main/avro/UserStatus.avsc', 'AVRO')
+        subject('UserRole', 'shared-common/src/main/avro/UserRole.avsc', 'AVRO')
         
-        // Register request schemas
-        subject('user-create-request', 'shared-common/src/main/avro/UserCreateRequest.avsc', 'AVRO')
-        subject('user-get-request', 'shared-common/src/main/avro/UserGetRequest.avsc', 'AVRO')
-        subject('user-update-request', 'shared-common/src/main/avro/UserUpdateRequest.avsc', 'AVRO')
-        subject('user-delete-request', 'shared-common/src/main/avro/UserDeleteRequest.avsc', 'AVRO')
-        subject('user-list-request', 'shared-common/src/main/avro/UserListRequest.avsc', 'AVRO')
-        subject('ping-request', 'shared-common/src/main/avro/PingRequest.avsc', 'AVRO')
+        // Register UserResponse (depends on UserStatus and UserRole) - must come after enums
+        subject('UserResponse', 'shared-common/src/main/avro/UserResponse.avsc', 'AVRO')
         
-        // Register UserResponse (depends on UserStatus and UserRole)
-        subject('user-response', 'shared-common/src/main/avro/UserResponse.avsc', 'AVRO')
+        // Register request schemas with topic-value naming convention
+        subject('user.create.request-value', 'shared-common/src/main/avro/UserCreateRequest.avsc', 'AVRO')
+        subject('user.get.request-value', 'shared-common/src/main/avro/UserGetRequest.avsc', 'AVRO')
+        subject('user.update.request-value', 'shared-common/src/main/avro/UserUpdateRequest.avsc', 'AVRO')
+        subject('user.delete.request-value', 'shared-common/src/main/avro/UserDeleteRequest.avsc', 'AVRO')
+        subject('user.list.request-value', 'shared-common/src/main/avro/UserListRequest.avsc', 'AVRO')
+        subject('ping.request-value', 'shared-common/src/main/avro/PingRequest.avsc', 'AVRO')
         
-        // Register response schemas
-        subject('user-create-response', 'shared-common/src/main/avro/UserCreateResponse.avsc', 'AVRO')
-        subject('user-get-response', 'shared-common/src/main/avro/UserGetResponse.avsc', 'AVRO')
-        subject('user-update-response', 'shared-common/src/main/avro/UserUpdateResponse.avsc', 'AVRO')
-        subject('user-delete-response', 'shared-common/src/main/avro/UserDeleteResponse.avsc', 'AVRO')
-        subject('user-list-response', 'shared-common/src/main/avro/UserListResponse.avsc', 'AVRO')
-        subject('ping-response', 'shared-common/src/main/avro/PingResponse.avsc', 'AVRO')
+        // Register response schemas with topic-value naming convention
+        subject('user.create.response-value', 'shared-common/src/main/avro/UserCreateResponse.avsc', 'AVRO')
+        subject('user.get.response-value', 'shared-common/src/main/avro/UserGetResponse.avsc', 'AVRO')
+        subject('user.update.response-value', 'shared-common/src/main/avro/UserUpdateResponse.avsc', 'AVRO')
+        subject('user.delete.response-value', 'shared-common/src/main/avro/UserDeleteResponse.avsc', 'AVRO')
+        subject('user.list.response-value', 'shared-common/src/main/avro/UserListResponse.avsc', 'AVRO')
+        subject('ping.response-value', 'shared-common/src/main/avro/PingResponse.avsc', 'AVRO')
     }
 }
 

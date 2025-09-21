@@ -42,6 +42,28 @@ app:
   version: 1.0.0
   environment: ${ENVIRONMENT:development}
 
+kafka:
+  topics:
+    ping:
+      request: ping.request
+      response: ping.response
+    user:
+      create:
+        request: user.create.request
+        response: user.create.response
+      get:
+        request: user.get.request
+        response: user.get.response
+      update:
+        request: user.update.request
+        response: user.update.response
+      delete:
+        request: user.delete.request
+        response: user.delete.response
+      list:
+        request: user.list.request
+        response: user.list.response
+
 management:
   endpoints:
     web:

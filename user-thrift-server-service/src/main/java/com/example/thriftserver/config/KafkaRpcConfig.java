@@ -14,32 +14,13 @@ import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.listener.ContainerProperties;
-import org.springframework.kafka.requestreply.ReplyingKafkaTemplate;
-import com.example.kafka.serialization.AvroSerializer;
-import com.example.kafka.serialization.AvroDeserializer;
+import org.springframework.context.annotation.Primary;
 
 import java.util.Map;
 
 @EnableKafka
 @Configuration
 public class KafkaRpcConfig {
-
-  @Bean
-  public ReplyingKafkaTemplate<String, Object, Object> replyingKafkaTemplate(
-      @Qualifier("avroProducerFactory") ProducerFactory<String, Object> pf,
-      @Qualifier("avroConsumerFactory") ConsumerFactory<String, Object> cf) {
-    // Create a separate container factory for RPC template
-    ConcurrentKafkaListenerContainerFactory<String, Object> rpcFactory = new ConcurrentKafkaListenerContainerFactory<>();
-    rpcFactory.setConsumerFactory(cf);
-    rpcFactory.getContainerProperties().setAckMode(ContainerProperties.AckMode.BATCH);
-    rpcFactory.setBatchListener(false); // Ensure it's not a batch listener
-
-    // Create a template that can handle dynamic reply topics
-    // We need to provide at least one topic for the container to be valid
-    ReplyingKafkaTemplate<String, Object, Object> template = new ReplyingKafkaTemplate<String, Object, Object>(pf,
-        rpcFactory.createContainer("temp-reply-topic"));
-    return template;
-  }
 
   @Bean
   public ConcurrentKafkaListenerContainerFactory<String, Object> kafkaListenerContainerFactory(
@@ -61,35 +42,54 @@ public class KafkaRpcConfig {
     return f;
   }
 
-  // Avro Producer Factory
+  // Avro Producer Factory using Confluent serializers
   @Bean
+  @Primary
   public ProducerFactory<String, Object> avroProducerFactory(KafkaProperties props) {
     Map<String, Object> cfg = props.buildProducerProperties();
-    cfg.putIfAbsent(ProducerConfig.ACKS_CONFIG, "all");
-    cfg.putIfAbsent(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
+    cfg.put(ProducerConfig.ACKS_CONFIG, "all");
+    cfg.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
         "org.apache.kafka.common.serialization.StringSerializer");
-    cfg.putIfAbsent(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, AvroSerializer.class.getName());
-    cfg.putIfAbsent("schema.registry.url", "http://localhost:8087");
-    cfg.putIfAbsent("auto.register.schemas", "true");
+    cfg.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
+        "io.confluent.kafka.serializers.KafkaAvroSerializer");
+    cfg.put("schema.registry.url", "http://schema-registry:8081");
+    cfg.put("auto.register.schemas", "true");
+
+    // Log the configuration to debug
+    System.out.println("Avro Producer Factory Configuration: " + cfg);
+
     return new DefaultKafkaProducerFactory<>(cfg);
   }
 
-  // Avro Consumer Factory
+  // Avro Consumer Factory using Confluent deserializers
   @Bean
+  @Primary
   public ConsumerFactory<String, Object> avroConsumerFactory(KafkaProperties props) {
     Map<String, Object> cfg = props.buildConsumerProperties();
-    cfg.putIfAbsent(ConsumerConfig.GROUP_ID_CONFIG, "user-thrift-server-avro");
-    cfg.putIfAbsent(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
+    cfg.put(ConsumerConfig.GROUP_ID_CONFIG, "user-thrift-server-avro");
+    cfg.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
         "org.apache.kafka.common.serialization.StringDeserializer");
-    cfg.putIfAbsent(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, AvroDeserializer.class.getName());
-    cfg.putIfAbsent("schema.registry.url", "http://localhost:8087");
-    cfg.putIfAbsent("specific.avro.reader", "true");
+    cfg.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
+        "io.confluent.kafka.serializers.KafkaAvroDeserializer");
+    cfg.put("schema.registry.url", "http://schema-registry:8081");
+    cfg.put("specific.avro.reader", "true");
+
+    System.out.println("Avro Consumer Factory Configuration: " + cfg);
+
     return new DefaultKafkaConsumerFactory<>(cfg);
   }
 
   // Avro Kafka Template
   @Bean
   public KafkaTemplate<String, Object> avroKafkaTemplate(
+      @Qualifier("avroProducerFactory") ProducerFactory<String, Object> pf) {
+    return new KafkaTemplate<>(pf);
+  }
+
+  // Default Kafka Template for auto-configuration replacement
+  @Bean
+  @Primary
+  public KafkaTemplate<String, Object> kafkaTemplate(
       @Qualifier("avroProducerFactory") ProducerFactory<String, Object> pf) {
     return new KafkaTemplate<>(pf);
   }

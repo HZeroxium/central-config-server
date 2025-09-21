@@ -3,27 +3,34 @@ package com.example.thriftserver.service;
 import com.example.kafka.constants.KafkaConstants;
 import com.example.kafka.avro.*;
 import com.example.user.thrift.*;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.apache.thrift.TException;
+import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.KafkaHeaders;
-import org.springframework.kafka.requestreply.ReplyingKafkaTemplate;
-import org.springframework.kafka.requestreply.RequestReplyFuture;
 import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Qualifier;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class UserServiceThriftHandler implements UserService.Iface {
 
-    private final ReplyingKafkaTemplate<String, Object, Object> kafkaTemplate;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final ConcurrentHashMap<String, CompletableFuture<Object>> pendingReplies = new ConcurrentHashMap<>();
+
+    public UserServiceThriftHandler(
+            @Qualifier("avroKafkaTemplate") KafkaTemplate<String, Object> kafkaTemplate) {
+        this.kafkaTemplate = kafkaTemplate;
+    }
 
     private TUser convertToTUser(UserResponse userResponse) {
         TUser tUser = new TUser();
@@ -45,15 +52,33 @@ public class UserServiceThriftHandler implements UserService.Iface {
     public TPingResponse ping() throws TException {
         try {
             String correlationId = UUID.randomUUID().toString();
+            log.info("Sending ping request with correlationId: {}", correlationId);
+
             ProducerRecord<String, Object> record = new ProducerRecord<>(KafkaConstants.TOPIC_PING_REQUEST,
                     correlationId, new PingRequest(System.currentTimeMillis()));
             record.headers()
                     .add(new RecordHeader(KafkaHeaders.REPLY_TOPIC, KafkaConstants.TOPIC_PING_RESPONSE.getBytes()));
-            RequestReplyFuture<String, Object, Object> replyFuture = kafkaTemplate.sendAndReceive(record);
+            record.headers()
+                    .add(new RecordHeader(KafkaHeaders.CORRELATION_ID, correlationId.getBytes()));
 
-            ConsumerRecord<String, Object> consumerRecord = replyFuture.get(10, TimeUnit.SECONDS);
-            PingResponse response = (PingResponse) consumerRecord.value();
-            return new TPingResponse(0, "Service is healthy", response.getMessage());
+            // Create future for response
+            CompletableFuture<Object> future = new CompletableFuture<>();
+            pendingReplies.put(correlationId, future);
+
+            // Send request
+            kafkaTemplate.send(record);
+
+            // Wait for response
+            Object response = future.get(30, TimeUnit.SECONDS);
+            pendingReplies.remove(correlationId);
+
+            if (response instanceof PingResponse) {
+                PingResponse pingResponse = (PingResponse) response;
+                log.info("Received ping response: {}", pingResponse.getMessage());
+                return new TPingResponse(0, "Service is healthy", pingResponse.getMessage());
+            } else {
+                throw new RuntimeException("Unexpected response type: " + response.getClass());
+            }
         } catch (Exception e) {
             log.error("Error during ping: {}", e.getMessage(), e);
             throw new TException("Ping failed: " + e.getMessage(), e);
@@ -75,12 +100,27 @@ public class UserServiceThriftHandler implements UserService.Iface {
                     correlationId, avroRequest);
             record.headers().add(
                     new RecordHeader(KafkaHeaders.REPLY_TOPIC, KafkaConstants.TOPIC_USER_CREATE_RESPONSE.getBytes()));
-            RequestReplyFuture<String, Object, Object> replyFuture = kafkaTemplate.sendAndReceive(record);
+            record.headers()
+                    .add(new RecordHeader(KafkaHeaders.CORRELATION_ID, correlationId.getBytes()));
 
-            ConsumerRecord<String, Object> consumerRecord = replyFuture.get(10, TimeUnit.SECONDS);
-            UserCreateResponse response = (UserCreateResponse) consumerRecord.value();
-            TUser tUser = convertToTUser(response.getUser());
-            return new TCreateUserResponse(0, "User created successfully", tUser);
+            // Create future for response
+            CompletableFuture<Object> future = new CompletableFuture<>();
+            pendingReplies.put(correlationId, future);
+
+            // Send request
+            kafkaTemplate.send(record);
+
+            // Wait for response
+            Object response = future.get(30, TimeUnit.SECONDS);
+            pendingReplies.remove(correlationId);
+
+            if (response instanceof UserCreateResponse) {
+                UserCreateResponse createResponse = (UserCreateResponse) response;
+                TUser tUser = convertToTUser(createResponse.getUser());
+                return new TCreateUserResponse(0, "User created successfully", tUser);
+            } else {
+                throw new RuntimeException("Unexpected response type: " + response.getClass());
+            }
         } catch (Exception e) {
             log.error("Error creating user: {}", e.getMessage(), e);
             throw new TException("User creation failed: " + e.getMessage(), e);
@@ -97,15 +137,30 @@ public class UserServiceThriftHandler implements UserService.Iface {
                     correlationId, avroRequest);
             record.headers()
                     .add(new RecordHeader(KafkaHeaders.REPLY_TOPIC, KafkaConstants.TOPIC_USER_GET_RESPONSE.getBytes()));
-            RequestReplyFuture<String, Object, Object> replyFuture = kafkaTemplate.sendAndReceive(record);
+            record.headers()
+                    .add(new RecordHeader(KafkaHeaders.CORRELATION_ID, correlationId.getBytes()));
 
-            ConsumerRecord<String, Object> consumerRecord = replyFuture.get(10, TimeUnit.SECONDS);
-            UserGetResponse response = (UserGetResponse) consumerRecord.value();
-            if (!response.getFound()) {
-                return new TGetUserResponse(2, "User not found", null);
+            // Create future for response
+            CompletableFuture<Object> future = new CompletableFuture<>();
+            pendingReplies.put(correlationId, future);
+
+            // Send request
+            kafkaTemplate.send(record);
+
+            // Wait for response
+            Object response = future.get(30, TimeUnit.SECONDS);
+            pendingReplies.remove(correlationId);
+
+            if (response instanceof UserGetResponse) {
+                UserGetResponse getResponse = (UserGetResponse) response;
+                if (!getResponse.getFound()) {
+                    return new TGetUserResponse(2, "User not found", null);
+                }
+                TUser tUser = convertToTUser(getResponse.getUser());
+                return new TGetUserResponse(0, "User retrieved successfully", tUser);
+            } else {
+                throw new RuntimeException("Unexpected response type: " + response.getClass());
             }
-            TUser tUser = convertToTUser(response.getUser());
-            return new TGetUserResponse(0, "User retrieved successfully", tUser);
         } catch (Exception e) {
             log.error("Error getting user: {}", e.getMessage(), e);
             return new TGetUserResponse(2, "Error retrieving user: " + e.getMessage(), null);
@@ -129,15 +184,30 @@ public class UserServiceThriftHandler implements UserService.Iface {
                     correlationId, avroRequest);
             record.headers().add(
                     new RecordHeader(KafkaHeaders.REPLY_TOPIC, KafkaConstants.TOPIC_USER_UPDATE_RESPONSE.getBytes()));
-            RequestReplyFuture<String, Object, Object> replyFuture = kafkaTemplate.sendAndReceive(record);
+            record.headers()
+                    .add(new RecordHeader(KafkaHeaders.CORRELATION_ID, correlationId.getBytes()));
 
-            ConsumerRecord<String, Object> consumerRecord = replyFuture.get(10, TimeUnit.SECONDS);
-            UserUpdateResponse response = (UserUpdateResponse) consumerRecord.value();
-            if (!response.getUpdated()) {
-                return new TUpdateUserResponse(1, "User not found", null);
+            // Create future for response
+            CompletableFuture<Object> future = new CompletableFuture<>();
+            pendingReplies.put(correlationId, future);
+
+            // Send request
+            kafkaTemplate.send(record);
+
+            // Wait for response
+            Object response = future.get(30, TimeUnit.SECONDS);
+            pendingReplies.remove(correlationId);
+
+            if (response instanceof UserUpdateResponse) {
+                UserUpdateResponse updateResponse = (UserUpdateResponse) response;
+                if (!updateResponse.getUpdated()) {
+                    return new TUpdateUserResponse(1, "User not found", null);
+                }
+                TUser tUser = convertToTUser(updateResponse.getUser());
+                return new TUpdateUserResponse(0, "User updated successfully", tUser);
+            } else {
+                throw new RuntimeException("Unexpected response type: " + response.getClass());
             }
-            TUser tUser = convertToTUser(response.getUser());
-            return new TUpdateUserResponse(0, "User updated successfully", tUser);
         } catch (Exception e) {
             log.error("Error updating user: {}", e.getMessage(), e);
             return new TUpdateUserResponse(1, "Error updating user: " + e.getMessage(), null);
@@ -154,14 +224,29 @@ public class UserServiceThriftHandler implements UserService.Iface {
                     correlationId, avroRequest);
             record.headers().add(
                     new RecordHeader(KafkaHeaders.REPLY_TOPIC, KafkaConstants.TOPIC_USER_DELETE_RESPONSE.getBytes()));
-            RequestReplyFuture<String, Object, Object> replyFuture = kafkaTemplate.sendAndReceive(record);
+            record.headers()
+                    .add(new RecordHeader(KafkaHeaders.CORRELATION_ID, correlationId.getBytes()));
 
-            ConsumerRecord<String, Object> consumerRecord = replyFuture.get(10, TimeUnit.SECONDS);
-            UserDeleteResponse response = (UserDeleteResponse) consumerRecord.value();
-            if (!response.getDeleted()) {
-                return new TDeleteUserResponse(1, "User not found");
+            // Create future for response
+            CompletableFuture<Object> future = new CompletableFuture<>();
+            pendingReplies.put(correlationId, future);
+
+            // Send request
+            kafkaTemplate.send(record);
+
+            // Wait for response
+            Object response = future.get(30, TimeUnit.SECONDS);
+            pendingReplies.remove(correlationId);
+
+            if (response instanceof UserDeleteResponse) {
+                UserDeleteResponse deleteResponse = (UserDeleteResponse) response;
+                if (!deleteResponse.getDeleted()) {
+                    return new TDeleteUserResponse(1, "User not found");
+                }
+                return new TDeleteUserResponse(0, "User deleted successfully");
+            } else {
+                throw new RuntimeException("Unexpected response type: " + response.getClass());
             }
-            return new TDeleteUserResponse(0, "User deleted successfully");
         } catch (Exception e) {
             log.error("Error deleting user: {}", e.getMessage(), e);
             return new TDeleteUserResponse(1, "Error deleting user: " + e.getMessage());
@@ -184,26 +269,119 @@ public class UserServiceThriftHandler implements UserService.Iface {
                     correlationId, avroRequest);
             record.headers().add(
                     new RecordHeader(KafkaHeaders.REPLY_TOPIC, KafkaConstants.TOPIC_USER_LIST_RESPONSE.getBytes()));
-            RequestReplyFuture<String, Object, Object> replyFuture = kafkaTemplate.sendAndReceive(record);
+            record.headers()
+                    .add(new RecordHeader(KafkaHeaders.CORRELATION_ID, correlationId.getBytes()));
 
-            ConsumerRecord<String, Object> consumerRecord = replyFuture.get(10, TimeUnit.SECONDS);
-            UserListResponse response = (UserListResponse) consumerRecord.value();
-            List<TUser> tUsers = response.getItems().stream()
-                    .map(this::convertToTUser)
-                    .toList();
+            // Create future for response
+            CompletableFuture<Object> future = new CompletableFuture<>();
+            pendingReplies.put(correlationId, future);
 
-            return new TListUsersResponse(
-                    0,
-                    "Users retrieved successfully",
-                    tUsers,
-                    response.getPage(),
-                    response.getSize(),
-                    response.getTotal(),
-                    response.getTotalPages());
+            // Send request
+            kafkaTemplate.send(record);
+
+            // Wait for response
+            Object response = future.get(30, TimeUnit.SECONDS);
+            pendingReplies.remove(correlationId);
+
+            if (response instanceof UserListResponse) {
+                UserListResponse listResponse = (UserListResponse) response;
+                List<TUser> tUsers = listResponse.getItems().stream()
+                        .map(this::convertToTUser)
+                        .toList();
+
+                return new TListUsersResponse(
+                        0,
+                        "Users retrieved successfully",
+                        tUsers,
+                        listResponse.getPage(),
+                        listResponse.getSize(),
+                        listResponse.getTotal(),
+                        listResponse.getTotalPages());
+            } else {
+                throw new RuntimeException("Unexpected response type: " + response.getClass());
+            }
         } catch (Exception e) {
             log.error("Error listing users: {}", e.getMessage(), e);
             throw new TException("Error listing users: " + e.getMessage(), e);
         }
     }
 
+    // Listen for responses
+    @KafkaListener(topics = "${kafka.topics.ping.response}")
+    public void onPingResponse(ConsumerRecord<String, Object> record) {
+        String correlationId = new String(record.headers().lastHeader(KafkaHeaders.CORRELATION_ID).value());
+        log.info("Received ping response with correlationId: {}", correlationId);
+
+        CompletableFuture<Object> future = pendingReplies.remove(correlationId);
+        if (future != null) {
+            future.complete(record.value());
+        } else {
+            log.warn("No pending reply found for correlationId: {}", correlationId);
+        }
+    }
+
+    @KafkaListener(topics = "${kafka.topics.user.create.response}")
+    public void onCreateUserResponse(ConsumerRecord<String, Object> record) {
+        String correlationId = new String(record.headers().lastHeader(KafkaHeaders.CORRELATION_ID).value());
+        log.info("Received createUser response with correlationId: {}", correlationId);
+
+        CompletableFuture<Object> future = pendingReplies.remove(correlationId);
+        if (future != null) {
+            future.complete(record.value());
+        } else {
+            log.warn("No pending reply found for correlationId: {}", correlationId);
+        }
+    }
+
+    @KafkaListener(topics = "${kafka.topics.user.get.response}")
+    public void onGetUserResponse(ConsumerRecord<String, Object> record) {
+        String correlationId = new String(record.headers().lastHeader(KafkaHeaders.CORRELATION_ID).value());
+        log.info("Received getUser response with correlationId: {}", correlationId);
+
+        CompletableFuture<Object> future = pendingReplies.remove(correlationId);
+        if (future != null) {
+            future.complete(record.value());
+        } else {
+            log.warn("No pending reply found for correlationId: {}", correlationId);
+        }
+    }
+
+    @KafkaListener(topics = "${kafka.topics.user.update.response}")
+    public void onUpdateUserResponse(ConsumerRecord<String, Object> record) {
+        String correlationId = new String(record.headers().lastHeader(KafkaHeaders.CORRELATION_ID).value());
+        log.info("Received updateUser response with correlationId: {}", correlationId);
+
+        CompletableFuture<Object> future = pendingReplies.remove(correlationId);
+        if (future != null) {
+            future.complete(record.value());
+        } else {
+            log.warn("No pending reply found for correlationId: {}", correlationId);
+        }
+    }
+
+    @KafkaListener(topics = "${kafka.topics.user.delete.response}")
+    public void onDeleteUserResponse(ConsumerRecord<String, Object> record) {
+        String correlationId = new String(record.headers().lastHeader(KafkaHeaders.CORRELATION_ID).value());
+        log.info("Received deleteUser response with correlationId: {}", correlationId);
+
+        CompletableFuture<Object> future = pendingReplies.remove(correlationId);
+        if (future != null) {
+            future.complete(record.value());
+        } else {
+            log.warn("No pending reply found for correlationId: {}", correlationId);
+        }
+    }
+
+    @KafkaListener(topics = "${kafka.topics.user.list.response}")
+    public void onListUsersResponse(ConsumerRecord<String, Object> record) {
+        String correlationId = new String(record.headers().lastHeader(KafkaHeaders.CORRELATION_ID).value());
+        log.info("Received listUsers response with correlationId: {}", correlationId);
+
+        CompletableFuture<Object> future = pendingReplies.remove(correlationId);
+        if (future != null) {
+            future.complete(record.value());
+        } else {
+            log.warn("No pending reply found for correlationId: {}", correlationId);
+        }
+    }
 }

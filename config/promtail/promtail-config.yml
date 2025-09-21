@@ -21,7 +21,7 @@ scrape_configs:
         refresh_interval: 5s
         filters:
           - name: label
-            values: ["service=user-rpc-thrift-service", "service=user-rest-spring-service"]
+            values: ["service=user-rpc-thrift-service", "service=user-rest-spring-service", "service=user-thrift-server-service", "service=user-watcher-service"]
 
     relabel_configs:
       - source_labels: ['__meta_docker_container_name']
@@ -98,6 +98,60 @@ scrape_configs:
           job: application-logs
           service: user-rest-spring-service
           __path__: /var/log/apps/user-rest-spring-service/*.log
+
+    pipeline_stages:
+      - regex:
+          expression: '^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}) \[(?P<thread>[^\]]+)\] (?P<level>\w+)\s+(?P<logger>[^-]+) - (?P<message>.*)'
+      
+      - timestamp:
+          source: timestamp
+          format: '2006-01-02 15:04:05.000'
+      
+      - labels:
+          level:
+          logger:
+          thread:
+          service:
+      
+      - output:
+          source: message
+
+  # Scrape logs from Thrift Server service files
+  - job_name: user-thrift-server-file-logs
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: application-logs
+          service: user-thrift-server-service
+          __path__: /var/log/apps/user-thrift-server-service/*.log
+
+    pipeline_stages:
+      - regex:
+          expression: '^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}) \[(?P<thread>[^\]]+)\] (?P<level>\w+)\s+(?P<logger>[^-]+) - (?P<message>.*)'
+      
+      - timestamp:
+          source: timestamp
+          format: '2006-01-02 15:04:05.000'
+      
+      - labels:
+          level:
+          logger:
+          thread:
+          service:
+      
+      - output:
+          source: message
+
+  # Scrape logs from Watcher service files
+  - job_name: user-watcher-file-logs
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: application-logs
+          service: user-watcher-service
+          __path__: /var/log/apps/user-watcher-service/*.log
 
     pipeline_stages:
       - regex:

@@ -14,8 +14,6 @@ import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.listener.ContainerProperties;
-import com.example.kafka.serialization.AvroSerializer;
-import com.example.kafka.serialization.AvroDeserializer;
 
 import java.util.Map;
 
@@ -39,33 +37,35 @@ public class KafkaConfig {
     return f;
   }
 
-  // Avro Producer Factory
+  // Avro Producer Factory using Confluent serializers
   @Bean
   public ProducerFactory<String, Object> avroProducerFactory(KafkaProperties props) {
     Map<String, Object> cfg = props.buildProducerProperties();
-    cfg.putIfAbsent(ProducerConfig.ACKS_CONFIG, "all");
-    cfg.putIfAbsent(ProducerConfig.RETRIES_CONFIG, 2147483647);
-    cfg.putIfAbsent(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
-    cfg.putIfAbsent(ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, 120000);
-    cfg.putIfAbsent(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
+    cfg.put(ProducerConfig.ACKS_CONFIG, "all");
+    cfg.put(ProducerConfig.RETRIES_CONFIG, 2147483647);
+    cfg.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
+    cfg.put(ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, 120000);
+    cfg.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
         "org.apache.kafka.common.serialization.StringSerializer");
-    cfg.putIfAbsent(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, AvroSerializer.class.getName());
-    cfg.putIfAbsent("schema.registry.url", "http://localhost:8087");
-    cfg.putIfAbsent("auto.register.schemas", "true");
+    cfg.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
+        "io.confluent.kafka.serializers.KafkaAvroSerializer");
+    cfg.put("schema.registry.url", "http://schema-registry:8081");
+    cfg.put("auto.register.schemas", "true");
     return new DefaultKafkaProducerFactory<>(cfg);
   }
 
-  // Avro Consumer Factory
+  // Avro Consumer Factory using Confluent deserializers
   @Bean
   public ConsumerFactory<String, Object> avroConsumerFactory(KafkaProperties props) {
     Map<String, Object> cfg = props.buildConsumerProperties();
-    cfg.putIfAbsent(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
-    cfg.putIfAbsent(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed");
-    cfg.putIfAbsent(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
+    cfg.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
+    cfg.put(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed");
+    cfg.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
         "org.apache.kafka.common.serialization.StringDeserializer");
-    cfg.putIfAbsent(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, AvroDeserializer.class.getName());
-    cfg.putIfAbsent("schema.registry.url", "http://localhost:8087");
-    cfg.putIfAbsent("specific.avro.reader", "true");
+    cfg.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
+        "io.confluent.kafka.serializers.KafkaAvroDeserializer");
+    cfg.put("schema.registry.url", "http://schema-registry:8081");
+    cfg.put("specific.avro.reader", "true");
     return new DefaultKafkaConsumerFactory<>(cfg);
   }
 
