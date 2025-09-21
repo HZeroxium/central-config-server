@@ -1,7 +1,6 @@
 package com.example.thriftserver.service;
 
 import com.example.thriftserver.config.AppProperties;
-import com.example.thriftserver.config.KafkaTopicsProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.ProducerRecord;

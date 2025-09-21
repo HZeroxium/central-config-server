@@ -1,5 +1,6 @@
 package com.example.watcher.config;
 
+import com.example.watcher.constants.WatcherConstants;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
@@ -58,6 +59,7 @@ public class KafkaConfig {
   @Bean
   public ConsumerFactory<String, Object> avroConsumerFactory(KafkaProperties props) {
     Map<String, Object> cfg = props.buildConsumerProperties();
+    cfg.put(ConsumerConfig.GROUP_ID_CONFIG, WatcherConstants.CONSUMER_GROUP_ID);
     cfg.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
     cfg.put(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed");
     cfg.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,

@@ -39,17 +39,17 @@ spring:
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
       properties:
-        schema.registry.url: ${SCHEMA_REGISTRY_URL:http://schema-registry:8081}
-        specific.avro.reader: true
-        isolation.level: read_committed
+        "[schema.registry.url]": ${SCHEMA_REGISTRY_URL:http://schema-registry:8081}
+        "[specific.avro.reader]": true
+        "[isolation.level]": read_committed
     producer:
       acks: all
       retries: 2147483647
       properties:
-        enable.idempotence: true
-        delivery.timeout.ms: 120000
-        schema.registry.url: ${SCHEMA_REGISTRY_URL:http://schema-registry:8081}
-        auto.register.schemas: true
+        "[enable.idempotence]": true
+        "[delivery.timeout.ms]": 120000
+        "[schema.registry.url]": ${SCHEMA_REGISTRY_URL:http://schema-registry:8081}
+        "[auto.register.schemas]": true
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
     listener:
@@ -62,6 +62,26 @@ app:
   environment: ${ENVIRONMENT:development}
   persistence:
     type: ${PERSISTENCE_TYPE:mongo}
+    mongodb-uri: ${MONGODB_URI:mongodb://localhost:27017/users}
+    jdbc-url: ${JDBC_URL:jdbc:h2:mem:userdb;DB_CLOSE_DELAY=-1;MODE=LEGACY}
+    jdbc-driver: org.h2.Driver
+    jdbc-username: sa
+    jdbc-password: password
+
+kafka:
+  topics:
+    ping-request: ping.request
+    ping-response: ping.response
+    user-create-request: user.create.request
+    user-create-response: user.create.response
+    user-get-request: user.get.request
+    user-get-response: user.get.response
+    user-update-request: user.update.request
+    user-update-response: user.update.response
+    user-delete-request: user.delete.request
+    user-delete-response: user.delete.response
+    user-list-request: user.list.request
+    user-list-response: user.list.response
 
 management:
   endpoints:

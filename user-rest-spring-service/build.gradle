@@ -88,11 +88,24 @@ tasks.register('e2eTest', Test) {
     testClassesDirs = sourceSets.test.output.classesDirs
     classpath = sourceSets.test.runtimeClasspath
     include 'com/example/rest/user/e2e/UserE2ESimpleTest.class'
+
+    // Set timeout for tests
+    timeout = Duration.ofMinutes(10)
     
     // Ensure system is running
     doFirst {
         println "Running E2E tests against running system..."
         println "Make sure to run 'docker-compose up -d' first!"
+
+        // Check if service is running
+        try {
+            def response = new URL("http://localhost:8083/actuator/health").openConnection()
+            if (response.responseCode != 200) {
+                throw new GradleException("Service is not healthy. Please check docker-compose status.")
+            }
+        } catch (Exception e) {
+            throw new GradleException("Service is not running. Please run 'docker-compose up -d' first.", e)
+        }
     }
 }
 
