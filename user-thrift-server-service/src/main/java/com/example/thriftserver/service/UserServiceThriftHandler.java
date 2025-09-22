@@ -1,6 +1,19 @@
 package com.example.thriftserver.service;
 
-import com.example.kafka.avro.*;
+import com.example.kafka.thrift.TPingRequest;
+import com.example.kafka.thrift.TPingResponse;
+import com.example.kafka.thrift.TUserCreateRequest;
+import com.example.kafka.thrift.TUserCreateResponse;
+import com.example.kafka.thrift.TUserGetRequest;
+import com.example.kafka.thrift.TUserGetResponse;
+import com.example.kafka.thrift.TUserUpdateRequest;
+import com.example.kafka.thrift.TUserUpdateResponse;
+import com.example.kafka.thrift.TUserDeleteRequest;
+import com.example.kafka.thrift.TUserDeleteResponse;
+import com.example.kafka.thrift.TUserListRequest;
+import com.example.kafka.thrift.TUserListResponse;
+import com.example.kafka.thrift.TUserResponse;
+import com.example.kafka.util.ThriftKafkaMessageHandler;
 import com.example.user.thrift.*;
 import com.example.thriftserver.config.KafkaTopicsProperties;
 import com.example.thriftserver.constants.ThriftConstants;
@@ -22,36 +35,105 @@ public class UserServiceThriftHandler implements UserService.Iface {
     private final RpcService rpcService;
     private final KafkaTopicsProperties topicsProperties;
 
-    private TUser convertToTUser(UserResponse userResponse) {
+    private TUser convertToTUser(TUserResponse userResponse) {
         TUser tUser = new TUser();
         tUser.setId(userResponse.getId());
         tUser.setName(userResponse.getName());
         tUser.setPhone(userResponse.getPhone());
         tUser.setAddress(userResponse.getAddress());
-        tUser.setStatus(TUserStatus.valueOf(userResponse.getStatus().name()));
-        tUser.setRole(TUserRole.valueOf(userResponse.getRole().name()));
-        tUser.setCreatedAt(userResponse.getCreatedAt() != null ? userResponse.getCreatedAt() : 0L);
-        tUser.setCreatedBy(userResponse.getCreatedBy());
-        tUser.setUpdatedAt(userResponse.getUpdatedAt() != null ? userResponse.getUpdatedAt() : 0L);
-        tUser.setUpdatedBy(userResponse.getUpdatedBy());
-        tUser.setVersion(userResponse.getVersion() != null ? userResponse.getVersion() : 1);
+
+        // Convert enums
+        tUser.setStatus(convertToThriftUserStatus(userResponse.getStatus()));
+        tUser.setRole(convertToThriftUserRole(userResponse.getRole()));
+
+        if (userResponse.isSetCreatedAt()) {
+            tUser.setCreatedAt(userResponse.getCreatedAt());
+        }
+        if (userResponse.isSetCreatedBy()) {
+            tUser.setCreatedBy(userResponse.getCreatedBy());
+        }
+        if (userResponse.isSetUpdatedAt()) {
+            tUser.setUpdatedAt(userResponse.getUpdatedAt());
+        }
+        if (userResponse.isSetUpdatedBy()) {
+            tUser.setUpdatedBy(userResponse.getUpdatedBy());
+        }
+        if (userResponse.isSetVersion()) {
+            tUser.setVersion(userResponse.getVersion());
+        }
+        if (userResponse.isSetDeleted()) {
+            tUser.setDeleted(userResponse.isDeleted());
+        }
+        if (userResponse.isSetDeletedAt()) {
+            tUser.setDeletedAt(userResponse.getDeletedAt());
+        }
+        if (userResponse.isSetDeletedBy()) {
+            tUser.setDeletedBy(userResponse.getDeletedBy());
+        }
+
         return tUser;
     }
 
+    private com.example.user.thrift.TUserStatus convertToThriftUserStatus(
+            com.example.kafka.thrift.TUserStatus kafkaStatus) {
+        if (kafkaStatus == null)
+            return null;
+        return switch (kafkaStatus) {
+            case ACTIVE -> com.example.user.thrift.TUserStatus.ACTIVE;
+            case INACTIVE -> com.example.user.thrift.TUserStatus.INACTIVE;
+            case SUSPENDED -> com.example.user.thrift.TUserStatus.SUSPENDED;
+        };
+    }
+
+    private com.example.user.thrift.TUserRole convertToThriftUserRole(com.example.kafka.thrift.TUserRole kafkaRole) {
+        if (kafkaRole == null)
+            return null;
+        return switch (kafkaRole) {
+            case ADMIN -> com.example.user.thrift.TUserRole.ADMIN;
+            case USER -> com.example.user.thrift.TUserRole.USER;
+            case MODERATOR -> com.example.user.thrift.TUserRole.MODERATOR;
+            case GUEST -> com.example.user.thrift.TUserRole.GUEST;
+        };
+    }
+
+    private com.example.kafka.thrift.TUserStatus convertToKafkaUserStatus(
+            com.example.user.thrift.TUserStatus thriftStatus) {
+        if (thriftStatus == null)
+            return null;
+        return switch (thriftStatus) {
+            case ACTIVE -> com.example.kafka.thrift.TUserStatus.ACTIVE;
+            case INACTIVE -> com.example.kafka.thrift.TUserStatus.INACTIVE;
+            case SUSPENDED -> com.example.kafka.thrift.TUserStatus.SUSPENDED;
+        };
+    }
+
+    private com.example.kafka.thrift.TUserRole convertToKafkaUserRole(com.example.user.thrift.TUserRole thriftRole) {
+        if (thriftRole == null)
+            return null;
+        return switch (thriftRole) {
+            case ADMIN -> com.example.kafka.thrift.TUserRole.ADMIN;
+            case USER -> com.example.kafka.thrift.TUserRole.USER;
+            case MODERATOR -> com.example.kafka.thrift.TUserRole.MODERATOR;
+            case GUEST -> com.example.kafka.thrift.TUserRole.GUEST;
+        };
+    }
+
     @Override
-    public TPingResponse ping() throws TException {
+    public com.example.user.thrift.TPingResponse ping() throws TException {
         try {
             log.info("Processing ping request");
-            PingRequest avroRequest = new PingRequest(System.currentTimeMillis());
+            TPingRequest thriftRequest = new TPingRequest();
+            thriftRequest.setMessage("ping");
 
-            PingResponse response = rpcService.sendRpcRequest(
+            TPingResponse response = rpcService.sendRpcRequest(
                     topicsProperties.getPingRequest(),
                     topicsProperties.getPingResponse(),
-                    avroRequest,
-                    PingResponse.class);
+                    thriftRequest,
+                    TPingResponse.class);
 
             log.info("Received ping response: {}", response.getMessage());
-            return new TPingResponse(ThriftConstants.STATUS_SUCCESS, ThriftConstants.SUCCESS_PING,
+            return new com.example.user.thrift.TPingResponse(ThriftConstants.STATUS_SUCCESS,
+                    ThriftConstants.SUCCESS_PING,
                     response.getMessage());
         } catch (Exception e) {
             log.error("Error during ping: {}", e.getMessage(), e);
@@ -63,187 +145,223 @@ public class UserServiceThriftHandler implements UserService.Iface {
     public TCreateUserResponse createUser(TCreateUserRequest request) throws TException {
         try {
             log.info("Processing createUser request for user: {}", request.getName());
-            UserCreateRequest avroRequest = new UserCreateRequest(
-                    request.getName(),
-                    request.getPhone(),
-                    request.getAddress() != null ? request.getAddress() : "",
-                    request.getStatus() != null ? UserStatus.valueOf(request.getStatus().name()) : UserStatus.ACTIVE,
-                    request.getRole() != null ? UserRole.valueOf(request.getRole().name()) : UserRole.USER);
+            TUserCreateRequest thriftRequest = new TUserCreateRequest();
+            thriftRequest.setName(request.getName());
+            thriftRequest.setPhone(request.getPhone());
+            thriftRequest.setAddress(request.getAddress() != null ? request.getAddress() : "");
+            thriftRequest.setStatus(convertToKafkaUserStatus(request.getStatus()));
+            thriftRequest.setRole(convertToKafkaUserRole(request.getRole()));
 
-            UserCreateResponse response = rpcService.sendRpcRequest(
+            TUserCreateResponse response = rpcService.sendRpcRequest(
                     topicsProperties.getUserCreateRequest(),
                     topicsProperties.getUserCreateResponse(),
-                    avroRequest,
-                    UserCreateResponse.class);
+                    thriftRequest,
+                    TUserCreateResponse.class);
 
-            TUser tUser = convertToTUser(response.getUser());
-            return new TCreateUserResponse(ThriftConstants.STATUS_SUCCESS, ThriftConstants.SUCCESS_USER_CREATED, tUser);
+            if (response.getUser() != null) {
+                TUser tUser = convertToTUser(response.getUser());
+                log.info("Successfully created user: {}", tUser.getId());
+                return new TCreateUserResponse(ThriftConstants.STATUS_SUCCESS, ThriftConstants.SUCCESS_USER_CREATED,
+                        tUser);
+            } else {
+                log.warn("User creation failed - no user returned");
+                return new TCreateUserResponse(ThriftConstants.STATUS_ERROR, "User creation failed", null);
+            }
         } catch (Exception e) {
-            log.error("Error creating user: {}", e.getMessage(), e);
-            throw new TException(ThriftConstants.ERROR_USER_CREATION_FAILED + ": " + e.getMessage(), e);
+            log.error("Error during createUser: {}", e.getMessage(), e);
+            throw new TException("User creation failed: " + e.getMessage(), e);
         }
     }
 
     @Override
     public TGetUserResponse getUser(TGetUserRequest request) throws TException {
         try {
-            log.info("Processing getUser request for id: {}", request.getId());
-            UserGetRequest avroRequest = new UserGetRequest(request.getId());
+            log.info("Processing getUser request for ID: {}", request.getId());
+            TUserGetRequest thriftRequest = new TUserGetRequest();
+            thriftRequest.setId(request.getId());
 
-            UserGetResponse response = rpcService.sendRpcRequest(
+            TUserGetResponse response = rpcService.sendRpcRequest(
                     topicsProperties.getUserGetRequest(),
                     topicsProperties.getUserGetResponse(),
-                    avroRequest,
-                    UserGetResponse.class);
+                    thriftRequest,
+                    TUserGetResponse.class);
 
-            if (!response.getFound()) {
+            if (response.isFound() && response.getUser() != null) {
+                TUser tUser = convertToTUser(response.getUser());
+                log.info("Successfully retrieved user: {}", tUser.getId());
+                return new TGetUserResponse(ThriftConstants.STATUS_SUCCESS, ThriftConstants.SUCCESS_USERS_RETRIEVED,
+                        tUser);
+            } else {
+                log.info("User not found: {}", request.getId());
                 return new TGetUserResponse(ThriftConstants.STATUS_USER_NOT_FOUND, ThriftConstants.ERROR_USER_NOT_FOUND,
                         null);
             }
-
-            TUser tUser = convertToTUser(response.getUser());
-            return new TGetUserResponse(ThriftConstants.STATUS_SUCCESS, ThriftConstants.SUCCESS_USER_RETRIEVED, tUser);
         } catch (Exception e) {
-            log.error("Error getting user: {}", e.getMessage(), e);
-            return new TGetUserResponse(ThriftConstants.STATUS_ERROR,
-                    ThriftConstants.ERROR_USER_RETRIEVAL_FAILED + ": " + e.getMessage(), null);
+            log.error("Error during getUser: {}", e.getMessage(), e);
+            throw new TException("Get user failed: " + e.getMessage(), e);
         }
     }
 
     @Override
     public TUpdateUserResponse updateUser(TUpdateUserRequest request) throws TException {
         try {
-            log.info("Processing updateUser request for id: {}", request.getId());
-            UserUpdateRequest avroRequest = new UserUpdateRequest(
-                    request.getId(),
-                    request.getName(),
-                    request.getPhone(),
-                    request.getAddress() != null ? request.getAddress() : "",
-                    request.getStatus() != null ? UserStatus.valueOf(request.getStatus().name()) : UserStatus.ACTIVE,
-                    request.getRole() != null ? UserRole.valueOf(request.getRole().name()) : UserRole.USER,
-                    request.getVersion());
+            log.info("Processing updateUser request for ID: {}", request.getId());
+            TUserUpdateRequest thriftRequest = new TUserUpdateRequest();
+            thriftRequest.setId(request.getId());
+            thriftRequest.setName(request.getName());
+            thriftRequest.setPhone(request.getPhone());
+            thriftRequest.setAddress(request.getAddress());
+            thriftRequest.setStatus(convertToKafkaUserStatus(request.getStatus()));
+            thriftRequest.setRole(convertToKafkaUserRole(request.getRole()));
+            thriftRequest.setVersion(request.getVersion());
 
-            UserUpdateResponse response = rpcService.sendRpcRequest(
+            TUserUpdateResponse response = rpcService.sendRpcRequest(
                     topicsProperties.getUserUpdateRequest(),
                     topicsProperties.getUserUpdateResponse(),
-                    avroRequest,
-                    UserUpdateResponse.class);
+                    thriftRequest,
+                    TUserUpdateResponse.class);
 
-            if (!response.getUpdated()) {
+            if (response.isSuccess() && response.getUser() != null) {
+                TUser tUser = convertToTUser(response.getUser());
+                log.info("Successfully updated user: {}", tUser.getId());
+                return new TUpdateUserResponse(ThriftConstants.STATUS_SUCCESS, ThriftConstants.SUCCESS_USER_UPDATED,
+                        tUser);
+            } else {
+                log.warn("User update failed for ID: {}", request.getId());
                 return new TUpdateUserResponse(ThriftConstants.STATUS_USER_NOT_FOUND,
-                        ThriftConstants.ERROR_USER_NOT_FOUND, null);
+                        ThriftConstants.ERROR_USER_NOT_FOUND,
+                        null);
             }
-
-            TUser tUser = convertToTUser(response.getUser());
-            return new TUpdateUserResponse(ThriftConstants.STATUS_SUCCESS, ThriftConstants.SUCCESS_USER_UPDATED, tUser);
         } catch (Exception e) {
-            log.error("Error updating user: {}", e.getMessage(), e);
-            return new TUpdateUserResponse(ThriftConstants.STATUS_ERROR,
-                    ThriftConstants.ERROR_USER_UPDATE_FAILED + ": " + e.getMessage(), null);
+            log.error("Error during updateUser: {}", e.getMessage(), e);
+            throw new TException("User update failed: " + e.getMessage(), e);
         }
     }
 
     @Override
     public TDeleteUserResponse deleteUser(TDeleteUserRequest request) throws TException {
         try {
-            log.info("Processing deleteUser request for id: {}", request.getId());
-            UserDeleteRequest avroRequest = new UserDeleteRequest(request.getId());
+            log.info("Processing deleteUser request for ID: {}", request.getId());
+            TUserDeleteRequest thriftRequest = new TUserDeleteRequest();
+            thriftRequest.setId(request.getId());
 
-            UserDeleteResponse response = rpcService.sendRpcRequest(
+            TUserDeleteResponse response = rpcService.sendRpcRequest(
                     topicsProperties.getUserDeleteRequest(),
                     topicsProperties.getUserDeleteResponse(),
-                    avroRequest,
-                    UserDeleteResponse.class);
+                    thriftRequest,
+                    TUserDeleteResponse.class);
 
-            if (!response.getDeleted()) {
+            if (response.isDeleted()) {
+                log.info("Successfully deleted user: {}", request.getId());
+                return new TDeleteUserResponse(ThriftConstants.STATUS_SUCCESS, ThriftConstants.SUCCESS_USER_DELETED);
+            } else {
+                log.warn("User deletion failed for ID: {}", request.getId());
                 return new TDeleteUserResponse(ThriftConstants.STATUS_USER_NOT_FOUND,
                         ThriftConstants.ERROR_USER_NOT_FOUND);
             }
-
-            return new TDeleteUserResponse(ThriftConstants.STATUS_SUCCESS, ThriftConstants.SUCCESS_USER_DELETED);
         } catch (Exception e) {
-            log.error("Error deleting user: {}", e.getMessage(), e);
-            return new TDeleteUserResponse(ThriftConstants.STATUS_ERROR,
-                    ThriftConstants.ERROR_USER_DELETION_FAILED + ": " + e.getMessage());
+            log.error("Error during deleteUser: {}", e.getMessage(), e);
+            throw new TException("User deletion failed: " + e.getMessage(), e);
         }
     }
 
     @Override
     public TListUsersResponse listUsers(TListUsersRequest request) throws TException {
         try {
-            log.info("Processing listUsers request with page: {}, size: {}", request.getPage(), request.getSize());
-            UserListRequest avroRequest = new UserListRequest(
-                    request.getPage(),
-                    request.getSize(),
-                    request.getSearch(),
-                    request.getStatus() != null ? UserStatus.valueOf(request.getStatus().name()) : null,
-                    request.getRole() != null ? UserRole.valueOf(request.getRole().name()) : null,
-                    request.isIncludeDeleted());
+            log.info("Processing listUsers request: page={}, size={}",
+                    request.isSetPage() ? request.getPage() : "default",
+                    request.isSetSize() ? request.getSize() : "default");
 
-            UserListResponse response = rpcService.sendRpcRequest(
+            TUserListRequest thriftRequest = new TUserListRequest();
+            if (request.isSetPage()) {
+                thriftRequest.setPage(request.getPage());
+            }
+            if (request.isSetSize()) {
+                thriftRequest.setSize(request.getSize());
+            }
+            if (request.isSetSearch()) {
+                thriftRequest.setSearch(request.getSearch());
+            }
+            if (request.isSetStatus()) {
+                thriftRequest.setStatus(convertToKafkaUserStatus(request.getStatus()));
+            }
+            if (request.isSetRole()) {
+                thriftRequest.setRole(convertToKafkaUserRole(request.getRole()));
+            }
+            if (request.isSetIncludeDeleted()) {
+                thriftRequest.setIncludeDeleted(request.isIncludeDeleted());
+            }
+
+            TUserListResponse response = rpcService.sendRpcRequest(
                     topicsProperties.getUserListRequest(),
                     topicsProperties.getUserListResponse(),
-                    avroRequest,
-                    UserListResponse.class);
+                    thriftRequest,
+                    TUserListResponse.class);
 
-            List<TUser> tUsers = response.getItems().stream()
+            List<TUser> users = response.getItems().stream()
                     .map(this::convertToTUser)
                     .toList();
 
+            log.info("Successfully retrieved {} users", users.size());
             return new TListUsersResponse(
                     ThriftConstants.STATUS_SUCCESS,
                     ThriftConstants.SUCCESS_USERS_RETRIEVED,
-                    tUsers,
+                    users,
                     response.getPage(),
                     response.getSize(),
                     response.getTotal(),
                     response.getTotalPages());
         } catch (Exception e) {
-            log.error("Error listing users: {}", e.getMessage(), e);
-            throw new TException(ThriftConstants.ERROR_USER_LISTING_FAILED + ": " + e.getMessage(), e);
+            log.error("Error during listUsers: {}", e.getMessage(), e);
+            throw new TException("List users failed: " + e.getMessage(), e);
         }
     }
 
-    // Generic response handlers
-    @KafkaListener(topics = "${kafka.topics.ping-response}")
-    public void onPingResponse(ConsumerRecord<String, Object> record) {
+    @KafkaListener(topics = "ping.response", groupId = ThriftConstants.CONSUMER_GROUP_ID, containerFactory = "rpcListenerFactory")
+    public void onPingResponse(ConsumerRecord<String, byte[]> record) {
         String correlationId = new String(record.headers().lastHeader(KafkaHeaders.CORRELATION_ID).value());
+        TPingResponse response = ThriftKafkaMessageHandler.deserializeMessage(record, TPingResponse.class);
         log.debug("Received ping response with correlationId: {}", correlationId);
-        rpcService.handleResponse(correlationId, record.value());
+        rpcService.handleResponse(correlationId, response);
     }
 
-    @KafkaListener(topics = "${kafka.topics.user-create-response}")
-    public void onCreateUserResponse(ConsumerRecord<String, Object> record) {
+    @KafkaListener(topics = "user.create.response", groupId = ThriftConstants.CONSUMER_GROUP_ID, containerFactory = "rpcListenerFactory")
+    public void onCreateUserResponse(ConsumerRecord<String, byte[]> record) {
         String correlationId = new String(record.headers().lastHeader(KafkaHeaders.CORRELATION_ID).value());
-        log.debug("Received createUser response with correlationId: {}", correlationId);
-        rpcService.handleResponse(correlationId, record.value());
+        TUserCreateResponse response = ThriftKafkaMessageHandler.deserializeMessage(record, TUserCreateResponse.class);
+        log.debug("Received create user response with correlationId: {}", correlationId);
+        rpcService.handleResponse(correlationId, response);
     }
 
-    @KafkaListener(topics = "${kafka.topics.user-get-response}")
-    public void onGetUserResponse(ConsumerRecord<String, Object> record) {
+    @KafkaListener(topics = "user.get.response", groupId = ThriftConstants.CONSUMER_GROUP_ID, containerFactory = "rpcListenerFactory")
+    public void onGetUserResponse(ConsumerRecord<String, byte[]> record) {
         String correlationId = new String(record.headers().lastHeader(KafkaHeaders.CORRELATION_ID).value());
-        log.debug("Received getUser response with correlationId: {}", correlationId);
-        rpcService.handleResponse(correlationId, record.value());
+        TUserGetResponse response = ThriftKafkaMessageHandler.deserializeMessage(record, TUserGetResponse.class);
+        log.debug("Received get user response with correlationId: {}", correlationId);
+        rpcService.handleResponse(correlationId, response);
     }
 
-    @KafkaListener(topics = "${kafka.topics.user-update-response}")
-    public void onUpdateUserResponse(ConsumerRecord<String, Object> record) {
+    @KafkaListener(topics = "user.update.response", groupId = ThriftConstants.CONSUMER_GROUP_ID, containerFactory = "rpcListenerFactory")
+    public void onUpdateUserResponse(ConsumerRecord<String, byte[]> record) {
         String correlationId = new String(record.headers().lastHeader(KafkaHeaders.CORRELATION_ID).value());
-        log.debug("Received updateUser response with correlationId: {}", correlationId);
-        rpcService.handleResponse(correlationId, record.value());
+        TUserUpdateResponse response = ThriftKafkaMessageHandler.deserializeMessage(record, TUserUpdateResponse.class);
+        log.debug("Received update user response with correlationId: {}", correlationId);
+        rpcService.handleResponse(correlationId, response);
     }
 
-    @KafkaListener(topics = "${kafka.topics.user-delete-response}")
-    public void onDeleteUserResponse(ConsumerRecord<String, Object> record) {
+    @KafkaListener(topics = "user.delete.response", groupId = ThriftConstants.CONSUMER_GROUP_ID, containerFactory = "rpcListenerFactory")
+    public void onDeleteUserResponse(ConsumerRecord<String, byte[]> record) {
         String correlationId = new String(record.headers().lastHeader(KafkaHeaders.CORRELATION_ID).value());
-        log.debug("Received deleteUser response with correlationId: {}", correlationId);
-        rpcService.handleResponse(correlationId, record.value());
+        TUserDeleteResponse response = ThriftKafkaMessageHandler.deserializeMessage(record, TUserDeleteResponse.class);
+        log.debug("Received delete user response with correlationId: {}", correlationId);
+        rpcService.handleResponse(correlationId, response);
     }
 
-    @KafkaListener(topics = "${kafka.topics.user-list-response}")
-    public void onListUsersResponse(ConsumerRecord<String, Object> record) {
+    @KafkaListener(topics = "user.list.response", groupId = ThriftConstants.CONSUMER_GROUP_ID, containerFactory = "rpcListenerFactory")
+    public void onListUsersResponse(ConsumerRecord<String, byte[]> record) {
         String correlationId = new String(record.headers().lastHeader(KafkaHeaders.CORRELATION_ID).value());
-        log.debug("Received listUsers response with correlationId: {}", correlationId);
-        rpcService.handleResponse(correlationId, record.value());
+        TUserListResponse response = ThriftKafkaMessageHandler.deserializeMessage(record, TUserListResponse.class);
+        log.debug("Received list users response with correlationId: {}", correlationId);
+        rpcService.handleResponse(correlationId, response);
     }
 }

@@ -145,40 +145,42 @@ sourceSets {
 }
 
 // Thrift generation task
-tasks.register('generateThrift', Exec) {
+tasks.register('generateThrift') {
     group = 'thrift'
     description = 'Generate Java classes from Thrift definitions'
     
     inputs.dir(thriftSrcDir)
     outputs.dir(generatedSourcesDir)
     
-    doFirst {
+    doLast {
         generatedSourcesDir.mkdirs()
         if (!thriftSrcDir.exists()) {
             throw new GradleException("Thrift source directory does not exist: ${thriftSrcDir}")
         }
-    }
-    
-    // Find thrift files
-    def thriftFiles = []
-    if (thriftSrcDir.exists()) {
+        
+        // Find thrift files
+        def thriftFiles = []
         thriftSrcDir.eachFileRecurse { f ->
             if (f.isFile() && f.name.endsWith('.thrift')) {
                 thriftFiles.add(f)
             }
         }
+        
+        if (thriftFiles.isEmpty()) {
+            // No thrift files found, create empty directory
+            generatedSourcesDir.mkdirs()
+            return
+        }
+        
+        // Execute thrift for each file separately
+        thriftFiles.each { f ->
+            logger.info("Generating Thrift classes for: ${f.absolutePath}")
+            exec {
+                executable 'thrift'
+                args '-r', '--gen', 'java', '-out', generatedSourcesDir.absolutePath, f.absolutePath
+            }
+        }
     }
-    
-    if (thriftFiles.isEmpty()) {
-        // No thrift files found, create empty directory
-        generatedSourcesDir.mkdirs()
-        return
-    }
-    
-    // Execute thrift for each file
-    executable 'thrift'
-    args '-r', '--gen', 'java', '-out', generatedSourcesDir.absolutePath
-    args thriftFiles.collect { it.absolutePath }
 }
 
 // Compile Java depends on Thrift generation and Avro generation
