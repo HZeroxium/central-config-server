@@ -15,6 +15,7 @@ import com.example.kafka.thrift.TUserListResponse;
 import com.example.kafka.thrift.TUserResponse;
 import com.example.kafka.util.ThriftKafkaMessageHandler;
 import com.example.user.thrift.*;
+import com.example.kafka.thrift.TOperationStatus;
 import com.example.thriftserver.config.KafkaTopicsProperties;
 import com.example.thriftserver.constants.ThriftConstants;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +35,8 @@ public class UserServiceThriftHandler implements UserService.Iface {
 
     private final RpcService rpcService;
     private final KafkaTopicsProperties topicsProperties;
+    private final AsyncCommandPublishingService asyncCommandService;
+    private final OperationTrackingService operationTrackingService;
 
     private TUser convertToTUser(TUserResponse userResponse) {
         TUser tUser = new TUser();
@@ -363,5 +366,150 @@ public class UserServiceThriftHandler implements UserService.Iface {
         TUserListResponse response = ThriftKafkaMessageHandler.deserializeMessage(record, TUserListResponse.class);
         log.debug("Received list users response with correlationId: {}", correlationId);
         rpcService.handleResponse(correlationId, response);
+    }
+
+    // === V2 ASYNC OPERATIONS ===
+
+    @Override
+    public TAsyncOperationResponse submitCreateUserCommand(TAsyncCreateUserRequest request) throws TException {
+        try {
+            log.info("Processing async createUser command - Operation ID: {}", request.getOperationId());
+
+            // Create operation tracking
+            operationTrackingService.initializeOperation(request.getOperationId(), request.getCorrelationId());
+
+            // Convert request
+            com.example.kafka.thrift.TUserCreateRequest kafkaRequest = new com.example.kafka.thrift.TUserCreateRequest();
+            kafkaRequest.setName(request.getCreateRequest().getName());
+            kafkaRequest.setPhone(request.getCreateRequest().getPhone());
+            kafkaRequest.setAddress(
+                    request.getCreateRequest().getAddress() != null ? request.getCreateRequest().getAddress() : "");
+            kafkaRequest.setStatus(convertToKafkaUserStatus(request.getCreateRequest().getStatus()));
+            kafkaRequest.setRole(convertToKafkaUserRole(request.getCreateRequest().getRole()));
+
+            // Publish command
+            asyncCommandService.publishCreateUserCommand(request.getOperationId(), kafkaRequest,
+                    request.getCorrelationId());
+
+            log.info("Successfully submitted async createUser command - Operation ID: {}", request.getOperationId());
+            return new TAsyncOperationResponse(ThriftConstants.STATUS_SUCCESS, "Command submitted successfully",
+                    request.getOperationId());
+
+        } catch (Exception e) {
+            log.error("Error during async createUser command: {}", e.getMessage(), e);
+            operationTrackingService.updateOperationStatus(request.getOperationId(), TOperationStatus.FAILED,
+                    "Failed to submit command: " + e.getMessage(), "COMMAND_SUBMISSION_ERROR");
+            throw new TException("Async create user command failed: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public TAsyncOperationResponse submitUpdateUserCommand(TAsyncUpdateUserRequest request) throws TException {
+        try {
+            log.info("Processing async updateUser command - Operation ID: {}", request.getOperationId());
+
+            // Create operation tracking
+            operationTrackingService.initializeOperation(request.getOperationId(), request.getCorrelationId());
+
+            // Convert request
+            com.example.kafka.thrift.TUserUpdateRequest kafkaRequest = new com.example.kafka.thrift.TUserUpdateRequest();
+            kafkaRequest.setId(request.getUpdateRequest().getId());
+            kafkaRequest.setName(request.getUpdateRequest().getName());
+            kafkaRequest.setPhone(request.getUpdateRequest().getPhone());
+            kafkaRequest.setAddress(request.getUpdateRequest().getAddress());
+            kafkaRequest.setStatus(convertToKafkaUserStatus(request.getUpdateRequest().getStatus()));
+            kafkaRequest.setRole(convertToKafkaUserRole(request.getUpdateRequest().getRole()));
+            kafkaRequest.setVersion(request.getUpdateRequest().getVersion());
+
+            // Publish command
+            asyncCommandService.publishUpdateUserCommand(request.getOperationId(), kafkaRequest,
+                    request.getCorrelationId());
+
+            log.info("Successfully submitted async updateUser command - Operation ID: {}", request.getOperationId());
+            return new TAsyncOperationResponse(ThriftConstants.STATUS_SUCCESS, "Command submitted successfully",
+                    request.getOperationId());
+
+        } catch (Exception e) {
+            log.error("Error during async updateUser command: {}", e.getMessage(), e);
+            operationTrackingService.updateOperationStatus(request.getOperationId(), TOperationStatus.FAILED,
+                    "Failed to submit command: " + e.getMessage(), "COMMAND_SUBMISSION_ERROR");
+            throw new TException("Async update user command failed: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public TAsyncOperationResponse submitDeleteUserCommand(TAsyncDeleteUserRequest request) throws TException {
+        try {
+            log.info("Processing async deleteUser command - Operation ID: {}", request.getOperationId());
+
+            // Create operation tracking
+            operationTrackingService.initializeOperation(request.getOperationId(), request.getCorrelationId());
+
+            // Publish command
+            asyncCommandService.publishDeleteUserCommand(request.getOperationId(), request.getUserId(),
+                    request.getCorrelationId());
+
+            log.info("Successfully submitted async deleteUser command - Operation ID: {}", request.getOperationId());
+            return new TAsyncOperationResponse(ThriftConstants.STATUS_SUCCESS, "Command submitted successfully",
+                    request.getOperationId());
+
+        } catch (Exception e) {
+            log.error("Error during async deleteUser command: {}", e.getMessage(), e);
+            operationTrackingService.updateOperationStatus(request.getOperationId(), TOperationStatus.FAILED,
+                    "Failed to submit command: " + e.getMessage(), "COMMAND_SUBMISSION_ERROR");
+            throw new TException("Async delete user command failed: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public TOperationStatusResponse getOperationStatus(TOperationStatusRequest request) throws TException {
+        try {
+            log.info("Getting operation status for: {}", request.getOperationId());
+
+            var operationOpt = operationTrackingService.getOperationTracker(request.getOperationId());
+            if (operationOpt.isEmpty()) {
+                log.warn("Operation not found: {}", request.getOperationId());
+                TOperationStatusResponse response = new TOperationStatusResponse();
+                response.setStatus(ThriftConstants.STATUS_USER_NOT_FOUND);
+                response.setMessage("Operation not found");
+                response.setOperationId(request.getOperationId());
+                return response;
+            }
+
+            var operation = operationOpt.get();
+            String statusStr = operation.getStatus().name();
+
+            TOperationStatusResponse response = new TOperationStatusResponse();
+            response.setStatus(ThriftConstants.STATUS_SUCCESS);
+            response.setMessage("Operation status retrieved successfully");
+            response.setOperationId(operation.getOperationId());
+            response.setOperationStatus(statusStr);
+
+            if (operation.isSetResult()) {
+                response.setResult(operation.getResult());
+            }
+            if (operation.isSetErrorMessage()) {
+                response.setErrorMessage(operation.getErrorMessage());
+            }
+            if (operation.isSetErrorCode()) {
+                response.setErrorCode(operation.getErrorCode());
+            }
+            if (operation.isSetCreatedAt()) {
+                response.setCreatedAt(operation.getCreatedAt());
+            }
+            if (operation.isSetUpdatedAt()) {
+                response.setUpdatedAt(operation.getUpdatedAt());
+            }
+            if (operation.isSetCompletedAt()) {
+                response.setCompletedAt(operation.getCompletedAt());
+            }
+
+            log.info("Successfully retrieved operation status: {} for {}", statusStr, request.getOperationId());
+            return response;
+
+        } catch (Exception e) {
+            log.error("Error getting operation status for: {}", request.getOperationId(), e);
+            throw new TException("Get operation status failed: " + e.getMessage(), e);
+        }
     }
 }

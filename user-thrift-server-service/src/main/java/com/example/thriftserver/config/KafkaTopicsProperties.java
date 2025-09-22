@@ -46,4 +46,14 @@ public class KafkaTopicsProperties {
 
   @NotBlank
   private String userListResponse = "user.list.response";
+
+  // V2 Async topics
+  @NotBlank
+  private String userCommands = "user.commands";
+
+  @NotBlank
+  private String userEvents = "user.events";
+
+  @NotBlank
+  private String userOperations = "user.operations";
 }

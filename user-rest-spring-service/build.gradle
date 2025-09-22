@@ -88,6 +88,7 @@ tasks.register('e2eTest', Test) {
     testClassesDirs = sourceSets.test.output.classesDirs
     classpath = sourceSets.test.runtimeClasspath
     include 'com/example/rest/user/e2e/UserE2ESimpleTest.class'
+    include 'com/example/rest/user/e2e/UserV2E2ESimpleTest.class'
 
     // Set timeout for tests
     timeout = Duration.ofMinutes(10)

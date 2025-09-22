@@ -123,6 +123,43 @@ public class ThriftKafkaSerializers {
     }
   }
 
+  // V2 Async Command/Event serializers
+  public static class TUserCommandSerializer extends ThriftSerializer<TUserCommand> {
+  }
+
+  public static class TUserCommandDeserializer extends ThriftDeserializer<TUserCommand> {
+    public TUserCommandDeserializer() {
+      super(TUserCommand.class);
+    }
+  }
+
+  public static class TUserEventSerializer extends ThriftSerializer<TUserEvent> {
+  }
+
+  public static class TUserEventDeserializer extends ThriftDeserializer<TUserEvent> {
+    public TUserEventDeserializer() {
+      super(TUserEvent.class);
+    }
+  }
+
+  public static class TOperationTrackerSerializer extends ThriftSerializer<TOperationTracker> {
+  }
+
+  public static class TOperationTrackerDeserializer extends ThriftDeserializer<TOperationTracker> {
+    public TOperationTrackerDeserializer() {
+      super(TOperationTracker.class);
+    }
+  }
+
+  public static class TCommandResponseSerializer extends ThriftSerializer<TCommandResponse> {
+  }
+
+  public static class TCommandResponseDeserializer extends ThriftDeserializer<TCommandResponse> {
+    public TCommandResponseDeserializer() {
+      super(TCommandResponse.class);
+    }
+  }
+
   // Generic Object serializers for when we need to handle multiple types
   public static class ThriftObjectSerializer implements Serializer<Object> {
 
@@ -157,6 +194,14 @@ public class ThriftKafkaSerializers {
         return new TUserListRequestSerializer().serialize(topic, (TUserListRequest) data);
       } else if (data instanceof com.example.kafka.thrift.TUserListResponse) {
         return new TUserListResponseSerializer().serialize(topic, (TUserListResponse) data);
+      } else if (data instanceof com.example.kafka.thrift.TUserCommand) {
+        return new TUserCommandSerializer().serialize(topic, (TUserCommand) data);
+      } else if (data instanceof com.example.kafka.thrift.TUserEvent) {
+        return new TUserEventSerializer().serialize(topic, (TUserEvent) data);
+      } else if (data instanceof com.example.kafka.thrift.TOperationTracker) {
+        return new TOperationTrackerSerializer().serialize(topic, (TOperationTracker) data);
+      } else if (data instanceof com.example.kafka.thrift.TCommandResponse) {
+        return new TCommandResponseSerializer().serialize(topic, (TCommandResponse) data);
       } else {
         throw new IllegalArgumentException("Unsupported Thrift type: " + data.getClass());
       }

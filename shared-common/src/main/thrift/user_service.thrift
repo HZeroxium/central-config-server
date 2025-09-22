@@ -119,6 +119,52 @@ struct TPingResponse {
   3: string response
 }
 
+// === ASYNC OPERATIONS (V2) ===
+
+// Async operation command submission requests
+struct TAsyncCreateUserRequest {
+  1: string operationId,
+  2: string correlationId,
+  3: TCreateUserRequest createRequest
+}
+
+struct TAsyncUpdateUserRequest {
+  1: string operationId,
+  2: string correlationId,
+  3: TUpdateUserRequest updateRequest
+}
+
+struct TAsyncDeleteUserRequest {
+  1: string operationId,
+  2: string correlationId, 
+  3: string userId
+}
+
+// Async operation responses
+struct TAsyncOperationResponse {
+  1: i32 status,         // 0 = success, 1 = validation error, 2 = system error
+  2: string message,
+  3: string operationId
+}
+
+// Operation status request/response
+struct TOperationStatusRequest {
+  1: string operationId
+}
+
+struct TOperationStatusResponse {
+  1: i32 status,         // 0 = success, 1 = not found, 2 = system error
+  2: string message,
+  3: string operationId,
+  4: string operationStatus,  // PENDING, IN_PROGRESS, COMPLETED, FAILED, CANCELLED
+  5: optional string result,
+  6: optional string errorMessage,
+  7: optional string errorCode,
+  8: optional i64 createdAt,
+  9: optional i64 updatedAt,
+  10: optional i64 completedAt
+}
+
 service UserService {
   // New structured API
   TPingResponse ping(),
@@ -126,6 +172,12 @@ service UserService {
   TGetUserResponse getUser(1: TGetUserRequest request),
   TUpdateUserResponse updateUser(1: TUpdateUserRequest request),
   TDeleteUserResponse deleteUser(1: TDeleteUserRequest request),
-  TListUsersResponse listUsers(1: TListUsersRequest request)
+  TListUsersResponse listUsers(1: TListUsersRequest request),
+  
+  // V2 Async Operations
+  TAsyncOperationResponse submitCreateUserCommand(1: TAsyncCreateUserRequest request),
+  TAsyncOperationResponse submitUpdateUserCommand(1: TAsyncUpdateUserRequest request),
+  TAsyncOperationResponse submitDeleteUserCommand(1: TAsyncDeleteUserRequest request),
+  TOperationStatusResponse getOperationStatus(1: TOperationStatusRequest request)
 }
 

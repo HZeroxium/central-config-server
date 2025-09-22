@@ -48,6 +48,10 @@ dependencies {
     implementation libs.confluent.avro.serializer
     implementation libs.avro
 
+    // Redis
+    implementation libs.spring.boot.starter.data.redis
+    implementation libs.lettuce.core
+
     // Micrometer
     runtimeOnly libs.micrometer.registry.prometheus
 

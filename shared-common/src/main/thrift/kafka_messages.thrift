@@ -117,3 +117,75 @@ struct TUserResponse {
   13: optional i64 deletedAt,
   14: optional string deletedBy
 }
+
+// === ASYNC PATTERNS (V2 APIs) ===
+
+// Operation Status for tracking async operations
+enum TOperationStatus {
+  PENDING = 1,
+  IN_PROGRESS = 2,
+  COMPLETED = 3,
+  FAILED = 4,
+  CANCELLED = 5
+}
+
+// Command Types
+enum TCommandType {
+  CREATE_USER = 1,
+  UPDATE_USER = 2,
+  DELETE_USER = 3
+}
+
+// Event Types
+enum TEventType {
+  USER_CREATED = 1,
+  USER_UPDATED = 2,
+  USER_DELETED = 3,
+  USER_OPERATION_FAILED = 4
+}
+
+// Base Command structure for user.commands topic
+struct TUserCommand {
+  1: required string operationId,      // UUID for tracking
+  2: required TCommandType commandType,
+  3: required string correlationId,    // For tracing
+  4: required i64 timestamp,
+  5: optional string userId,           // For update/delete commands
+  6: optional TUserCreateRequest createRequest,
+  7: optional TUserUpdateRequest updateRequest,
+  8: optional TUserDeleteRequest deleteRequest,
+  9: optional string requestedBy       // User who initiated the operation
+}
+
+// Base Event structure for user.events topic
+struct TUserEvent {
+  1: required string eventId,          // UUID
+  2: required TEventType eventType,
+  3: required string operationId,      // Links back to command
+  4: required string correlationId,
+  5: required i64 timestamp,
+  6: optional TUserResponse user,
+  7: optional string errorMessage,     // For failed operations
+  8: optional string errorCode
+}
+
+// Operation tracking
+struct TOperationTracker {
+  1: required string operationId,
+  2: required TOperationStatus status,
+  3: required i64 createdAt,
+  4: optional i64 updatedAt,
+  5: optional i64 completedAt,
+  6: optional string result,           // JSON result for successful operations
+  7: optional string errorMessage,
+  8: optional string errorCode,
+  9: required string correlationId
+}
+
+// Command Response (immediate response for async operations)
+struct TCommandResponse {
+  1: required string operationId,
+  2: required TOperationStatus status,
+  3: required string message,
+  4: optional string trackingUrl       // URL to check operation status
+}

@@ -34,6 +34,10 @@ public class ThriftMessageDeserializer {
     map.put("user.delete.response", TUserDeleteResponse.class);
     map.put("user.list.request", TUserListRequest.class);
     map.put("user.list.response", TUserListResponse.class);
+    // V2 Async patterns
+    map.put("user.commands", TUserCommand.class);
+    map.put("user.events", TUserEvent.class);
+    map.put("user.operations", TOperationTracker.class);
     TOPIC_TYPE_MAP = Map.copyOf(map);
   }
 
