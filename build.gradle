@@ -75,8 +75,12 @@ tasks.register('buildAll') {
     group = 'build'
     description = 'Build all modules'
     dependsOn ':shared-common:build'
-    dependsOn ':user-rpc-thrift-service:build'
     dependsOn ':user-rest-spring-service:build'
+    dependsOn ':user-thrift-server-service:build'
+    dependsOn ':user-watcher-service:build'
+    if (project.findProject(':user-rpc-thrift-service') != null) {
+        dependsOn ':user-rpc-thrift-service:build'
+    }
 }
 
 // Task to clean all modules
@@ -84,8 +88,12 @@ tasks.register('cleanAll') {
     group = 'build'
     description = 'Clean all modules'
     dependsOn ':shared-common:clean'
-    dependsOn ':user-rpc-thrift-service:clean'
     dependsOn ':user-rest-spring-service:clean'
+    dependsOn ':user-thrift-server-service:clean'
+    dependsOn ':user-watcher-service:clean'
+    if (project.findProject(':user-rpc-thrift-service') != null) {
+        dependsOn ':user-rpc-thrift-service:clean'
+    }
 }
 
 // Task to generate Thrift for all modules
@@ -93,4 +101,22 @@ tasks.register('generateThriftAll') {
     group = 'thrift'
     description = 'Generate Thrift classes for all modules'
     dependsOn ':shared-common:generateThrift'
+}
+
+// Per-subproject docker build if Dockerfile exists
+subprojects { sp ->
+    tasks.register('dockerBuild', Exec) {
+        group = 'docker'
+        description = "Build Docker image for ${sp.name} if Dockerfile exists"
+        workingDir sp.projectDir
+        commandLine 'docker', 'build', '-t', "hzeroxium/${sp.name}:latest", '-f', 'Dockerfile', '.'
+        onlyIf { file("${sp.projectDir}/Dockerfile").exists() }
+    }
+}
+
+tasks.register('buildDocker') {
+    group = 'docker'
+    description = 'Build Docker images for all services'
+    dependsOn 'buildAll'
+    dependsOn subprojects.collect { it.tasks.named('dockerBuild') }
 }

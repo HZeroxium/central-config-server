@@ -2,7 +2,6 @@ package com.example.rest.kafka;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,9 +13,7 @@ import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.listener.ContainerProperties;
-import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.kafka.support.converter.StringJsonMessageConverter;
-import org.springframework.util.backoff.ExponentialBackOff;
 
 import java.util.Map;
 
@@ -34,9 +31,9 @@ public class KafkaConfig {
     cfg.putIfAbsent(ProducerConfig.RETRIES_CONFIG, 2147483647);
     cfg.putIfAbsent(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
     cfg.putIfAbsent(ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, 120000);
-    cfg.putIfAbsent(ProducerConfig.TRANSACTIONAL_ID_CONFIG, "rest-service-tx-");
+    // Remove orchestrator-specific transactional prefix; keep idempotence enabled
+    cfg.remove(ProducerConfig.TRANSACTIONAL_ID_CONFIG);
     DefaultKafkaProducerFactory<String, String> factory = new DefaultKafkaProducerFactory<>(cfg);
-    factory.setTransactionIdPrefix("rest-service-tx-");
     return factory;
   }
 
@@ -63,25 +60,8 @@ public class KafkaConfig {
     return f;
   }
 
-  @Bean(name = "txFactory")
-  public ConcurrentKafkaListenerContainerFactory<String, String> txFactory(
-      @Qualifier("consumerFactory") ConsumerFactory<String, String> cf,
-      @Qualifier("kafkaTemplate") KafkaTemplate<String, String> template) {
-
-    var f = new ConcurrentKafkaListenerContainerFactory<String, String>();
-    f.setConsumerFactory(cf);
-    f.getContainerProperties().setAckMode(ContainerProperties.AckMode.RECORD);
-
-    // Error handler with DLT
-    var backoff = new ExponentialBackOff();
-    backoff.setInitialInterval(500);
-    backoff.setMultiplier(2.0);
-    backoff.setMaxInterval(5000);
-
-    var eh = new DefaultErrorHandler(backoff);
-    f.setCommonErrorHandler(eh);
-    return f;
-  }
+  // Removed specialized transactional container factory previously used by
+  // orchestrator
 
   @Bean
   public StringJsonMessageConverter messageConverter() {

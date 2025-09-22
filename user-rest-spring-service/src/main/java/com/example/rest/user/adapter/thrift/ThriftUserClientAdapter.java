@@ -13,6 +13,7 @@ import org.apache.thrift.transport.TTransport;
 import org.springframework.stereotype.Component;
 
 import com.example.common.domain.User;
+import com.example.common.domain.UserQueryCriteria;
 import com.example.rest.user.port.ThriftUserClientPort;
 import com.example.rest.user.config.ThriftClientProperties;
 import com.example.user.thrift.*;
@@ -227,7 +228,7 @@ public class ThriftUserClientAdapter implements ThriftUserClientPort {
   }
 
   @Override
-  public List<User> listByCriteria(com.example.common.domain.UserQueryCriteria criteria) {
+  public List<User> listByCriteria(UserQueryCriteria criteria) {
     log.debug("Listing users by criteria via Thrift service: {}", criteria);
     UserService.Client client = null;
     try {
@@ -262,7 +263,7 @@ public class ThriftUserClientAdapter implements ThriftUserClientPort {
   }
 
   @Override
-  public long countByCriteria(com.example.common.domain.UserQueryCriteria criteria) {
+  public long countByCriteria(UserQueryCriteria criteria) {
     log.debug("Counting users by criteria via Thrift service: {}", criteria);
     UserService.Client client = null;
     try {
@@ -291,7 +292,7 @@ public class ThriftUserClientAdapter implements ThriftUserClientPort {
   /**
    * Convert domain query criteria to Thrift request.
    */
-  private TListUsersRequest toThriftRequest(com.example.common.domain.UserQueryCriteria criteria) {
+  private TListUsersRequest toThriftRequest(UserQueryCriteria criteria) {
     TListUsersRequest request = new TListUsersRequest()
         .setPage(criteria.getPage())
         .setSize(criteria.getSize())

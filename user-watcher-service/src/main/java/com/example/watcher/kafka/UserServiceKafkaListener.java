@@ -4,7 +4,6 @@ import com.example.kafka.avro.*;
 import com.example.common.domain.User;
 import com.example.common.domain.UserQueryCriteria;
 import com.example.user.service.port.UserServicePort;
-import com.example.watcher.config.KafkaTopicsProperties;
 import com.example.watcher.constants.WatcherConstants;
 import com.example.watcher.service.ResponseService;
 import com.example.watcher.service.UserMappingService;

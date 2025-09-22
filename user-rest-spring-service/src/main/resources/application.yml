@@ -15,48 +15,10 @@ spring:
     exclude:
       # Default profile uses caffeine; enable Redis via profile override file
 
-  # Kafka configuration for Orchestrator
+  # Kafka client defaults (kept minimal since orchestrator removed)
   kafka:
     bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
-
-    producer:
-      acks: all
-      batch-size: 65536 # 64KB
-      linger-ms: 30
-      compression-type: snappy
-      retries: 2147483647
-      properties:
-        enable.idempotence: true
-        delivery.timeout.ms: 120000
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.apache.kafka.common.serialization.StringSerializer
-      # Transactional producer for EOS
-      transaction-id-prefix: orchestrator-tx-
-
-    consumer:
-      group-id: user-update-orchestrator
-      auto-offset-reset: earliest
-      enable-auto-commit: false
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      properties:
-        partition.assignment.strategy: org.apache.kafka.clients.consumer.CooperativeStickyAssignor
-        # Enhanced connection resilience
-        reconnect.backoff.ms: 1000
-        reconnect.backoff.max.ms: 10000
-        retry.backoff.ms: 1000
-        request.timeout.ms: 30000
-        session.timeout.ms: 30000
-        heartbeat.interval.ms: 10000
-        max.poll.interval.ms: 300000
-        # Connection pool settings
-        connections.max.idle.ms: 540000
-        # Security and reliability
-        enable.auto.commit: false
-        isolation.level: read_committed
-
     listener:
-      ack-mode: record
       missing-topics-fatal: false
 
 # Thrift client configuration
