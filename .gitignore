@@ -5,4 +5,4 @@ build/
 logs/
 .env
 scripts/
-test/
+# test/
