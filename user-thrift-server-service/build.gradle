@@ -52,6 +52,9 @@ dependencies {
     implementation libs.spring.boot.starter.data.redis
     implementation libs.lettuce.core
 
+    // Resilience4j
+    implementation libs.bundles.resilience4j
+
     // Micrometer
     runtimeOnly libs.micrometer.registry.prometheus
 

@@ -33,7 +33,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class UserServiceThriftHandler implements UserService.Iface {
 
-    private final RpcService rpcService;
+    private final RedisRpcService redisRpcService;
     private final KafkaTopicsProperties topicsProperties;
     private final AsyncCommandPublishingService asyncCommandService;
     private final OperationTrackingService operationTrackingService;
@@ -128,7 +128,7 @@ public class UserServiceThriftHandler implements UserService.Iface {
             TPingRequest thriftRequest = new TPingRequest();
             thriftRequest.setMessage("ping");
 
-            TPingResponse response = rpcService.sendRpcRequest(
+            TPingResponse response = redisRpcService.sendRpcRequest(
                     topicsProperties.getPingRequest(),
                     topicsProperties.getPingResponse(),
                     thriftRequest,
@@ -155,7 +155,7 @@ public class UserServiceThriftHandler implements UserService.Iface {
             thriftRequest.setStatus(convertToKafkaUserStatus(request.getStatus()));
             thriftRequest.setRole(convertToKafkaUserRole(request.getRole()));
 
-            TUserCreateResponse response = rpcService.sendRpcRequest(
+            TUserCreateResponse response = redisRpcService.sendRpcRequest(
                     topicsProperties.getUserCreateRequest(),
                     topicsProperties.getUserCreateResponse(),
                     thriftRequest,
@@ -183,7 +183,7 @@ public class UserServiceThriftHandler implements UserService.Iface {
             TUserGetRequest thriftRequest = new TUserGetRequest();
             thriftRequest.setId(request.getId());
 
-            TUserGetResponse response = rpcService.sendRpcRequest(
+            TUserGetResponse response = redisRpcService.sendRpcRequest(
                     topicsProperties.getUserGetRequest(),
                     topicsProperties.getUserGetResponse(),
                     thriftRequest,
@@ -218,7 +218,7 @@ public class UserServiceThriftHandler implements UserService.Iface {
             thriftRequest.setRole(convertToKafkaUserRole(request.getRole()));
             thriftRequest.setVersion(request.getVersion());
 
-            TUserUpdateResponse response = rpcService.sendRpcRequest(
+            TUserUpdateResponse response = redisRpcService.sendRpcRequest(
                     topicsProperties.getUserUpdateRequest(),
                     topicsProperties.getUserUpdateResponse(),
                     thriftRequest,
@@ -248,7 +248,7 @@ public class UserServiceThriftHandler implements UserService.Iface {
             TUserDeleteRequest thriftRequest = new TUserDeleteRequest();
             thriftRequest.setId(request.getId());
 
-            TUserDeleteResponse response = rpcService.sendRpcRequest(
+            TUserDeleteResponse response = redisRpcService.sendRpcRequest(
                     topicsProperties.getUserDeleteRequest(),
                     topicsProperties.getUserDeleteResponse(),
                     thriftRequest,
@@ -295,7 +295,7 @@ public class UserServiceThriftHandler implements UserService.Iface {
                 thriftRequest.setIncludeDeleted(request.isIncludeDeleted());
             }
 
-            TUserListResponse response = rpcService.sendRpcRequest(
+            TUserListResponse response = redisRpcService.sendRpcRequest(
                     topicsProperties.getUserListRequest(),
                     topicsProperties.getUserListResponse(),
                     thriftRequest,
@@ -325,7 +325,7 @@ public class UserServiceThriftHandler implements UserService.Iface {
         String correlationId = new String(record.headers().lastHeader(KafkaHeaders.CORRELATION_ID).value());
         TPingResponse response = ThriftKafkaMessageHandler.deserializeMessage(record, TPingResponse.class);
         log.debug("Received ping response with correlationId: {}", correlationId);
-        rpcService.handleResponse(correlationId, response);
+        redisRpcService.handleResponse(correlationId, response);
     }
 
     @KafkaListener(topics = "user.create.response", groupId = ThriftConstants.CONSUMER_GROUP_ID, containerFactory = "rpcListenerFactory")
@@ -333,7 +333,7 @@ public class UserServiceThriftHandler implements UserService.Iface {
         String correlationId = new String(record.headers().lastHeader(KafkaHeaders.CORRELATION_ID).value());
         TUserCreateResponse response = ThriftKafkaMessageHandler.deserializeMessage(record, TUserCreateResponse.class);
         log.debug("Received create user response with correlationId: {}", correlationId);
-        rpcService.handleResponse(correlationId, response);
+        redisRpcService.handleResponse(correlationId, response);
     }
 
     @KafkaListener(topics = "user.get.response", groupId = ThriftConstants.CONSUMER_GROUP_ID, containerFactory = "rpcListenerFactory")
@@ -341,7 +341,7 @@ public class UserServiceThriftHandler implements UserService.Iface {
         String correlationId = new String(record.headers().lastHeader(KafkaHeaders.CORRELATION_ID).value());
         TUserGetResponse response = ThriftKafkaMessageHandler.deserializeMessage(record, TUserGetResponse.class);
         log.debug("Received get user response with correlationId: {}", correlationId);
-        rpcService.handleResponse(correlationId, response);
+        redisRpcService.handleResponse(correlationId, response);
     }
 
     @KafkaListener(topics = "user.update.response", groupId = ThriftConstants.CONSUMER_GROUP_ID, containerFactory = "rpcListenerFactory")
@@ -349,7 +349,7 @@ public class UserServiceThriftHandler implements UserService.Iface {
         String correlationId = new String(record.headers().lastHeader(KafkaHeaders.CORRELATION_ID).value());
         TUserUpdateResponse response = ThriftKafkaMessageHandler.deserializeMessage(record, TUserUpdateResponse.class);
         log.debug("Received update user response with correlationId: {}", correlationId);
-        rpcService.handleResponse(correlationId, response);
+        redisRpcService.handleResponse(correlationId, response);
     }
 
     @KafkaListener(topics = "user.delete.response", groupId = ThriftConstants.CONSUMER_GROUP_ID, containerFactory = "rpcListenerFactory")
@@ -357,7 +357,7 @@ public class UserServiceThriftHandler implements UserService.Iface {
         String correlationId = new String(record.headers().lastHeader(KafkaHeaders.CORRELATION_ID).value());
         TUserDeleteResponse response = ThriftKafkaMessageHandler.deserializeMessage(record, TUserDeleteResponse.class);
         log.debug("Received delete user response with correlationId: {}", correlationId);
-        rpcService.handleResponse(correlationId, response);
+        redisRpcService.handleResponse(correlationId, response);
     }
 
     @KafkaListener(topics = "user.list.response", groupId = ThriftConstants.CONSUMER_GROUP_ID, containerFactory = "rpcListenerFactory")
@@ -365,7 +365,7 @@ public class UserServiceThriftHandler implements UserService.Iface {
         String correlationId = new String(record.headers().lastHeader(KafkaHeaders.CORRELATION_ID).value());
         TUserListResponse response = ThriftKafkaMessageHandler.deserializeMessage(record, TUserListResponse.class);
         log.debug("Received list users response with correlationId: {}", correlationId);
-        rpcService.handleResponse(correlationId, response);
+        redisRpcService.handleResponse(correlationId, response);
     }
 
     // === V2 ASYNC OPERATIONS ===

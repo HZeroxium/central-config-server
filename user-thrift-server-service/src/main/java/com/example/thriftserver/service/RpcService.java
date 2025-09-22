@@ -17,6 +17,7 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@Deprecated(since = "1.0.0", forRemoval = true)
 public class RpcService {
 
   private final KafkaTemplate<String, Object> kafkaTemplate;

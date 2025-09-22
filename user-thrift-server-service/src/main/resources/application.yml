@@ -70,7 +70,43 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus
+        include: health,info,metrics,prometheus,circuitbreakers,retries,timelimiters
   endpoint:
     health:
       show-details: when-authorized
+  health:
+    circuitbreakers:
+      enabled: true
+    redis:
+      enabled: true
+
+# Resilience4j configuration
+resilience4j:
+  circuitbreaker:
+    instances:
+      rpc-service:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        slow-call-rate-threshold: 80
+        slow-call-duration-threshold: 15s
+        permitted-number-of-calls-in-half-open-state: 3
+        wait-duration-in-open-state: 30s
+        automatic-transition-from-open-to-half-open-enabled: true
+        record-exceptions:
+          - java.lang.Exception
+  retry:
+    instances:
+      rpc-service:
+        max-attempts: 3
+        wait-duration: 500ms
+        exponential-backoff-multiplier: 2.0
+        retry-exceptions:
+          - java.util.concurrent.TimeoutException
+          - org.springframework.kafka.KafkaException
+  timelimiter:
+    instances:
+      rpc-service:
+        timeout-duration: 30s
+        cancel-running-future: true

@@ -47,7 +47,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,prometheus,metrics,env,beans,configprops,loggers,threaddump,heapdump,cache
+        include: health,info,prometheus,metrics,env,beans,configprops,loggers,threaddump,heapdump,cache,circuitbreakers,retries,timelimiters
   endpoint:
     health:
       show-details: when_authorized
@@ -55,6 +55,9 @@ management:
     prometheus:
       enabled: true
     metrics:
+      enabled: true
+  health:
+    circuitbreakers:
       enabled: true
   metrics:
     enable:
@@ -83,6 +86,36 @@ management:
       export:
         enabled: true
         step: 10s
+
+# Resilience4j configuration for Thrift client
+resilience4j:
+  circuitbreaker:
+    instances:
+      thrift-service:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        slow-call-rate-threshold: 80
+        slow-call-duration-threshold: 5s
+        permitted-number-of-calls-in-half-open-state: 3
+        wait-duration-in-open-state: 30s
+        automatic-transition-from-open-to-half-open-enabled: true
+        record-exceptions:
+          - org.apache.thrift.transport.TTransportException
+          - java.lang.RuntimeException
+  retry:
+    instances:
+      thrift-service:
+        max-attempts: 3
+        wait-duration: 500ms
+        retry-exceptions:
+          - org.apache.thrift.transport.TTransportException
+  timelimiter:
+    instances:
+      thrift-service:
+        timeout-duration: 10s
+        cancel-running-future: true
 
 # Logging configuration - using Log4j2
 logging:
