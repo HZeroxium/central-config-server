@@ -64,55 +64,6 @@ services:
     networks:
       - thrift-network
 
-  # user-rpc-thrift-service:
-  #   build:
-  #     context: ./user-rpc-thrift-service
-  #     dockerfile: Dockerfile
-  #   image: hzeroxium/user-rpc-thrift-service:latest
-  #   container_name: user-rpc-thrift-service
-  #   env_file:
-  #     - .env
-  #   environment:
-  #     - PERSISTENCE_TYPE=mongo
-  #     - SERVER_PORT=8080
-  #     - THRIFT_PORT=9090
-  #     - MONGODB_URI=mongodb://mongodb:27017/users
-  #     - JDBC_URL=jdbc:h2:mem:userdb;DB_CLOSE_DELAY=-1;MODE=LEGACY
-  #     - ENVIRONMENT=docker
-  #     - LOGGING_LEVEL_ROOT=INFO
-  #     - LOGGING_LEVEL_COM_EXAMPLE_USER=DEBUG
-  #     # Kafka configuration
-  #     - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
-  #   ports:
-  #     - "8080:8080"
-  #     - "9090:9090"
-  #   volumes:
-  #     # Mount logs directory to host with proper permissions
-  #     - ./logs/user-rpc-thrift-service:/app/logs:rw
-  #   depends_on:
-  #     mongodb:
-  #       condition: service_healthy
-  #     kafka:
-  #       condition: service_healthy
-  #     redis:
-  #       condition: service_healthy
-  #   networks:
-  #     - thrift-network
-  #   logging:
-  #     driver: "json-file"
-  #     options:
-  #       max-size: "10m"
-  #       max-file: "3"
-  #       labels: "service=user-rpc-thrift-service,environment=docker"
-  #   healthcheck:
-  #     test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 5
-  #     start_period: 30s
-  #   # Run as root to fix permissions, then switch to appuser
-  #   user: "0:0"
-
   user-rest-spring-service:
     build:
       context: ./user-rest-spring-service
