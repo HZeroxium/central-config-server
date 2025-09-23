@@ -33,6 +33,12 @@ dependencies {
     implementation 'com.example:user-contracts:1.0.0'
     testImplementation 'com.example:user-contracts:1.0.0'
     
+    // Thrift library for client usage
+    implementation 'org.apache.thrift:libthrift:0.22.0'
+    
+    // Spring Kafka for messaging
+    implementation 'org.springframework.kafka:spring-kafka:3.1.4'
+    
     // Spring Boot starters with proper logging exclusions
     implementation('org.springframework.boot:spring-boot-starter-web') {
         exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'

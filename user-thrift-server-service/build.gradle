@@ -33,7 +33,7 @@ dependencies {
     implementation 'com.example:user-contracts:1.0.0'
 
     // Spring Boot starters with proper logging exclusions
-    implementation('org.springframework.boot:spring-boot-starter') {
+    implementation('org.springframework.boot:spring-boot-starter-web') {
         exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
     }
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
