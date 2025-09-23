@@ -1,0 +1,165 @@
+// user-thrift-server-service/user-contracts/build.gradle
+
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+    id 'idea'
+}
+
+group = 'com.example'
+version = '1.0.0'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+    withSourcesJar()
+    withJavadocJar()
+}
+
+repositories {
+    mavenCentral()
+    mavenLocal()
+}
+
+// Thrift directories
+def thriftSrcDir = file('src/main/thrift')
+def generatedSourcesDir = file('build/generated-sources/thrift')
+
+dependencies {
+    // Thrift base
+    implementation 'org.apache.thrift:libthrift:0.22.0'
+
+    // Spring core/context and caching APIs used by config classes
+    implementation 'org.springframework:spring-context:6.1.14'
+    implementation 'org.springframework:spring-context-support:6.1.14'
+    implementation 'org.springframework:spring-aop:6.1.14'
+    implementation 'org.springframework:spring-beans:6.1.14'
+    implementation 'org.springframework:spring-core:6.1.14'
+    implementation 'org.springframework:spring-expression:6.1.14'
+    // Spring Data Redis (types referenced in configs)
+    implementation 'org.springframework.data:spring-data-redis:3.3.6'
+
+    // Caching providers
+    implementation 'com.github.ben-manes.caffeine:caffeine:3.1.8'
+    implementation 'io.lettuce:lettuce-core:6.3.2.RELEASE'
+
+    // Micrometer AOP/timed aspect
+    implementation 'io.micrometer:micrometer-core:1.13.15'
+
+    // Jackson (annotations/datatype)
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.17.2'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.17.2'
+    implementation 'com.fasterxml.jackson.core:jackson-annotations:2.17.2'
+
+    // Validation + Swagger annotations referenced in DTOs
+    implementation 'jakarta.validation:jakarta.validation-api:3.0.2'
+    implementation 'io.swagger.core.v3:swagger-annotations:2.2.22'
+
+    // Kafka client API for serializer/deserializer interfaces
+    implementation 'org.apache.kafka:kafka-clients:3.7.0'
+
+    // Logging API for @Slf4j
+    implementation 'org.slf4j:slf4j-api:2.0.13'
+
+    // AspectJ runtime (EnableAspectJAutoProxy with TimedAspect)
+    implementation 'org.aspectj:aspectjweaver:1.9.21'
+
+    // Lombok for generated getters/setters
+    compileOnly 'org.projectlombok:lombok:1.18.32'
+    annotationProcessor 'org.projectlombok:lombok:1.18.32'
+
+    // For @javax.annotation.Generated used in Thrift generated sources
+    compileOnly 'javax.annotation:javax.annotation-api:1.3.2'
+
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+}
+
+// Keep default source layout; Thrift IDL lives under src/main/thrift for reference
+sourceSets {
+    main {
+        java.srcDirs = ['src/main/java', generatedSourcesDir]
+        resources.srcDirs = ['src/main/resources', 'src/main/thrift']
+    }
+    test {
+        java.srcDirs = ['src/test/java']
+        resources.srcDirs = ['src/test/resources']
+    }
+}
+
+// Thrift generation task (requires 'thrift' compiler on PATH)
+tasks.register('generateThrift') {
+    group = 'thrift'
+    description = 'Generate Java classes from Thrift IDL'
+
+    inputs.dir(thriftSrcDir)
+    outputs.dir(generatedSourcesDir)
+
+    doLast {
+        generatedSourcesDir.mkdirs()
+        if (!thriftSrcDir.exists()) {
+            logger.lifecycle("No Thrift sources found at ${thriftSrcDir}")
+            return
+        }
+
+        // Collect .thrift files and generate
+        def thriftFiles = []
+        thriftSrcDir.eachFileRecurse { f ->
+            if (f.isFile() && f.name.endsWith('.thrift')) {
+                thriftFiles.add(f)
+            }
+        }
+
+        if (thriftFiles.isEmpty()) {
+            logger.lifecycle('No .thrift files found; skipping generation')
+            return
+        }
+
+        thriftFiles.each { f ->
+            logger.lifecycle("Generating Thrift for ${f}")
+            exec {
+                executable 'thrift'
+                args '-r', '--gen', 'java', '-out', generatedSourcesDir.absolutePath, f.absolutePath
+            }
+        }
+    }
+}
+
+compileJava {
+    dependsOn tasks.named('generateThrift')
+    options.encoding = 'UTF-8'
+}
+
+tasks.named('sourcesJar') {
+    dependsOn tasks.named('generateThrift')
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    from(generatedSourcesDir)
+}
+
+tasks.named('javadocJar') {
+    dependsOn tasks.named('generateThrift')
+}
+
+clean {
+    delete generatedSourcesDir
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            groupId = project.group
+            artifactId = 'user-contracts'
+            version = project.version
+        }
+    }
+    repositories {
+        mavenLocal()
+    }
+}
+
+
