@@ -21,7 +21,6 @@ import com.example.rest.user.constants.CacheConstants;
 import io.micrometer.core.annotation.Timed;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
-import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
 
 @Slf4j
 @Service

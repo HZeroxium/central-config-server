@@ -18,6 +18,16 @@ spring:
           format_sql: true
           use_sql_comments: true
       database-platform: org.hibernate.dialect.H2Dialect
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+      url: ${SPRING_DATA_REDIS_URL:redis://redis:6379}
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
   datasource:
     url: ${JDBC_URL:jdbc:h2:mem:userdb;DB_CLOSE_DELAY=-1;MODE=LEGACY}
     driver-class-name: org.h2.Driver
@@ -27,9 +37,7 @@ spring:
     cache-names: userById, usersByCriteria, countByCriteria
     type: caffeine
   autoconfigure:
-    exclude:
-      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
-      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+    exclude: []
   kafka:
     bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
     consumer:
@@ -37,21 +45,17 @@ spring:
       auto-offset-reset: earliest
       enable-auto-commit: false
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       properties:
-        "[schema.registry.url]": ${SCHEMA_REGISTRY_URL:http://schema-registry:8081}
-        "[specific.avro.reader]": true
-        "[isolation.level]": read_committed
+        isolation.level: read_committed
     producer:
       acks: all
       retries: 2147483647
-      properties:
-        "[enable.idempotence]": true
-        "[delivery.timeout.ms]": 120000
-        "[schema.registry.url]": ${SCHEMA_REGISTRY_URL:http://schema-registry:8081}
-        "[auto.register.schemas]": true
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      properties:
+        enable.idempotence: true
+        delivery.timeout.ms: 120000
     listener:
       ack-mode: record
       missing-topics-fatal: false
@@ -106,11 +110,12 @@ management:
 
 logging:
   level:
-    root: DEBUG
-    com.example.watcher: DEBUG
-    com.example.user: DEBUG
-    org.springframework.kafka: DEBUG
-    org.apache.kafka: DEBUG
+    root: ${LOGGING_LEVEL_ROOT:INFO}
+    com.example.watcher: ${LOGGING_LEVEL_COM_EXAMPLE_WATCHER:DEBUG}
+    com.example.user: ${LOGGING_LEVEL_COM_EXAMPLE_USER:DEBUG}
+    org.springframework.kafka: INFO
+    org.apache.kafka: INFO
     org.springframework.web: INFO
     io.micrometer: INFO
+    org.springframework.cache: DEBUG
   config: classpath:log4j2-spring.xml

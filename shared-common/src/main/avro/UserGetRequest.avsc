@@ -1,7 +1,0 @@
-{
-  "type": "record",
-  "name": "UserGetRequest",
-  "namespace": "com.example.kafka.avro",
-  "doc": "Request to get a user by ID",
-  "fields": [{ "name": "id", "type": "string", "doc": "User ID" }]
-}

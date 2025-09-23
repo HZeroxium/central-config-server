@@ -10,8 +10,6 @@ import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Service;
 
-import java.util.UUID;
-
 /**
  * Service for publishing async commands to Kafka
  * Handles V2 async operation command publishing

@@ -58,10 +58,19 @@ public class UserServiceThriftKafkaListener {
 
     log.info("Received create user request: name={} with correlationId: {}", request.getName(), correlationId);
     try {
+      // Map the kafka request message to the domain user.
       User domain = userMappingService.createUserFromThriftRequest(request);
+
+      // Call the service to create the user.
       User created = userService.create(domain);
+
+      // Map the domain user to the kafka response message.
       TUserResponse userResponse = userMappingService.createThriftUserResponse(created);
+
+      // Create the kafka response message.
       TUserCreateResponse response = new TUserCreateResponse(userResponse);
+
+      // Send the kafka response message.
       responseService.sendResponse(replyTopic, correlationId, response);
       log.info("Successfully sent create user response for user: {} with correlationId: {}", created.getId(),
           correlationId);
@@ -155,15 +164,24 @@ public class UserServiceThriftKafkaListener {
         request.isSetPage() ? request.getPage() : "default",
         request.isSetSize() ? request.getSize() : "default", correlationId);
     try {
+      // Map the kafka request message to the domain criteria.
       UserQueryCriteria criteria = userMappingService.createCriteriaFromThriftRequest(request);
+
+      // Call the service to list the users.
       List<User> users = userService.listByCriteria(criteria);
       long total = userService.countByCriteria(criteria);
+
+      // Map the domain users to the kafka response message.
       List<TUserResponse> userResponses = users.stream()
           .map(userMappingService::createThriftUserResponse)
           .collect(Collectors.toList());
+
+      // Create the kafka response message.
       int totalPages = (int) Math.ceil((double) total / criteria.getSize());
       TUserListResponse response = new TUserListResponse(userResponses, criteria.getPage(), criteria.getSize(), total,
           totalPages);
+
+      // Send the kafka response message.
       responseService.sendResponse(replyTopic, correlationId, response);
       log.info("Successfully sent list users response: {} users with correlationId: {}", users.size(), correlationId);
     } catch (Exception e) {

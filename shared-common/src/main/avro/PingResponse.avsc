@@ -1,7 +1,0 @@
-{
-  "type": "record",
-  "name": "PingResponse",
-  "namespace": "com.example.kafka.avro",
-  "doc": "Ping response",
-  "fields": [{ "name": "message", "type": "string", "doc": "Ping message" }]
-}

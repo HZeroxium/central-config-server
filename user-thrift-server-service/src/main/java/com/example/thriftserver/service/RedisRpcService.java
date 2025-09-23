@@ -52,24 +52,31 @@ public class RedisRpcService {
       Object request, Class<T> responseType) {
     return CompletableFuture.supplyAsync(() -> {
       try {
+        // Generate correlation ID
         String correlationId = UUID.randomUUID().toString();
         log.debug("Sending RPC request to topic: {} with correlationId: {}", requestTopic, correlationId);
 
         // Store pending request in Redis with TTL
         String pendingKey = PENDING_REPLIES_KEY_PREFIX + correlationId;
+
+        // Create pending request
         PendingRpcRequest pendingRequest = new PendingRpcRequest(correlationId, responseType.getName(),
             System.currentTimeMillis());
 
+        // Store pending request in Redis with TTL
         storePendingRequest(pendingKey, pendingRequest);
 
-        // Send Kafka message
+        // Create ProducerRecord with headers
         ProducerRecord<String, Object> record = new ProducerRecord<>(requestTopic, correlationId, request);
         record.headers().add(new RecordHeader(KafkaHeaders.REPLY_TOPIC, responseTopic.getBytes()));
         record.headers().add(new RecordHeader(KafkaHeaders.CORRELATION_ID, correlationId.getBytes()));
 
+        // Send Kafka message with whenComplete callback
         kafkaTemplate.send(record).whenComplete((result, ex) -> {
           if (ex != null) {
             log.error("Failed to send RPC request for correlationId: {}", correlationId, ex);
+
+            // Cleanup pending request
             cleanupPendingRequest(pendingKey);
           }
         });
@@ -191,12 +198,16 @@ public class RedisRpcService {
   }
 
   private <T> T waitForResponse(String correlationId, Class<T> responseType) {
+
+    // Get response key
     String responseKey = getResponseKey(correlationId);
     long startTime = System.currentTimeMillis();
     long timeoutMs = appProperties.getRpcTimeoutSeconds() * 1000L;
 
+    // Wait for response
     while (System.currentTimeMillis() - startTime < timeoutMs) {
       try {
+        // Get response from Redis
         Object value = redisTemplate.opsForValue().get(responseKey);
         if (value != null) {
           redisTemplate.delete(responseKey);

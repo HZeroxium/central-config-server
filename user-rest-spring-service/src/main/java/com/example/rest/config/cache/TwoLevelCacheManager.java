@@ -6,8 +6,6 @@ import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Optional;
 import java.util.concurrent.Callable;
 
 /**

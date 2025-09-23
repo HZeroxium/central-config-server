@@ -14,9 +14,6 @@ java {
 
 repositories {
     mavenCentral()
-    maven {
-        url "https://packages.confluent.io/maven/"
-    }
 }
 
 configurations.all {
@@ -48,10 +45,7 @@ dependencies {
     implementation libs.jackson.databind
     implementation libs.jackson.datatype.jsr310
 
-    // Schema Registry & Avro
-    implementation libs.confluent.schema.registry.client
-    implementation libs.confluent.avro.serializer
-    implementation libs.avro
+    // Note: Removed Schema Registry & Avro dependencies - using String serialization
 
     // Micrometer
     runtimeOnly libs.micrometer.registry.prometheus

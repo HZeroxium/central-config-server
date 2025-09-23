@@ -71,20 +71,8 @@ services:
     image: hzeroxium/user-rest-spring-service:latest
     container_name: user-rest-spring-service
     env_file:
-      - env.example
-    environment:
-      - SERVER_PORT=8080
-      - THRIFT_HOST=user-thrift-server-service
-      - THRIFT_PORT=9090
-      - ENVIRONMENT=docker
-      - LOGGING_LEVEL_ROOT=INFO
-      - LOGGING_LEVEL_COM_EXAMPLE_REST=DEBUG
-      # Kafka configuration
-      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
-      # Redis configuration
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - SPRING_DATA_REDIS_URL=redis://redis:6379
+      - env.common
+      - env.user-rest
     volumes:
       # Mount logs directory to host with proper permissions
       - ./logs/user-rest-spring-service:/app/logs:rw
@@ -303,21 +291,8 @@ services:
     image: hzeroxium/user-watcher-service:latest
     container_name: user-watcher-service
     env_file:
-      - env.example
-    environment:
-      - SERVER_PORT=8080
-      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
-      - MONGODB_URI=mongodb://mongodb:27017/users
-      - JDBC_URL=jdbc:h2:mem:userdb;DB_CLOSE_DELAY=-1;MODE=LEGACY
-      - PERSISTENCE_TYPE=mongo
-      - ENVIRONMENT=docker
-      - LOGGING_LEVEL_ROOT=INFO
-      - LOGGING_LEVEL_COM_EXAMPLE_WATCHER=DEBUG
-      - LOGGING_LEVEL_COM_EXAMPLE_USER=DEBUG
-      # Redis configuration
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - SPRING_DATA_REDIS_URL=redis://redis:6379
+      - env.common
+      - env.user-watcher
     ports:
       - "8086:8080"
     volumes:
@@ -326,6 +301,8 @@ services:
       mongodb:
         condition: service_healthy
       kafka:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - thrift-network
@@ -349,14 +326,8 @@ services:
     image: hzeroxium/user-thrift-server-service:latest
     container_name: user-thrift-server-service
     env_file:
-      - env.example
-    environment:
-      - SERVER_PORT=8080
-      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
-      - THRIFT_PORT=9090
-      - ENVIRONMENT=docker
-      - LOGGING_LEVEL_ROOT=INFO
-      - LOGGING_LEVEL_COM_EXAMPLE_THRIFTSERVER=DEBUG
+      - env.common
+      - env.user-thrift
     ports:
       - "8085:8080"
       - "9090:9090"
@@ -366,7 +337,9 @@ services:
       kafka:
         condition: service_healthy
       user-watcher-service:
-        condition: service_started
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - thrift-network
     logging:

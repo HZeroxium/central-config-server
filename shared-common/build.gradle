@@ -5,8 +5,6 @@ plugins {
     alias(libs.plugins.idea)
     alias(libs.plugins.spring.boot) apply false
     alias(libs.plugins.spring.dependency.management)
-    alias(libs.plugins.avro)
-    alias(libs.plugins.kafka.schema.registry)
 }
 
 java {
@@ -20,9 +18,6 @@ version = '1.0.0'
 
 repositories {
     mavenCentral()
-    maven {
-        url "https://packages.confluent.io/maven/"
-    }
 }
 
 dependencyManagement {
@@ -51,10 +46,8 @@ dependencies {
     // Validation
     implementation libs.jakarta.validation.api
 
-    // Schema Registry & Avro
-    implementation libs.confluent.schema.registry.client
-    implementation libs.confluent.avro.serializer
-    implementation libs.avro
+    // Kafka serialization (using String serializers instead of Avro)
+    implementation libs.kafka.clients
 
     // OpenAPI/Swagger annotations for DTOs
     implementation libs.swagger.annotations
@@ -86,45 +79,8 @@ def thriftSrcDir = file('src/main/thrift')
 // Generated sources directory
 def generatedSourcesDir = file('build/generated-sources/thrift')
 
-// Avro configuration
-avro {
-    createSetters = true
-    createOptionalGetters = false
-    gettersReturnOptional = false
-    optionalGettersForNullableFieldsOnly = false
-    fieldVisibility = "PRIVATE"
-    outputCharacterEncoding = "UTF-8"
-    stringType = "String"
-}
-
-// Kafka Schema Registry configuration
-schemaRegistry {
-    url = 'http://localhost:8087'
-    register {
-        // Register enums first (no dependencies) - these are used as types in other schemas
-        subject('UserStatus', 'shared-common/src/main/avro/UserStatus.avsc', 'AVRO')
-        subject('UserRole', 'shared-common/src/main/avro/UserRole.avsc', 'AVRO')
-        
-        // Register UserResponse (depends on UserStatus and UserRole) - must come after enums
-        subject('UserResponse', 'shared-common/src/main/avro/UserResponse.avsc', 'AVRO')
-        
-        // Register request schemas with topic-value naming convention
-        subject('user.create.request-value', 'shared-common/src/main/avro/UserCreateRequest.avsc', 'AVRO')
-        subject('user.get.request-value', 'shared-common/src/main/avro/UserGetRequest.avsc', 'AVRO')
-        subject('user.update.request-value', 'shared-common/src/main/avro/UserUpdateRequest.avsc', 'AVRO')
-        subject('user.delete.request-value', 'shared-common/src/main/avro/UserDeleteRequest.avsc', 'AVRO')
-        subject('user.list.request-value', 'shared-common/src/main/avro/UserListRequest.avsc', 'AVRO')
-        subject('ping.request-value', 'shared-common/src/main/avro/PingRequest.avsc', 'AVRO')
-        
-        // Register response schemas with topic-value naming convention
-        subject('user.create.response-value', 'shared-common/src/main/avro/UserCreateResponse.avsc', 'AVRO')
-        subject('user.get.response-value', 'shared-common/src/main/avro/UserGetResponse.avsc', 'AVRO')
-        subject('user.update.response-value', 'shared-common/src/main/avro/UserUpdateResponse.avsc', 'AVRO')
-        subject('user.delete.response-value', 'shared-common/src/main/avro/UserDeleteResponse.avsc', 'AVRO')
-        subject('user.list.response-value', 'shared-common/src/main/avro/UserListResponse.avsc', 'AVRO')
-        subject('ping.response-value', 'shared-common/src/main/avro/PingResponse.avsc', 'AVRO')
-    }
-}
+// Note: Removed Avro and Schema Registry configuration
+// Now using String-based serialization for Kafka messages
 
 // Source sets configuration
 sourceSets {
@@ -132,8 +88,7 @@ sourceSets {
         java {
             srcDirs = [
                 'src/main/java',
-                generatedSourcesDir,
-                'build/generated-main-avro-java'
+                generatedSourcesDir
             ]
         }
         resources.srcDirs = ['src/main/resources']
@@ -183,10 +138,9 @@ tasks.register('generateThrift') {
     }
 }
 
-// Compile Java depends on Thrift generation and Avro generation
+// Compile Java depends on Thrift generation
 compileJava {
     dependsOn tasks.named('generateThrift')
-    dependsOn tasks.named('generateAvroJava')
     options.encoding = 'UTF-8'
 }
 
@@ -202,14 +156,4 @@ jar {
     archiveVersion = version
 }
 
-// Publishing configuration (optional - for future use)
-// publishing {
-//     publications {
-//         maven(MavenPublication) {
-//             from components.java
-//             groupId = group
-//             artifactId = 'shared-thrift-definitions'
-//             version = version
-//         }
-//     }
-// }
+

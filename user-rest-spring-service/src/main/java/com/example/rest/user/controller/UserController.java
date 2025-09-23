@@ -46,13 +46,17 @@ import com.example.rest.user.util.ResponseBuilder;
 public class UserController {
   private final UserService userService;
 
+  /** Health check ping. */
   @GetMapping(ApiConstants.PING_PATH)
   @Operation(summary = "Health ping", description = "Reach underlying Thrift service")
   @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = String.class)))
   @Timed(value = MetricsConstants.REST_API_PING, description = MetricsConstants.PING_DESCRIPTION)
   public ResponseEntity<String> ping() {
     log.info("Health check ping requested");
+
+    // Call the service to ping the Thrift server.
     String response = userService.ping();
+
     log.info("Health check ping successful, response: {}", response);
     return ResponseEntity.ok(response);
   }
@@ -64,11 +68,19 @@ public class UserController {
   @Timed(value = MetricsConstants.REST_API_CREATE_USER, description = MetricsConstants.CREATE_DESCRIPTION)
   public ResponseEntity<CreateUserResponse> create(@RequestBody @Validated CreateUserRequest request) {
     log.info("Creating new user with name: {}", request.getName());
+
+    // Map the request to the domain user.
     var domainUser = UserMapper.toDomainFromCreateRequest(request);
     log.debug("Mapped request to domain user: {}", domainUser);
+
+    // Call the service to create the user.
     var created = userService.create(domainUser);
     log.info("User created successfully with ID: {}", created.getId());
+
+    // Map the domain user to the response.
     var userResponse = UserMapper.toResponse(created);
+
+    // Create final response.
     var response = ResponseBuilder.buildCreateUserResponse(userResponse);
     log.debug("Mapped domain user to response: {}", response);
     return ResponseEntity.ok(response);
@@ -81,17 +93,25 @@ public class UserController {
   @Timed(value = MetricsConstants.REST_API_GET_USER, description = MetricsConstants.GET_BY_ID_DESCRIPTION)
   public ResponseEntity<GetUserResponse> get(@PathVariable @Parameter(description = "User id") String id) {
     log.info("Retrieving user with ID: {}", id);
+
+    // Call the service to get the user.
     return userService
         .getById(id)
         .map(user -> {
           log.debug("User found: {}", user);
+
+          // Map the domain user to the response.
           var userResponse = UserMapper.toResponse(user);
+
+          // Create final response.
           var response = ResponseBuilder.buildGetUserResponse(userResponse);
           log.info("User retrieved successfully with ID: {}", id);
           return ResponseEntity.ok(response);
         })
         .orElseGet(() -> {
           log.warn("User not found with ID: {}", id);
+
+          // Create final response.
           var response = ResponseBuilder.buildUserNotFoundResponse();
           return ResponseEntity.status(StatusCode.getHttpStatus(StatusCode.USER_NOT_FOUND)).body(response);
         });
@@ -106,18 +126,28 @@ public class UserController {
       @PathVariable @Parameter(description = "User id") String id,
       @RequestBody @Validated UpdateUserRequest request) {
     log.info("Updating user with ID: {}", id);
-    // Check if user exists first
+    // Call the service to get the user.
     var existingUser = userService.getById(id);
     if (existingUser.isEmpty()) {
       log.warn("User not found for update with ID: {}", id);
+
+      // Create not found response.
       var response = ResponseBuilder.buildUserNotFoundForUpdateResponse();
       return ResponseEntity.status(StatusCode.getHttpStatus(StatusCode.USER_NOT_FOUND)).body(response);
     }
+
+    // Map the request to the domain user.
     var domainUser = UserMapper.toDomainFromUpdateRequest(request, id);
     log.debug("Mapped request to domain user: {}", domainUser);
+
+    // Call the service to update the user.
     var updated = userService.update(domainUser);
     log.info("User updated successfully with ID: {}", updated.getId());
+
+    // Map the domain user to the response.
     var userResponse = UserMapper.toResponse(updated);
+
+    // Create final response.
     var response = ResponseBuilder.buildUpdateUserResponse(userResponse);
     log.debug("Mapped domain user to response: {}", response);
     return ResponseEntity.ok(response);

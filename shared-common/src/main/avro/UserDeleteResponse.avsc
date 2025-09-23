@@ -1,9 +1,0 @@
-{
-  "type": "record",
-  "name": "UserDeleteResponse",
-  "namespace": "com.example.kafka.avro",
-  "doc": "Response for deleting a user",
-  "fields": [
-    { "name": "deleted", "type": "boolean", "doc": "Whether user was deleted" }
-  ]
-}

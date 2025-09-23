@@ -14,9 +14,6 @@ java {
 
 repositories {
     mavenCentral()
-    maven {
-        url "https://packages.confluent.io/maven/"
-    }
 }
 
 configurations.all {
@@ -43,10 +40,7 @@ dependencies {
     // Jackson
     implementation libs.jackson.databind
 
-    // Schema Registry & Avro
-    implementation libs.confluent.schema.registry.client
-    implementation libs.confluent.avro.serializer
-    implementation libs.avro
+    // Note: Removed Schema Registry & Avro dependencies - using String serialization
 
     // Redis
     implementation libs.spring.boot.starter.data.redis
