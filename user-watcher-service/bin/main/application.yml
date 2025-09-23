@@ -1,0 +1,121 @@
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  application:
+    name: user-watcher-service
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:default}
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017/users}
+    jpa:
+      hibernate:
+        ddl-auto: create-drop
+      show-sql: false
+      properties:
+        hibernate:
+          format_sql: true
+          use_sql_comments: true
+      database-platform: org.hibernate.dialect.H2Dialect
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+      url: ${SPRING_DATA_REDIS_URL:redis://redis:6379}
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+  datasource:
+    url: ${JDBC_URL:jdbc:h2:mem:userdb;DB_CLOSE_DELAY=-1;MODE=LEGACY}
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: password
+  cache:
+    cache-names: userById, usersByCriteria, countByCriteria
+    type: caffeine
+  autoconfigure:
+    exclude: []
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
+    consumer:
+      group-id: user-watcher-group
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      properties:
+        isolation.level: read_committed
+    producer:
+      acks: all
+      retries: 2147483647
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      properties:
+        enable.idempotence: true
+        delivery.timeout.ms: 120000
+    listener:
+      ack-mode: record
+      missing-topics-fatal: false
+
+app:
+  name: user-watcher-service
+  version: 1.0.0
+  environment: ${ENVIRONMENT:development}
+  persistence:
+    type: ${PERSISTENCE_TYPE:mongo}
+    mongodb-uri: ${MONGODB_URI:mongodb://localhost:27017/users}
+    jdbc-url: ${JDBC_URL:jdbc:h2:mem:userdb;DB_CLOSE_DELAY=-1;MODE=LEGACY}
+    jdbc-driver: org.h2.Driver
+    jdbc-username: sa
+    jdbc-password: password
+
+kafka:
+  topics:
+    ping-request: ping.request
+    ping-response: ping.response
+    user-create-request: user.create.request
+    user-create-response: user.create.response
+    user-get-request: user.get.request
+    user-get-response: user.get.response
+    user-update-request: user.update.request
+    user-update-response: user.update.response
+    user-delete-request: user.delete.request
+    user-delete-response: user.delete.response
+    user-list-request: user.list.request
+    user-list-response: user.list.response
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics,env,beans,configprops,loggers,threaddump,heapdump,cache
+  endpoint:
+    health:
+      show-details: when_authorized
+      show-components: always
+    prometheus:
+      enabled: true
+    metrics:
+      enabled: true
+  metrics:
+    enable:
+      cache: true
+    tags:
+      application: user-watcher-service
+      service: user-watcher-service
+      environment: ${ENVIRONMENT:development}
+
+logging:
+  level:
+    root: ${LOGGING_LEVEL_ROOT:INFO}
+    com.example.watcher: ${LOGGING_LEVEL_COM_EXAMPLE_WATCHER:DEBUG}
+    com.example.user: ${LOGGING_LEVEL_COM_EXAMPLE_USER:DEBUG}
+    org.springframework.kafka: INFO
+    org.apache.kafka: INFO
+    org.springframework.web: INFO
+    io.micrometer: INFO
+    org.springframework.cache: DEBUG
+  config: classpath:log4j2-spring.xml

@@ -1,0 +1,173 @@
+# application.yml
+
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  application:
+    name: user-rest-spring-service
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:default}
+  cache:
+    cache-names: userById, usersByCriteria, countByCriteria
+    type: caffeine
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+      url: ${SPRING_DATA_REDIS_URL:redis://redis:6379}
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+
+  # Kafka client defaults (kept minimal since orchestrator removed)
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
+    listener:
+      missing-topics-fatal: false
+
+# Thrift client configuration
+thrift:
+  host: ${THRIFT_HOST:localhost}
+  port: ${THRIFT_PORT:9090}
+  timeout: 5000
+  retry-attempts: 3
+
+# Thrift client properties with validation
+thrift.client:
+  host: ${THRIFT_HOST:localhost}
+  port: ${THRIFT_PORT:9090}
+  timeout: ${THRIFT_TIMEOUT:10000}
+  retry-attempts: ${THRIFT_RETRY_ATTEMPTS:3}
+  connection-pool-size: ${THRIFT_CONNECTION_POOL_SIZE:10}
+
+# Application configuration
+app:
+  name: user-rest-spring-service
+  version: 1.0.0
+  environment: ${ENVIRONMENT:development}
+  # Unified cache configuration
+  cache:
+    provider: ${CACHE_PROVIDER:caffeine}  # caffeine, redis, two-level, noop
+    enable-fallback: true
+    caffeine:
+      maximum-size: 10000
+      expire-after-write: PT10M
+      expire-after-access: PT30M
+      record-stats: true
+    redis:
+      default-ttl: PT10M
+      enable-statistics: true
+      transaction-aware: true
+      fallback-to-caffeine: true
+      circuit-breaker:
+        enabled: true
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50.0
+        wait-duration-in-open-state: PT30S
+        permitted-number-of-calls-in-half-open-state: 3
+    two-level:
+      write-through: true
+      invalidate-l1-on-l2-update: true
+    caches:
+      userById:
+        ttl: PT15M
+        maximum-size: 5000
+        allow-null-values: true
+      usersByCriteria:
+        ttl: PT2M
+        maximum-size: 1000
+        allow-null-values: true
+      countByCriteria:
+        ttl: PT1M
+        maximum-size: 500
+        allow-null-values: true
+
+# Management and monitoring configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics,env,beans,configprops,loggers,threaddump,heapdump,cache,circuitbreakers,retries,timelimiters
+  endpoint:
+    health:
+      show-details: when_authorized
+      show-components: always
+    prometheus:
+      enabled: true
+    metrics:
+      enabled: true
+  health:
+    circuitbreakers:
+      enabled: true
+  metrics:
+    enable:
+      cache: true
+    tags:
+      application: user-rest-spring-service
+      service: user-rest-spring-service
+      environment: ${ENVIRONMENT:development}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+        http.client.requests: true
+      percentiles:
+        http.server.requests: 0.5, 0.9, 0.95, 0.99
+        http.client.requests: 0.5, 0.9, 0.95, 0.99
+      slo:
+        http.server.requests: 50ms, 100ms, 200ms, 500ms, 1s, 2s, 5s
+        http.client.requests: 50ms, 100ms, 200ms, 500ms, 1s, 2s, 5s
+  tracing:
+    sampling:
+      probability: 1.0
+    zipkin:
+      endpoint: http://zipkin:9411/api/v2/spans
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+        step: 10s
+
+# Resilience4j configuration for Thrift client
+resilience4j:
+  circuitbreaker:
+    instances:
+      thrift-service:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        slow-call-rate-threshold: 80
+        slow-call-duration-threshold: 5s
+        permitted-number-of-calls-in-half-open-state: 3
+        wait-duration-in-open-state: 30s
+        automatic-transition-from-open-to-half-open-enabled: true
+        record-exceptions:
+          - org.apache.thrift.transport.TTransportException
+          - java.lang.RuntimeException
+  retry:
+    instances:
+      thrift-service:
+        max-attempts: 3
+        wait-duration: 500ms
+        retry-exceptions:
+          - org.apache.thrift.transport.TTransportException
+  timelimiter:
+    instances:
+      thrift-service:
+        timeout-duration: 10s
+        cancel-running-future: true
+
+# Logging configuration - using Log4j2
+logging:
+  level:
+    com.example.rest: DEBUG
+    com.example.user: DEBUG
+    org.springframework.web: DEBUG
+    org.apache.thrift: DEBUG
+    io.micrometer: DEBUG
+  config: classpath:log4j2-spring.xml

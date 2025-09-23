@@ -1,0 +1,12 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+    }
+}
+
+// Use explicit dependency versions instead of version catalog for independence
+
+rootProject.name = 'user-thrift-server-service'
+
+include 'user-contracts'

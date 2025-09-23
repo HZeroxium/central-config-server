@@ -1,15 +1,20 @@
 // user-rest-spring-service/build.gradle
 
 plugins {
-    alias(libs.plugins.java)
-    alias(libs.plugins.idea)
-    alias(libs.plugins.spring.boot)
-    alias(libs.plugins.spring.dependency.management)
+    id 'java'
+    id 'idea'
+    id 'org.springframework.boot' version '3.3.13'
+    id 'io.spring.dependency-management' version '1.1.6'
 }
 
-// Inherit from parent project
 group = 'com.example'
 version = '1.0.0'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
 
 configurations.all {
     exclude group: 'ch.qos.logback', module: 'logback-classic'
@@ -17,64 +22,76 @@ configurations.all {
     exclude group: 'org.apache.logging.log4j', module: 'log4j-to-slf4j'
 }
 
+repositories {
+    mavenCentral()
+    mavenLocal()
+    maven { url "https://packages.confluent.io/maven/" }
+}
+
 dependencies {
-    // Shared common library
-    implementation project(':shared-common')
-    testImplementation project(':shared-common')
+    // User contracts library from Maven Local
+    implementation 'com.example:user-contracts:1.0.0'
+    testImplementation 'com.example:user-contracts:1.0.0'
     
     // Spring Boot starters with proper logging exclusions
-    implementation(libs.spring.boot.starter.web) {
+    implementation('org.springframework.boot:spring-boot-starter-web') {
         exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
     }
-    implementation libs.spring.boot.starter.actuator
-    implementation libs.spring.boot.starter.log4j2
-    implementation libs.spring.boot.starter.validation
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.boot:spring-boot-starter-log4j2'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
 
     // Resilience4j for circuit breaker, retry, timeout
-    implementation libs.resilience4j.spring.boot3
-    implementation libs.resilience4j.circuitbreaker
-    implementation libs.resilience4j.retry
-    implementation libs.resilience4j.timelimiter
+    implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.2.0'
+    implementation 'io.github.resilience4j:resilience4j-circuitbreaker:2.2.0'
+    implementation 'io.github.resilience4j:resilience4j-retry:2.2.0'
+    implementation 'io.github.resilience4j:resilience4j-timelimiter:2.2.0'
 
     // Micrometer for metrics and profiling
-    implementation libs.micrometer.core
-    implementation libs.micrometer.registry.prometheus
-    implementation libs.micrometer.tracing.bridge.brave
-    implementation libs.brave
-    implementation libs.zipkin.reporter.brave
+    implementation 'io.micrometer:micrometer-core:1.13.15'
+    implementation 'io.micrometer:micrometer-registry-prometheus:1.13.15'
+    implementation 'io.micrometer:micrometer-tracing-bridge-brave:1.3.13'
+    implementation 'io.zipkin.brave:brave:6.0.3'
+    implementation 'io.zipkin.reporter2:zipkin-reporter-brave:3.4.3'
 
     // Spring Cache + providers
-    implementation libs.spring.boot.starter.cache
-    implementation libs.caffeine
-    implementation libs.spring.boot.starter.data.redis
-    implementation libs.lettuce.core
-    implementation libs.jackson.datatype.jsr310
+    implementation 'org.springframework.boot:spring-boot-starter-cache'
+    implementation 'com.github.ben-manes.caffeine:caffeine:3.1.8'
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    implementation 'io.lettuce:lettuce-core:6.3.2.RELEASE'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.17.2'
     
     // AOP for method-level profiling
-    implementation libs.spring.aop
-    implementation libs.aspectjweaver
+    implementation 'org.springframework:spring-aop'
+    implementation 'org.aspectj:aspectjweaver:1.9.21'
+    
+    // Lombok
+    compileOnly 'org.projectlombok:lombok:1.18.32'
+    annotationProcessor 'org.projectlombok:lombok:1.18.32'
+    testCompileOnly 'org.projectlombok:lombok:1.18.32'
+    testAnnotationProcessor 'org.projectlombok:lombok:1.18.32'
 
     // OpenAPI/Swagger UI for Spring Boot 3
-    implementation libs.springdoc.openapi.starter.webmvc.ui
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0'
 
     // Test dependencies
-    testImplementation(libs.spring.boot.starter.test) {
+    testImplementation('org.springframework.boot:spring-boot-starter-test') {
         exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
     }
-    testImplementation libs.mockito.core
-    testImplementation libs.mockito.junit.jupiter
-    testImplementation libs.assertj.core
-    testImplementation libs.testcontainers.junit.jupiter
-    testImplementation libs.testcontainers.mongodb
-    testImplementation libs.testcontainers.postgresql
-    testImplementation libs.h2
-    testImplementation libs.micrometer.test
+    testImplementation 'org.mockito:mockito-core:5.11.0'
+    testImplementation 'org.mockito:mockito-junit-jupiter:5.11.0'
+    testImplementation 'org.assertj:assertj-core:3.25.3'
+    testImplementation 'org.testcontainers:junit-jupiter:1.20.1'
+    testImplementation 'org.testcontainers:mongodb:1.20.1'
+    testImplementation 'org.testcontainers:postgresql:1.20.1'
+    testImplementation 'com.h2database:h2:2.3.232'
+    testImplementation 'io.micrometer:micrometer-test:1.13.15'
     
     // Integration test dependencies
-    testImplementation libs.spring.boot.testcontainers
-    testImplementation libs.wiremock.jre8
-    testImplementation libs.rest.assured
-    testImplementation libs.rest.assured.json.schema.validator
+    testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+    testImplementation 'com.github.tomakehurst:wiremock-jre8:2.35.0'
+    testImplementation 'io.rest-assured:rest-assured:5.4.0'
+    testImplementation 'io.rest-assured:json-schema-validator:5.4.0'
 }
 
 tasks.withType(Test).configureEach {
@@ -138,7 +155,6 @@ sourceSets {
 // Compile Java configuration
 compileJava {
     options.encoding = 'UTF-8'
-    dependsOn ':shared-common:generateThrift'
 }
 
 bootJar {

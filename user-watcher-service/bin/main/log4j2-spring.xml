@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- user-watcher-service/src/main/resources/log4j2.xml -->
+<Configuration status="WARN" monitorInterval="30">
+    <Properties>
+        <Property name="LOG_PATTERN">%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n</Property>
+        <Property name="LOG_PATTERN_COLOR">%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %highlight{%-5level} %style{%logger{36}}{cyan} - %msg%n</Property>
+        <Property name="LOG_PATTERN_JSON">{"timestamp":"%d{yyyy-MM-dd'T'HH:mm:ss.SSS'Z'","level":"%level","logger":"%logger{36}","message":"%message","thread":"%thread","exception":"%ex{full}","service":"user-watcher-service"}</Property>
+    </Properties>
+
+    <Appenders>
+        <!-- Console Appender with colored output for development -->
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout pattern="${LOG_PATTERN_COLOR}"/>
+        </Console>
+
+        <!-- Console Appender with JSON Layout (for production / structured logging) -->
+        <Console name="ConsoleJson" target="SYSTEM_ERR">
+            <JsonLayout complete="false" compact="true" eventEol="true" stacktraceAsString="true">
+                <KeyValuePair key="service" value="user-watcher-service"/>
+                <KeyValuePair key="environment" value="${env:ENVIRONMENT:-dev}"/>
+                <KeyValuePair key="container_id" value="${env:HOSTNAME:-unknown}"/>
+                <KeyValuePair key="log_type" value="application"/>
+            </JsonLayout>
+        </Console>
+
+        <!-- File Appender for persistent logging (normal logs) -->
+        <RollingFile name="FileAppender" fileName="/app/logs/user-rest-service.log" filePattern="/app/logs/user-rest-service-%d{yyyy-MM-dd}-%i.log.gz" immediateFlush="true" append="true">
+            <PatternLayout pattern="${LOG_PATTERN}"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+                <SizeBasedTriggeringPolicy size="100MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="30" compressionLevel="9"/>
+        </RollingFile>
+
+        <!-- Error File Appender for ERROR and FATAL logs -->
+        <RollingFile name="ErrorFileAppender" fileName="/app/logs/user-rest-service-error.log" filePattern="/app/logs/user-rest-service-error-%d{yyyy-MM-dd}-%i.log.gz" immediateFlush="true" append="true">
+            <PatternLayout pattern="${LOG_PATTERN}"/>
+            <ThresholdFilter level="ERROR" onMatch="ACCEPT" onMismatch="DENY"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+                <SizeBasedTriggeringPolicy size="50MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="30" compressionLevel="9"/>
+        </RollingFile>
+    </Appenders>
+
+    <Loggers>
+        <!-- Application specific loggers -->
+        <Logger name="com.example.rest" level="DEBUG" additivity="false">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="ConsoleJson"/>
+            <AppenderRef ref="FileAppender"/>
+            <AppenderRef ref="ErrorFileAppender"/>
+        </Logger>
+
+        <!-- Spring Framework logging -->
+        <Logger name="org.springframework" level="INFO" additivity="false">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="FileAppender"/>
+        </Logger>
+
+        <!-- HTTP Client logging -->
+        <Logger name="org.apache.http" level="WARN" additivity="false">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="FileAppender"/>
+        </Logger>
+
+        <!-- OpenAPI/Swagger logging -->
+        <Logger name="org.springdoc" level="WARN" additivity="false">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="FileAppender"/>
+        </Logger>
+
+        <!-- Root logger -->
+        <Root level="INFO">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="ConsoleJson"/>
+            <AppenderRef ref="FileAppender"/>
+            <AppenderRef ref="ErrorFileAppender"/>
+        </Root>
+    </Loggers>
+</Configuration>

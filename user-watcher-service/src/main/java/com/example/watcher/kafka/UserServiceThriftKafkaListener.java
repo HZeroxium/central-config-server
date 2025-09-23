@@ -28,7 +28,7 @@ public class UserServiceThriftKafkaListener {
   private final ResponseService responseService;
   private final UserMappingService userMappingService;
 
-  @javax.annotation.PostConstruct
+  @jakarta.annotation.PostConstruct
   public void init() {
     log.info("=== UserServiceThriftKafkaListener initialized ===");
   }

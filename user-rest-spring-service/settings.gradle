@@ -1,2 +1,10 @@
-rootProject.name = 'user-rest-spring-service'
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+    }
+}
 
+// Use explicit dependency versions instead of version catalog for independence
+
+rootProject.name = 'user-rest-spring-service'
