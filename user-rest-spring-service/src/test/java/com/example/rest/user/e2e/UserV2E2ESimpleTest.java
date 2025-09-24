@@ -25,7 +25,7 @@ import static org.hamcrest.Matchers.*;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class UserV2E2ESimpleTest {
 
-  private static final String BASE_URL = "http://localhost:8083";
+  private static final String BASE_URL = "http://localhost:28080";
   private static String createdOperationId;
   private static String updatedOperationId;
   private static String deletedOperationId;

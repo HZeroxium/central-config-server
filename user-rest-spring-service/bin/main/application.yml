@@ -51,7 +51,7 @@ app:
   environment: ${ENVIRONMENT:development}
   # Unified cache configuration
   cache:
-    provider: ${CACHE_PROVIDER:caffeine}  # caffeine, redis, two-level, noop
+    provider: ${CACHE_PROVIDER:caffeine} # caffeine, redis, two-level, noop
     enable-fallback: true
     caffeine:
       maximum-size: 10000
@@ -124,8 +124,8 @@ management:
   tracing:
     sampling:
       probability: 1.0
-    zipkin:
-      endpoint: http://zipkin:9411/api/v2/spans
+    # zipkin:
+    #   endpoint: http://zipkin:9411/api/v2/spans
   prometheus:
     metrics:
       export:

@@ -25,7 +25,7 @@ import static org.hamcrest.Matchers.*;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class UserE2ESimpleTest {
 
-  private static final String BASE_URL = "http://localhost:8083";
+  private static final String BASE_URL = "http://localhost:28080";
   private static String createdUserId;
   private static final int MAX_RETRIES = 5;
   private static final int RETRY_DELAY_MS = 2000;
