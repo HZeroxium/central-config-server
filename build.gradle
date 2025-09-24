@@ -74,7 +74,8 @@ subprojects {
 tasks.register('buildAll') {
     group = 'build'
     description = 'Build all modules'
-    dependsOn ':shared-common:build'
+    dependsOn ':user-thrift-server-service:user-contracts:build'
+    dependsOn ':user-thrift-server-service:user-contracts:publishToMavenLocal'
     dependsOn ':user-rest-spring-service:build'
     dependsOn ':user-thrift-server-service:build'
     dependsOn ':user-watcher-service:build'
@@ -87,7 +88,7 @@ tasks.register('buildAll') {
 tasks.register('cleanAll') {
     group = 'build'
     description = 'Clean all modules'
-    dependsOn ':shared-common:clean'
+    dependsOn ':user-thrift-server-service:user-contracts:clean'
     dependsOn ':user-rest-spring-service:clean'
     dependsOn ':user-thrift-server-service:clean'
     dependsOn ':user-watcher-service:clean'
@@ -100,7 +101,7 @@ tasks.register('cleanAll') {
 tasks.register('generateThriftAll') {
     group = 'thrift'
     description = 'Generate Thrift classes for all modules'
-    dependsOn ':shared-common:generateThrift'
+    dependsOn ':user-thrift-server-service:user-contracts:generateThrift'
 }
 
 // Per-subproject docker build if Dockerfile exists

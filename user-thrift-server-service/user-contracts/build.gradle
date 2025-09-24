@@ -4,6 +4,7 @@ plugins {
     id 'java-library'
     id 'maven-publish'
     id 'idea'
+    id 'io.spring.dependency-management' version '1.1.6'
 }
 
 group = 'com.example'
@@ -20,6 +21,12 @@ java {
 repositories {
     mavenCentral()
     mavenLocal()
+}
+
+dependencyManagement {
+    imports {
+        mavenBom 'org.springframework.boot:spring-boot-dependencies:3.3.13'
+    }
 }
 
 // Thrift directories

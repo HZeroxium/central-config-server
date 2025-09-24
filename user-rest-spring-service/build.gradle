@@ -123,7 +123,7 @@ tasks.register('e2eTest', Test) {
 
         // Check if service is running
         try {
-            def response = new URL("http://localhost:28080/actuator/health").openConnection()
+            def response = new URL("http://10.40.30.233:28080/actuator/health").openConnection()
             if (response.responseCode != 200) {
                 throw new GradleException("Service is not healthy. Please check docker-compose status.")
             }

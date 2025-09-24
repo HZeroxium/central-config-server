@@ -2,12 +2,13 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/shared-common/thrift-demo.shared-common.main.iml" filepath="$PROJECT_DIR$/.idea/modules/shared-common/thrift-demo.shared-common.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/user-rest-spring-service/thrift-demo.user-rest-spring-service.main.iml" filepath="$PROJECT_DIR$/.idea/modules/user-rest-spring-service/thrift-demo.user-rest-spring-service.main.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/user-rpc-thrift-service/thrift-demo.user-rpc-thrift-service.main.iml" filepath="$PROJECT_DIR$/.idea/modules/user-rpc-thrift-service/thrift-demo.user-rpc-thrift-service.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/user-rest-spring-service/thrift-demo.user-rest-spring-service.test.iml" filepath="$PROJECT_DIR$/.idea/modules/user-rest-spring-service/thrift-demo.user-rest-spring-service.test.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/user-thrift-server-service/thrift-demo.user-thrift-server-service.main.iml" filepath="$PROJECT_DIR$/.idea/modules/user-thrift-server-service/thrift-demo.user-thrift-server-service.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/user-thrift-server-service/user-contracts/thrift-demo.user-thrift-server-service.user-contracts.main.iml" filepath="$PROJECT_DIR$/.idea/modules/user-thrift-server-service/user-contracts/thrift-demo.user-thrift-server-service.user-contracts.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/user-watcher-service/thrift-demo.user-watcher-service.main.iml" filepath="$PROJECT_DIR$/.idea/modules/user-watcher-service/thrift-demo.user-watcher-service.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/user-rest-spring-service.main.iml" filepath="$PROJECT_DIR$/.idea/modules/user-rest-spring-service.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/user-rest-spring-service.test.iml" filepath="$PROJECT_DIR$/.idea/modules/user-rest-spring-service.test.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/user-rpc-thrift-service.main.iml" filepath="$PROJECT_DIR$/.idea/modules/user-rpc-thrift-service.main.iml" />
     </modules>
   </component>
