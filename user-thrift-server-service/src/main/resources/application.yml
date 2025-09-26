@@ -1,3 +1,5 @@
+# user-thrift-server-service/application.yml
+
 server:
   port: ${SERVER_PORT:8080}
 
@@ -73,20 +75,74 @@ kafka:
         request: user.list.request
         response: user.list.response
 
+# Spring Boot Admin Client Configuration
+spring.boot.admin:
+  client:
+    url: ${SPRING_BOOT_ADMIN_URL:http://spring-boot-admin-server:8083}
+    instance:
+      name: ${spring.application.name}
+      service-url: http://${HOSTNAME:localhost}:${server.port}
+      management-url: http://${HOSTNAME:localhost}:${server.port}/actuator
+      health-url: http://${HOSTNAME:localhost}:${server.port}/actuator/health
+      info:
+        app:
+          name: ${spring.application.name}
+          version: ${app.version}
+          environment: ${app.environment}
+        build:
+          version: ${app.version}
+        java:
+          version: ${java.version}
+        os:
+          name: ${os.name}
+          version: ${os.version}
+        user:
+          name: ${user.name}
+        jvm:
+          name: ${java.vm.name}
+          version: ${java.vm.version}
+          vendor: ${java.vm.vendor}
+
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,prometheus,metrics,env,beans,configprops,loggers,threaddump,heapdump,circuitbreakers,retries,timelimiters
+        include: "*"
+      base-path: /actuator
   endpoint:
     health:
-      show-details: when-authorized
+      show-details: always
       show-components: always
     prometheus:
       enabled: true
     metrics:
       enabled: true
+    info:
+      enabled: true
+    env:
+      enabled: true
+    beans:
+      enabled: true
+    configprops:
+      enabled: true
+    loggers:
+      enabled: true
+    threaddump:
+      enabled: true
+    heapdump:
+      enabled: true
+    circuitbreakers:
+      enabled: true
+    retries:
+      enabled: true
+    timelimiters:
+      enabled: true
   metrics:
+    enable:
+      jvm: true
+      system: true
+      web: true
+      kafka: true
     tags:
       application: user-thrift-server-service
       service: user-thrift-server-service
@@ -105,6 +161,8 @@ management:
     circuitbreakers:
       enabled: true
     redis:
+      enabled: true
+    kafka:
       enabled: true
 
 logging:

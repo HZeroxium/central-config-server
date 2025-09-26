@@ -76,6 +76,9 @@ dependencies {
     annotationProcessor 'org.projectlombok:lombok:1.18.32'
     testCompileOnly 'org.projectlombok:lombok:1.18.32'
     testAnnotationProcessor 'org.projectlombok:lombok:1.18.32'
+    
+    // Spring Boot Admin Client
+    implementation 'de.codecentric:spring-boot-admin-starter-client:3.3.4'
 
     // Test dependencies
     testImplementation('org.springframework.boot:spring-boot-starter-test') {

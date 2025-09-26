@@ -56,6 +56,9 @@ h2 = "2.3.232"
 # AspectJ
 aspectjweaver = "1.9.21"
 
+# Spring Boot Admin
+spring-boot-admin = "3.3.4"
+
 # Note: Removed Confluent Schema Registry & Avro versions - using String serialization
 
 [libraries]
@@ -138,6 +141,11 @@ h2 = { group = "com.h2database", name = "h2", version.ref = "h2" }
 # AspectJ
 aspectjweaver = { group = "org.aspectj", name = "aspectjweaver", version.ref = "aspectjweaver" }
 
+# Spring Boot Admin
+spring-boot-admin-server = { group = "de.codecentric", name = "spring-boot-admin-server", version.ref = "spring-boot-admin" }
+spring-boot-admin-starter-server = { group = "de.codecentric", name = "spring-boot-admin-starter-server", version.ref = "spring-boot-admin" }
+spring-boot-admin-starter-client = { group = "de.codecentric", name = "spring-boot-admin-starter-client", version.ref = "spring-boot-admin" }
+
 # Note: Removed Confluent Schema Registry & Avro libraries - using String serialization
 
 [plugins]
@@ -160,4 +168,5 @@ zipkin = ["zipkin-reporter-brave", "brave"]
 testing = ["junit-jupiter", "mockito-core", "mockito-junit-jupiter", "assertj-core"]
 testcontainers = ["testcontainers-junit-jupiter", "testcontainers-mongodb", "testcontainers-postgresql"]
 resilience4j = ["resilience4j-spring-boot3", "resilience4j-circuitbreaker", "resilience4j-retry", "resilience4j-timelimiter"]
+spring-boot-admin = ["spring-boot-admin-starter-server", "spring-boot-admin-starter-client"]
 # Note: Removed schema-registry bundle - using String serialization
