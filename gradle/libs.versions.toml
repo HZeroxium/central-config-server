@@ -59,11 +59,20 @@ aspectjweaver = "1.9.21"
 # Spring Boot Admin
 spring-boot-admin = "3.3.4"
 
+# Spring Cloud
+spring-cloud = "2023.0.5"
+
+# Consul
+consul-api = "1.4.6"
+
 # Note: Removed Confluent Schema Registry & Avro versions - using String serialization
 
 [libraries]
 # Spring Boot BOM
 spring-boot-bom = { group = "org.springframework.boot", name = "spring-boot-dependencies", version.ref = "spring-boot" }
+
+# Spring Cloud BOM
+spring-cloud-bom = { group = "org.springframework.cloud", name = "spring-cloud-dependencies", version.ref = "spring-cloud" }
 
 # Spring Boot Starters
 spring-boot-starter = { group = "org.springframework.boot", name = "spring-boot-starter" }
@@ -146,6 +155,13 @@ spring-boot-admin-server = { group = "de.codecentric", name = "spring-boot-admin
 spring-boot-admin-starter-server = { group = "de.codecentric", name = "spring-boot-admin-starter-server", version.ref = "spring-boot-admin" }
 spring-boot-admin-starter-client = { group = "de.codecentric", name = "spring-boot-admin-starter-client", version.ref = "spring-boot-admin" }
 
+# Spring Cloud
+spring-cloud-starter-consul-discovery = { group = "org.springframework.cloud", name = "spring-cloud-starter-consul-discovery" }
+spring-cloud-starter-loadbalancer = { group = "org.springframework.cloud", name = "spring-cloud-starter-loadbalancer" }
+
+# Consul
+consul-api = { group = "com.ecwid.consul", name = "consul-api", version.ref = "consul-api" }
+
 # Note: Removed Confluent Schema Registry & Avro libraries - using String serialization
 
 [plugins]
@@ -169,4 +185,5 @@ testing = ["junit-jupiter", "mockito-core", "mockito-junit-jupiter", "assertj-co
 testcontainers = ["testcontainers-junit-jupiter", "testcontainers-mongodb", "testcontainers-postgresql"]
 resilience4j = ["resilience4j-spring-boot3", "resilience4j-circuitbreaker", "resilience4j-retry", "resilience4j-timelimiter"]
 spring-boot-admin = ["spring-boot-admin-starter-server", "spring-boot-admin-starter-client"]
+spring-cloud-consul = ["spring-cloud-starter-consul-discovery", "spring-cloud-starter-loadbalancer"]
 # Note: Removed schema-registry bundle - using String serialization

@@ -5,8 +5,10 @@ include 'user-thrift-server-service'
 include 'user-thrift-server-service:user-contracts'
 include 'user-watcher-service'
 include 'user-rest-spring-service'
+include 'spring-boot-admin-server'
 
 // Configure project directories
 project(':user-thrift-server-service').projectDir = file('user-thrift-server-service')
 project(':user-watcher-service').projectDir = file('user-watcher-service')
 project(':user-rest-spring-service').projectDir = file('user-rest-spring-service')
+project(':spring-boot-admin-server').projectDir = file('spring-boot-admin-server')

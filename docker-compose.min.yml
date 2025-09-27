@@ -1,6 +1,31 @@
 # docker-compose.min.yml
 
 services:
+  # Consul server for service discovery
+  consul:
+    image: hashicorp/consul:1.17
+    container_name: consul
+    ports:
+      - "8500:8500"
+    environment:
+      - CONSUL_BIND_INTERFACE=eth0
+    command: >
+      consul agent -dev 
+      -client=0.0.0.0 
+      -ui 
+      -log-level=info 
+      -data-dir=/consul/data
+    volumes:
+      - consul_data:/consul/data
+    networks:
+      - thrift-network-dev
+    healthcheck:
+      test: ["CMD", "consul", "members"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
   # Kafka cluster (KRaft mode - single node for learning)
   kafka:
     image: bitnami/kafka:3.9
@@ -73,15 +98,24 @@ services:
     env_file:
       - ./config/env/env.common
       - ./config/env/env.user-rest
+    environment:
+      - CONSUL_HOST=consul
+      - CONSUL_PORT=8500
     volumes:
       # Mount logs directory to host with proper permissions
       - ./logs/user-rest-spring-service:/app/logs:rw
     depends_on:
-      user-thrift-server-service:
+      consul:
+        condition: service_healthy
+      user-thrift-server-service-1:
+        condition: service_healthy
+      user-thrift-server-service-2:
         condition: service_healthy
       kafka:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      spring-boot-admin-server:
         condition: service_healthy
     ports:
       - "28080:8080"
@@ -304,6 +338,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      spring-boot-admin-server:
+        condition: service_healthy
     networks:
       - thrift-network-dev
     logging:
@@ -319,26 +355,62 @@ services:
       retries: 5
       start_period: 30s
 
-  user-thrift-server-service:
+  spring-boot-admin-server:
+    build:
+      context: ./spring-boot-admin-server
+      dockerfile: Dockerfile
+    image: hzeroxium/spring-boot-admin-server:latest
+    container_name: spring-boot-admin-server
+    env_file:
+      - ./config/env/env.common
+    ports:
+      - "8083:8083"
+    volumes:
+      - ./logs/spring-boot-admin-server:/app/logs:rw
+    networks:
+      - thrift-network-dev
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=spring-boot-admin-server,environment=docker"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  user-thrift-server-service-1:
     build:
       context: ./user-thrift-server-service
       dockerfile: Dockerfile
     image: hzeroxium/user-thrift-server-service:latest
-    container_name: user-thrift-server-service
+    container_name: user-thrift-server-service-1
     env_file:
       - ./config/env/env.common
       - ./config/env/env.user-thrift  
+    environment:
+      - CONSUL_HOST=consul
+      - CONSUL_PORT=8500
+      - SERVER_PORT=8080
+      - THRIFT_PORT=9090
     ports:
       - "28082:8080"
-      # - "29090:9090"
+      - "29090:9090"
     volumes:
-      - ./logs/user-thrift-server-service:/app/logs:rw
+      - ./logs/user-thrift-server-service-1:/app/logs:rw
     depends_on:
+      consul:
+        condition: service_healthy
       kafka:
         condition: service_healthy
       user-watcher-service:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      spring-boot-admin-server:
         condition: service_healthy
     networks:
       - thrift-network-dev
@@ -347,7 +419,7 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
-        labels: "service=user-thrift-server-service,environment=docker"
+        labels: "service=user-thrift-server-service-1,environment=docker"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
       interval: 10s
@@ -355,7 +427,53 @@ services:
       retries: 5
       start_period: 30s
 
+  user-thrift-server-service-2:
+    build:
+      context: ./user-thrift-server-service
+      dockerfile: Dockerfile
+    image: hzeroxium/user-thrift-server-service:latest
+    container_name: user-thrift-server-service-2
+    env_file:
+      - ./config/env/env.common
+      - ./config/env/env.user-thrift  
+    environment:
+      - CONSUL_HOST=consul
+      - CONSUL_PORT=8500
+      - SERVER_PORT=8081
+      - THRIFT_PORT=9091
+    ports:
+      - "28083:8081"
+      - "29091:9091"
+    volumes:
+      - ./logs/user-thrift-server-service-2:/app/logs:rw
+    depends_on:
+      consul:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      user-watcher-service:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      spring-boot-admin-server:
+        condition: service_healthy
+    networks:
+      - thrift-network-dev
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=user-thrift-server-service-2,environment=docker"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
 volumes:
+  consul_data:
   mongodb_data:
   kafka_data:
   loki_data:

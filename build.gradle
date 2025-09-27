@@ -79,6 +79,7 @@ tasks.register('buildAll') {
     dependsOn ':user-rest-spring-service:build'
     dependsOn ':user-thrift-server-service:build'
     dependsOn ':user-watcher-service:build'
+    dependsOn ':spring-boot-admin-server:build'
     if (project.findProject(':user-rpc-thrift-service') != null) {
         dependsOn ':user-rpc-thrift-service:build'
     }
@@ -92,6 +93,7 @@ tasks.register('cleanAll') {
     dependsOn ':user-rest-spring-service:clean'
     dependsOn ':user-thrift-server-service:clean'
     dependsOn ':user-watcher-service:clean'
+    dependsOn ':spring-boot-admin-server:clean'
     if (project.findProject(':user-rpc-thrift-service') != null) {
         dependsOn ':user-rpc-thrift-service:clean'
     }

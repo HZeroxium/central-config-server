@@ -7,15 +7,13 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import org.apache.thrift.protocol.TBinaryProtocol;
-import org.apache.thrift.transport.TSocket;
-import org.apache.thrift.transport.TTransport;
 import org.springframework.stereotype.Component;
 
 import com.example.common.domain.User;
 import com.example.common.domain.UserQueryCriteria;
 import com.example.rest.user.port.ThriftUserClientPort;
 import com.example.rest.user.config.ThriftClientProperties;
+import com.example.rest.user.config.ConsulThriftClientConfig.ThriftClientFactory;
 import com.example.user.thrift.*;
 import com.example.common.exception.UserNotFoundException;
 import com.example.common.exception.ThriftServiceException;
@@ -25,32 +23,14 @@ import com.example.common.exception.ThriftServiceException;
 @RequiredArgsConstructor
 public class ThriftUserClientAdapter implements ThriftUserClientPort {
 
-  private final ThriftClientProperties thriftClientProperties;
+  private final ThriftClientFactory thriftClientFactory;
 
   private UserService.Client client() throws Exception {
-    log.debug("Creating Thrift client connection to {}:{}",
-        thriftClientProperties.getHost(), thriftClientProperties.getPort());
-    TTransport transport = new TSocket(thriftClientProperties.getHost(),
-        thriftClientProperties.getPort(),
-        thriftClientProperties.getTimeout());
-    transport.open();
-    TBinaryProtocol protocol = new TBinaryProtocol(transport);
-    log.debug("Thrift client connection established successfully");
-    return new UserService.Client(protocol);
+    return thriftClientFactory.createClient();
   }
 
   private void closeClient(UserService.Client client) {
-    if (client != null && client.getInputProtocol() != null) {
-      try {
-        TTransport transport = client.getInputProtocol().getTransport();
-        if (transport != null && transport.isOpen()) {
-          transport.close();
-          log.debug("Thrift client connection closed successfully");
-        }
-      } catch (Exception e) {
-        log.warn("Failed to close Thrift client connection", e);
-      }
-    }
+    thriftClientFactory.closeClient(client);
   }
 
   private static User toDomain(TUser t) {
@@ -80,7 +60,7 @@ public class ThriftUserClientAdapter implements ThriftUserClientPort {
 
   @Override
   public String ping() {
-    log.debug("Pinging Thrift service at {}:{}", thriftClientProperties.getHost(), thriftClientProperties.getPort());
+    log.debug("Pinging Thrift service via service discovery");
     UserService.Client client = null;
     try {
       client = client();
@@ -93,8 +73,7 @@ public class ThriftUserClientAdapter implements ThriftUserClientPort {
         throw new ThriftServiceException("Thrift service ping failed: " + response.getMessage(), "ping");
       }
     } catch (Exception e) {
-      log.error("Thrift service ping failed to {}:{}", thriftClientProperties.getHost(),
-          thriftClientProperties.getPort(), e);
+      log.error("Thrift service ping failed via service discovery", e);
       throw new ThriftServiceException("Failed to ping Thrift service", "ping", e);
     } finally {
       closeClient(client);

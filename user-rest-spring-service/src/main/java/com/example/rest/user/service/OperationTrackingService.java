@@ -1,6 +1,7 @@
 package com.example.rest.user.service;
 
 import com.example.rest.user.dto.OperationStatusResponse;
+import com.example.rest.user.config.ConsulThriftClientConfig.ThriftClientFactory;
 import com.example.user.thrift.UserService;
 import com.example.user.thrift.TOperationStatusRequest;
 import com.example.user.thrift.TOperationStatusResponse;
@@ -15,14 +16,14 @@ import java.util.Optional;
 
 /**
  * Service for tracking async operation status
- * Interfaces with Thrift server for operation status queries
+ * Interfaces with Thrift server for operation status queries using Consul service discovery
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class OperationTrackingService {
 
-  private final UserService.Client userServiceClient;
+  private final ThriftClientFactory thriftClientFactory;
 
   /**
    * Get operation status by operation ID
@@ -33,12 +34,16 @@ public class OperationTrackingService {
   public Optional<OperationStatusResponse> getOperationStatus(String operationId) {
     log.debug("Getting status for operation: {}", operationId);
 
+    UserService.Client client = null;
     try {
+      // Create client using Consul service discovery
+      client = thriftClientFactory.createClient();
+      
       // Call thrift server to get actual operation status
       TOperationStatusRequest request = new TOperationStatusRequest();
       request.setOperationId(operationId);
       
-      TOperationStatusResponse thriftResponse = userServiceClient.getOperationStatus(request);
+      TOperationStatusResponse thriftResponse = client.getOperationStatus(request);
       
       if (thriftResponse.getStatus() != 0) {
         log.warn("Thrift service returned error for operation {}: {}", operationId, thriftResponse.getMessage());
@@ -106,6 +111,11 @@ public class OperationTrackingService {
     } catch (Exception e) {
       log.error("Failed to get operation status for: {}", operationId, e);
       return Optional.empty();
+    } finally {
+      // Always close the client connection
+      if (client != null) {
+        thriftClientFactory.closeClient(client);
+      }
     }
   }
 }

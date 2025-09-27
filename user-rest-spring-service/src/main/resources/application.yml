@@ -35,6 +35,21 @@ spring:
     listener:
       missing-topics-fatal: false
 
+  # Consul configuration
+  cloud:
+    consul:
+      enabled: true
+      host: ${CONSUL_HOST:localhost}
+      port: ${CONSUL_PORT:8500}
+      discovery:
+        enabled: true
+        register: false  # REST service doesn't need to register itself
+        health-check-critical-timeout: 30s
+        health-check-interval: 10s
+        health-check-timeout: 3s
+        prefer-ip-address: true
+        instance-id: ${spring.application.name}-${server.port}-${random.value}
+
 # Thrift client configuration
 thrift:
   host: ${THRIFT_HOST:localhost}
@@ -140,9 +155,11 @@ management:
       enabled: true
     env:
       enabled: true
+      show-values: always
     beans:
       enabled: true
     configprops:
+      show-values: always
       enabled: true
     loggers:
       enabled: true

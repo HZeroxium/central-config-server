@@ -16,6 +16,12 @@ java {
     }
 }
 
+dependencyManagement {
+    imports {
+        mavenBom("org.springframework.cloud:spring-cloud-dependencies:2023.0.5")
+    }
+}
+
 configurations.all {
     exclude group: 'ch.qos.logback', module: 'logback-classic'
     exclude group: 'ch.qos.logback', module: 'logback-core'
@@ -83,6 +89,10 @@ dependencies {
     // Spring Boot Admin Client
     implementation 'de.codecentric:spring-boot-admin-starter-client:3.3.4'
 
+    // Spring Cloud Consul for service discovery
+    implementation("org.springframework.cloud:spring-cloud-starter-consul-discovery")
+    implementation("org.springframework.cloud:spring-cloud-starter-loadbalancer")
+
     // Test dependencies
     testImplementation('org.springframework.boot:spring-boot-starter-test') {
         exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
@@ -126,7 +136,7 @@ tasks.register('e2eTest', Test) {
 
         // Check if service is running
         try {
-            def response = new URL("http://10.40.30.233:28080/actuator/health").openConnection()
+            def response = new URL("http://localhost:28080/actuator/health").openConnection()
             if (response.responseCode != 200) {
                 throw new GradleException("Service is not healthy. Please check docker-compose status.")
             }
