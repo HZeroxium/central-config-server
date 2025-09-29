@@ -37,7 +37,8 @@ public class UserServiceThriftKafkaListener {
   public void onPingRequest(ConsumerRecord<String, byte[]> record) {
     String correlationId = new String(record.headers().lastHeader(KafkaHeaders.CORRELATION_ID).value());
     String replyTopic = new String(record.headers().lastHeader(KafkaHeaders.REPLY_TOPIC).value());
-    TPingRequest request = ThriftKafkaMessageHandler.deserializeMessage(record, TPingRequest.class);
+    // TPingRequest request = ThriftKafkaMessageHandler.deserializeMessage(record,
+    // TPingRequest.class);
 
     log.info("Received ping request with correlationId: {}", correlationId);
     try {

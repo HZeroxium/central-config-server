@@ -1,4 +1,4 @@
-package com.example.rest.user.adapter.thrift;
+package com.example.rest.user.adapter;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -12,7 +12,6 @@ import org.springframework.stereotype.Component;
 import com.example.common.domain.User;
 import com.example.common.domain.UserQueryCriteria;
 import com.example.rest.user.port.ThriftUserClientPort;
-import com.example.rest.user.config.ThriftClientProperties;
 import com.example.rest.user.config.ConsulThriftClientConfig.ThriftClientFactory;
 import com.example.user.thrift.*;
 import com.example.common.exception.UserNotFoundException;

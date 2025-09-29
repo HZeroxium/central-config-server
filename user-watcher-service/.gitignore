@@ -54,3 +54,4 @@ docker-compose.override.yml
 # Test reports
 /build/reports/
 /build/test-results/
+bin/

@@ -8,7 +8,6 @@ import org.apache.thrift.transport.TTransport;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cloud.client.ServiceInstance;
 import org.springframework.cloud.client.discovery.DiscoveryClient;
-import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 import org.springframework.cloud.client.loadbalancer.LoadBalancerClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -44,11 +43,13 @@ public class ConsulThriftClientConfig {
      */
     public interface ThriftClientFactory {
         UserService.Client createClient() throws Exception;
+
         void closeClient(UserService.Client client);
     }
 
     /**
-     * Consul-aware implementation that discovers and load balances across service instances
+     * Consul-aware implementation that discovers and load balances across service
+     * instances
      */
     public class ConsulThriftClientFactory implements ThriftClientFactory {
 
@@ -58,20 +59,21 @@ public class ConsulThriftClientConfig {
         public UserService.Client createClient() throws Exception {
             ServiceInstance instance = selectServiceInstance();
             if (instance == null) {
-                log.warn("No healthy instances found for service: {}. Falling back to configured host:port", SERVICE_NAME);
+                log.warn("No healthy instances found for service: {}. Falling back to configured host:port",
+                        SERVICE_NAME);
                 return createFallbackClient();
             }
 
             String host = instance.getHost();
             // Get the Thrift port from metadata, fallback to configured port
             int thriftPort = getThriftPort(instance);
-            
+
             log.debug("Creating Thrift client connection to discovered instance {}:{} (thrift port)", host, thriftPort);
-            
+
             TTransport transport = new TSocket(host, thriftPort, thriftClientProperties.getTimeout());
             transport.open();
             TBinaryProtocol protocol = new TBinaryProtocol(transport);
-            
+
             log.debug("Thrift client connection established successfully to {}:{}", host, thriftPort);
             return new UserService.Client(protocol);
         }
@@ -109,8 +111,8 @@ public class ConsulThriftClientConfig {
                 // Use Spring Cloud LoadBalancer
                 ServiceInstance instance = loadBalancerClient.choose(SERVICE_NAME);
                 if (instance != null) {
-                    log.debug("Selected service instance: {}:{} via load balancer", 
-                             instance.getHost(), instance.getPort());
+                    log.debug("Selected service instance: {}:{} via load balancer",
+                            instance.getHost(), instance.getPort());
                     return instance;
                 }
 
@@ -123,8 +125,8 @@ public class ConsulThriftClientConfig {
 
                 // Simple random load balancing as fallback
                 ServiceInstance selected = instances.get(random.nextInt(instances.size()));
-                log.debug("Selected service instance: {}:{} via manual load balancing", 
-                         selected.getHost(), selected.getPort());
+                log.debug("Selected service instance: {}:{} via manual load balancing",
+                        selected.getHost(), selected.getPort());
                 return selected;
 
             } catch (Exception e) {
@@ -136,15 +138,14 @@ public class ConsulThriftClientConfig {
         private UserService.Client createFallbackClient() throws Exception {
             log.debug("Creating fallback Thrift client connection to {}:{}",
                     thriftClientProperties.getHost(), thriftClientProperties.getPort());
-            
+
             TTransport transport = new TSocket(
-                thriftClientProperties.getHost(),
-                thriftClientProperties.getPort(),
-                thriftClientProperties.getTimeout()
-            );
+                    thriftClientProperties.getHost(),
+                    thriftClientProperties.getPort(),
+                    thriftClientProperties.getTimeout());
             transport.open();
             TBinaryProtocol protocol = new TBinaryProtocol(transport);
-            
+
             log.debug("Fallback Thrift client connection established successfully");
             return new UserService.Client(protocol);
         }
