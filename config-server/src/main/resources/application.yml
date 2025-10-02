@@ -1,0 +1,43 @@
+# config-server/application.yml
+
+server:
+  port: ${SERVER_PORT:8888}
+
+spring:
+  application:
+    name: config-server
+  profiles:
+    active: native
+  cloud:
+    config:
+      server:
+        git:
+          uri: ${CONFIG_GIT_URI:https://github.com/HZeroxium/ztf-spring-cloud-config-server}
+          default-label: ${CONFIG_GIT_LABEL:main}
+          clone-on-start: true
+          timeout: 10
+        native:
+          search-locations: classpath:/config
+  # Disable Kafka for now - Config Server doesn't need it unless broadcasting refresh events
+  autoconfigure:
+    exclude:
+      - org.springframework.cloud.bus.BusAutoConfiguration
+      - org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
+
+management:
+  tracing:
+    enabled: false # Disable Zipkin tracing
+    sampling:
+      probability: 0.0
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    root: INFO
+    org.springframework.cloud.config: DEBUG

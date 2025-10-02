@@ -75,8 +75,9 @@ management:
       slo:
         http.server.requests: 50ms, 100ms, 200ms, 500ms, 1s, 2s, 5s
   tracing:
+    enabled: false # Disable Zipkin tracing
     sampling:
-      probability: 1.0
+      probability: 0.0
 
 # Logging configuration
 logging:

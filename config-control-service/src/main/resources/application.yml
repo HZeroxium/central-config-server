@@ -1,0 +1,118 @@
+server:
+  port: ${SERVER_PORT:8889}
+
+spring:
+  application:
+    name: config-control-service
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:default}
+  cache:
+    type: none
+
+  # MongoDB for metadata storage
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://mongodb:27017/config-control}
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+
+  # Kafka for Bus
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
+    consumer:
+      group-id: config-control-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+  # Consul Discovery
+  cloud:
+    consul:
+      enabled: true
+      host: ${CONSUL_HOST:localhost}
+      port: ${CONSUL_PORT:8500}
+      discovery:
+        enabled: true
+        register: true
+        service-name: ${spring.application.name}
+        health-check-critical-timeout: 30s
+        health-check-interval: 10s
+        health-check-timeout: 3s
+        health-check-path: /actuator/health
+        prefer-ip-address: true
+        hostname: ${HOSTNAME:localhost}
+        instance-id: ${spring.application.name}-${server.port}-${random.value}
+        metadata:
+          version: "1.0.0"
+        tags:
+          - config-control
+          - management
+    bus:
+      enabled: true
+      refresh:
+        enabled: true
+
+# App configuration
+app:
+  name: config-control-service
+  version: 1.0.0
+  environment: ${ENVIRONMENT:development}
+
+# Management/Actuator
+management:
+  tracing:
+    enabled: false # Disable Zipkin tracing
+    sampling:
+      probability: 0.0
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+    prometheus:
+      enabled: true
+    busrefresh:
+      enabled: true
+  metrics:
+    enable:
+      jvm: true
+      system: true
+      web: true
+    tags:
+      application: config-control-service
+      service: config-control-service
+      environment: ${ENVIRONMENT:development}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+      percentiles:
+        http.server.requests: 0.5, 0.9, 0.95, 0.99
+      slo:
+        http.server.requests: 50ms, 100ms, 200ms, 500ms, 1s, 2s, 5s
+  health:
+    redis:
+      enabled: true
+    mongo:
+      enabled: true
+
+logging:
+  level:
+    root: ${LOGGING_LEVEL_ROOT:INFO}
+    com.example.control: ${LOGGING_LEVEL_COM_EXAMPLE_CONTROL:DEBUG}
+    org.springframework.web: INFO
+    org.springframework.cloud: DEBUG
+  config: classpath:log4j2-spring.xml

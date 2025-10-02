@@ -1,0 +1,36 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.3.13'
+    id 'io.spring.dependency-management' version '1.1.6'
+}
+
+group = 'com.example'
+version = '1.0.0'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation platform(libs.spring.boot.bom)
+    implementation platform(libs.spring.cloud.bom)
+
+    implementation libs.spring.boot.starter
+    implementation libs.spring.boot.starter.actuator
+
+    implementation 'org.springframework.cloud:spring-cloud-config-server'
+    implementation 'org.springframework.cloud:spring-cloud-starter-bus-kafka'
+
+    testImplementation libs.spring.boot.starter.test
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+}
+

@@ -8,6 +8,34 @@ spring:
     name: user-thrift-server-service
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:default}
+  # Temporarily disable config server import
+  # config:
+  #   import: "optional:configserver:${CONFIG_SERVER_URL:http://config-server:8888}"
+  cloud:
+    config:
+      enabled: false
+      fail-fast: false
+    consul:
+      enabled: true
+      host: ${CONSUL_HOST:localhost}
+      port: ${CONSUL_PORT:8500}
+      discovery:
+        enabled: true
+        register: true
+        service-name: ${spring.application.name}
+        health-check-critical-timeout: 30s
+        health-check-interval: 10s
+        health-check-timeout: 3s
+        health-check-path: /actuator/health
+        prefer-ip-address: true
+        hostname: ${HOSTNAME:localhost}
+        instance-id: ${spring.application.name}-${server.port}-${random.value}
+        metadata:
+          thrift-port: ${thrift.port:9090}
+          version: "1.0.0"
+        tags:
+          - thrift-server
+          - user-service
   data:
     redis:
       host: ${REDIS_HOST:redis}
@@ -39,30 +67,6 @@ spring:
     listener:
       ack-mode: record
       missing-topics-fatal: false
-
-  # Consul configuration
-  cloud:
-    consul:
-      enabled: true
-      host: ${CONSUL_HOST:localhost}
-      port: ${CONSUL_PORT:8500}
-      discovery:
-        enabled: true
-        register: true
-        service-name: ${spring.application.name}
-        health-check-critical-timeout: 30s
-        health-check-interval: 10s
-        health-check-timeout: 3s
-        health-check-path: /actuator/health
-        prefer-ip-address: true
-        hostname: ${HOSTNAME:localhost}
-        instance-id: ${spring.application.name}-${server.port}-${random.value}
-        metadata:
-          thrift-port: ${thrift.port:9090}
-          version: "1.0.0"
-        tags:
-          - thrift-server
-          - user-service
 
 thrift:
   port: ${THRIFT_PORT:9090}
@@ -128,6 +132,10 @@ spring.boot.admin:
           vendor: ${java.vm.vendor}
 
 management:
+  tracing:
+    enabled: false # Disable Zipkin tracing
+    sampling:
+      probability: 0.0
   endpoints:
     web:
       exposure:

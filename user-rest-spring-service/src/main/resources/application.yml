@@ -2,10 +2,6 @@
 # user-rest-spring-service — application.yml
 # =========================
 
-# -------------------------
-# Server configuration
-# -------------------------
-
 server:
   port: ${SERVER_PORT:8080}
 
@@ -14,6 +10,29 @@ spring:
     name: user-rest-spring-service
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:default}
+  # Temporarily disable config server import
+  # config:
+  #   import: "optional:configserver:${CONFIG_SERVER_URL:http://config-server:8888}"
+  cloud:
+    consul:
+      host: ${CONSUL_HOST:localhost}
+      port: ${CONSUL_PORT:8500}
+      discovery:
+        enabled: true
+        register: true
+        service-name: ${spring.application.name}
+        instance-id: ${spring.application.name}-${server.port}-${random.value}
+        health-check-critical-timeout: 30s
+        health-check-interval: 10s
+        health-check-timeout: 3s
+        prefer-ip-address: true
+    bus:
+      enabled: true
+      kafka:
+        bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
+    config:
+      enabled: false
+      fail-fast: false
   cache:
     cache-names: userById, usersByCriteria, countByCriteria
     type: caffeine
@@ -35,27 +54,14 @@ spring:
     listener:
       missing-topics-fatal: false
 
-  # Consul configuration
-  cloud:
-    consul:
-      enabled: true
-      host: ${CONSUL_HOST:localhost}
-      port: ${CONSUL_PORT:8500}
-      discovery:
-        enabled: true
-        register: false  # REST service doesn't need to register itself
-        health-check-critical-timeout: 30s
-        health-check-interval: 10s
-        health-check-timeout: 3s
-        prefer-ip-address: true
-        instance-id: ${spring.application.name}-${server.port}-${random.value}
-
 # Thrift client configuration
 thrift:
   host: ${THRIFT_HOST:localhost}
   port: ${THRIFT_PORT:9090}
   timeout: 5000
   retry-attempts: 3
+  client:
+    use-sdk: ${THRIFT_USE_SDK:true} # Use SDK-based service discovery by default
 
 # Thrift client properties with validation
 thrift.client:
@@ -204,10 +210,9 @@ management:
         http.server.requests: 50ms, 100ms, 200ms, 500ms, 1s, 2s, 5s
         http.client.requests: 50ms, 100ms, 200ms, 500ms, 1s, 2s, 5s
   tracing:
+    enabled: false # Disable Zipkin tracing
     sampling:
-      probability: 1.0
-    # zipkin:
-    #   endpoint: http://zipkin:9411/api/v2/spans
+      probability: 0.0
   prometheus:
     metrics:
       export:
