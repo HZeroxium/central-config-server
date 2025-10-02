@@ -1,0 +1,98 @@
+{
+  "groups": [
+    {
+      "name": "zcm.sdk",
+      "type": "com.vng.zing.zcm.config.SdkProperties",
+      "sourceType": "com.vng.zing.zcm.config.SdkProperties"
+    }
+  ],
+  "properties": [
+    {
+      "name": "zcm.sdk.service.name",
+      "type": "java.lang.String",
+      "description": "Logical service name (map to spring.application.name & consul service)"
+    },
+    {
+      "name": "zcm.sdk.instance.id",
+      "type": "java.lang.String",
+      "description": "Instance ID override"
+    },
+
+    {
+      "name": "zcm.sdk.config.server.url",
+      "type": "java.lang.String",
+      "description": "Spring Cloud Config Server base URL (mapped to spring.config.import=configserver:...)"
+    },
+
+    {
+      "name": "zcm.sdk.discovery.provider",
+      "type": "java.lang.String",
+      "defaultValue": "CONSUL",
+      "description": "Discovery provider (CONSUL or CONTROL). Default CONSUL"
+    },
+    {
+      "name": "zcm.sdk.discovery.consul.host",
+      "type": "java.lang.String",
+      "defaultValue": "localhost"
+    },
+    {
+      "name": "zcm.sdk.discovery.consul.port",
+      "type": "java.lang.Integer",
+      "defaultValue": 8500
+    },
+    {
+      "name": "zcm.sdk.discovery.consul.heartbeat.enabled",
+      "type": "java.lang.Boolean",
+      "defaultValue": true,
+      "description": "Enable Consul TTL heartbeat (mapped to spring.cloud.consul.discovery.heartbeat.enabled)"
+    },
+    {
+      "name": "zcm.sdk.discovery.consul.heartbeat.ttl",
+      "type": "java.lang.String",
+      "defaultValue": "10s",
+      "description": "Consul TTL value (mapped to spring.cloud.consul.discovery.heartbeat.ttl)"
+    },
+
+    {
+      "name": "zcm.sdk.lb.policy",
+      "type": "java.lang.String",
+      "defaultValue": "RR",
+      "description": "LB policy hint for choose()"
+    },
+
+    {
+      "name": "zcm.sdk.ping.enabled",
+      "type": "java.lang.Boolean",
+      "defaultValue": true,
+      "description": "Enable scheduled ping to ConfigControlService"
+    },
+    {
+      "name": "zcm.sdk.ping.fixed-delay",
+      "type": "java.lang.String",
+      "defaultValue": "30000",
+      "description": "Fixed delay (ms) for scheduled ping"
+    },
+    {
+      "name": "zcm.sdk.control.url",
+      "type": "java.lang.String",
+      "description": "ConfigControlService base URL (e.g., http://ctrl:8080)"
+    },
+
+    {
+      "name": "zcm.sdk.bus.refresh.enabled",
+      "type": "java.lang.Boolean",
+      "defaultValue": false,
+      "description": "Enable Kafka listener for config refresh"
+    },
+    {
+      "name": "zcm.sdk.bus.refresh.topic",
+      "type": "java.lang.String",
+      "defaultValue": "config-refresh"
+    },
+    {
+      "name": "zcm.sdk.bus.kafka.bootstrap-servers",
+      "type": "java.lang.String",
+      "description": "Kafka bootstrap servers for refresh listener"
+    }
+  ]
+}

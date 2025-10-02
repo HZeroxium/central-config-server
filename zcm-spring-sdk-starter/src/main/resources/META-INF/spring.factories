@@ -1,0 +1,2 @@
+# Disabled EnvironmentMappingPostProcessor so official Spring properties are used
+org.springframework.boot.env.EnvironmentPostProcessor=

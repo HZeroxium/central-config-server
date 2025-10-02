@@ -1,3 +1,5 @@
+# spring-boot-admin-server/application.yml
+
 server:
   port: 8083
 
