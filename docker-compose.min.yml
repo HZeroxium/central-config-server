@@ -1,6 +1,83 @@
 # docker-compose.min.yml
 
 services:
+  config-server:
+    build:
+      context: ./config-server
+      dockerfile: Dockerfile
+    image: hzeroxium/config-server:latest
+    container_name: config-server
+    environment:
+      - CONFIG_GIT_URI=https://github.com/HZeroxium/ztf-spring-cloud-config-server
+    ports:
+      - "8888:8888"
+    networks:
+      - thrift-network-dev
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--spider",
+          "-q",
+          "http://localhost:8888/actuator/health",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  config-control-service:
+    build:
+      context: ./config-control-service
+      dockerfile: Dockerfile
+    image: hzeroxium/config-control-service:latest
+    container_name: config-control-service
+    environment:
+      - CONSUL_HOST=consul
+      - CONSUL_PORT=8500
+      - MONGODB_URI=mongodb://mongodb:27017/config-control
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - ENVIRONMENT=development
+    ports:
+      - "8889:8889"
+    networks:
+      - thrift-network-dev
+    depends_on:
+      config-server:
+        condition: service_healthy
+      consul:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./logs/config-control-service:/app/logs:rw
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=config-control-service,environment=docker"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--spider",
+          "-q",
+          "http://localhost:8889/actuator/health",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
   # Consul server for service discovery
   consul:
     image: hashicorp/consul:1.17
@@ -75,19 +152,19 @@ services:
       retries: 5
       start_period: 30s
 
-  # mongo-express:
-  #   image: mongo-express:latest
-  #   container_name: mongo-express
-  #   depends_on:
-  #     mongodb:
-  #       condition: service_healthy
-  #   ports:
-  #     - "8081:8081"
-  #   environment:
-  #     ME_CONFIG_MONGODB_URL: mongodb://mongodb:27017/users
-  #     ME_CONFIG_MONGODB_ENABLE_ADMIN: "true"
-  #   networks:
-  #     - thrift-network-dev
+  mongo-express:
+    image: mongo-express:latest
+    container_name: mongo-express
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    ports:
+      - "8082:8081"
+    environment:
+      ME_CONFIG_MONGODB_URL: mongodb://mongodb:27017/users
+      ME_CONFIG_MONGODB_ENABLE_ADMIN: "true"
+    networks:
+      - thrift-network-dev
 
   user-rest-spring-service:
     build:
@@ -105,6 +182,10 @@ services:
       # Mount logs directory to host with proper permissions
       - ./logs/user-rest-spring-service:/app/logs:rw
     depends_on:
+      config-server:
+        condition: service_healthy
+      config-control-service:
+        condition: service_healthy
       consul:
         condition: service_healthy
       user-thrift-server-service-1:
@@ -134,174 +215,6 @@ services:
       retries: 5
       start_period: 30s
 
-  # Loki for log aggregation
-  # loki:
-  #   image: grafana/loki:3.5
-  #   container_name: loki
-  #   ports:
-  #     - "3100:3100"
-  #   volumes:
-  #     - ./config/loki/loki-config.yml:/etc/loki/local-config.yaml
-  #     - loki_data:/loki
-  #   command: -config.file=/etc/loki/local-config.yaml
-  #   networks:
-  #     - thrift-network-dev
-  #   healthcheck:
-  #     test:
-  #       [
-  #         "CMD",
-  #         "wget",
-  #         "--no-verbose",
-  #         "--tries=1",
-  #         "--spider",
-  #         "http://localhost:3100/ready",
-  #       ]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 5
-  #     start_period: 30s
-
-  # Grafana for visualization
-  # grafana:
-  #   image: grafana/grafana:main-ubuntu
-  #   container_name: grafana
-  #   ports:
-  #     - "3000:3000"
-  #   environment:
-  #     - GF_SECURITY_ADMIN_PASSWORD=admin
-  #     - GF_USERS_ALLOW_SIGN_UP=false
-  #     - GF_INSTALL_PLUGINS=grafana-piechart-panel
-  #     - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
-  #     - GF_PATHS_CONFIG=/etc/grafana/grafana.ini
-  #   volumes:
-  #     - grafana_data:/var/lib/grafana
-  #     - ./config/grafana/grafana.ini:/etc/grafana/grafana.ini
-  #     - ./config/grafana/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
-  #     - ./config/grafana/provisioning/dashboards/dashboard_providers.yml:/etc/grafana/provisioning/dashboards/dashboard_providers.yml
-  #     - ./config/grafana/dashboards:/var/lib/grafana/dashboards
-  #   depends_on:
-  #     prometheus:
-  #       condition: service_healthy
-  #     loki:
-  #       condition: service_healthy
-  #   networks:
-  #     - thrift-network-dev
-  #   healthcheck:
-  #     test:
-  #       [
-  #         "CMD",
-  #         "wget",
-  #         "--no-verbose",
-  #         "--tries=1",
-  #         "--spider",
-  #         "http://localhost:3000/api/health",
-  #       ]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 5
-  #     start_period: 30s
-
-  # Prometheus for metrics collection
-  # prometheus:
-  #   image: prom/prometheus:v3.5.0
-  #   container_name: prometheus
-  #   ports:
-  #     - "9091:9090"
-  #   volumes:
-  #     - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-  #     - ./config/prometheus/prometheus-rules.yml:/etc/prometheus/rules/prometheus-rules.yml
-  #     - prometheus_data:/prometheus
-  #   command:
-  #     - "--config.file=/etc/prometheus/prometheus.yml"
-  #     - "--storage.tsdb.path=/prometheus"
-  #     - "--web.console.libraries=/etc/prometheus/console_libraries"
-  #     - "--web.console.templates=/etc/prometheus/consoles"
-  #     - "--storage.tsdb.retention.time=200h"
-  #     - "--web.enable-lifecycle"
-  #     - "--web.enable-admin-api"
-  #   networks:
-  #     - thrift-network-dev
-  #   healthcheck:
-  #     test:
-  #       [
-  #         "CMD",
-  #         "wget",
-  #         "--no-verbose",
-  #         "--tries=1",
-  #         "--spider",
-  #         "http://localhost:9090/-/healthy",
-  #       ]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 5
-  #     start_period: 30s
-
-  # cAdvisor for container metrics
-  # cadvisor:
-  #   image: gcr.io/cadvisor/cadvisor:v0.52.0
-  #   container_name: cadvisor
-  #   ports:
-  #     - "8082:8080"
-  #   volumes:
-  #     - /:/rootfs:ro
-  #     - /var/run:/var/run:ro
-  #     - /sys:/sys:ro
-  #     - /var/lib/docker/:/var/lib/docker:ro
-  #     - /dev/disk/:/dev/disk:ro
-  #   privileged: true
-  #   devices:
-  #     - /dev/kmsg
-  #   networks:
-  #     - thrift-network-dev
-  #   healthcheck:
-  #     test:
-  #       [
-  #         "CMD",
-  #         "wget",
-  #         "--no-verbose",
-  #         "--tries=1",
-  #         "--spider",
-  #         "http://localhost:8080/healthz",
-  #       ]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 5
-  #     start_period: 30s
-
-  # Promtail for log collection
-  # promtail:
-  #   image: grafana/promtail:3.5
-  #   container_name: promtail
-  #   volumes:
-  #     - ./logs:/var/log/apps:ro
-  #     - /var/log:/var/log/host:ro
-  #     - /var/lib/docker/containers:/var/lib/docker/containers:ro
-  #     - ./config/promtail/promtail-config.yml:/etc/promtail/config.yml
-  #     - /var/run/docker.sock:/var/run/docker.sock:ro
-  #   command: -config.file=/etc/promtail/config.yml
-  #   networks:
-  #     - thrift-network-dev
-  #   depends_on:
-  #     - loki
-
-  # Schema Registry removed - using Thrift for schema management
-
-  # kafbat-ui:
-  #   image: ghcr.io/kafbat/kafka-ui:main
-  #   container_name: kafbat-ui
-  #   ports:
-  #     - "8084:8080"
-  #   environment:
-  #     - DYNAMIC_CONFIG_ENABLED=true
-  #     - KAFKA_CLUSTERS_0_NAME=local
-  #     - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9092
-
-  #   depends_on:
-  #     kafka:
-  #       condition: service_healthy
-  #   networks:
-  #     - thrift-network-dev
-
   redis:
     image: redis:latest
     container_name: redis
@@ -327,11 +240,22 @@ services:
     env_file:
       - ./config/env/env.common
       - ./config/env/env.user-watcher
+    environment:
+      - CONSUL_HOST=consul
+      - CONSUL_PORT=8500
+      - CONFIG_CONTROL_URL=http://config-control-service:8889
+      - CONFIG_SERVER_URL=http://config-server:8888
     ports:
       - "8081:8080"
     volumes:
       - ./logs/user-watcher-service:/app/logs:rw
     depends_on:
+      config-server:
+        condition: service_healthy
+      config-control-service:
+        condition: service_healthy
+      consul:
+        condition: service_healthy
       mongodb:
         condition: service_healthy
       kafka:
@@ -390,7 +314,7 @@ services:
     container_name: user-thrift-server-service-1
     env_file:
       - ./config/env/env.common
-      - ./config/env/env.user-thrift  
+      - ./config/env/env.user-thrift
     environment:
       - CONSUL_HOST=consul
       - CONSUL_PORT=8500
@@ -402,6 +326,10 @@ services:
     volumes:
       - ./logs/user-thrift-server-service-1:/app/logs:rw
     depends_on:
+      config-server:
+        condition: service_healthy
+      config-control-service:
+        condition: service_healthy
       consul:
         condition: service_healthy
       kafka:
@@ -435,7 +363,7 @@ services:
     container_name: user-thrift-server-service-2
     env_file:
       - ./config/env/env.common
-      - ./config/env/env.user-thrift  
+      - ./config/env/env.user-thrift
     environment:
       - CONSUL_HOST=consul
       - CONSUL_PORT=8500
@@ -447,6 +375,10 @@ services:
     volumes:
       - ./logs/user-thrift-server-service-2:/app/logs:rw
     depends_on:
+      config-server:
+        condition: service_healthy
+      config-control-service:
+        condition: service_healthy
       consul:
         condition: service_healthy
       kafka:
