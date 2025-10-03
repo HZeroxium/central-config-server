@@ -11,18 +11,27 @@ spring:
   cloud:
     config:
       server:
-        git:
-          uri: ${CONFIG_GIT_URI:https://github.com/HZeroxium/ztf-spring-cloud-config-server}
-          default-label: ${CONFIG_GIT_LABEL:main}
-          clone-on-start: true
-          timeout: 10
+        # git:
+        #   uri: ${CONFIG_GIT_URI:https://github.com/HZeroxium/ztf-spring-cloud-config-server}
+        #   default-label: ${CONFIG_GIT_LABEL:main}
+        #   clone-on-start: true
+        #   timeout: 10
+        #   search-paths: "{application}"
         native:
-          search-locations: classpath:/config
+          # đường dẫn đến thư mục chứa configs local
+          # dùng prefix file: nếu là đường dẫn file hệ thống
+          search-locations: file:./ztf-spring-cloud-config-server
+          # hoặc có thể dùng đường dẫn tuyệt đối, VD:
+          # search-locations: file:/D:/Projects/Desktop/thrift-demo/ztf-spring-cloud-config-server/config
+        # nếu muốn, bạn có thể tắt việc thêm label dưới thư mục
+        # add-label-locations: false
+    bus:
+      enabled: false
   # Disable Kafka for now - Config Server doesn't need it unless broadcasting refresh events
-  autoconfigure:
-    exclude:
-      - org.springframework.cloud.bus.BusAutoConfiguration
-      - org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
+  # autoconfigure:
+  #   exclude:
+  #     - org.springframework.cloud.bus.BusAutoConfiguration
+  #     - org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
 
 management:
   tracing:

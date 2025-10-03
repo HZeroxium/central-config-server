@@ -1,0 +1,108 @@
+plugins {
+    alias(libs.plugins.java)
+    alias(libs.plugins.spring.boot)
+    alias(libs.plugins.spring.dependency.management)
+}
+
+group = 'com.example'
+version = '1.0.0'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+    all {
+        exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
+        exclude group: 'ch.qos.logback', module: 'logback-classic'
+    }
+}
+
+dependencyManagement {
+    imports {
+        mavenBom libs.spring.boot.bom.get().toString()
+        mavenBom libs.spring.cloud.bom.get().toString()
+    }
+}
+
+dependencies {
+    // Spring Boot Starters
+    implementation libs.spring.boot.starter.web
+    implementation libs.spring.boot.starter.actuator
+    implementation libs.spring.boot.starter.validation
+    implementation libs.spring.boot.starter.data.mongodb
+    implementation libs.spring.boot.starter.data.redis
+    implementation libs.spring.boot.starter.cache
+    
+    // Log4j2 for logging (replaces Logback)
+    implementation 'org.springframework.boot:spring-boot-starter-log4j2'
+    
+    // Spring Cloud Config Server
+    implementation 'org.springframework.cloud:spring-cloud-config-server'
+    implementation 'org.springframework.cloud:spring-cloud-starter-bus-kafka'
+    
+    // Spring Cloud Consul Discovery
+    implementation libs.spring.cloud.starter.consul.discovery
+    implementation libs.spring.cloud.starter.loadbalancer
+    
+    // Kafka
+    implementation libs.spring.kafka
+    implementation libs.kafka.clients
+    
+    // Redis & Caching
+    implementation libs.lettuce.core
+    implementation libs.caffeine
+    
+    // Micrometer & Observability
+    implementation libs.bundles.micrometer
+    implementation libs.bundles.zipkin
+    
+    // Validation
+    implementation libs.jakarta.validation.api
+    
+    // OpenAPI/Swagger
+    implementation libs.springdoc.openapi.starter.webmvc.ui
+    
+    // Jackson
+    implementation libs.bundles.jackson
+    
+    // Lombok
+    compileOnly libs.lombok
+    annotationProcessor libs.lombok
+    
+    // Testing
+    testImplementation libs.spring.boot.starter.test
+    testImplementation libs.bundles.testing
+    testImplementation libs.spring.boot.testcontainers
+    testImplementation libs.bundles.testcontainers
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+// Docker build task
+tasks.register('buildDocker', Exec) {
+    group = 'build'
+    description = 'Build Docker image for config-control-service'
+    dependsOn 'bootJar'
+    
+    workingDir projectDir
+    commandLine 'docker', 'build', 
+        '-t', "hzeroxium/${project.name}:latest",
+        '-t', "hzeroxium/${project.name}:${project.version}",
+        '.'
+    
+    doFirst {
+        println "Building Docker image: hzeroxium/${project.name}:latest"
+    }
+    
+    doLast {
+        println "Docker image built successfully: hzeroxium/${project.name}:latest"
+    }
+}
