@@ -84,6 +84,7 @@ tasks.register('buildAll') {
     dependsOn ':spring-boot-admin-server:build'
     dependsOn ':config-server:build'
     dependsOn ':config-control-service:build'
+    dependsOn ':sample-service:build'
     if (project.findProject(':user-rpc-thrift-service') != null) {
         dependsOn ':user-rpc-thrift-service:build'
     }
@@ -101,6 +102,7 @@ tasks.register('cleanAll') {
     dependsOn ':spring-boot-admin-server:clean'
     dependsOn ':config-server:clean'
     dependsOn ':config-control-service:clean'
+    dependsOn ':sample-service:clean'
     if (project.findProject(':user-rpc-thrift-service') != null) {
         dependsOn ':user-rpc-thrift-service:clean'
     }
@@ -119,7 +121,11 @@ subprojects { sp ->
         group = 'docker'
         description = "Build Docker image for ${sp.name} if Dockerfile exists"
         workingDir sp.projectDir
-        commandLine 'docker', 'build', '-t', "hzeroxium/${sp.name}:latest", '-f', 'Dockerfile', '.'
+        
+        // Use simple naming: config-server, sample-service, etc.
+        def imageName = "hzeroxium/${sp.name}:latest"
+        
+        commandLine 'docker', 'build', '-t', imageName, '-f', 'Dockerfile', '.'
         onlyIf { file("${sp.projectDir}/Dockerfile").exists() }
     }
 }
@@ -130,3 +136,4 @@ tasks.register('buildDocker') {
     dependsOn 'buildAll'
     dependsOn subprojects.collect { it.tasks.named('dockerBuild') }
 }
+

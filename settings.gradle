@@ -9,6 +9,7 @@ include 'spring-boot-admin-server'
 include 'config-server'
 include 'config-control-service'
 include 'zcm-spring-sdk-starter'
+include 'sample-service'
 
 // Configure project directories
 project(':user-thrift-server-service').projectDir = file('user-thrift-server-service')
@@ -18,3 +19,4 @@ project(':spring-boot-admin-server').projectDir = file('spring-boot-admin-server
 project(':config-server').projectDir = file('config-server')
 project(':config-control-service').projectDir = file('config-control-service')
 project(':zcm-spring-sdk-starter').projectDir = file('zcm-spring-sdk-starter')
+project(':sample-service').projectDir = file('sample-service')
