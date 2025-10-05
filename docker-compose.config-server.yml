@@ -23,6 +23,8 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    volumes:
+      - kafka_data_config_server:/bitnami/kafka
 
   # Config Server
   config-server:
@@ -34,7 +36,8 @@ services:
     ports:
       - "8888:8888"
     environment:
-      - CONFIG_GIT_URI=file:///app/ztf-spring-cloud-config-server
+      # - CONFIG_GIT_URI=file:///app/ztf-spring-cloud-config-server
+      - CONFIG_GIT_URI=https://github.com/HZeroxium/ztf-spring-cloud-config-server.git
       - CONFIG_GIT_LABEL=master
       - KAFKA_BROKERS=kafka:9092
     volumes:
@@ -72,6 +75,73 @@ services:
       timeout: 10s
       retries: 3
 
+  # Scale Sample Service to 3 instances
+  sample-service-2:
+    build:
+      context: ./sample-service
+      dockerfile: Dockerfile
+    image: hzeroxium/sample-service:latest
+    container_name: config-demo-client-2
+    ports:
+      - "8081:8080"
+    environment:
+      - CONFIG_SERVER_URL=http://config-server:8888
+      - KAFKA_BROKERS=kafka:9092
+      - SPRING_PROFILES_ACTIVE=dev
+    depends_on:
+      config-server:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Scale Sample Service to 3 instances
+  sample-service-3:
+    build:
+      context: ./sample-service
+      dockerfile: Dockerfile
+    image: hzeroxium/sample-service:latest
+    container_name: config-demo-client-3
+    ports:
+      - "8082:8080"
+    environment:
+      - CONFIG_SERVER_URL=http://config-server:8888
+      - KAFKA_BROKERS=kafka:9092
+      - SPRING_PROFILES_ACTIVE=dev
+    depends_on:
+      config-server:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+  
+  kafbat-ui:
+    image: ghcr.io/kafbat/kafka-ui:main
+    container_name: kafbat-ui
+    ports:
+      - "8084:8080"
+    environment:
+      - DYNAMIC_CONFIG_ENABLED=true
+      - KAFKA_CLUSTERS_0_NAME=local
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9092
+
+    depends_on:
+      kafka:
+        condition: service_healthy
+
+
 networks:
   default:
     name: config-demo-network
+    driver: bridge
+
+volumes:
+  kafka_data_config_server:

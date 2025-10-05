@@ -1,52 +1,52 @@
 # config-server/application.yml
 
 server:
-  port: ${SERVER_PORT:8888}
+  port: 8888
 
 spring:
   application:
     name: config-server
-  profiles:
-    active: native
   cloud:
     config:
       server:
-        # git:
-        #   uri: ${CONFIG_GIT_URI:https://github.com/HZeroxium/ztf-spring-cloud-config-server}
-        #   default-label: ${CONFIG_GIT_LABEL:main}
-        #   clone-on-start: true
-        #   timeout: 10
-        #   search-paths: "{application}"
-        native:
-          # đường dẫn đến thư mục chứa configs local
-          # dùng prefix file: nếu là đường dẫn file hệ thống
-          search-locations: file:./ztf-spring-cloud-config-server
-          # hoặc có thể dùng đường dẫn tuyệt đối, VD:
-          # search-locations: file:/D:/Projects/Desktop/thrift-demo/ztf-spring-cloud-config-server/config
-        # nếu muốn, bạn có thể tắt việc thêm label dưới thư mục
-        # add-label-locations: false
+        git:
+          # Sử dụng local directory thay vì remote Git
+          uri: ${CONFIG_GIT_URI:https://github.com/HZeroxium/ztf-spring-cloud-config-server.git}
+          default-label: ${CONFIG_GIT_LABEL:master}
+          clone-on-start: false
+          timeout: 10
+          # Tách config theo thư mục ứng dụng (chuẩn de-facto)
+          search-paths: "{application}"
+          # Tắt force-pull để tránh lỗi read-only
+          force-pull: false
+        monitor:
+          # Enable file monitoring for local config changes
+          enabled: true
+          # Enable webhook support
+          webhook:
+            enabled: true
+    
+    # Spring Cloud Bus configuration
     bus:
-      enabled: false
-  # Disable Kafka for now - Config Server doesn't need it unless broadcasting refresh events
-  # autoconfigure:
-  #   exclude:
-  #     - org.springframework.cloud.bus.BusAutoConfiguration
-  #     - org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
+      destination: springCloudBus
+    stream:
+      kafka:
+        binder:
+          brokers: ${KAFKA_BROKERS:localhost:9092}
 
 management:
-  tracing:
-    enabled: false # Disable Zipkin tracing
-    sampling:
-      probability: 0.0
   endpoints:
     web:
       exposure:
-        include: "*"
+        include: "health,info,env,refresh,busrefresh,monitor"
   endpoint:
     health:
       show-details: always
+    monitor:
+      enabled: true
 
 logging:
   level:
     root: INFO
     org.springframework.cloud.config: DEBUG
+    org.springframework.cloud.bus: DEBUG

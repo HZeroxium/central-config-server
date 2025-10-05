@@ -1,3 +1,5 @@
+// sample-service/build.gradle
+
 plugins {
     id 'java'
     id 'org.springframework.boot' version '3.3.13'
@@ -34,6 +36,9 @@ dependencies {
     
     // Spring Cloud Bus for automatic refresh
     implementation 'org.springframework.cloud:spring-cloud-starter-bus-kafka'
+    
+    // Spring Cloud Refresh (for manual refresh endpoint)
+    implementation 'org.springframework.cloud:spring-cloud-context'
 
     // Configuration Properties support
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'

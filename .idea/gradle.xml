@@ -9,10 +9,14 @@
         <option name="modules">
           <set>
             <option value="$PROJECT_DIR$" />
+            <option value="$PROJECT_DIR$/config-control-service" />
+            <option value="$PROJECT_DIR$/config-server" />
+            <option value="$PROJECT_DIR$/spring-boot-admin-server" />
             <option value="$PROJECT_DIR$/user-rest-spring-service" />
             <option value="$PROJECT_DIR$/user-thrift-server-service" />
             <option value="$PROJECT_DIR$/user-thrift-server-service/user-contracts" />
             <option value="$PROJECT_DIR$/user-watcher-service" />
+            <option value="$PROJECT_DIR$/zcm-spring-sdk-starter" />
           </set>
         </option>
       </GradleProjectSettings>

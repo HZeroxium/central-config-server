@@ -13,7 +13,6 @@ import org.springframework.web.client.RestClient;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.core.env.Environment;
 
 @AutoConfiguration
 @EnableConfigurationProperties(SdkProperties.class)

@@ -68,10 +68,10 @@ public class ConfigController {
         config.put("config.client.version", environment.getProperty("config.client.version"));
         
         // Show property sources (using ConfigurableEnvironment)
-        if (environment instanceof org.springframework.core.env.ConfigurableEnvironment) {
-            config.put("propertySources", ((org.springframework.core.env.ConfigurableEnvironment) environment)
-                .getPropertySources().toString());
-        }
+        // if (environment instanceof org.springframework.core.env.ConfigurableEnvironment) {
+        //     config.put("propertySources", ((org.springframework.core.env.ConfigurableEnvironment) environment)
+        //         .getPropertySources().toString());
+        // }
         
         return config;
     }

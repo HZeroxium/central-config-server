@@ -1,8 +1,12 @@
+# sample-service/application.yml
+
 spring:
   application:
     name: sample-service
   config:
     import: "optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}"
+  profiles:
+    active: dev
   
   # Kafka configuration for Spring Cloud Bus
   cloud:
@@ -18,13 +22,20 @@ management:
   endpoints:
     web:
       exposure:
-        include: "health,info,env,refresh,busrefresh"
+        include: "*"  # Expose all endpoints for debugging
   endpoint:
     health:
       show-details: always
+    refresh:
+      enabled: true
+    busrefresh:
+      enabled: true
 
 logging:
   level:
     root: INFO
     org.springframework.cloud.config: DEBUG
     com.example.sample: DEBUG
+
+zcm:
+  config_url: 
