@@ -28,13 +28,10 @@ dependencies {
     implementation libs.spring.boot.starter
     implementation libs.spring.boot.starter.actuator
 
-    // Config Server core
     implementation 'org.springframework.cloud:spring-cloud-config-server'
     
-    // Spring Cloud Bus over Kafka for automatic refresh (conditional)
     implementation 'org.springframework.cloud:spring-cloud-starter-bus-kafka'
     
-    // Config Monitor for webhook support (/monitor endpoint) - disabled for demo
     implementation 'org.springframework.cloud:spring-cloud-config-monitor'
 
     testImplementation libs.spring.boot.starter.test

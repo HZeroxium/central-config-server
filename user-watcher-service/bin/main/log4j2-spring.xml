@@ -24,7 +24,7 @@
         </Console>
 
         <!-- File Appender for persistent logging (normal logs) -->
-        <RollingFile name="FileAppender" fileName="/app/logs/user-rest-service.log" filePattern="/app/logs/user-rest-service-%d{yyyy-MM-dd}-%i.log.gz" immediateFlush="true" append="true">
+        <RollingFile name="FileAppender" fileName="/app/logs/user-watcher-service.log" filePattern="/app/logs/user-watcher-service-%d{yyyy-MM-dd}-%i.log.gz" immediateFlush="true" append="true">
             <PatternLayout pattern="${LOG_PATTERN}"/>
             <Policies>
                 <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
@@ -34,7 +34,7 @@
         </RollingFile>
 
         <!-- Error File Appender for ERROR and FATAL logs -->
-        <RollingFile name="ErrorFileAppender" fileName="/app/logs/user-rest-service-error.log" filePattern="/app/logs/user-rest-service-error-%d{yyyy-MM-dd}-%i.log.gz" immediateFlush="true" append="true">
+        <RollingFile name="ErrorFileAppender" fileName="/app/logs/user-watcher-service-error.log" filePattern="/app/logs/user-watcher-service-error-%d{yyyy-MM-dd}-%i.log.gz" immediateFlush="true" append="true">
             <PatternLayout pattern="${LOG_PATTERN}"/>
             <ThresholdFilter level="ERROR" onMatch="ACCEPT" onMismatch="DENY"/>
             <Policies>
@@ -47,7 +47,7 @@
 
     <Loggers>
         <!-- Application specific loggers -->
-        <Logger name="com.example.rest" level="DEBUG" additivity="false">
+        <Logger name="com.example.watcher" level="DEBUG" additivity="false">
             <AppenderRef ref="Console"/>
             <AppenderRef ref="ConsoleJson"/>
             <AppenderRef ref="FileAppender"/>

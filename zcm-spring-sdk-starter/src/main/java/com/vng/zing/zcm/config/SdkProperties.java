@@ -50,7 +50,7 @@ public class SdkProperties {
   @Data
   public static class Bus {
     private boolean refreshEnabled = false;
-    private String refreshTopic = "config-refresh";
+    private String refreshTopic = "springCloudBus";
     private String kafkaBootstrapServers;
   }
 }

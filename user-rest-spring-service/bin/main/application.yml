@@ -1,4 +1,6 @@
-# application.yml
+# =========================
+# user-rest-spring-service — application.yml
+# =========================
 
 server:
   port: ${SERVER_PORT:8080}
@@ -8,6 +10,29 @@ spring:
     name: user-rest-spring-service
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:default}
+  # Temporarily disable config server import
+  # config:
+  #   import: "optional:configserver:${CONFIG_SERVER_URL:http://config-server:8888}"
+  cloud:
+    consul:
+      host: ${CONSUL_HOST:localhost}
+      port: ${CONSUL_PORT:8500}
+      discovery:
+        enabled: true
+        register: true
+        service-name: ${spring.application.name}
+        instance-id: ${spring.application.name}-${server.port}-${random.value}
+        health-check-critical-timeout: 30s
+        health-check-interval: 10s
+        health-check-timeout: 3s
+        prefer-ip-address: true
+    bus:
+      enabled: true
+      kafka:
+        bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
+    config:
+      enabled: false
+      fail-fast: false
   cache:
     cache-names: userById, usersByCriteria, countByCriteria
     type: caffeine
@@ -35,6 +60,8 @@ thrift:
   port: ${THRIFT_PORT:9090}
   timeout: 5000
   retry-attempts: 3
+  client:
+    use-sdk: ${THRIFT_USE_SDK:true} # Use SDK-based service discovery by default
 
 # Thrift client properties with validation
 thrift.client:
@@ -87,26 +114,87 @@ app:
         maximum-size: 500
         allow-null-values: true
 
+# Spring Boot Admin Client Configuration
+spring.boot.admin:
+  client:
+    url: ${SPRING_BOOT_ADMIN_URL:http://spring-boot-admin-server:8083}
+    instance:
+      name: ${spring.application.name}
+      service-url: http://${HOSTNAME:localhost}:${server.port}
+      management-url: http://${HOSTNAME:localhost}:${server.port}/actuator
+      health-url: http://${HOSTNAME:localhost}:${server.port}/actuator/health
+      info:
+        app:
+          name: ${spring.application.name}
+          version: ${app.version}
+          environment: ${app.environment}
+        build:
+          version: ${app.version}
+        java:
+          version: ${java.version}
+        os:
+          name: ${os.name}
+          version: ${os.version}
+        user:
+          name: ${user.name}
+        jvm:
+          name: ${java.vm.name}
+          version: ${java.vm.version}
+          vendor: ${java.vm.vendor}
+
 # Management and monitoring configuration
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,prometheus,metrics,env,beans,configprops,loggers,threaddump,heapdump,cache,circuitbreakers,retries,timelimiters
+        include: "*"
+      base-path: /actuator
   endpoint:
     health:
-      show-details: when_authorized
+      show-details: always
       show-components: always
     prometheus:
       enabled: true
     metrics:
       enabled: true
+    info:
+      enabled: true
+    env:
+      enabled: true
+      show-values: always
+    beans:
+      enabled: true
+    configprops:
+      show-values: always
+      enabled: true
+    loggers:
+      enabled: true
+    threaddump:
+      enabled: true
+    heapdump:
+      enabled: true
+    caches:
+      enabled: true
+    circuitbreakers:
+      enabled: true
+    retries:
+      enabled: true
+    timelimiters:
+      enabled: true
   health:
     circuitbreakers:
+      enabled: true
+    redis:
+      enabled: true
+    caches:
       enabled: true
   metrics:
     enable:
       cache: true
+      jvm: true
+      system: true
+      web: true
+      hikaricp: true
     tags:
       application: user-rest-spring-service
       service: user-rest-spring-service
@@ -122,10 +210,9 @@ management:
         http.server.requests: 50ms, 100ms, 200ms, 500ms, 1s, 2s, 5s
         http.client.requests: 50ms, 100ms, 200ms, 500ms, 1s, 2s, 5s
   tracing:
+    enabled: false # Disable Zipkin tracing
     sampling:
-      probability: 1.0
-    # zipkin:
-    #   endpoint: http://zipkin:9411/api/v2/spans
+      probability: 0.0
   prometheus:
     metrics:
       export:

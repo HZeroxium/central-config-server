@@ -35,7 +35,7 @@ public class AdminController {
     log.info("Triggering config refresh for destination: {}", destination != null ? destination : "all");
 
     // Publish refresh event to Kafka topic for SDK clients
-    String topic = "config-refresh";
+    String topic = "springCloudBus";
     String message = String.format("refresh:%s", destination != null ? destination : "*");
     kafkaTemplate.send(topic, message);
 

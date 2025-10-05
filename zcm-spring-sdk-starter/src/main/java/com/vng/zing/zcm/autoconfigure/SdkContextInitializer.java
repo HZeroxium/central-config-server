@@ -1,23 +1,21 @@
-package com.vng.zing.zcm.env;
-
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.env.EnvironmentPostProcessor;
-import org.springframework.core.Ordered;
-import org.springframework.core.env.ConfigurableEnvironment;
-import org.springframework.core.env.MapPropertySource;
+package com.vng.zing.zcm.autoconfigure;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.context.event.ApplicationPreparedEvent;
+import org.springframework.context.ApplicationListener;
+import org.springframework.core.env.ConfigurableEnvironment;
+import org.springframework.core.env.MapPropertySource;
 
 import java.util.HashMap;
 import java.util.Map;
 
 @Slf4j
-public class EnvironmentMappingPostProcessor implements EnvironmentPostProcessor, Ordered {
+public class SdkContextInitializer implements ApplicationListener<ApplicationPreparedEvent> {
 
   @Override
-  public void postProcessEnvironment(ConfigurableEnvironment env,
-      SpringApplication application) {
-    log.info("ZCM-SDK EnvironmentMappingPostProcessor executing...");
+  public void onApplicationEvent(ApplicationPreparedEvent event) {
+    log.info("ZCM-SDK ContextInitializer executing...");
+    ConfigurableEnvironment env = event.getApplicationContext().getEnvironment();
     Map<String, Object> add = new HashMap<>();
 
     // Map service name -> spring.application.name + consul discovery service-name
@@ -25,6 +23,7 @@ public class EnvironmentMappingPostProcessor implements EnvironmentPostProcessor
     if (svc != null && !svc.isBlank()) {
       add.put("spring.application.name", svc);
       add.put("spring.cloud.consul.discovery.service-name", svc);
+      log.info("ZCM-SDK mapped service name: {}", svc);
     }
 
     // Config Server via Config Data import
@@ -32,7 +31,7 @@ public class EnvironmentMappingPostProcessor implements EnvironmentPostProcessor
     log.info("ZCM-SDK config.server.url property: {}", cfgUrl);
     if (cfgUrl != null && !cfgUrl.isBlank()) {
       add.put("spring.config.import", "optional:configserver:" + cfgUrl);
-      log.info("ZCM-SDK adding spring.config.import: optional:configserver:{}", cfgUrl);
+      log.info("ZCM-SDK added spring.config.import: optional:configserver:{}", cfgUrl);
     }
 
     // Consul host/port + heartbeat settings
@@ -51,8 +50,13 @@ public class EnvironmentMappingPostProcessor implements EnvironmentPostProcessor
     if (hbTtl != null)
       add.put("spring.cloud.consul.discovery.heartbeat.ttl", hbTtl);
 
-    // Ensure register by default
-    add.putIfAbsent("spring.cloud.consul.discovery.register", "true");
+    // Consul registration setting
+    String register = env.getProperty("zcm.sdk.discovery.consul.register");
+    if (register != null) {
+      add.put("spring.cloud.consul.discovery.register", register);
+    } else {
+      add.putIfAbsent("spring.cloud.consul.discovery.register", "true");
+    }
 
     // Disable Consul catalog watch (reduces polling)
     add.put("spring.cloud.consul.discovery.catalog-services-watch.enabled", "false");
@@ -70,12 +74,9 @@ public class EnvironmentMappingPostProcessor implements EnvironmentPostProcessor
 
     if (!add.isEmpty()) {
       env.getPropertySources().addFirst(new MapPropertySource("zcm-sdk-mappings", add));
-      log.info("ZCM-SDK mappings applied: " + add.keySet());
+      log.info("ZCM-SDK mappings applied: {}", add.keySet());
+    } else {
+      log.warn("ZCM-SDK no properties to map - check configuration");
     }
-  }
-
-  @Override
-  public int getOrder() {
-    return Ordered.HIGHEST_PRECEDENCE + 10;
   }
 }

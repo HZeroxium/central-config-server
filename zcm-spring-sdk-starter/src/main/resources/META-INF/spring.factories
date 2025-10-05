@@ -1,2 +1,5 @@
-# Disabled EnvironmentMappingPostProcessor so official Spring properties are used
-org.springframework.boot.env.EnvironmentPostProcessor=
+org.springframework.boot.env.EnvironmentPostProcessor=\
+com.vng.zing.zcm.env.EnvironmentMappingPostProcessor
+
+org.springframework.context.ApplicationListener=\
+com.vng.zing.zcm.autoconfigure.SdkContextInitializer

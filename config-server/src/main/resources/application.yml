@@ -10,25 +10,25 @@ spring:
     config:
       server:
         git:
-          # Sử dụng local directory thay vì remote Git
+          # Use GitHub as Git repository
           uri: ${CONFIG_GIT_URI:https://github.com/HZeroxium/ztf-spring-cloud-config-server.git}
+          # Use master branch as default
           default-label: ${CONFIG_GIT_LABEL:master}
           clone-on-start: false
           timeout: 10
-          # Tách config theo thư mục ứng dụng (chuẩn de-facto)
+          # Split config by application directory (standard de-facto)
           search-paths: "{application}"
-          # Tắt force-pull để tránh lỗi read-only
+          # Disable force-pull to avoid read-only error
           force-pull: false
+        # Enable Config Server Monitor for GitHub webhooks
         monitor:
-          # Enable file monitoring for local config changes
-          enabled: true
-          # Enable webhook support
-          webhook:
+          github:
             enabled: true
-    
+
     # Spring Cloud Bus configuration
     bus:
       destination: springCloudBus
+      enabled: true
     stream:
       kafka:
         binder:
@@ -38,12 +38,13 @@ management:
   endpoints:
     web:
       exposure:
-        include: "health,info,env,refresh,busrefresh,monitor"
+        include: "health,info,env,refresh,busrefresh"
+      base-path: /actuator
   endpoint:
     health:
       show-details: always
-    monitor:
-      enabled: true
+  security:
+    enabled: false
 
 logging:
   level:

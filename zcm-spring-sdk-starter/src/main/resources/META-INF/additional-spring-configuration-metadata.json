@@ -87,7 +87,7 @@
     {
       "name": "zcm.sdk.bus.refresh.topic",
       "type": "java.lang.String",
-      "defaultValue": "config-refresh"
+      "defaultValue": "springCloudBus"
     },
     {
       "name": "zcm.sdk.bus.kafka.bootstrap-servers",

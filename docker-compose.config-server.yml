@@ -1,8 +1,30 @@
 services:
+  # Consul server for service discovery
+  consul:
+    image: hashicorp/consul:1.17
+    container_name: consul
+    ports:
+      - "8500:8500"
+    environment:
+      - CONSUL_BIND_INTERFACE=eth0
+    command: >
+      consul agent -dev 
+      -client=0.0.0.0 
+      -ui 
+      -log-level=info 
+      -data-dir=/consul/data
+    volumes:
+      - consul_data:/consul/data
+    healthcheck:
+      test: ["CMD", "consul", "members"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
   # Kafka for Spring Cloud Bus
   kafka:
     image: bitnami/kafka:3.9
-    container_name: config-demo-kafka
+    container_name: kafka
     ports:
       - "9092:9092"
     environment:
@@ -19,7 +41,11 @@ services:
       - KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR=1
       - ALLOW_PLAINTEXT_LISTENER=yes
     healthcheck:
-      test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server localhost:9092 --list"]
+      test:
+        [
+          "CMD-SHELL",
+          "kafka-topics.sh --bootstrap-server localhost:9092 --list",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -32,7 +58,7 @@ services:
       context: ./config-server
       dockerfile: Dockerfile
     image: hzeroxium/config-server:latest
-    container_name: config-demo-server
+    container_name: config-server
     ports:
       - "8888:8888"
     environment:
@@ -57,17 +83,24 @@ services:
       context: ./sample-service
       dockerfile: Dockerfile
     image: hzeroxium/sample-service:latest
-    container_name: config-demo-client
+    container_name: sample-service
     ports:
       - "8080:8080"
     environment:
       - CONFIG_SERVER_URL=http://config-server:8888
       - KAFKA_BROKERS=kafka:9092
       - SPRING_PROFILES_ACTIVE=dev
+      - ZCM_SDK_SERVICE_NAME=sample-service
+      - ZCM_SDK_CONFIG_SERVER_URL=http://config-server:8888
+      - ZCM_SDK_DISCOVERY_CONSUL_HOST=consul
+      - ZCM_SDK_DISCOVERY_CONSUL_HEARTBEAT_ENABLED=true
+      - ZCM_SDK_DISCOVERY_CONSUL_REGISTER=true
     depends_on:
       config-server:
         condition: service_healthy
       kafka:
+        condition: service_healthy
+      consul:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
@@ -76,53 +109,53 @@ services:
       retries: 3
 
   # Scale Sample Service to 3 instances
-  sample-service-2:
-    build:
-      context: ./sample-service
-      dockerfile: Dockerfile
-    image: hzeroxium/sample-service:latest
-    container_name: config-demo-client-2
-    ports:
-      - "8081:8080"
-    environment:
-      - CONFIG_SERVER_URL=http://config-server:8888
-      - KAFKA_BROKERS=kafka:9092
-      - SPRING_PROFILES_ACTIVE=dev
-    depends_on:
-      config-server:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+  # sample-service-2:
+  #   build:
+  #     context: ./sample-service
+  #     dockerfile: Dockerfile
+  #   image: hzeroxium/sample-service:latest
+  #   container_name: config-demo-client-2
+  #   ports:
+  #     - "8081:8080"
+  #   environment:
+  #     - CONFIG_SERVER_URL=http://config-server:8888
+  #     - KAFKA_BROKERS=kafka:9092
+  #     - SPRING_PROFILES_ACTIVE=dev
+  #   depends_on:
+  #     config-server:
+  #       condition: service_healthy
+  #     kafka:
+  #       condition: service_healthy
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
 
-  # Scale Sample Service to 3 instances
-  sample-service-3:
-    build:
-      context: ./sample-service
-      dockerfile: Dockerfile
-    image: hzeroxium/sample-service:latest
-    container_name: config-demo-client-3
-    ports:
-      - "8082:8080"
-    environment:
-      - CONFIG_SERVER_URL=http://config-server:8888
-      - KAFKA_BROKERS=kafka:9092
-      - SPRING_PROFILES_ACTIVE=dev
-    depends_on:
-      config-server:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-  
+  # # Scale Sample Service to 3 instances
+  # sample-service-3:
+  #   build:
+  #     context: ./sample-service
+  #     dockerfile: Dockerfile
+  #   image: hzeroxium/sample-service:latest
+  #   container_name: config-demo-client-3
+  #   ports:
+  #     - "8082:8080"
+  #   environment:
+  #     - CONFIG_SERVER_URL=http://config-server:8888
+  #     - KAFKA_BROKERS=kafka:9092
+  #     - SPRING_PROFILES_ACTIVE=dev
+  #   depends_on:
+  #     config-server:
+  #       condition: service_healthy
+  #     kafka:
+  #       condition: service_healthy
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+
   kafbat-ui:
     image: ghcr.io/kafbat/kafka-ui:main
     container_name: kafbat-ui
@@ -137,6 +170,71 @@ services:
       kafka:
         condition: service_healthy
 
+  # MongoDB for metadata storage
+  mongodb:
+    image: mongo:8.0
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=admin123
+      - MONGO_INITDB_DATABASE=config_control
+    volumes:
+      - mongodb_data:/data/db
+    # healthcheck:
+    #   test: ["CMD", "mongosh", "--username", "admin", "--password", "admin123", "--authenticationDatabase", "admin", "--eval", "db.adminCommand('ping')"]
+    #   interval: 10s
+    #   timeout: 5s
+    #   retries: 5
+    #   start_period: 10s
+
+  # Redis for caching
+  redis:
+    image: redis:latest
+    container_name: redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --requirepass redis123
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  # Config Control Service
+  config-control-service:
+    build:
+      context: ./config-control-service
+      dockerfile: Dockerfile
+    image: hzeroxium/config-control-service:latest
+    container_name: config-control-service
+    ports:
+      - "8081:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - CONFIG_SERVER_URL=http://config-server:8888
+      - CONSUL_URL=http://consul:8500
+      - MONGODB_URI=mongodb://admin:admin123@mongodb:27017/config_control?authSource=admin
+      - REDIS_URL=redis://:redis123@redis:6379
+      - KAFKA_BROKERS=kafka:9092
+    depends_on:
+      config-server:
+        condition: service_healthy
+      consul:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 networks:
   default:
@@ -145,3 +243,6 @@ networks:
 
 volumes:
   kafka_data_config_server:
+  consul_data:
+  mongodb_data:
+  redis_data:

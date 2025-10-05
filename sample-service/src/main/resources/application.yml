@@ -1,28 +1,42 @@
 # sample-service/application.yml
 
-spring:
-  application:
-    name: sample-service
-  config:
-    import: "optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}"
-  profiles:
-    active: dev
-  
-  # Kafka configuration for Spring Cloud Bus
-  cloud:
-    stream:
+# ZCM SDK Configuration (minimal)
+zcm:
+  sdk:
+    service:
+      name: sample-service
+    config:
+      server:
+        url: ${CONFIG_SERVER_URL:http://localhost:8888}
+    bus:
       kafka:
-        binder:
-          brokers: ${KAFKA_BROKERS:localhost:9092}
+        bootstrap-servers: ${KAFKA_BROKERS:localhost:9092}
+      refresh:
+        enabled: false # Use /actuator/busrefresh instead
+    ping:
+      enabled: false # Disable ping (no control service yet)
+    discovery:
+      consul:
+        host: consul
+        heartbeat:
+          enabled: true # Enable Consul heartbeat
+        register: true # Enable Consul registration
 
+# Application server port
 server:
   port: 8080
 
+# Profile activation
+spring:
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+
+# Actuator endpoints (SDK auto-exposes refresh/busrefresh)
 management:
   endpoints:
     web:
       exposure:
-        include: "*"  # Expose all endpoints for debugging
+        include: "*"
   endpoint:
     health:
       show-details: always
@@ -31,11 +45,16 @@ management:
     busrefresh:
       enabled: true
 
+# Logging
 logging:
   level:
     root: INFO
-    org.springframework.cloud.config: DEBUG
+    org.springframework.cloud.config: INFO
     com.example.sample: DEBUG
-
-zcm:
-  config_url: 
+    com.vng.zing.zcm: INFO
+    # Disable verbose Consul HTTP wire logs
+    org.apache.http.wire: WARN
+    org.apache.http.headers: WARN
+    # Disable verbose Kafka consumer logs
+    org.apache.kafka.clients: WARN
+    org.springframework.kafka: INFO
