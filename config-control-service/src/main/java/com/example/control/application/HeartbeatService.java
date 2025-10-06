@@ -4,10 +4,8 @@ import com.example.control.api.exception.ConfigurationException;
 import com.example.control.api.exception.ValidationException;
 import com.example.control.domain.DriftEvent;
 import com.example.control.domain.ServiceInstance;
-import com.example.control.infrastructure.repository.DriftEventDocument;
-import com.example.control.infrastructure.repository.DriftEventRepository;
-import com.example.control.infrastructure.repository.ServiceInstanceDocument;
-import com.example.control.infrastructure.repository.ServiceInstanceRepository;
+import com.example.control.application.service.DriftEventService;
+import com.example.control.application.service.ServiceInstanceService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -27,8 +25,8 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class HeartbeatService {
 
-  private final ServiceInstanceRepository instanceRepository;
-  private final DriftEventRepository driftEventRepository;
+  private final ServiceInstanceService serviceInstanceService;
+  private final DriftEventService driftEventService;
   private final ConfigProxyService configProxyService;
 
   @Transactional
@@ -40,30 +38,31 @@ public class HeartbeatService {
     validateHeartbeatPayload(payload);
 
     String id = payload.getServiceName() + ":" + payload.getInstanceId();
-    ServiceInstanceDocument document = instanceRepository.findById(id)
-        .orElse(new ServiceInstanceDocument());
+    ServiceInstance instance = serviceInstanceService
+        .findByServiceAndInstance(payload.getServiceName(), payload.getInstanceId())
+        .orElse(ServiceInstance.builder()
+            .serviceName(payload.getServiceName())
+            .instanceId(payload.getInstanceId())
+            .status(ServiceInstance.InstanceStatus.HEALTHY)
+            .build());
 
     LocalDateTime now = LocalDateTime.now();
 
     // First heartbeat - create new instance
-    if (document.getId() == null) {
-      document.setId(id);
-      document.setServiceName(payload.getServiceName());
-      document.setInstanceId(payload.getInstanceId());
-      document.setCreatedAt(now);
-      document.setStatus(ServiceInstance.InstanceStatus.HEALTHY.name());
+    if (instance.getCreatedAt() == null) {
+      instance.setCreatedAt(now);
       log.info("New service instance registered: {}", id);
     }
 
     // Update instance metadata
-    document.setHost(payload.getHost());
-    document.setPort(payload.getPort());
-    document.setEnvironment(payload.getEnvironment());
-    document.setVersion(payload.getVersion());
-    document.setLastAppliedHash(payload.getConfigHash());
-    document.setLastSeenAt(now);
-    document.setUpdatedAt(now);
-    document.setMetadata(payload.getMetadata());
+    instance.setHost(payload.getHost());
+    instance.setPort(payload.getPort());
+    instance.setEnvironment(payload.getEnvironment());
+    instance.setVersion(payload.getVersion());
+    instance.setLastAppliedHash(payload.getConfigHash());
+    instance.setLastSeenAt(now);
+    instance.setUpdatedAt(now);
+    instance.setMetadata(payload.getMetadata());
 
     // Detect drift
     String expectedHash;
@@ -84,32 +83,31 @@ public class HeartbeatService {
         payload.getConfigHash() != null &&
         !expectedHash.equals(payload.getConfigHash());
 
-    if (hasDrift && !Boolean.TRUE.equals(document.getHasDrift())) {
+    if (hasDrift && !Boolean.TRUE.equals(instance.getHasDrift())) {
       // New drift detected
       log.warn("Configuration drift detected for {}: expected={}, applied={}",
           id, expectedHash, payload.getConfigHash());
 
-      document.setHasDrift(true);
-      document.setDriftDetectedAt(now);
-      document.setConfigHash(expectedHash);
-      document.setStatus(ServiceInstance.InstanceStatus.DRIFT.name());
+      instance.setHasDrift(true);
+      instance.setDriftDetectedAt(now);
+      instance.setConfigHash(expectedHash);
+      instance.setStatus(ServiceInstance.InstanceStatus.DRIFT);
 
       // Create drift event
       createDriftEvent(payload, expectedHash);
 
-    } else if (!hasDrift && Boolean.TRUE.equals(document.getHasDrift())) {
+    } else if (!hasDrift && Boolean.TRUE.equals(instance.getHasDrift())) {
       // Drift resolved
       log.info("Configuration drift resolved for {}", id);
-      document.setHasDrift(false);
-      document.setDriftDetectedAt(null);
-      document.setStatus(ServiceInstance.InstanceStatus.HEALTHY.name());
+      instance.setHasDrift(false);
+      instance.setDriftDetectedAt(null);
+      instance.setStatus(ServiceInstance.InstanceStatus.HEALTHY);
 
       // Resolve drift events
-      resolveDriftEvents(payload.getServiceName(), payload.getInstanceId());
+      driftEventService.resolveForInstance(payload.getServiceName(), payload.getInstanceId());
     }
 
-    instanceRepository.save(document);
-    return document.toDomain();
+    return serviceInstanceService.saveOrUpdate(instance);
   }
 
   private void createDriftEvent(HeartbeatPayload payload, String expectedHash) {
@@ -126,20 +124,7 @@ public class HeartbeatService {
         .notes("Drift detected via heartbeat")
         .build();
 
-    driftEventRepository.save(DriftEventDocument.fromDomain(event));
-  }
-
-  private void resolveDriftEvents(String serviceName, String instanceId) {
-    driftEventRepository.findByServiceNameAndInstanceId(serviceName, instanceId)
-        .stream()
-        .filter(doc -> !doc.getStatus().equals(DriftEvent.DriftStatus.RESOLVED.name()))
-        .forEach(doc -> {
-          doc.setStatus(DriftEvent.DriftStatus.RESOLVED.name());
-          doc.setResolvedAt(LocalDateTime.now());
-          doc.setResolvedBy("heartbeat-service");
-          doc.setNotes(doc.getNotes() + " | Auto-resolved via heartbeat");
-          driftEventRepository.save(doc);
-        });
+    driftEventService.save(event);
   }
 
   /**

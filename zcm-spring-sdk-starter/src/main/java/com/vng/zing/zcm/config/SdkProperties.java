@@ -34,6 +34,9 @@ public class SdkProperties {
     private int port = 8500;
     private boolean heartbeatEnabled = true;
     private String heartbeatTtl = "10s"; // mapped to spring.cloud.consul.discovery.heartbeat.ttl
+    private boolean register = true; // mapped to spring.cloud.consul.discovery.register
+    private boolean preferIpAddress = true; // mapped to spring.cloud.consul.discovery.prefer-ip-address
+    private String deregisterCriticalServiceAfter = "60s"; // mapped to spring.cloud.consul.discovery.deregister-critical-service-after
   }
 
   @Data

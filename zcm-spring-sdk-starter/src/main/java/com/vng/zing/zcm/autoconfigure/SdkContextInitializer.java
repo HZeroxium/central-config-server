@@ -26,6 +26,29 @@ public class SdkContextInitializer implements ApplicationListener<ApplicationPre
       log.info("ZCM-SDK mapped service name: {}", svc);
     }
 
+    // Map instance ID -> consul discovery instance-id
+    String instanceId = env.getProperty("zcm.sdk.instance.id");
+    String hostname = System.getenv("HOSTNAME");
+    if (instanceId == null || instanceId.isBlank()) {
+      // Derive a stable instance-id if not explicitly provided
+      String base = (svc != null && !svc.isBlank()) ? svc : env.getProperty("spring.application.name", "app");
+      if (hostname != null && !hostname.isBlank()) {
+        add.put("spring.cloud.consul.discovery.instance-id", base + "-${server.port}-" + hostname);
+        log.info("ZCM-SDK derived instance ID from service/hostname: {}-{{port}}-{}", base, hostname);
+      } else {
+        add.put("spring.cloud.consul.discovery.instance-id", base + "-${server.port}-${random.value}");
+        log.info("ZCM-SDK derived instance ID with random suffix for service: {}", base);
+      }
+    } else {
+      if (hostname != null && !hostname.isBlank()) {
+        add.put("spring.cloud.consul.discovery.instance-id", instanceId + "-${server.port}-" + hostname);
+        log.info("ZCM-SDK mapped instance ID: {} with hostname: {}", instanceId, hostname);
+      } else {
+        add.put("spring.cloud.consul.discovery.instance-id", instanceId + "-${server.port}-${random.value}");
+        log.info("ZCM-SDK mapped instance ID: {} with random value", instanceId);
+      }
+    }
+
     // Config Server via Config Data import
     String cfgUrl = env.getProperty("zcm.sdk.config.server.url");
     log.info("ZCM-SDK config.server.url property: {}", cfgUrl);
@@ -43,12 +66,18 @@ public class SdkContextInitializer implements ApplicationListener<ApplicationPre
       add.put("spring.cloud.consul.port", cp);
 
     String hbEnabled = env.getProperty("zcm.sdk.discovery.consul.heartbeat.enabled");
-    if (hbEnabled != null)
+    if (hbEnabled != null) {
       add.put("spring.cloud.consul.discovery.heartbeat.enabled", hbEnabled);
+    } else {
+      add.putIfAbsent("spring.cloud.consul.discovery.heartbeat.enabled", "true");
+    }
 
     String hbTtl = env.getProperty("zcm.sdk.discovery.consul.heartbeat.ttl");
-    if (hbTtl != null)
+    if (hbTtl != null) {
       add.put("spring.cloud.consul.discovery.heartbeat.ttl", hbTtl);
+    } else {
+      add.putIfAbsent("spring.cloud.consul.discovery.heartbeat.ttl", "10s");
+    }
 
     // Consul registration setting
     String register = env.getProperty("zcm.sdk.discovery.consul.register");
@@ -58,8 +87,28 @@ public class SdkContextInitializer implements ApplicationListener<ApplicationPre
       add.putIfAbsent("spring.cloud.consul.discovery.register", "true");
     }
 
+    // Prefer IP address for registration to avoid hostname resolution issues in containers
+    String preferIp = env.getProperty("zcm.sdk.discovery.consul.prefer-ip-address");
+    if (preferIp != null && !preferIp.isBlank()) {
+      add.put("spring.cloud.consul.discovery.prefer-ip-address", preferIp);
+    } else {
+      add.putIfAbsent("spring.cloud.consul.discovery.prefer-ip-address", "true");
+    }
+
+    // Auto-deregister critical services after grace period to avoid stale instances
+    String deregAfter = env.getProperty("zcm.sdk.discovery.consul.deregister-critical-service-after");
+    if (deregAfter != null && !deregAfter.isBlank()) {
+      add.put("spring.cloud.consul.discovery.deregister-critical-service-after", deregAfter);
+    } else {
+      add.putIfAbsent("spring.cloud.consul.discovery.deregister-critical-service-after", "30s");
+    }
+
     // Disable Consul catalog watch (reduces polling)
     add.put("spring.cloud.consul.discovery.catalog-services-watch.enabled", "false");
+    
+    // Enable graceful shutdown for Consul deregistration
+    add.put("spring.cloud.consul.discovery.deregister", "true");
+    add.put("spring.cloud.consul.discovery.fail-fast", "false");
 
     // Kafka bootstrap (for refresh listener or Spring Cloud Bus Kafka)
     String bs = env.getProperty("zcm.sdk.bus.kafka.bootstrap-servers");

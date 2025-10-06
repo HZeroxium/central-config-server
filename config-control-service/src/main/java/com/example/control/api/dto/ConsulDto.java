@@ -248,11 +248,17 @@ public class ConsulDto {
   @NoArgsConstructor
   @AllArgsConstructor
   public static class ConsulKVResponse {
+    @JsonProperty("LockIndex")
     private Long lockIndex;
+    @JsonProperty("Key")
     private String key;
+    @JsonProperty("Flags")
     private Long flags;
+    @JsonProperty("Value")
     private String value;
+    @JsonProperty("CreateIndex")
     private Long createIndex;
+    @JsonProperty("ModifyIndex")
     private Long modifyIndex;
   }
 

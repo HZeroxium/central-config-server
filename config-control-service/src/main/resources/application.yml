@@ -14,7 +14,7 @@ spring:
   # MongoDB for metadata storage
   data:
     mongodb:
-      uri: ${MONGODB_URI:mongodb://admin:admin123@mongodb:27017/config_control?authSource=admin}
+      uri: ${MONGODB_URI:mongodb://mongodb:27017/config_control}
     redis:
       url: ${REDIS_URL:redis://:redis123@redis:6379}
       timeout: 2000ms
