@@ -5,6 +5,10 @@ import org.springframework.util.CollectionUtils;
 
 import java.util.Set;
 
+/**
+ * Deprecated: Spring Cloud Bus refreshes configuration. Keep as optional helper.
+ */
+@Deprecated
 public class ConfigRefresher {
 
   private final ContextRefresher refresher;

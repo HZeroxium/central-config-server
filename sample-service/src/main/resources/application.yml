@@ -8,13 +8,16 @@ zcm:
     config:
       server:
         url: ${CONFIG_SERVER_URL:http://localhost:8888}
+    control:
+      url: ${ZCM_SDK_CONTROL_URL:http://config-control-service:8080}
     bus:
       kafka:
         bootstrap-servers: ${KAFKA_BROKERS:localhost:9092}
       refresh:
-        enabled: false # Use /actuator/busrefresh instead
+        enabled: true # Enable refresh listener
     ping:
-      enabled: false # Disable ping (no control service yet)
+      enabled: true # Enable ping to config-control-service
+      fixed-delay: 30000 # 30 seconds
     discovery:
       consul:
         host: consul
@@ -30,6 +33,10 @@ server:
 spring:
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev}
+  # cloud:
+  #   config:
+  #     allow-override: true
+  #     override-none: true
 
 # Actuator endpoints (SDK auto-exposes refresh/busrefresh)
 management:
@@ -44,6 +51,9 @@ management:
       enabled: true
     busrefresh:
       enabled: true
+    env:
+      post:
+        enabled: true
 
 # Logging
 logging:
@@ -51,7 +61,7 @@ logging:
     root: INFO
     org.springframework.cloud.config: INFO
     com.example.sample: DEBUG
-    com.vng.zing.zcm: INFO
+    com.vng.zing.zcm: DEBUG
     # Disable verbose Consul HTTP wire logs
     org.apache.http.wire: WARN
     org.apache.http.headers: WARN

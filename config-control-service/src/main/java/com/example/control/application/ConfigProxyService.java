@@ -2,6 +2,9 @@ package com.example.control.application;
 
 import com.example.control.api.exception.ExternalServiceException;
 import com.example.control.api.exception.ServiceNotFoundException;
+import com.example.control.configsnapshot.ConfigSnapshot;
+import com.example.control.configsnapshot.ConfigSnapshotBuilderFromConfigServer;
+import com.example.control.configsnapshot.Sha256Hasher;
 import com.example.control.config.ConfigServerProperties;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -13,8 +16,6 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 import java.util.List;
 import java.util.Map;
 
@@ -31,6 +32,7 @@ public class ConfigProxyService {
   private final ConfigServerProperties configServerProperties;
   private final ObjectMapper objectMapper;
   private final RestClient restClient = RestClient.create();
+  private final ConfigSnapshotBuilderFromConfigServer snapshotBuilder = new ConfigSnapshotBuilderFromConfigServer();
 
   /**
    * Get effective configuration hash for a service in an environment.
@@ -63,44 +65,11 @@ public class ConfigProxyService {
         return null;
       }
       
-      // Parse JSON response and extract property sources
       JsonNode configNode = objectMapper.readTree(configJson);
-      StringBuilder configData = new StringBuilder();
-      
-      // Add metadata
-      configData.append("service=").append(serviceName).append("\n");
-      configData.append("profile=").append(profile != null ? profile : "default").append("\n");
-      
-      // Add version if available
-      JsonNode versionNode = configNode.get("version");
-      if (versionNode != null && !versionNode.isNull()) {
-        configData.append("version=").append(versionNode.asText()).append("\n");
-      }
-      
-      // Extract and hash all property sources
-      JsonNode propertySourcesNode = configNode.get("propertySources");
-      if (propertySourcesNode != null && propertySourcesNode.isArray()) {
-        for (JsonNode propertySource : propertySourcesNode) {
-          JsonNode nameNode = propertySource.get("name");
-          JsonNode sourceNode = propertySource.get("source");
-          
-          if (nameNode != null && !nameNode.isNull()) {
-            configData.append("source=").append(nameNode.asText()).append("\n");
-          }
-          
-          if (sourceNode != null && sourceNode.isObject()) {
-            sourceNode.fieldNames().forEachRemaining(key -> {
-              JsonNode valueNode = sourceNode.get(key);
-              if (valueNode != null && !valueNode.isNull()) {
-                configData.append(key).append("=").append(valueNode.asText()).append("\n");
-              }
-            });
-          }
-        }
-      }
-      
-      String hash = computeSha256(configData.toString());
-      log.debug("Computed config hash for {}:{} = {}", serviceName, profile, hash);
+      ConfigSnapshot snapshot = snapshotBuilder.build(serviceName, profile, null, configNode);
+      String hash = Sha256Hasher.hash(snapshot.toCanonicalString());
+      log.debug("Computed config hash for {}:{} keys={} hash={}", serviceName, profile,
+          snapshot.getProperties().size(), hash);
       return hash;
 
     } catch (Exception e) {
@@ -185,25 +154,17 @@ public class ConfigProxyService {
     try {
       log.info("Triggering bus refresh via Config Server for destination: {}", destination);
       
-      String busRefreshUrl = normalizeUrl(configServerProperties.getUrl()) + "/actuator/busrefresh";
+      String base = normalizeUrl(configServerProperties.getUrl()) + "/actuator/busrefresh";
+      String busRefreshUrl = (destination != null && !destination.trim().isEmpty())
+          ? base + "/" + destination
+          : base;
       
       String response;
-      if (destination != null && !destination.trim().isEmpty()) {
-        // Refresh specific destination
-        busRefreshUrl += "/" + destination;
-        response = restClient.post()
-            .uri(busRefreshUrl)
-            .contentType(MediaType.APPLICATION_JSON)
-            .retrieve()
-            .body(String.class);
-      } else {
-        // Refresh all services
-        response = restClient.post()
-            .uri(busRefreshUrl)
-            .contentType(MediaType.APPLICATION_JSON)
-            .retrieve()
-            .body(String.class);
-      }
+      response = restClient.post()
+          .uri(busRefreshUrl)
+          .contentType(MediaType.APPLICATION_JSON)
+          .retrieve()
+          .body(String.class);
       
       log.info("Bus refresh triggered successfully for destination: {}", destination);
       return response;
@@ -212,24 +173,6 @@ public class ConfigProxyService {
       log.error("Failed to trigger bus refresh for destination: {}", destination, e);
       throw new ExternalServiceException("config-server",
           "Failed to trigger bus refresh: " + e.getMessage(), e);
-    }
-  }
-
-  private String computeSha256(String input) {
-    try {
-      MessageDigest digest = MessageDigest.getInstance("SHA-256");
-      byte[] hash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
-      StringBuilder hexString = new StringBuilder();
-      for (byte b : hash) {
-        String hex = Integer.toHexString(0xff & b);
-        if (hex.length() == 1)
-          hexString.append('0');
-        hexString.append(hex);
-      }
-      return hexString.toString();
-    } catch (Exception e) {
-      log.error("Failed to compute SHA-256", e);
-      return null;
     }
   }
 

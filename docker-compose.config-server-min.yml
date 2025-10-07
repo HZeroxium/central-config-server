@@ -58,7 +58,7 @@ services:
       - ZCM_SDK_DISCOVERY_CONSUL_HOST=consul
       - ZCM_SDK_DISCOVERY_CONSUL_HEARTBEAT_ENABLED=true
       - ZCM_SDK_DISCOVERY_CONSUL_REGISTER=true
-      - ZCM_SDK_PING_ENABLED=false
+      - ZCM_SDK_PING_ENABLED=true
       - ZCM_SDK_CONTROL_URL=http://config-control-service:8080
     depends_on:
       config-server:
@@ -90,6 +90,8 @@ services:
       - ZCM_SDK_DISCOVERY_CONSUL_HOST=consul
       - ZCM_SDK_DISCOVERY_CONSUL_HEARTBEAT_ENABLED=true
       - ZCM_SDK_DISCOVERY_CONSUL_REGISTER=true
+      - ZCM_SDK_PING_ENABLED=true
+      - ZCM_SDK_CONTROL_URL=http://config-control-service:8080
     depends_on:
       config-server:
         condition: service_healthy

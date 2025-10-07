@@ -25,6 +25,8 @@ spring:
           github:
             enabled: true
 
+
+    
     # Spring Cloud Bus configuration
     bus:
       destination: springCloudBus

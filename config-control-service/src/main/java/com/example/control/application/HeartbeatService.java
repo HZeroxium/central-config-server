@@ -29,6 +29,10 @@ public class HeartbeatService {
   private final DriftEventService driftEventService;
   private final ConfigProxyService configProxyService;
 
+  // Minimal in-memory retry/backoff for stubborn drift cases
+  private final java.util.concurrent.ConcurrentHashMap<String, Integer> driftRetryCount = new java.util.concurrent.ConcurrentHashMap<>();
+  private final java.util.concurrent.ConcurrentHashMap<String, Integer> driftBackoffPow = new java.util.concurrent.ConcurrentHashMap<>();
+
   @Transactional
   @CacheEvict(value = { "service-instances", "drift-events" }, allEntries = true)
   public ServiceInstance processHeartbeat(HeartbeatPayload payload) {
@@ -79,9 +83,16 @@ public class HeartbeatService {
           "Failed to retrieve effective configuration: " + e.getMessage());
     }
 
-    boolean hasDrift = expectedHash != null &&
-        payload.getConfigHash() != null &&
-        !expectedHash.equals(payload.getConfigHash());
+    // Guard: if either hash is missing → UNKNOWN, do not mark DRIFT
+    if (expectedHash == null || payload.getConfigHash() == null) {
+      instance.setStatus(ServiceInstance.InstanceStatus.UNKNOWN);
+      instance.setHasDrift(false);
+      driftRetryCount.remove(id);
+      driftBackoffPow.remove(id);
+      return serviceInstanceService.saveOrUpdate(instance);
+    }
+
+    boolean hasDrift = !expectedHash.equals(payload.getConfigHash());
 
     if (hasDrift && !Boolean.TRUE.equals(instance.getHasDrift())) {
       // New drift detected
@@ -96,8 +107,10 @@ public class HeartbeatService {
       // Create drift event
       createDriftEvent(payload, expectedHash);
 
-      // Auto-trigger refresh for drifted instance
+      // Auto-trigger refresh for drifted instance with backoff state init
       triggerRefreshForInstance(payload.getServiceName(), payload.getInstanceId());
+      driftRetryCount.put(id, 1);
+      driftBackoffPow.put(id, 0); // 2^0 = 1 cycles backoff
 
     } else if (!hasDrift && Boolean.TRUE.equals(instance.getHasDrift())) {
       // Drift resolved
@@ -108,6 +121,24 @@ public class HeartbeatService {
 
       // Resolve drift events
       driftEventService.resolveForInstance(payload.getServiceName(), payload.getInstanceId());
+      driftRetryCount.remove(id);
+    } else if (!hasDrift && !Boolean.TRUE.equals(instance.getHasDrift())) {
+      // Ensure status remains healthy on steady state (no false DRIFT)
+      if (instance.getStatus() != ServiceInstance.InstanceStatus.HEALTHY) {
+        instance.setStatus(ServiceInstance.InstanceStatus.HEALTHY);
+      }
+      driftRetryCount.remove(id);
+    } else if (hasDrift && Boolean.TRUE.equals(instance.getHasDrift())) {
+      // Persistent drift: exponential backoff on heartbeats (1,2,4,8 up to 16 cycles)
+      int count = driftRetryCount.merge(id, 1, Integer::sum);
+      int pow = driftBackoffPow.compute(id, (k, v) -> v == null ? 0 : Math.min(v, 4));
+      int threshold = 1 << pow; // 1,2,4,8,16
+      if (count >= threshold) {
+        log.warn("Persistent drift for {} after {} heartbeats (threshold {}). Re-triggering refresh.", id, count, threshold);
+        triggerRefreshForInstance(payload.getServiceName(), payload.getInstanceId());
+        driftRetryCount.put(id, 0);
+        driftBackoffPow.put(id, Math.min(pow + 1, 4));
+      }
     }
 
     return serviceInstanceService.saveOrUpdate(instance);

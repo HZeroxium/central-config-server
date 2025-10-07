@@ -1,12 +1,17 @@
 package com.vng.zing.zcm.pingconfig;
 
+import com.vng.zing.zcm.configsnapshot.ConfigSnapshotBuilder;
+
 import lombok.Getter;
-import org.springframework.core.env.*;
+
+import org.springframework.core.env.ConfigurableEnvironment;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import java.util.*;
 
+/**
+ * Provides a stable SHA-256 hash of effective configuration from Spring Cloud Config.
+ */
 public class ConfigHashCalculator {
 
   @Getter
@@ -18,37 +23,22 @@ public class ConfigHashCalculator {
 
   public String currentHash() {
     try {
+      String application = environment.getProperty("spring.application.name", "unknown");
+      String[] profiles = environment.getActiveProfiles();
+      String profile = profiles.length > 0 ? profiles[0] : "default";
+      String label = environment.getProperty("spring.cloud.config.label");
+      String version = environment.getProperty("config.client.version");
+
+      var snapshot = new ConfigSnapshotBuilder(environment)
+          .build(application, profile, label, version);
+      String canonical = snapshot.toCanonicalString();
       MessageDigest md = MessageDigest.getInstance("SHA-256");
-      SortedMap<String, String> flat = new TreeMap<>();
-      for (PropertySource<?> ps : environment.getPropertySources()) {
-        if (!(ps instanceof EnumerablePropertySource<?> eps))
-          continue;
-        for (String name : eps.getPropertyNames()) {
-          if (isSensitive(name))
-            continue;
-          Object v = eps.getProperty(name);
-          if (v != null)
-            flat.put(name, String.valueOf(v));
-        }
-      }
-      for (Map.Entry<String, String> e : flat.entrySet()) {
-        md.update(e.getKey().getBytes(StandardCharsets.UTF_8));
-        md.update((byte) '=');
-        md.update(e.getValue().getBytes(StandardCharsets.UTF_8));
-        md.update((byte) '\n');
-      }
-      byte[] digest = md.digest();
-      StringBuilder sb = new StringBuilder();
-      for (byte b : digest)
-        sb.append(String.format("%02x", b));
+      byte[] digest = md.digest(canonical.getBytes(StandardCharsets.UTF_8));
+      StringBuilder sb = new StringBuilder(digest.length * 2);
+      for (byte b : digest) sb.append(String.format("%02x", b));
       return sb.toString();
     } catch (Exception e) {
       return "NA";
     }
-  }
-
-  private boolean isSensitive(String key) {
-    String k = key.toLowerCase(Locale.ROOT);
-    return k.contains("password") || k.contains("secret") || k.contains("token") || k.contains("credential");
   }
 }
