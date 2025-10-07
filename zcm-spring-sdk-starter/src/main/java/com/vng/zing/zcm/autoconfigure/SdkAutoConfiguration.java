@@ -2,6 +2,8 @@ package com.vng.zing.zcm.autoconfigure;
 
 import com.vng.zing.zcm.client.*;
 import com.vng.zing.zcm.config.SdkProperties;
+import com.vng.zing.zcm.loadbalancer.LoadBalancerStrategy;
+import com.vng.zing.zcm.loadbalancer.LoadBalancerStrategyFactory;
 import com.vng.zing.zcm.pingconfig.ConfigHashCalculator;
 import com.vng.zing.zcm.pingconfig.ConfigRefresher;
 import com.vng.zing.zcm.pingconfig.PingScheduler;
@@ -88,11 +90,19 @@ public class SdkAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
+  public LoadBalancerStrategy loadBalancerStrategy() {
+    String policy = props.getLb().getPolicy();
+    return LoadBalancerStrategyFactory.create(policy);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
   public ClientApi zcmClientApi(WebClient.Builder lbWebClientBuilder,
       DiscoveryClient discoveryClient,
       ConfigHashCalculator hashCalc,
-      PingSender pingSender) {
-    return new ClientImpl(lbWebClientBuilder, discoveryClient, hashCalc, pingSender);
+      PingSender pingSender,
+      LoadBalancerStrategy loadBalancerStrategy) {
+    return new ClientImpl(lbWebClientBuilder, discoveryClient, hashCalc, pingSender, loadBalancerStrategy);
   }
 
   // ----- Bean property resolvers for SpEL -----

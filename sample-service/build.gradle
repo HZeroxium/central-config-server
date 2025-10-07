@@ -41,6 +41,9 @@ dependencies {
     // Spring Cloud Config Client (provided by SDK)
     // implementation 'org.springframework.cloud:spring-cloud-starter-config'
     
+    // Spring Cloud Discovery (needed for ServiceInstance)
+    implementation 'org.springframework.cloud:spring-cloud-starter-consul-discovery'
+    
     // Spring Cloud Bus for automatic refresh (provided by SDK)
     // implementation 'org.springframework.cloud:spring-cloud-starter-bus-kafka'
     

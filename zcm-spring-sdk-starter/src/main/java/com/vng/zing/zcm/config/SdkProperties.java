@@ -41,7 +41,7 @@ public class SdkProperties {
 
   @Data
   public static class Lb {
-    private String policy = "RR"; // Round-robin (for choose())
+    private String policy = "ROUND_ROBIN"; // ROUND_ROBIN, RANDOM, WEIGHTED_RANDOM
   }
 
   @Data

@@ -1,7 +1,8 @@
 package com.vng.zing.zcm.client;
 
-import com.vng.zing.zcm.discovery.RoundRobinChooser;
 import com.vng.zing.zcm.configsnapshot.ConfigSnapshotBuilder;
+import com.vng.zing.zcm.loadbalancer.LoadBalancerStrategy;
+import com.vng.zing.zcm.loadbalancer.LoadBalancerStrategyFactory;
 import com.vng.zing.zcm.pingconfig.ConfigHashCalculator;
 import com.vng.zing.zcm.pingconfig.PingSender;
 
@@ -22,7 +23,7 @@ public class ClientImpl implements ClientApi {
   private final DiscoveryClient discoveryClient;
   private final ConfigHashCalculator hashCalc;
   private final PingSender pingSender;
-  private final RoundRobinChooser rr = new RoundRobinChooser();
+  private final LoadBalancerStrategy defaultLoadBalancerStrategy;
 
   @Override
   public String get(String key) {
@@ -73,7 +74,19 @@ public class ClientImpl implements ClientApi {
   @Override
   public ServiceInstance choose(String serviceName) {
     List<ServiceInstance> list = instances(serviceName);
-    return rr.choose(serviceName, list);
+    return defaultLoadBalancerStrategy.choose(serviceName, list);
+  }
+
+  @Override
+  public ServiceInstance choose(String serviceName, LoadBalancerStrategy.Policy policy) {
+    List<ServiceInstance> list = instances(serviceName);
+    LoadBalancerStrategy strategy = LoadBalancerStrategyFactory.create(policy);
+    return strategy.choose(serviceName, list);
+  }
+
+  @Override
+  public String loadBalancerStrategy() {
+    return defaultLoadBalancerStrategy.getName();
   }
 
   @Override
