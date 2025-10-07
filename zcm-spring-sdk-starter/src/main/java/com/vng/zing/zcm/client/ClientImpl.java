@@ -1,6 +1,10 @@
 package com.vng.zing.zcm.client;
 
 import com.vng.zing.zcm.config.SdkProperties;
+import com.vng.zing.zcm.discovery.RoundRobinChooser;
+import com.vng.zing.zcm.pingconfig.ConfigHashCalculator;
+import com.vng.zing.zcm.pingconfig.PingSender;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.cloud.client.ServiceInstance;
 import org.springframework.cloud.client.discovery.DiscoveryClient;

@@ -1,4 +1,4 @@
-package com.vng.zing.zcm.client;
+package com.vng.zing.zcm.pingconfig;
 
 import lombok.Getter;
 import org.springframework.core.env.*;

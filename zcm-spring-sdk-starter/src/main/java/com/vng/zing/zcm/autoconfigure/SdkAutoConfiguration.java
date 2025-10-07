@@ -2,6 +2,12 @@ package com.vng.zing.zcm.autoconfigure;
 
 import com.vng.zing.zcm.client.*;
 import com.vng.zing.zcm.config.SdkProperties;
+import com.vng.zing.zcm.pingconfig.ConfigHashCalculator;
+import com.vng.zing.zcm.pingconfig.ConfigRefresher;
+import com.vng.zing.zcm.pingconfig.PingScheduler;
+import com.vng.zing.zcm.pingconfig.PingSender;
+import com.vng.zing.zcm.pingconfig.RefreshListener;
+
 import lombok.RequiredArgsConstructor;
 
 import java.util.HashMap;

@@ -1,7 +1,7 @@
 package com.example.watcher.controller;
 
 import com.vng.zing.zcm.client.ClientApi;
-import com.vng.zing.zcm.client.ConfigRefresher;
+import com.vng.zing.zcm.pingconfig.ConfigRefresher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;

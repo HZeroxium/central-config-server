@@ -1,4 +1,4 @@
-package com.vng.zing.zcm.client;
+package com.vng.zing.zcm.pingconfig;
 
 import org.springframework.cloud.context.refresh.ContextRefresher;
 import org.springframework.util.CollectionUtils;

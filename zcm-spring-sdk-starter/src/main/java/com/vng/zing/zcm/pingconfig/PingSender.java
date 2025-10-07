@@ -1,4 +1,4 @@
-package com.vng.zing.zcm.client;
+package com.vng.zing.zcm.pingconfig;
 
 import com.vng.zing.zcm.config.SdkProperties;
 import org.springframework.http.MediaType;

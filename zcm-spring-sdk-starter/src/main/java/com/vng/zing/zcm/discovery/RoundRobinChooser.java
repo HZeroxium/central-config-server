@@ -1,4 +1,4 @@
-package com.vng.zing.zcm.client;
+package com.vng.zing.zcm.discovery;
 
 import org.springframework.cloud.client.ServiceInstance;
 
@@ -6,11 +6,11 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-class RoundRobinChooser {
+public class RoundRobinChooser {
 
   private final ConcurrentHashMap<String, AtomicInteger> seq = new ConcurrentHashMap<>();
 
-  ServiceInstance choose(String serviceName, List<ServiceInstance> instances) {
+  public ServiceInstance choose(String serviceName, List<ServiceInstance> instances) {
     if (instances == null || instances.isEmpty())
       return null;
     int size = instances.size();
