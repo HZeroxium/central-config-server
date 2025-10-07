@@ -1,0 +1,75 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary-50: #e3f2fd;
+  --color-primary-100: #bbdefb;
+  --color-primary-200: #90caf9;
+  --color-primary-300: #64b5f6;
+  --color-primary-400: #42a5f5;
+  --color-primary-500: #2196f3;
+  --color-primary-600: #1976d2;
+  --color-primary-700: #1565c0;
+  --color-primary-800: #0d47a1;
+  --color-primary-900: #0a3d91;
+  
+  --font-family-sans: 'Inter', system-ui, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-family-sans);
+  }
+  
+  body {
+    background-color: #f8fafc;
+    color: #0f172a;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    background-color: var(--color-primary-500);
+    color: white;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    transition: all 0.2s ease-in-out;
+  }
+  
+  .btn-primary:hover {
+    background-color: var(--color-primary-600);
+  }
+  
+  .btn-secondary {
+    background-color: #f1f5f9;
+    color: #334155;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    transition: all 0.2s ease-in-out;
+  }
+  
+  .btn-secondary:hover {
+    background-color: #e2e8f0;
+  }
+  
+  .card {
+    background-color: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+    border: 1px solid #e2e8f0;
+  }
+  
+  .input-field {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 0.5rem;
+    transition: all 0.2s ease-in-out;
+  }
+  
+  .input-field:focus {
+    outline: 2px solid var(--color-primary-500);
+    border-color: var(--color-primary-500);
+  }
+}
