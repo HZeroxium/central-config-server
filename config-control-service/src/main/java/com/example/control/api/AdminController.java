@@ -1,5 +1,6 @@
 package com.example.control.api;
 
+import com.example.control.application.ConfigProxyService;
 import io.micrometer.core.annotation.Timed;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -8,7 +9,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.CacheManager;
 import org.springframework.http.ResponseEntity;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -23,29 +23,35 @@ import java.util.Map;
 @Tag(name = "Admin", description = "Administrative operations for config management")
 public class AdminController {
 
-  private final KafkaTemplate<String, String> kafkaTemplate;
+  private final ConfigProxyService configProxyService;
   private final CacheManager cacheManager;
 
   @PostMapping("/refresh")
-  @Operation(summary = "Trigger refresh", description = "Broadcast config refresh event to all instances or specific destination")
+  @Operation(summary = "Trigger refresh", description = "Broadcast config refresh event to all instances or specific destination via Config Server /busrefresh")
   @Timed(value = "api.admin.refresh", description = "Time taken to trigger refresh")
   public ResponseEntity<Map<String, Object>> triggerRefresh(
       @RequestParam(required = false) @Parameter(description = "Destination pattern (service:instance or service:** for all)") String destination) {
 
     log.info("Triggering config refresh for destination: {}", destination != null ? destination : "all");
 
-    // Publish refresh event to Kafka topic for SDK clients
-    String topic = "springCloudBus";
-    String message = String.format("refresh:%s", destination != null ? destination : "*");
-    kafkaTemplate.send(topic, message);
+    try {
+      // Trigger refresh via Config Server's /busrefresh endpoint
+      String response = configProxyService.triggerBusRefresh(destination);
 
-    return ResponseEntity.ok(Map.of(
-        "status", "ok",
-        "message", "Refresh triggered",
-        "destination", destination != null ? destination : "all",
-        "topic", topic,
-        "payload", message,
-        "timestamp", System.currentTimeMillis()));
+      return ResponseEntity.ok(Map.of(
+          "status", "ok",
+          "message", "Refresh triggered via Config Server /busrefresh",
+          "destination", destination != null ? destination : "all",
+          "configServerResponse", response != null ? response : "success",
+          "timestamp", System.currentTimeMillis()));
+    } catch (Exception e) {
+      log.error("Failed to trigger refresh for destination: {}", destination, e);
+      return ResponseEntity.status(500).body(Map.of(
+          "status", "error",
+          "message", "Failed to trigger refresh: " + e.getMessage(),
+          "destination", destination != null ? destination : "all",
+          "timestamp", System.currentTimeMillis()));
+    }
   }
 
   @PostMapping("/cache/clear")

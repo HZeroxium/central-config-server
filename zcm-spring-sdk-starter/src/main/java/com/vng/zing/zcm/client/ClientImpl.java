@@ -1,6 +1,5 @@
 package com.vng.zing.zcm.client;
 
-import com.vng.zing.zcm.config.SdkProperties;
 import com.vng.zing.zcm.discovery.RoundRobinChooser;
 import com.vng.zing.zcm.pingconfig.ConfigHashCalculator;
 import com.vng.zing.zcm.pingconfig.PingSender;
@@ -18,7 +17,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ClientImpl implements ClientApi {
 
-  private final SdkProperties props;
   private final WebClient.Builder lbWebClientBuilder;
   private final DiscoveryClient discoveryClient;
   private final ConfigHashCalculator hashCalc;

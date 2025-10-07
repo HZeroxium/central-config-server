@@ -41,8 +41,6 @@ import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 @RequiredArgsConstructor
 public class SdkAutoConfiguration {
 
-  private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(SdkAutoConfiguration.class);
-
   private final SdkProperties props;
 
   @Bean
@@ -63,10 +61,10 @@ public class SdkAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public PingSender pingSender(@Lazy RestClient.Builder restBuilder, ConfigHashCalculator hashCalc) {
+  public PingSender pingSender(@Lazy RestClient.Builder restBuilder, ConfigHashCalculator hashCalc, Environment environment) {
     // Create RestClient for simple JSON POST (non-LB)
     RestClient restClient = restBuilder.build();
-    return new PingSender(restClient, props, hashCalc);
+    return new PingSender(restClient, props, hashCalc, environment);
   }
 
   @Bean
@@ -84,8 +82,8 @@ public class SdkAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public RefreshListener zcmRefreshListener(SdkProperties properties, ConfigRefresher refresher) {
-    return new RefreshListener(properties, refresher);
+  public RefreshListener zcmRefreshListener(ConfigRefresher refresher) {
+    return new RefreshListener(refresher);
   }
 
   @Bean
@@ -94,7 +92,7 @@ public class SdkAutoConfiguration {
       DiscoveryClient discoveryClient,
       ConfigHashCalculator hashCalc,
       PingSender pingSender) {
-    return new ClientImpl(props, lbWebClientBuilder, discoveryClient, hashCalc, pingSender);
+    return new ClientImpl(lbWebClientBuilder, discoveryClient, hashCalc, pingSender);
   }
 
   // ----- Bean property resolvers for SpEL -----

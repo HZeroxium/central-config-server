@@ -2,12 +2,16 @@ package com.example.control.application;
 
 import com.example.control.api.exception.ExternalServiceException;
 import com.example.control.api.exception.ServiceNotFoundException;
+import com.example.control.config.ConfigServerProperties;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.client.ServiceInstance;
 import org.springframework.cloud.client.discovery.DiscoveryClient;
-import org.springframework.core.env.Environment;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClient;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -24,7 +28,9 @@ import java.util.Map;
 public class ConfigProxyService {
 
   private final DiscoveryClient discoveryClient;
-  private final Environment environment;
+  private final ConfigServerProperties configServerProperties;
+  private final ObjectMapper objectMapper;
+  private final RestClient restClient = RestClient.create();
 
   /**
    * Get effective configuration hash for a service in an environment.
@@ -40,32 +46,62 @@ public class ConfigProxyService {
     }
 
     try {
-      // In production, this would:
-      // 1. Call Config Server: GET /serviceName/profile
-      // 2. Parse the property sources
-      // 3. Compute SHA-256 hash of all properties
-
-      // Simplified implementation using local environment
+      log.debug("Fetching effective config from Config Server for {}:{}", serviceName, profile);
+      
+      // Call Config Server: GET /serviceName/profile
+      String configUrl = normalizeUrl(configServerProperties.getUrl()) + "/" + serviceName + "/" + 
+                        (profile != null && !profile.trim().isEmpty() ? profile : "default");
+      
+      String configJson = restClient.get()
+          .uri(configUrl)
+          .accept(MediaType.APPLICATION_JSON)
+          .retrieve()
+          .body(String.class);
+      
+      if (configJson == null || configJson.trim().isEmpty()) {
+        log.warn("Empty config response from Config Server for {}:{}", serviceName, profile);
+        return null;
+      }
+      
+      // Parse JSON response and extract property sources
+      JsonNode configNode = objectMapper.readTree(configJson);
       StringBuilder configData = new StringBuilder();
+      
+      // Add metadata
       configData.append("service=").append(serviceName).append("\n");
       configData.append("profile=").append(profile != null ? profile : "default").append("\n");
-
-      // Add some environment-specific config
-      String[] keys = {
-          "spring.application.name",
-          "spring.profiles.active",
-          "spring.cloud.consul.host",
-          "spring.kafka.bootstrap-servers"
-      };
-
-      for (String key : keys) {
-        String value = environment.getProperty(key);
-        if (value != null) {
-          configData.append(key).append("=").append(value).append("\n");
+      
+      // Add version if available
+      JsonNode versionNode = configNode.get("version");
+      if (versionNode != null && !versionNode.isNull()) {
+        configData.append("version=").append(versionNode.asText()).append("\n");
+      }
+      
+      // Extract and hash all property sources
+      JsonNode propertySourcesNode = configNode.get("propertySources");
+      if (propertySourcesNode != null && propertySourcesNode.isArray()) {
+        for (JsonNode propertySource : propertySourcesNode) {
+          JsonNode nameNode = propertySource.get("name");
+          JsonNode sourceNode = propertySource.get("source");
+          
+          if (nameNode != null && !nameNode.isNull()) {
+            configData.append("source=").append(nameNode.asText()).append("\n");
+          }
+          
+          if (sourceNode != null && sourceNode.isObject()) {
+            sourceNode.fieldNames().forEachRemaining(key -> {
+              JsonNode valueNode = sourceNode.get(key);
+              if (valueNode != null && !valueNode.isNull()) {
+                configData.append(key).append("=").append(valueNode.asText()).append("\n");
+              }
+            });
+          }
         }
       }
-
-      return computeSha256(configData.toString());
+      
+      String hash = computeSha256(configData.toString());
+      log.debug("Computed config hash for {}:{} = {}", serviceName, profile, hash);
+      return hash;
 
     } catch (Exception e) {
       log.error("Failed to compute effective config hash for {}:{}", serviceName, profile, e);
@@ -138,6 +174,47 @@ public class ConfigProxyService {
     }
   }
 
+  /**
+   * Trigger config refresh via Config Server's /busrefresh endpoint.
+   * This uses Spring Cloud Bus to broadcast refresh events.
+   * 
+   * @param destination optional destination pattern (service:instance or service:** for all)
+   * @return response from Config Server
+   */
+  public String triggerBusRefresh(String destination) {
+    try {
+      log.info("Triggering bus refresh via Config Server for destination: {}", destination);
+      
+      String busRefreshUrl = normalizeUrl(configServerProperties.getUrl()) + "/actuator/busrefresh";
+      
+      String response;
+      if (destination != null && !destination.trim().isEmpty()) {
+        // Refresh specific destination
+        busRefreshUrl += "/" + destination;
+        response = restClient.post()
+            .uri(busRefreshUrl)
+            .contentType(MediaType.APPLICATION_JSON)
+            .retrieve()
+            .body(String.class);
+      } else {
+        // Refresh all services
+        response = restClient.post()
+            .uri(busRefreshUrl)
+            .contentType(MediaType.APPLICATION_JSON)
+            .retrieve()
+            .body(String.class);
+      }
+      
+      log.info("Bus refresh triggered successfully for destination: {}", destination);
+      return response;
+      
+    } catch (Exception e) {
+      log.error("Failed to trigger bus refresh for destination: {}", destination, e);
+      throw new ExternalServiceException("config-server",
+          "Failed to trigger bus refresh: " + e.getMessage(), e);
+    }
+  }
+
   private String computeSha256(String input) {
     try {
       MessageDigest digest = MessageDigest.getInstance("SHA-256");
@@ -154,5 +231,12 @@ public class ConfigProxyService {
       log.error("Failed to compute SHA-256", e);
       return null;
     }
+  }
+
+  private String normalizeUrl(String url) {
+    if (url.endsWith("/")) {
+      return url.substring(0, url.length() - 1);
+    }
+    return url;
   }
 }

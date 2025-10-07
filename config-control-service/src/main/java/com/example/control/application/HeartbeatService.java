@@ -96,6 +96,9 @@ public class HeartbeatService {
       // Create drift event
       createDriftEvent(payload, expectedHash);
 
+      // Auto-trigger refresh for drifted instance
+      triggerRefreshForInstance(payload.getServiceName(), payload.getInstanceId());
+
     } else if (!hasDrift && Boolean.TRUE.equals(instance.getHasDrift())) {
       // Drift resolved
       log.info("Configuration drift resolved for {}", id);
@@ -125,6 +128,19 @@ public class HeartbeatService {
         .build();
 
     driftEventService.save(event);
+  }
+
+  /**
+   * Trigger refresh for a specific drifted instance via Config Server's /busrefresh.
+   */
+  private void triggerRefreshForInstance(String serviceName, String instanceId) {
+    try {
+      String destination = serviceName + ":" + instanceId;
+      String response = configProxyService.triggerBusRefresh(destination);
+      log.info("Triggered refresh for drifted instance: {} - response: {}", destination, response);
+    } catch (Exception e) {
+      log.error("Failed to trigger refresh for {}:{}", serviceName, instanceId, e);
+    }
   }
 
   /**

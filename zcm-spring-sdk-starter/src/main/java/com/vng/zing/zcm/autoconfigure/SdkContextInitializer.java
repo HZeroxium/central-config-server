@@ -5,6 +5,7 @@ import org.springframework.boot.context.event.ApplicationPreparedEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.MapPropertySource;
+import org.springframework.lang.NonNull;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -13,7 +14,7 @@ import java.util.Map;
 public class SdkContextInitializer implements ApplicationListener<ApplicationPreparedEvent> {
 
   @Override
-  public void onApplicationEvent(ApplicationPreparedEvent event) {
+  public void onApplicationEvent(@NonNull ApplicationPreparedEvent event) {
     log.info("ZCM-SDK ContextInitializer executing...");
     ConfigurableEnvironment env = event.getApplicationContext().getEnvironment();
     Map<String, Object> add = new HashMap<>();

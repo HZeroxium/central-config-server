@@ -1,6 +1,5 @@
 package com.vng.zing.zcm.pingconfig;
 
-import com.vng.zing.zcm.config.SdkProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -9,7 +8,6 @@ import org.springframework.kafka.annotation.KafkaListener;
 @RequiredArgsConstructor
 public class RefreshListener {
 
-  private final SdkProperties props;
   private final ConfigRefresher refresher;
 
   @KafkaListener(topics = "#{@zcmRefreshTopic}", containerFactory = "kafkaListenerContainerFactory", autoStartup = "#{@zcmRefreshAutoStartup}")
@@ -23,5 +21,4 @@ public class RefreshListener {
     }
   }
 
-  // Bean property resolvers for SpEL - moved to SdkAutoConfiguration
 }

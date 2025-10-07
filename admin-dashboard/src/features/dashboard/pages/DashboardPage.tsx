@@ -73,7 +73,7 @@ export default function DashboardPage() {
           />
         </Grid>
         
-        {/* <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <StatCard
             title="Healthy Services"
             value={stats?.healthyServices || 0}
@@ -92,7 +92,7 @@ export default function DashboardPage() {
             color="error"
             subtitle="Need attention"
           />
-        </Grid> */}
+        </Grid>
       </Grid>
       
       <Grid container spacing={{ xs: 2, sm: 3 }}>
