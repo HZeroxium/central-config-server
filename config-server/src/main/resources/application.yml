@@ -25,7 +25,25 @@ spring:
           github:
             enabled: true
 
-
+    # Consul Discovery configuration
+    consul:
+      host: ${CONSUL_HOST:localhost}
+      port: ${CONSUL_PORT:8500}
+      discovery:
+        enabled: true
+        register: true
+        deregister: true
+        prefer-ip-address: true
+        health-check-interval: 10s
+        health-check-timeout: 3s
+        health-check-critical-timeout: 30s
+        instance-id: ${spring.application.name}:${server.port}
+        tags:
+          - config-server
+          - spring-cloud-config
+        metadata:
+          version: 1.0.0
+          secure: false
     
     # Spring Cloud Bus configuration
     bus:

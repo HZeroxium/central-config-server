@@ -33,6 +33,9 @@ dependencies {
     implementation 'org.springframework.cloud:spring-cloud-starter-bus-kafka'
     
     implementation 'org.springframework.cloud:spring-cloud-config-monitor'
+    
+    // Consul Discovery
+    implementation 'org.springframework.cloud:spring-cloud-starter-consul-discovery'
 
     testImplementation libs.spring.boot.starter.test
 }

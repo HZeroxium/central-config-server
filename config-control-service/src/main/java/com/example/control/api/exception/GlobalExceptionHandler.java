@@ -223,10 +223,16 @@ public class GlobalExceptionHandler {
       WebRequest request) {
     log.warn("Type mismatch error: {}", ex.getMessage());
 
+    String expectedType = "unknown type";
+    Class<?> requiredType = ex.getRequiredType();
+    if (requiredType != null) {
+      expectedType = requiredType.getSimpleName();
+    }
+
     String detail = String.format("Invalid value '%s' for parameter '%s'. Expected %s",
         ex.getValue(),
         ex.getName(),
-        ex.getRequiredType() != null ? ex.getRequiredType().getSimpleName() : "unknown type");
+        expectedType);
 
     ErrorResponse errorResponse = ErrorResponse.builder()
         .type(BAD_REQUEST_TYPE)
