@@ -27,8 +27,8 @@ dependencies {
   implementation("org.springframework.boot:spring-boot-autoconfigure:3.3.13")
   implementation("org.springframework.boot:spring-boot-starter:3.3.13")
 
-  // WebFlux -> WebClient (reactive) để tích hợp LoadBalancer filter
-  implementation("org.springframework.boot:spring-boot-starter-webflux:3.3.13")
+  // Spring Web -> RestClient (synchronous) để tích hợp LoadBalancer filter
+  implementation("org.springframework.boot:spring-boot-starter-web:3.3.13")
 
   // Spring Cloud starters
   implementation("org.springframework.cloud:spring-cloud-starter-loadbalancer")

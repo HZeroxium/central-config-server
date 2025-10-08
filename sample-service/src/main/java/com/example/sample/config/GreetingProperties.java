@@ -3,8 +3,6 @@ package com.example.sample.config;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.cloud.context.config.annotation.RefreshScope;
-import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 
 /**
@@ -14,11 +12,8 @@ import org.springframework.validation.annotation.Validated;
  * - POST /actuator/refresh (manual refresh)
  * - POST /actuator/busrefresh (Spring Cloud Bus refresh)
  * 
- * In Spring Boot 3.x, @RefreshScope is required for @ConfigurationProperties
  */
-// @Component
 @ConfigurationProperties(prefix = "greeting")
-// @RefreshScope
 @Validated
 public class GreetingProperties {
     

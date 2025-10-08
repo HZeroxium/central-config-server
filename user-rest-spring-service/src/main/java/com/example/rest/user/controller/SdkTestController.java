@@ -4,6 +4,7 @@ import com.vng.zing.zcm.client.ClientApi;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.client.ServiceInstance;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -90,17 +91,21 @@ public class SdkTestController {
   public Mono<Map<String, Object>> testHttpClient() {
     log.info("Testing HTTP client via SDK");
 
-    return zcmClient.http()
-        .get()
-        .uri("http://user-thrift-server-service/actuator/health")
-        .retrieve()
-        .bodyToMono(Map.class)
-        .map(health -> Map.of(
-            "status", "success",
-            "thrift.server.health", health))
-        .onErrorReturn(Map.of(
-            "status", "error",
-            "message", "Failed to connect to thrift server via HTTP"));
+    try {
+      ResponseEntity<String> response = zcmClient.http()
+          .get()
+          .uri("http://user-thrift-server-service/actuator/health")
+          .retrieve()
+          .toEntity(String.class);
+      
+      return Mono.just(Map.of(
+          "status", "success",
+          "thrift.server.health", Map.of("rawResponse", response.getBody())));
+    } catch (Exception e) {
+      return Mono.just(Map.of(
+          "status", "error",
+          "message", "Failed to connect to thrift server via HTTP: " + e.getMessage()));
+    }
   }
 
   @GetMapping("/info")

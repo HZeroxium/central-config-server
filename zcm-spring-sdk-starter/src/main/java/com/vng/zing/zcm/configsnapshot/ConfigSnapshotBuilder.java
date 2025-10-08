@@ -8,16 +8,44 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 /**
- * Build a normalized snapshot from Spring Environment. Mirrors server-side rules.
+ * Builder class responsible for creating a {@link ConfigSnapshot}
+ * from a Spring {@link ConfigurableEnvironment}.
+ * <p>
+ * It mirrors the same rules used by the Config Server for selecting
+ * which properties are included or filtered out.
+ * <p>
+ * This class filters out:
+ * <ul>
+ *   <li>Non-ConfigServer sources</li>
+ *   <li>Volatile or system-related keys</li>
+ *   <li>Sensitive data (passwords, tokens, secrets)</li>
+ * </ul>
  */
 public final class ConfigSnapshotBuilder {
 
   private final ConfigurableEnvironment environment;
 
+  /**
+   * Constructs a new {@code ConfigSnapshotBuilder} using the provided environment.
+   *
+   * @param environment the active Spring environment
+   */
   public ConfigSnapshotBuilder(ConfigurableEnvironment environment) {
     this.environment = environment;
   }
 
+  /**
+   * Builds a normalized configuration snapshot.
+   * <p>
+   * It scans all property sources in order of precedence and collects
+   * the first-seen value for each property key from Config Server sources.
+   *
+   * @param application the application name
+   * @param profile     the active Spring profile
+   * @param label       the config label (branch/tag)
+   * @param version     the config version (commit hash)
+   * @return a constructed {@link ConfigSnapshot} instance
+   */
   public ConfigSnapshot build(String application, String profile, String label, String version) {
     SortedMap<String, String> props = new TreeMap<>();
 
@@ -29,8 +57,9 @@ public final class ConfigSnapshotBuilder {
       for (String key : eps.getPropertyNames()) {
         if (isVolatileOrSensitive(key)) continue;
         Object v = eps.getProperty(key);
-        // Respect precedence: Spring Environment orders property sources by precedence
-        // Keep first-seen value from higher-precedence sources
+
+        // Respect Spring Environment precedence:
+        // First-seen values from higher-precedence sources are retained.
         if (v != null) props.putIfAbsent(key, String.valueOf(v));
       }
     }
@@ -38,6 +67,12 @@ public final class ConfigSnapshotBuilder {
     return new ConfigSnapshot(application, profile, label, version, props);
   }
 
+  /**
+   * Determines whether a property source originated from a Config Server.
+   *
+   * @param sourceName the property source name
+   * @return true if the source is Config Server-backed
+   */
   private boolean isFromConfigServer(String sourceName) {
     if (sourceName == null) return false;
     String n = sourceName.toLowerCase();
@@ -51,6 +86,12 @@ public final class ConfigSnapshotBuilder {
     return false;
   }
 
+  /**
+   * Filters out volatile, sensitive, or environment-specific properties.
+   *
+   * @param key the property key
+   * @return true if the property should be excluded
+   */
   private boolean isVolatileOrSensitive(String key) {
     if (key == null) return true;
     String k = key.toLowerCase();
@@ -68,5 +109,3 @@ public final class ConfigSnapshotBuilder {
         || k.startsWith("user.");
   }
 }
-
-
