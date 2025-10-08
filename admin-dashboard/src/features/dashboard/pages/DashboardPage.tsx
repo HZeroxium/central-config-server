@@ -18,8 +18,10 @@ export default function DashboardPage() {
     return {
       serviceCount,
       totalInstances,
-      healthyServices: Math.floor(serviceCount * 0.85), // Mock data
-      unhealthyServices: Math.floor(serviceCount * 0.15) // Mock data
+      // healthyServices: Math.floor(serviceCount * 0.85), // Mock data
+      // unhealthyServices: Math.floor(serviceCount * 0.15) // Mock data
+      healthyServices: 4,
+      unhealthyServices: 0
     }
   }, [services, instanceCounts])
 
@@ -80,7 +82,7 @@ export default function DashboardPage() {
             icon={<CheckCircle />}
             color="success"
             subtitle="Running normally"
-            trend={{ value: 5, isPositive: true }}
+            // trend={{ value: 5, isPositive: true }}
           />
         </Grid>
         
@@ -95,7 +97,7 @@ export default function DashboardPage() {
         </Grid>
       </Grid>
       
-      <Grid container spacing={{ xs: 2, sm: 3 }}>
+      {/* <Grid container spacing={{ xs: 2, sm: 3 }}>
         <Grid size={{ xs: 12, lg: 8 }}>
           <Box sx={{ 
             p: { xs: 2, sm: 3 }, 
@@ -215,7 +217,7 @@ export default function DashboardPage() {
             </Box>
           </Box>
         </Grid>
-      </Grid>
+      </Grid> */}
     </Box>
   )
 }

@@ -4,6 +4,7 @@ import { useListInstancesQuery } from '@features/services/api'
 import Loading from '@components/common/Loading'
 import ErrorFallback from '@components/common/ErrorFallback'
 import InstanceListTable from '@features/services/components/InstanceListTable'
+import ServiceNavigation from '@features/services/components/ServiceNavigation'
 
 export default function ServiceDetailPage() {
   const { serviceName = '' } = useParams()
@@ -19,19 +20,22 @@ export default function ServiceDetailPage() {
         Service Details
       </Typography>
       
-      <Box sx={{ display: 'grid', gap: { xs: 2, sm: 3 } }}>
-        <Card sx={{ border: 1, borderColor: 'divider', boxShadow: 1 }}>
-          <CardContent sx={{ p: 3 }}>
-            <Typography variant="h5" sx={{ mb: 2, fontWeight: 600, color: 'primary.main' }}>
-              {serviceName}
-            </Typography>
-            <Typography variant="body1" sx={{ color: 'text.secondary', display: 'flex', alignItems: 'center', gap: 1 }}>
-              <strong>Total Instances:</strong> {data?.length || 0}
-            </Typography>
-          </CardContent>
-        </Card>
-        <InstanceListTable instances={data || []} />
-      </Box>
+          <Box sx={{ display: 'grid', gap: { xs: 2, sm: 3 } }}>
+            <Card sx={{ border: 1, borderColor: 'divider', boxShadow: 1 }}>
+              <CardContent sx={{ p: 3 }}>
+                <Typography variant="h5" sx={{ mb: 2, fontWeight: 600, color: 'primary.main' }}>
+                  {serviceName}
+                </Typography>
+                <Typography variant="body1" sx={{ color: 'text.secondary', display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <strong>Total Instances:</strong> {data?.length || 0}
+                </Typography>
+              </CardContent>
+            </Card>
+            
+            {/* <ServiceNavigation instances={data || []} serviceName={serviceName} /> */}
+            
+            <InstanceListTable instances={data || []} />
+          </Box>
     </Box>
   )
 }

@@ -1,4 +1,4 @@
-import { Card, CardContent, Stack, TextField, Button, Typography, Box, Chip} from '@mui/material'
+import { Card, CardContent, Stack, TextField, Button, Typography, Box} from '@mui/material'
 import Grid from '@mui/material/Grid'
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -17,9 +17,6 @@ export default function ConfigListPage() {
     { application: 'gateway-service', profile: 'staging', label: 'latest' },
     { application: 'sample-service', profile: 'dev', label: '' },
   ], [])
-
-  const quickProfiles = ['dev', 'test', 'staging', 'prod']
-  const quickApplications = ['sample-service', 'user-service', 'config-server', 'gateway-service']
 
   const go = () => {
     const path = `/configs/${encodeURIComponent(application)}/${encodeURIComponent(profile)}`
@@ -122,7 +119,7 @@ export default function ConfigListPage() {
         </Grid>
       </Grid>
       
-      <Box sx={{ mt: { xs: 3, sm: 4 } }}>
+      {/* <Box sx={{ mt: { xs: 3, sm: 4 } }}>
         <Grid container spacing={{ xs: 2, sm: 3 }}>
           <Grid size={{ xs: 12, sm: 6 }}>
             <Card>
@@ -182,7 +179,7 @@ export default function ConfigListPage() {
             </Card>
           </Grid>
         </Grid>
-      </Box>
+      </Box> */}
     </Box>
   )
 }

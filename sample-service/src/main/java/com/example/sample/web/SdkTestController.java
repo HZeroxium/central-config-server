@@ -1,5 +1,7 @@
 package com.example.sample.web;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vng.zing.zcm.client.ClientApi;
 import com.vng.zing.zcm.loadbalancer.LoadBalancerStrategy;
 import lombok.RequiredArgsConstructor;
@@ -37,7 +39,7 @@ import java.util.Map;
 public class SdkTestController {
 
   private final ClientApi client;
-
+  private final ObjectMapper objectMapper;
   // =====================================================================
   //  Snapshot and SDK Info
   // =====================================================================
@@ -142,7 +144,7 @@ public class SdkTestController {
    */
   @Operation(summary = "Choose service instance (custom policy)",
       description = "Selects an instance based on a specific load balancer policy (ROUND_ROBIN, RANDOM, or WEIGHTED_RANDOM).")
-  @Parameter(name = "serviceName", description = "Target service name", required = true)
+  @Parameter(name = "serviceName", description = "Target service name", required = true, example = "sample-service")
   @Parameter(name = "policy", description = "Load balancing policy", required = true, example = "ROUND_ROBIN")
   @GetMapping("/choose/{serviceName}/{policy}")
   public ResponseEntity<Map<String, Object>> chooseInstanceWithPolicy(
@@ -246,9 +248,9 @@ public class SdkTestController {
   @ApiResponse(responseCode = "400", description = "Service call failed")
   @PostMapping("/call-http-service")
   public ResponseEntity<Map<String, Object>> callHttpService(
-      @Parameter(description = "Service name to call", required = true, example = "user-service")
+      @Parameter(description = "Service name to call", required = true, example = "sample-service")
       @RequestParam String serviceName,
-      @Parameter(description = "Endpoint path to call within the service", required = true, example = "/api/health")
+      @Parameter(description = "Endpoint path to call within the service", required = true, example = "/api/sdk/snapshot")
       @RequestParam String endpoint) {
 
     try {
@@ -259,8 +261,13 @@ public class SdkTestController {
           .retrieve()
           .toEntity(String.class);
       
-      // Parse JSON response manually or use ObjectMapper
-      Map<String, Object> body = Map.of("rawResponse", response.getBody());
+      // Parse JSON response using ObjectMapper
+      Map<String, Object> body;
+      try {
+        body = objectMapper.readValue(response.getBody(), new TypeReference<Map<String, Object>>() {});
+      } catch (Exception ex) {
+        body = Map.of("rawResponse", response.getBody(), "parseError", ex.getMessage());
+      }
       
       return ResponseEntity.ok(Map.of("status", "ok", "response", body));
     } catch (Exception e) {

@@ -13,7 +13,8 @@
   "dependencies": {
     "@emotion/react": "11.14.0",
     "@emotion/styled": "11.14.1",
-    "@mui/icons-material": "7.3.4",
+    "@monaco-editor/react": "^4.7.0",
+    "@mui/icons-material": "^7.3.4",
     "@mui/material": "7.3.4",
     "@reduxjs/toolkit": "2.9.0",
     "@types/prismjs": "^1.26.5",
@@ -23,6 +24,7 @@
     "react-dom": "^19.1.1",
     "react-redux": "9.2.0",
     "react-router-dom": "7.9.3",
+    "yaml": "^2.8.1",
     "zod": "4.1.11"
   },
   "devDependencies": {
