@@ -31,6 +31,14 @@ public class LoadBalancerStrategyFactory {
         log.info("Using WeightedRandom load balancer strategy");
         yield new WeightedRandomLoadBalancerStrategy();
       }
+      case RENDEZVOUS -> {
+        log.info("Using Rendezvous load balancer strategy");
+        yield new RendezvousLoadBalancerStrategy();
+      }
+      case CONSISTENT_HASHING -> {
+        log.info("Using ConsistentHashing load balancer strategy");
+        yield new ConsistentHashingLoadBalancerStrategy();
+      }
     };
   }
 

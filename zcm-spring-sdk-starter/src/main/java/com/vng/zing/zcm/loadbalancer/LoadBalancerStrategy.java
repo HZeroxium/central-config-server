@@ -30,6 +30,19 @@ public interface LoadBalancerStrategy {
   ServiceInstance choose(String serviceName, List<ServiceInstance> instances);
 
   /**
+   * Selects one {@link ServiceInstance} from the provided list with request context.
+   *
+   * @param serviceName the logical name of the target service
+   * @param instances   the list of available service instances
+   * @param request     the load balancing request with context information
+   * @return the chosen instance, or {@code null} if the list is empty
+   */
+  default ServiceInstance choose(String serviceName, List<ServiceInstance> instances, LbRequest request) {
+    // Default implementation delegates to the basic choose method
+    return choose(serviceName, instances);
+  }
+
+  /**
    * Returns the name of this strategy for configuration and logging purposes.
    *
    * @return the strategy name (e.g., "ROUND_ROBIN", "RANDOM", "WEIGHTED_RANDOM")
@@ -43,7 +56,9 @@ public interface LoadBalancerStrategy {
   enum Policy {
     ROUND_ROBIN("ROUND_ROBIN"),
     RANDOM("RANDOM"),
-    WEIGHTED_RANDOM("WEIGHTED_RANDOM");
+    WEIGHTED_RANDOM("WEIGHTED_RANDOM"),
+    RENDEZVOUS("RENDEZVOUS"),
+    CONSISTENT_HASHING("CONSISTENT_HASHING");
 
     private final String value;
 
@@ -80,7 +95,9 @@ public interface LoadBalancerStrategy {
       for (Policy policy : values()) {
         if (policy.value.equalsIgnoreCase(value)
             || (policy == ROUND_ROBIN && "RR".equalsIgnoreCase(value))
-            || (policy == WEIGHTED_RANDOM && "WEIGHTED".equalsIgnoreCase(value))) {
+            || (policy == WEIGHTED_RANDOM && "WEIGHTED".equalsIgnoreCase(value))
+            || (policy == RENDEZVOUS && "RENDEZVOUS".equalsIgnoreCase(value))
+            || (policy == CONSISTENT_HASHING && "CH".equalsIgnoreCase(value))) {
           return policy;
         }
       }

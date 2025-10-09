@@ -126,6 +126,12 @@ public class SdkProperties {
 
     /** Delay between ping executions in milliseconds. */
     private String fixedDelay = "30000";
+
+    /** Protocol to use for ping communication (HTTP, THRIFT, GRPC). */
+    private String protocol = "HTTP";
+
+    /** Service discovery name for finding config-control-service instances. */
+    private String serviceDiscoveryName = "config-control-service";
   }
 
   /**

@@ -3,6 +3,7 @@ package com.vng.zing.zcm.client;
 import com.vng.zing.zcm.configsnapshot.ConfigSnapshotBuilder;
 import com.vng.zing.zcm.loadbalancer.LoadBalancerStrategy;
 import com.vng.zing.zcm.loadbalancer.LoadBalancerStrategyFactory;
+import com.vng.zing.zcm.loadbalancer.LbRequest;
 import com.vng.zing.zcm.pingconfig.ConfigHashCalculator;
 import com.vng.zing.zcm.pingconfig.PingSender;
 
@@ -116,6 +117,21 @@ public class ClientImpl implements ClientApi {
     List<ServiceInstance> list = instances(serviceName);
     LoadBalancerStrategy strategy = LoadBalancerStrategyFactory.create(policy);
     return strategy.choose(serviceName, list);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public ServiceInstance choose(String serviceName, LbRequest request) {
+    List<ServiceInstance> list = instances(serviceName);
+    return defaultLoadBalancerStrategy.choose(serviceName, list, request);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public ServiceInstance choose(String serviceName, LoadBalancerStrategy.Policy policy, LbRequest request) {
+    List<ServiceInstance> list = instances(serviceName);
+    LoadBalancerStrategy strategy = LoadBalancerStrategyFactory.create(policy);
+    return strategy.choose(serviceName, list, request);
   }
 
   /** {@inheritDoc} */

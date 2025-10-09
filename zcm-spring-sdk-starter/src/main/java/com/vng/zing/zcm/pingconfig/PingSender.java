@@ -1,18 +1,20 @@
 package com.vng.zing.zcm.pingconfig;
 
 import com.vng.zing.zcm.config.SdkProperties;
+import com.vng.zing.zcm.pingconfig.strategy.PingStrategy;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cloud.client.ServiceInstance;
+import org.springframework.cloud.client.discovery.DiscoveryClient;
 import org.springframework.core.env.Environment;
-import org.springframework.http.MediaType;
 import org.springframework.util.StringUtils;
-import org.springframework.web.client.RestClient;
 
 import java.net.InetAddress;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
- * Sends periodic heartbeat ("ping") requests to a centralized control service.
+ * Orchestrates periodic heartbeat ("ping") requests to a centralized control service.
  * <p>
  * This mechanism helps the control plane monitor the liveness and configuration
  * consistency of SDK-enabled services. The ping payload includes metadata such as:
@@ -23,13 +25,15 @@ import java.util.Map;
  *   <li>Active profile and version</li>
  * </ul>
  *
- * <p>If pinging is disabled or the control URL is not configured,
- * the operation is safely skipped.
+ * <p>The PingSender uses a pluggable strategy pattern to support multiple
+ * communication protocols (HTTP REST, Thrift RPC, gRPC) and integrates with
+ * service discovery for endpoint resolution with fallback to direct URLs.
  */
 @Slf4j
 public class PingSender {
 
-  private final RestClient rest;
+  private final PingStrategy pingStrategy;
+  private final DiscoveryClient discoveryClient;
   private final SdkProperties props;
   private final ConfigHashCalculator hash;
   private final Environment environment;
@@ -37,23 +41,29 @@ public class PingSender {
   /**
    * Creates a new {@code PingSender}.
    *
-   * @param rest         Spring's {@link RestClient} used to perform the POST request
-   * @param props        configuration properties for SDK (contains control URL, ping options, etc.)
-   * @param hash         computes a SHA-256 hash of the current configuration
-   * @param environment  Spring {@link Environment} for resolving runtime information
+   * @param pingStrategy      the ping strategy implementation for the selected protocol
+   * @param discoveryClient   service discovery client for finding control service instances
+   * @param props            configuration properties for SDK (contains control URL, ping options, etc.)
+   * @param hash             computes a SHA-256 hash of the current configuration
+   * @param environment      Spring {@link Environment} for resolving runtime information
    */
-  public PingSender(RestClient rest, SdkProperties props, ConfigHashCalculator hash, Environment environment) {
-    this.rest = rest;
+  public PingSender(PingStrategy pingStrategy, 
+                    DiscoveryClient discoveryClient,
+                    SdkProperties props, 
+                    ConfigHashCalculator hash, 
+                    Environment environment) {
+    this.pingStrategy = pingStrategy;
+    this.discoveryClient = discoveryClient;
     this.props = props;
     this.hash = hash;
     this.environment = environment;
   }
 
   /**
-   * Sends the heartbeat request to the control service.
+   * Sends the heartbeat request to the control service using the configured strategy.
    * <p>
-   * If pinging is disabled or configuration is missing, it logs a warning and returns silently.
-   * On network or HTTP failure, exceptions are caught and logged, ensuring no disruption
+   * If pinging is disabled or no endpoint can be resolved, it logs a warning and returns silently.
+   * On network or protocol failure, exceptions are caught and logged, ensuring no disruption
    * to scheduled tasks.
    */
   public void send() {
@@ -62,41 +72,90 @@ public class PingSender {
       return;
     }
 
-    String base = props.getControlUrl();
-    if (!StringUtils.hasText(base)) {
-      log.warn("ZCM ping control URL not configured, skipping");
+    String endpoint = resolveEndpoint();
+    if (!StringUtils.hasText(endpoint)) {
+      log.warn("ZCM ping endpoint not resolved, skipping");
       return;
     }
 
-    // --- Construct JSON payload ---
-    Map<String, Object> payload = new HashMap<>();
-    payload.put("serviceName", props.getServiceName());
-    payload.put("instanceId", getInstanceId());
-    payload.put("configHash", hash.currentHash());
-    payload.put("host", host());
-    payload.put("port", getPort());
-    payload.put("environment", getActiveProfile());
-    payload.put("version", getVersion());
+    HeartbeatPayload payload = buildPayload();
 
+    try {
+      pingStrategy.sendHeartbeat(endpoint, payload);
+      log.info("ZCM ping sent successfully using {} to {}", 
+          pingStrategy.getName(), endpoint);
+    } catch (Exception e) {
+      log.error("ZCM ping failed using {}: {}", 
+          pingStrategy.getName(), e.getMessage());
+      // Swallow exception to prevent scheduler interruption
+    }
+  }
+
+  /**
+   * Resolves the endpoint for sending heartbeat using service discovery or direct URL.
+   * 
+   * @return resolved endpoint or null if no endpoint can be determined
+   */
+  private String resolveEndpoint() {
+    // Try service discovery first
+    String serviceDiscoveryName = props.getPing().getServiceDiscoveryName();
+    if (StringUtils.hasText(serviceDiscoveryName)) {
+      try {
+        List<ServiceInstance> instances = discoveryClient.getInstances(serviceDiscoveryName);
+        if (!instances.isEmpty()) {
+          ServiceInstance instance = instances.get(0); // Simple selection - could be enhanced with load balancing
+          String endpoint = buildEndpoint(instance);
+          log.debug("Resolved endpoint via discovery: {}", endpoint);
+          return endpoint;
+        }
+      } catch (Exception e) {
+        log.warn("Service discovery failed, falling back to direct URL: {}", e.getMessage());
+      }
+    }
+
+    // Fallback to direct URL
+    String directUrl = props.getControlUrl();
+    if (StringUtils.hasText(directUrl)) {
+      log.debug("Using direct URL: {}", directUrl);
+      return directUrl;
+    }
+
+    return null;
+  }
+
+  /**
+   * Builds the appropriate endpoint format based on the ping protocol.
+   * 
+   * @param instance the service instance from discovery
+   * @return formatted endpoint for the protocol
+   */
+  private String buildEndpoint(ServiceInstance instance) {
+    return switch (pingStrategy.getProtocol()) {
+      case HTTP -> instance.getUri().toString();
+      case THRIFT, GRPC -> instance.getHost() + ":" + instance.getPort();
+    };
+  }
+
+  /**
+   * Builds the heartbeat payload from current service information.
+   * 
+   * @return heartbeat payload object
+   */
+  private HeartbeatPayload buildPayload() {
     Map<String, String> metadata = new HashMap<>();
     metadata.put("hostname", host());
     metadata.put("profile", getActiveProfile());
-    payload.put("metadata", metadata);
 
-    log.debug("ZCM ping sending to {} with payload: {}", base + "/api/heartbeat", payload);
-
-    try {
-      rest.post()
-          .uri(base + "/api/heartbeat")
-          .contentType(MediaType.APPLICATION_JSON)
-          .body(payload)
-          .retrieve()
-          .toBodilessEntity();
-      log.info("ZCM ping sent successfully to control service");
-    } catch (Exception e) {
-      log.error("ZCM ping failed: {}", e.getMessage());
-      // Swallow exception to prevent scheduler interruption
-    }
+    return HeartbeatPayload.builder()
+        .serviceName(props.getServiceName())
+        .instanceId(getInstanceId())
+        .configHash(hash.currentHash())
+        .host(host())
+        .port(getPort())
+        .environment(getActiveProfile())
+        .version(getVersion())
+        .metadata(metadata)
+        .build();
   }
 
   /**

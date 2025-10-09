@@ -261,21 +261,24 @@ public class CacheManagementController {
       }
 
       // Update TTL for specific caches if specified
-      if (configUpdates.containsKey("cacheTtl") && configUpdates.get("cacheTtl") instanceof Map) {
-        Map<String, Object> ttlUpdates = (Map<String, Object>) configUpdates.get("cacheTtl");
+      Object cacheTtlObj = configUpdates.get("cacheTtl");
+      if (cacheTtlObj instanceof Map<?, ?> rawTtlUpdates) {
         Map<String, Object> ttlChanges = new HashMap<>();
 
-        for (Map.Entry<String, Object> entry : ttlUpdates.entrySet()) {
-          String cacheName = entry.getKey();
-          if (cacheProperties.getCaches().containsKey(cacheName)) {
-            try {
-              String ttlStr = entry.getValue().toString();
-              java.time.Duration newTtl = java.time.Duration.parse(ttlStr);
-              java.time.Duration oldTtl = cacheProperties.getCaches().get(cacheName).getTtl();
-              cacheProperties.getCaches().get(cacheName).setTtl(newTtl);
-              ttlChanges.put(cacheName, Map.of("old", oldTtl.toString(), "new", newTtl.toString()));
-            } catch (Exception e) {
-              log.warn("Failed to update TTL for cache {}: {}", cacheName, e.getMessage());
+        for (Map.Entry<?, ?> entry : rawTtlUpdates.entrySet()) {
+          Object key = entry.getKey();
+          Object value = entry.getValue();
+          if (key instanceof String cacheName) {
+            if (cacheProperties.getCaches().containsKey(cacheName)) {
+              try {
+                String ttlStr = value.toString();
+                java.time.Duration newTtl = java.time.Duration.parse(ttlStr);
+                java.time.Duration oldTtl = cacheProperties.getCaches().get(cacheName).getTtl();
+                cacheProperties.getCaches().get(cacheName).setTtl(newTtl);
+                ttlChanges.put(cacheName, Map.of("old", oldTtl.toString(), "new", newTtl.toString()));
+              } catch (Exception e) {
+                log.warn("Failed to update TTL for cache {}: {}", cacheName, e.getMessage());
+              }
             }
           }
         }

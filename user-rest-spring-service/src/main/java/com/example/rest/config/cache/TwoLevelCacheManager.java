@@ -100,7 +100,16 @@ public class TwoLevelCacheManager implements CacheManager {
     @Override
     public <T> T get(Object key, Class<T> type) {
       ValueWrapper wrapper = get(key);
-      return wrapper != null ? (T) wrapper.get() : null;
+      if (wrapper == null) {
+        return null;
+      }
+      Object value = wrapper.get();
+      if (type != null && value != null && !type.isInstance(value)) {
+        throw new IllegalStateException("Cached value is not of required type [" + type.getName() + "]: " + value.getClass());
+      }
+      @SuppressWarnings("unchecked")
+      T result = (T) value;
+      return result;
     }
 
     @Override
@@ -109,7 +118,10 @@ public class TwoLevelCacheManager implements CacheManager {
         // Try to get from cache first
         ValueWrapper wrapper = get(key);
         if (wrapper != null) {
-          return (T) wrapper.get();
+          Object value = wrapper.get();
+          @SuppressWarnings("unchecked")
+          T result = (T) value;
+          return result;
         }
 
         // Load value and cache it

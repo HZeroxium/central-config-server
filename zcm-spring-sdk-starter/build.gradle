@@ -3,6 +3,7 @@ plugins {
   id("maven-publish")
   id("io.spring.dependency-management") version "1.1.6"
   id("org.springframework.boot") version "3.3.13" apply false
+  id("com.google.protobuf") version "0.9.4"
 }
 
 group = "com.vng.zing"
@@ -41,6 +42,16 @@ dependencies {
   // Spring Kafka (client utils)
   implementation("org.springframework.kafka:spring-kafka")
 
+  // Thrift
+  implementation("org.apache.thrift:libthrift:0.22.0")
+
+  // gRPC
+  implementation("io.grpc:grpc-netty-shaded:1.60.0")
+  implementation("io.grpc:grpc-protobuf:1.60.0")
+  implementation("io.grpc:grpc-stub:1.60.0")
+  implementation("com.google.protobuf:protobuf-java:3.25.1")
+  compileOnly("javax.annotation:javax.annotation-api:1.3.2")
+
   // Configuration metadata generator
   annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
 
@@ -52,6 +63,46 @@ dependencies {
 
   testImplementation("org.springframework.boot:spring-boot-starter-test:3.3.13")
 }
+
+// Thrift code generation
+task generateThrift(type: Exec) {
+  commandLine 'thrift', '--gen', 'java', '-out', 
+      'build/generated/source/thrift/main/java', 'src/main/thrift/zcm_sdk.thrift'
+  doFirst {
+    mkdir('build/generated/source/thrift/main/java')
+  }
+}
+
+// gRPC code generation
+protobuf {
+  protoc {
+    artifact = "com.google.protobuf:protoc:3.25.1"
+  }
+  plugins {
+    grpc {
+      artifact = "io.grpc:protoc-gen-grpc-java:1.60.0"
+    }
+  }
+  generateProtoTasks {
+    all().each { task ->
+      task.plugins {
+        grpc {}
+      }
+    }
+  }
+}
+
+sourceSets {
+  main {
+    java {
+      srcDirs += ['build/generated/source/proto/main/grpc']
+      srcDirs += ['build/generated/source/proto/main/java']
+      srcDirs += ['build/generated/source/thrift/main/java']
+    }
+  }
+}
+
+compileJava.dependsOn generateThrift
 
 publishing {
   publications {

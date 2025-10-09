@@ -1,6 +1,7 @@
 package com.vng.zing.zcm.client;
 
 import com.vng.zing.zcm.loadbalancer.LoadBalancerStrategy;
+import com.vng.zing.zcm.loadbalancer.LbRequest;
 import org.springframework.cloud.client.ServiceInstance;
 import org.springframework.web.client.RestClient;
 
@@ -83,6 +84,25 @@ public interface ClientApi {
    * @return the chosen instance or {@code null} if no healthy instances exist
    */
   ServiceInstance choose(String serviceName, LoadBalancerStrategy.Policy policy);
+
+  /**
+   * Selects a single {@link ServiceInstance} using the default load-balancer strategy with request context.
+   *
+   * @param serviceName the target service name
+   * @param request the load balancing request with context information
+   * @return the chosen instance or {@code null} if no healthy instances exist
+   */
+  ServiceInstance choose(String serviceName, LbRequest request);
+
+  /**
+   * Selects a single {@link ServiceInstance} using a specified policy with request context.
+   *
+   * @param serviceName the target service name
+   * @param policy the load-balancer policy to use
+   * @param request the load balancing request with context information
+   * @return the chosen instance or {@code null} if no healthy instances exist
+   */
+  ServiceInstance choose(String serviceName, LoadBalancerStrategy.Policy policy, LbRequest request);
 
   /**
    * Returns the name of the currently active load-balancer strategy.

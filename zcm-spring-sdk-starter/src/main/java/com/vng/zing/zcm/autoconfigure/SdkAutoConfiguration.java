@@ -9,6 +9,11 @@ import com.vng.zing.zcm.pingconfig.ConfigRefresher;
 import com.vng.zing.zcm.pingconfig.PingScheduler;
 import com.vng.zing.zcm.pingconfig.PingSender;
 import com.vng.zing.zcm.pingconfig.RefreshListener;
+import com.vng.zing.zcm.pingconfig.strategy.PingStrategy;
+import com.vng.zing.zcm.pingconfig.strategy.PingProtocol;
+import com.vng.zing.zcm.pingconfig.strategy.HttpRestPingStrategy;
+import com.vng.zing.zcm.pingconfig.strategy.ThriftRpcPingStrategy;
+import com.vng.zing.zcm.pingconfig.strategy.GrpcPingStrategy;
 import lombok.RequiredArgsConstructor;
 
 import java.util.HashMap;
@@ -110,19 +115,40 @@ public class SdkAutoConfiguration {
   }
 
   /**
-   * Creates a {@link PingSender} responsible for sending heartbeat (ping)
-   * requests to the control plane.
+   * Creates a {@link PingStrategy} based on the configured protocol.
    *
-   * @param restBuilder lazy-injected {@link RestClient.Builder}
+   * @return the appropriate ping strategy implementation
+   */
+  @Bean
+  @ConditionalOnMissingBean
+  public PingStrategy pingStrategy() {
+    String protocol = props.getPing().getProtocol();
+    PingProtocol pingProtocol = PingProtocol.fromString(protocol);
+    
+    return switch (pingProtocol) {
+      case HTTP -> new HttpRestPingStrategy();
+      case THRIFT -> new ThriftRpcPingStrategy();
+      case GRPC -> new GrpcPingStrategy();
+    };
+  }
+
+  /**
+   * Creates a {@link PingSender} responsible for sending heartbeat (ping)
+   * requests to the control plane using the configured strategy.
+   *
+   * @param pingStrategy the ping strategy implementation
+   * @param discoveryClient service discovery client
    * @param hashCalc    {@link ConfigHashCalculator} for config consistency check
    * @param environment current {@link Environment}
    * @return a {@link PingSender} bean
    */
   @Bean
   @ConditionalOnMissingBean
-  public PingSender pingSender(@Lazy RestClient.Builder restBuilder, ConfigHashCalculator hashCalc, Environment environment) {
-    RestClient restClient = restBuilder.build();
-    return new PingSender(restClient, props, hashCalc, environment);
+  public PingSender pingSender(PingStrategy pingStrategy,
+                               DiscoveryClient discoveryClient,
+                               ConfigHashCalculator hashCalc, 
+                               Environment environment) {
+    return new PingSender(pingStrategy, discoveryClient, props, hashCalc, environment);
   }
 
   /**
