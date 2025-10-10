@@ -12,6 +12,12 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import java.time.LocalDateTime;
 import java.util.Map;
 
+/**
+ * MongoDB document representation of {@link ServiceInstance}.
+ * <p>
+ * This persistence model is used by Spring Data MongoDB to store instance metadata and
+ * health/drift status in the {@code service_instances} collection.
+ */
 @Data
 @Builder
 @NoArgsConstructor
@@ -19,12 +25,15 @@ import java.util.Map;
 @Document(collection = "service_instances")
 public class ServiceInstanceDocument {
 
+  /** Document identifier: concatenation of serviceName and instanceId. */
   @Id
-  private String id; // serviceName:instanceId
+  private String id;
 
+  /** Service name for indexing and query grouping. */
   @Indexed
   private String serviceName;
 
+  /** Instance identifier for unique lookup. */
   @Indexed
   private String instanceId;
 
@@ -36,10 +45,16 @@ public class ServiceInstanceDocument {
   private String configHash;
   private String lastAppliedHash;
 
+  /** Current status of the instance (stored as string value). */
   @Indexed
   private String status;
 
-  @Indexed(expireAfterSeconds = 3600) // TTL index - expire after 1 hour of inactivity
+  /**
+   * Timestamp of last heartbeat from the instance.
+   * <p>
+   * Indexed with TTL = 1 hour to automatically expire inactive instances.
+   */
+  @Indexed(expireAfterSeconds = 3600)
   private LocalDateTime lastSeenAt;
 
   private LocalDateTime createdAt;
@@ -50,6 +65,12 @@ public class ServiceInstanceDocument {
   private Boolean hasDrift;
   private LocalDateTime driftDetectedAt;
 
+  /**
+   * Maps a {@link ServiceInstance} domain object to a MongoDB document representation.
+   *
+   * @param domain domain model
+   * @return new {@link ServiceInstanceDocument} populated from domain
+   */
   public static ServiceInstanceDocument fromDomain(ServiceInstance domain) {
     return ServiceInstanceDocument.builder()
         .id(domain.getServiceName() + ":" + domain.getInstanceId())
@@ -71,6 +92,11 @@ public class ServiceInstanceDocument {
         .build();
   }
 
+  /**
+   * Converts this document back into its domain representation.
+   *
+   * @return new {@link ServiceInstance} populated from document
+   */
   public ServiceInstance toDomain() {
     return ServiceInstance.builder()
         .serviceName(serviceName)
@@ -81,8 +107,9 @@ public class ServiceInstanceDocument {
         .version(version)
         .configHash(configHash)
         .lastAppliedHash(lastAppliedHash)
-        .status(
-            status != null ? ServiceInstance.InstanceStatus.valueOf(status) : ServiceInstance.InstanceStatus.UNKNOWN)
+        .status(status != null
+            ? ServiceInstance.InstanceStatus.valueOf(status)
+            : ServiceInstance.InstanceStatus.UNKNOWN)
         .lastSeenAt(lastSeenAt)
         .createdAt(createdAt)
         .updatedAt(updatedAt)

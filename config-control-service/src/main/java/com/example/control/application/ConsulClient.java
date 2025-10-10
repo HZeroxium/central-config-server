@@ -1,11 +1,20 @@
 package com.example.control.application;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+
+import java.time.Duration;
+import java.util.Base64;
+import java.util.List;
+import java.util.Optional;
 
 /**
  * Client for interacting with Consul HTTP API
@@ -332,4 +341,350 @@ public class ConsulClient {
       throw new RuntimeException("Consul API call failed: getHealthState", e);
     }
   }
+
+  // ========== KV Store Operations ==========
+
+  /**
+   * Get KV value as JsonNode for easier parsing.
+   */
+  public Optional<JsonNode> kvGetJson(String key) {
+    String url = consulUrl + "/v1/kv/" + key;
+    log.debug("Getting KV value from: {}", url);
+    try {
+      String response = restClient.get()
+          .uri(url)
+          .accept(MediaType.APPLICATION_JSON)
+          .retrieve()
+          .body(String.class);
+      
+      if (response == null || response.trim().isEmpty() || response.equals("null")) {
+        return Optional.empty();
+      }
+      
+      ObjectMapper mapper = new ObjectMapper();
+      JsonNode node = mapper.readTree(response);
+      return Optional.of(node);
+    } catch (Exception e) {
+      log.error("Failed to get KV value for key: {}", key, e);
+      return Optional.empty();
+    }
+  }
+
+  /**
+   * List KV values with prefix as JsonNode array.
+   */
+  public List<JsonNode> kvListJson(String prefix) {
+    String url = consulUrl + "/v1/kv/" + prefix + "?recurse";
+    log.debug("Listing KV values from: {}", url);
+    try {
+      String response = restClient.get()
+          .uri(url)
+          .accept(MediaType.APPLICATION_JSON)
+          .retrieve()
+          .body(String.class);
+      
+      if (response == null || response.trim().isEmpty() || response.equals("null")) {
+        return List.of();
+      }
+      
+      ObjectMapper mapper = new ObjectMapper();
+      JsonNode node = mapper.readTree(response);
+      if (node.isArray()) {
+            List<JsonNode> nodes = new java.util.ArrayList<>();
+            node.elements().forEachRemaining(nodes::add);
+            return nodes;
+      }
+      return List.of(node);
+    } catch (Exception e) {
+      log.error("Failed to list KV values for prefix: {}", prefix, e);
+      return List.of();
+    }
+  }
+
+  /**
+   * Put KV value with CAS support.
+   */
+  public boolean kvPut(String key, byte[] value, Long cas) {
+    String url = consulUrl + "/v1/kv/" + key;
+    if (cas != null) {
+      url += "?cas=" + cas;
+    }
+    log.debug("Putting KV value at: {}", url);
+    try {
+      String base64Value = Base64.getEncoder().encodeToString(value);
+      restClient.put()
+          .uri(url)
+          .contentType(MediaType.TEXT_PLAIN)
+          .body(base64Value)
+          .retrieve()
+          .toBodilessEntity();
+      return true;
+    } catch (Exception e) {
+      log.error("Failed to put KV value for key: {}", key, e);
+      return false;
+    }
+  }
+
+  /**
+   * Delete KV value with CAS support.
+   */
+  public boolean kvDelete(String key, Long cas) {
+    String url = consulUrl + "/v1/kv/" + key;
+    if (cas != null) {
+      url += "?cas=" + cas;
+    }
+    log.debug("Deleting KV value at: {}", url);
+    try {
+      restClient.delete()
+          .uri(url)
+          .retrieve()
+          .toBodilessEntity();
+      return true;
+    } catch (Exception e) {
+      log.error("Failed to delete KV value for key: {}", key, e);
+      return false;
+    }
+  }
+
+  /**
+   * Create a Consul session.
+   */
+  public String createSession(Duration ttl, boolean deleteOnInvalidate) {
+    String url = consulUrl + "/v1/session/create";
+    log.debug("Creating session at: {}", url);
+    try {
+      String behavior = deleteOnInvalidate ? "delete" : "release";
+      String requestBody = String.format(
+          "{\"TTL\":\"%ds\",\"Behavior\":\"%s\"}", 
+          ttl.getSeconds(), 
+          behavior
+      );
+      
+      String response = restClient.put()
+          .uri(url)
+          .contentType(MediaType.APPLICATION_JSON)
+          .body(requestBody)
+          .retrieve()
+          .body(String.class);
+      
+      ObjectMapper mapper = new ObjectMapper();
+      JsonNode node = mapper.readTree(response);
+      return node.get("ID").asText();
+    } catch (Exception e) {
+      log.error("Failed to create session", e);
+      throw new RuntimeException("Consul API call failed: createSession", e);
+    }
+  }
+
+  /**
+   * Destroy a Consul session.
+   */
+  public boolean destroySession(String sessionId) {
+    String url = consulUrl + "/v1/session/destroy/" + sessionId;
+    log.debug("Destroying session at: {}", url);
+    try {
+      restClient.put()
+          .uri(url)
+          .retrieve()
+          .toBodilessEntity();
+      return true;
+    } catch (Exception e) {
+      log.error("Failed to destroy session: {}", sessionId, e);
+      return false;
+    }
+  }
+
+  /**
+   * Put KV value with session (for locks).
+   */
+  public boolean putWithAcquire(String key, byte[] value, String sessionId) {
+    String url = consulUrl + "/v1/kv/" + key + "?acquire=" + sessionId;
+    log.debug("Putting KV value with acquire at: {}", url);
+    try {
+      String base64Value = Base64.getEncoder().encodeToString(value);
+      String response = restClient.put()
+          .uri(url)
+          .contentType(MediaType.TEXT_PLAIN)
+          .body(base64Value)
+          .retrieve()
+          .body(String.class);
+      
+      return "true".equals(response);
+    } catch (Exception e) {
+      log.error("Failed to put KV value with acquire for key: {}", key, e);
+      return false;
+    }
+  }
+
+  /**
+   * Put KV value with session (for ephemeral keys).
+   */
+  public boolean putWithSession(String key, byte[] value, String sessionId) {
+    String url = consulUrl + "/v1/kv/" + key + "?acquire=" + sessionId;
+    log.debug("Putting KV value with session at: {}", url);
+    try {
+      String base64Value = Base64.getEncoder().encodeToString(value);
+      String response = restClient.put()
+          .uri(url)
+          .contentType(MediaType.TEXT_PLAIN)
+          .body(base64Value)
+          .retrieve()
+          .body(String.class);
+      
+      return "true".equals(response);
+    } catch (Exception e) {
+      log.error("Failed to put KV value with session for key: {}", key, e);
+      return false;
+    }
+  }
+
+  /**
+   * Blocking query for watching changes.
+   */
+  public WatchResult kvListBlockingWithIndex(String prefix, long lastIndex) {
+    String url = consulUrl + "/v1/kv/" + prefix + "?recurse&wait=30s&index=" + lastIndex;
+    log.debug("Blocking KV query from: {}", url);
+    try {
+      String response = restClient.get()
+          .uri(url)
+          .accept(MediaType.APPLICATION_JSON)
+          .retrieve()
+          .body(String.class);
+      
+      ObjectMapper mapper = new ObjectMapper();
+      JsonNode node = mapper.readTree(response);
+      
+      long newIndex = lastIndex;
+      if (node.isArray() && node.size() > 0) {
+        JsonNode first = node.get(0);
+        newIndex = first.get("ModifyIndex").asLong();
+      }
+      
+      return new WatchResult(response, newIndex);
+    } catch (Exception e) {
+      log.error("Failed to perform blocking KV query for prefix: {}", prefix, e);
+      return new WatchResult("[]", lastIndex);
+    }
+  }
+
+  /**
+   * Execute a transaction using Consul's /v1/txn endpoint.
+   */
+  public TxnResult kvTxn(List<TxnOperation> operations) {
+    String url = consulUrl + "/v1/txn";
+    log.debug("Executing Consul transaction with {} operations", operations.size());
+    
+    try {
+      ObjectMapper mapper = new ObjectMapper();
+      ObjectNode txnRequest = mapper.createObjectNode();
+      ArrayNode opsArray = mapper.createArrayNode();
+      
+      for (TxnOperation op : operations) {
+        ObjectNode opNode = mapper.createObjectNode();
+        opNode.put("Verb", op.verb());
+        opNode.put("Key", op.key());
+        
+        if (op.value() != null) {
+          opNode.put("Value", Base64.getEncoder().encodeToString(op.value()));
+        }
+        
+        if (op.cas() != null) {
+          opNode.put("Index", op.cas());
+        }
+        
+        if (op.session() != null) {
+          opNode.put("Session", op.session());
+        }
+        
+        if (op.acquire() != null) {
+          opNode.put("Acquire", op.acquire());
+        }
+        
+        if (op.release() != null) {
+          opNode.put("Release", op.release());
+        }
+        
+        opsArray.add(opNode);
+      }
+      
+      txnRequest.set("Operations", opsArray);
+      
+      String requestBody = mapper.writeValueAsString(txnRequest);
+      
+      String response = restClient.put()
+          .uri(url)
+          .contentType(MediaType.APPLICATION_JSON)
+          .body(requestBody)
+          .retrieve()
+          .body(String.class);
+      
+      JsonNode responseNode = mapper.readTree(response);
+      ArrayNode results = (ArrayNode) responseNode.get("Results");
+      ArrayNode errors = (ArrayNode) responseNode.get("Errors");
+      
+      List<TxnOperationResult> operationResults = new java.util.ArrayList<>();
+      if (results != null) {
+        for (JsonNode result : results) {
+          TxnOperationResult opResult = new TxnOperationResult(
+              result.get("Verb").asText(),
+              result.get("Key").asText(),
+              result.has("Value") ? Base64.getDecoder().decode(result.get("Value").asText()) : null,
+              result.has("Index") ? result.get("Index").asLong() : null
+          );
+          operationResults.add(opResult);
+        }
+      }
+      
+      List<String> errorMessages = new java.util.ArrayList<>();
+      if (errors != null) {
+        for (JsonNode error : errors) {
+          errorMessages.add(error.get("What").asText());
+        }
+      }
+      
+      boolean success = errorMessages.isEmpty();
+      return new TxnResult(success, operationResults, errorMessages);
+      
+    } catch (Exception e) {
+      log.error("Failed to execute Consul transaction", e);
+      return new TxnResult(false, List.of(), List.of("Transaction failed: " + e.getMessage()));
+    }
+  }
+
+  /**
+   * Transaction operation for Consul /v1/txn endpoint.
+   */
+  public record TxnOperation(
+      String verb,           // "set", "delete", "get", "get-tree", "check-index", "check-session", "lock", "unlock"
+      String key,
+      byte[] value,          // null for delete/get operations
+      Long cas,              // for CAS operations
+      String session,        // for session-based operations
+      String acquire,        // for lock acquisition
+      String release         // for lock release
+  ) {}
+
+  /**
+   * Result of a transaction operation.
+   */
+  public record TxnOperationResult(
+      String verb,
+      String key,
+      byte[] value,
+      Long index
+  ) {}
+
+  /**
+   * Result of a transaction.
+   */
+  public record TxnResult(
+      boolean success,
+      List<TxnOperationResult> results,
+      List<String> errors
+  ) {}
+
+  /**
+   * Result of a blocking query.
+   */
+  public record WatchResult(String data, long index) {}
 }

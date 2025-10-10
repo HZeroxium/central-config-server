@@ -7,28 +7,44 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 /**
- * Build snapshot from Config Server environment JSON.
+ * Builder utility that constructs {@link ConfigSnapshot} instances
+ * from the JSON representation returned by Spring Cloud Config Server.
+ * <p>
+ * This class extracts relevant property sources, filters sensitive or
+ * transient keys, and merges configuration values respecting
+ * precedence order (first source wins).
  */
 public final class ConfigSnapshotBuilderFromConfigServer {
 
+  /**
+   * Builds a canonical {@link ConfigSnapshot} from a Config Server environment JSON.
+   *
+   * @param application application name
+   * @param profile     active profile
+   * @param label       config label (branch/tag)
+   * @param envJson     Config Server environment JSON response
+   * @return a canonical {@link ConfigSnapshot}
+   */
   public ConfigSnapshot build(String application, String profile, String label, JsonNode envJson) {
     String version = envJson != null && envJson.hasNonNull("version") ? envJson.get("version").asText() : null;
-
     SortedMap<String, String> props = new TreeMap<>();
 
+    // Iterate through all propertySources from Config Server
     if (envJson != null && envJson.has("propertySources") && envJson.get("propertySources").isArray()) {
       for (JsonNode ps : envJson.get("propertySources")) {
         String name = ps.hasNonNull("name") ? ps.get("name").asText() : null;
         if (!includeSource(name)) continue;
+
         JsonNode source = ps.get("source");
         if (source == null || !source.isObject()) continue;
+
         Iterator<String> it = source.fieldNames();
         while (it.hasNext()) {
           String key = it.next();
           if (excludeKey(key)) continue;
           JsonNode v = source.get(key);
-          // Respect precedence: Config Server returns highest-precedence sources first
-          // Keep the first-seen value; do not overwrite with lower-precedence ones
+          // Respect precedence: Config Server returns high-precedence sources first
+          // Keep the first-seen value; do not overwrite with lower-precedence ones.
           if (v != null && !v.isNull()) props.putIfAbsent(key, v.asText());
         }
       }
@@ -37,6 +53,12 @@ public final class ConfigSnapshotBuilderFromConfigServer {
     return new ConfigSnapshot(application, profile != null ? profile : "default", label, version, props);
   }
 
+  /**
+   * Determines whether a property source should be included in the snapshot.
+   *
+   * @param name the source name
+   * @return true if included; false otherwise
+   */
   private boolean includeSource(String name) {
     if (name == null) return false;
     String n = name.toLowerCase();
@@ -50,6 +72,14 @@ public final class ConfigSnapshotBuilderFromConfigServer {
     return false;
   }
 
+  /**
+   * Determines whether a property key should be excluded from hashing.
+   * <p>
+   * Excludes secrets, credentials, runtime metrics, and non-deterministic fields.
+   *
+   * @param key the property key
+   * @return true if excluded; false if eligible for hashing
+   */
   private boolean excludeKey(String key) {
     if (key == null) return true;
     String k = key.toLowerCase();
@@ -67,5 +97,3 @@ public final class ConfigSnapshotBuilderFromConfigServer {
         || k.startsWith("user.");
   }
 }
-
-

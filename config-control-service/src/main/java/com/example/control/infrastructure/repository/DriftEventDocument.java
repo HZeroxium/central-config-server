@@ -11,6 +11,12 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
 
+/**
+ * MongoDB document representation of {@link DriftEvent}.
+ * <p>
+ * Each record corresponds to a configuration drift detection event and is stored in
+ * the {@code drift_events} collection with a TTL index for automatic cleanup after 30 days.
+ */
 @Data
 @Builder
 @NoArgsConstructor
@@ -36,7 +42,12 @@ public class DriftEventDocument {
   @Indexed
   private String status;
 
-  @Indexed(expireAfterSeconds = 2592000) // TTL index - expire after 30 days
+  /**
+   * Timestamp when drift was detected.
+   * <p>
+   * TTL index ensures automatic deletion after 30 days.
+   */
+  @Indexed(expireAfterSeconds = 2592000)
   private LocalDateTime detectedAt;
 
   private LocalDateTime resolvedAt;
@@ -46,6 +57,12 @@ public class DriftEventDocument {
 
   private String notes;
 
+  /**
+   * Maps a {@link DriftEvent} domain object to its MongoDB document equivalent.
+   *
+   * @param domain the domain object to map
+   * @return a new {@link DriftEventDocument}
+   */
   public static DriftEventDocument fromDomain(DriftEvent domain) {
     return DriftEventDocument.builder()
         .id(domain.getId())
@@ -63,6 +80,11 @@ public class DriftEventDocument {
         .build();
   }
 
+  /**
+   * Converts this document to a {@link DriftEvent} domain model.
+   *
+   * @return domain representation of the drift event
+   */
   public DriftEvent toDomain() {
     return DriftEvent.builder()
         .id(id)

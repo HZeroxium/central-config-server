@@ -15,10 +15,22 @@ import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Service responsible for processing heartbeat from service instances
- * and detecting configuration drift.
+ * Core service responsible for processing incoming heartbeat signals.
+ * <p>
+ * Its responsibilities include:
+ * <ul>
+ *   <li>Validating incoming heartbeat payloads</li>
+ *   <li>Tracking instance liveness and metadata</li>
+ *   <li>Detecting configuration drift via config hash comparison</li>
+ *   <li>Auto-resolving drift once hashes realign</li>
+ *   <li>Triggering /busrefresh on persistent drift</li>
+ * </ul>
+ * <p>
+ * The service also uses in-memory exponential backoff logic to avoid
+ * frequent re-triggering of refresh for persistent drift cases.
  */
 @Slf4j
 @Service
@@ -29,19 +41,42 @@ public class HeartbeatService {
   private final DriftEventService driftEventService;
   private final ConfigProxyService configProxyService;
 
-  // Minimal in-memory retry/backoff for stubborn drift cases
-  private final java.util.concurrent.ConcurrentHashMap<String, Integer> driftRetryCount = new java.util.concurrent.ConcurrentHashMap<>();
-  private final java.util.concurrent.ConcurrentHashMap<String, Integer> driftBackoffPow = new java.util.concurrent.ConcurrentHashMap<>();
+  /** Maintains retry count per instance for drift backoff algorithm. */
+  private final ConcurrentHashMap<String, Integer> driftRetryCount = new ConcurrentHashMap<>();
 
+  /** Maintains exponential backoff power per instance (1, 2, 4, 8, 16 cycles). */
+  private final ConcurrentHashMap<String, Integer> driftBackoffPow = new ConcurrentHashMap<>();
+
+  /**
+   * Main entry point for heartbeat processing.
+   * <p>
+   * The method performs multiple responsibilities:
+   * <ol>
+   *   <li>Validate input payload</li>
+   *   <li>Retrieve or create instance record</li>
+   *   <li>Update metadata and timestamps</li>
+   *   <li>Compare applied config hash (from instance) with expected hash (from Config Server)</li>
+   *   <li>Detect drift, create events, and trigger refresh with exponential backoff</li>
+   *   <li>Persist the final state to MongoDB</li>
+   * </ol>
+   * <p>
+   * Caching for `service-instances` and `drift-events` is evicted on each heartbeat
+   * to ensure fresh state for monitoring dashboards.
+   *
+   * @param payload validated heartbeat payload
+   * @return updated {@link ServiceInstance} representing the current state
+   */
   @Transactional
-  @CacheEvict(value = { "service-instances", "drift-events" }, allEntries = true)
+  @CacheEvict(value = {"service-instances", "drift-events"}, allEntries = true)
   public ServiceInstance processHeartbeat(HeartbeatPayload payload) {
     log.debug("Processing heartbeat from {}:{}", payload.getServiceName(), payload.getInstanceId());
 
-    // Validate payload
+    // 1️⃣ Validate payload (basic sanity checks)
     validateHeartbeatPayload(payload);
 
     String id = payload.getServiceName() + ":" + payload.getInstanceId();
+
+    // 2️⃣ Load or initialize ServiceInstance domain object
     ServiceInstance instance = serviceInstanceService
         .findByServiceAndInstance(payload.getServiceName(), payload.getInstanceId())
         .orElse(ServiceInstance.builder()
@@ -52,13 +87,13 @@ public class HeartbeatService {
 
     LocalDateTime now = LocalDateTime.now();
 
-    // First heartbeat - create new instance
+    // 3️⃣ Handle first-time heartbeat (registration)
     if (instance.getCreatedAt() == null) {
       instance.setCreatedAt(now);
       log.info("New service instance registered: {}", id);
     }
 
-    // Update instance metadata
+    // 4️⃣ Update runtime metadata (host, port, version, hashes)
     instance.setHost(payload.getHost());
     instance.setPort(payload.getPort());
     instance.setEnvironment(payload.getEnvironment());
@@ -68,22 +103,19 @@ public class HeartbeatService {
     instance.setUpdatedAt(now);
     instance.setMetadata(payload.getMetadata());
 
-    // Detect drift
+    // 5️⃣ Retrieve expected config hash from Config Server
     String expectedHash;
     try {
       expectedHash = configProxyService.getEffectiveConfigHash(
           payload.getServiceName(),
           payload.getEnvironment());
     } catch (Exception e) {
-      log.error("Failed to get effective config hash for {}:{}",
-          payload.getServiceName(), payload.getEnvironment(), e);
-      throw new ConfigurationException(
-          payload.getServiceName(),
-          payload.getEnvironment(),
+      log.error("Failed to get effective config hash for {}:{}", payload.getServiceName(), payload.getEnvironment(), e);
+      throw new ConfigurationException(payload.getServiceName(), payload.getEnvironment(),
           "Failed to retrieve effective configuration: " + e.getMessage());
     }
 
-    // Guard: if either hash is missing → UNKNOWN, do not mark DRIFT
+    // 6️⃣ Guard: skip drift detection if missing hashes
     if (expectedHash == null || payload.getConfigHash() == null) {
       instance.setStatus(ServiceInstance.InstanceStatus.UNKNOWN);
       instance.setHasDrift(false);
@@ -94,8 +126,9 @@ public class HeartbeatService {
 
     boolean hasDrift = !expectedHash.equals(payload.getConfigHash());
 
+    // 7️⃣ Handle drift detection & resolution cases
     if (hasDrift && !Boolean.TRUE.equals(instance.getHasDrift())) {
-      // New drift detected
+      /** Case A: Drift newly detected */
       log.warn("Configuration drift detected for {}: expected={}, applied={}",
           id, expectedHash, payload.getConfigHash());
 
@@ -104,46 +137,58 @@ public class HeartbeatService {
       instance.setConfigHash(expectedHash);
       instance.setStatus(ServiceInstance.InstanceStatus.DRIFT);
 
-      // Create drift event
+      // Create a drift event record for observability
       createDriftEvent(payload, expectedHash);
 
-      // Auto-trigger refresh for drifted instance with backoff state init
+      // Trigger /busrefresh to resync configuration
       triggerRefreshForInstance(payload.getServiceName(), payload.getInstanceId());
+
+      // Initialize retry counters for exponential backoff
       driftRetryCount.put(id, 1);
-      driftBackoffPow.put(id, 0); // 2^0 = 1 cycles backoff
+      driftBackoffPow.put(id, 0); // 2^0 = 1 cycle delay
 
     } else if (!hasDrift && Boolean.TRUE.equals(instance.getHasDrift())) {
-      // Drift resolved
+      /** Case B: Drift resolved */
       log.info("Configuration drift resolved for {}", id);
       instance.setHasDrift(false);
       instance.setDriftDetectedAt(null);
       instance.setStatus(ServiceInstance.InstanceStatus.HEALTHY);
 
-      // Resolve drift events
+      // Resolve any open drift events in persistence
       driftEventService.resolveForInstance(payload.getServiceName(), payload.getInstanceId());
       driftRetryCount.remove(id);
+
     } else if (!hasDrift && !Boolean.TRUE.equals(instance.getHasDrift())) {
-      // Ensure status remains healthy on steady state (no false DRIFT)
+      /** Case C: Normal steady-state heartbeat */
       if (instance.getStatus() != ServiceInstance.InstanceStatus.HEALTHY) {
         instance.setStatus(ServiceInstance.InstanceStatus.HEALTHY);
       }
       driftRetryCount.remove(id);
+
     } else if (hasDrift && Boolean.TRUE.equals(instance.getHasDrift())) {
-      // Persistent drift: exponential backoff on heartbeats (1,2,4,8 up to 16 cycles)
+      /** Case D: Persistent drift — apply exponential backoff strategy */
       int count = driftRetryCount.merge(id, 1, Integer::sum);
-      int pow = driftBackoffPow.compute(id, (k, v) -> v == null ? 0 : Math.min(v, 4));
-      int threshold = 1 << pow; // 1,2,4,8,16
+      int pow = driftBackoffPow.compute(id, (k, v) -> v == null ? 0 : Math.min(v, 4)); // limit to 16 cycles
+      int threshold = 1 << pow; // 1, 2, 4, 8, 16
       if (count >= threshold) {
-        log.warn("Persistent drift for {} after {} heartbeats (threshold {}). Re-triggering refresh.", id, count, threshold);
+        log.warn("Persistent drift for {} after {} heartbeats (threshold {}). Re-triggering refresh.",
+            id, count, threshold);
         triggerRefreshForInstance(payload.getServiceName(), payload.getInstanceId());
         driftRetryCount.put(id, 0);
         driftBackoffPow.put(id, Math.min(pow + 1, 4));
       }
     }
 
+    // 8️⃣ Persist instance to MongoDB and return updated state
     return serviceInstanceService.saveOrUpdate(instance);
   }
 
+  /**
+   * Creates and saves a {@link DriftEvent} record to log drift detection.
+   *
+   * @param payload      source heartbeat payload
+   * @param expectedHash expected configuration hash
+   */
   private void createDriftEvent(HeartbeatPayload payload, String expectedHash) {
     DriftEvent event = DriftEvent.builder()
         .id(UUID.randomUUID().toString())
@@ -162,7 +207,10 @@ public class HeartbeatService {
   }
 
   /**
-   * Trigger refresh for a specific drifted instance via Config Server's /busrefresh.
+   * Invokes Config Server’s /busrefresh endpoint to trigger a refresh event for a given instance.
+   *
+   * @param serviceName service identifier
+   * @param instanceId  instance identifier
    */
   private void triggerRefreshForInstance(String serviceName, String instanceId) {
     try {
@@ -175,25 +223,25 @@ public class HeartbeatService {
   }
 
   /**
-   * Validate heartbeat payload.
+   * Validates the structure and fields of a heartbeat payload.
+   * <p>
+   * Throws {@link ValidationException} if required fields are missing or invalid.
+   *
+   * @param payload incoming heartbeat data
    */
   private void validateHeartbeatPayload(HeartbeatPayload payload) {
     if (payload == null) {
       throw new ValidationException("Heartbeat payload cannot be null");
     }
-
     if (!StringUtils.hasText(payload.getServiceName())) {
       throw new ValidationException("Service name is required");
     }
-
     if (!StringUtils.hasText(payload.getInstanceId())) {
       throw new ValidationException("Instance ID is required");
     }
-
     if (payload.getHost() != null && !StringUtils.hasText(payload.getHost())) {
       throw new ValidationException("Host cannot be empty if provided");
     }
-
     if (payload.getPort() != null && (payload.getPort() < 1 || payload.getPort() > 65535)) {
       throw new ValidationException("Port must be between 1 and 65535");
     }
