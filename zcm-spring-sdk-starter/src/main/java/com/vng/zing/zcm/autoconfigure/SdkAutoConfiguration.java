@@ -24,7 +24,6 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.cloud.client.discovery.DiscoveryClient;
 import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 import org.springframework.cloud.context.refresh.ContextRefresher;

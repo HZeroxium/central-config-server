@@ -19,6 +19,8 @@ services:
       timeout: 3s
       retries: 5
       start_period: 10s
+    # volumes:
+    #   - ./data/consul-data:/consul/data
 
   # Config Server
   config-server:
@@ -109,30 +111,6 @@ services:
       retries: 3
     stop_grace_period: 30s
 
-  # # Scale Sample Service to 3 instances
-  # sample-service-3:
-  #   build:
-  #     context: ./sample-service
-  #     dockerfile: Dockerfile
-  #   image: hzeroxium/sample-service:latest
-  #   container_name: config-demo-client-3
-  #   ports:
-  #     - "8082:8080"
-  #   environment:
-  #     - CONFIG_SERVER_URL=http://config-server:8888
-  #     - KAFKA_BROKERS=kafka:9092
-  #     - SPRING_PROFILES_ACTIVE=dev
-  #   depends_on:
-  #     config-server:
-  #       condition: service_healthy
-  #     kafka:
-  #       condition: service_healthy
-  #   healthcheck:
-  #     test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
-  #     interval: 30s
-  #     timeout: 10s
-  #     retries: 3
-
 
   # Config Control Service
   config-control-service:
@@ -142,7 +120,9 @@ services:
     image: hzeroxium/config-control-service:latest
     container_name: config-control-service
     ports:
-      - "8081:8080"
+      - "8081:8080"    # HTTP
+      - "9090:9090"    # Thrift
+      - "9091:9091"    # gRPC
     environment:
       - SPRING_PROFILES_ACTIVE=dev
       - CONFIG_SERVER_URL=http://config-server:8888
@@ -150,6 +130,8 @@ services:
       - MONGODB_URI=mongodb://10.40.30.233:27017/config_control
       - REDIS_URL=redis://10.40.30.233:6379
       - KAFKA_BROKERS=10.40.30.233:9092
+      - THRIFT_PORT=9090
+      - GRPC_PORT=9091
     depends_on:
       config-server:
         condition: service_healthy
@@ -160,6 +142,29 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+
+  # # etcd for KV Store
+  # etcd:
+  #   image: quay.io/coreos/etcd:v3.5.12
+  #   container_name: etcd
+  #   ports:
+  #     - "2379:2379"
+  #     - "2380:2380"
+  #   environment:
+  #     - ETCD_NAME=etcd0
+  #     - ETCD_ADVERTISE_CLIENT_URLS=http://etcd:2379
+  #     - ETCD_LISTEN_CLIENT_URLS=http://0.0.0.0:2379
+  #     - ETCD_INITIAL_ADVERTISE_PEER_URLS=http://etcd:2380
+  #     - ETCD_LISTEN_PEER_URLS=http://0.0.0.0:2380
+  #     - ETCD_INITIAL_CLUSTER=etcd0=http://etcd:2380
+  #     - ETCD_INITIAL_CLUSTER_TOKEN=etcd-cluster
+  #     - ETCD_INITIAL_CLUSTER_STATE=new
+  #   healthcheck:
+  #     test: ["CMD", "etcdctl", "endpoint", "health"]
+  #     interval: 10s
+  #     timeout: 3s
+  #     retries: 5
+
 
 networks:
   default:

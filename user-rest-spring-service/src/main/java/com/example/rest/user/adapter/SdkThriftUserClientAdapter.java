@@ -31,7 +31,7 @@ public class SdkThriftUserClientAdapter implements ThriftUserClientPort {
 
   private UserService.Client createClient() throws Exception {
     // Use SDK to discover and select thrift server instance
-    ServiceInstance instance = zcmClient.choose("user-thrift-server-service");
+    ServiceInstance instance = zcmClient.loadBalancer().choose("user-thrift-server-service");
     if (instance == null) {
       throw new ThriftServiceException("No healthy instances found for user-thrift-server-service", "discovery");
     }

@@ -3,6 +3,7 @@ package com.example.sample.web;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vng.zing.zcm.client.ClientApi;
+import com.vng.zing.zcm.loadbalancer.LbRequest;
 import com.vng.zing.zcm.loadbalancer.LoadBalancerStrategy;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cloud.client.ServiceInstance;
@@ -17,6 +18,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,8 +55,8 @@ public class SdkTestController {
   @ApiResponse(responseCode = "200", description = "Configuration snapshot retrieved successfully")
   @GetMapping("/snapshot")
   public ResponseEntity<Map<String, Object>> getSnapshot() {
-    String hash = client.configHash();
-    Map<String, Object> snap = client.configSnapshotMap();
+    String hash = client.config().hash();
+    Map<String, Object> snap = client.config().snapshot();
 
     Map<String, Object> body = new LinkedHashMap<>();
     body.put("status", "ok");
@@ -74,8 +76,8 @@ public class SdkTestController {
   public ResponseEntity<Map<String, Object>> getSdkInfo() {
     Map<String, Object> info = new LinkedHashMap<>();
     info.put("status", "ok");
-    info.put("configHash", client.configHash());
-    info.put("loadBalancerStrategy", client.loadBalancerStrategy());
+    info.put("configHash", client.config().hash());
+    info.put("loadBalancerStrategy", client.loadBalancer().strategy());
     return ResponseEntity.ok(info);
   }
 
@@ -93,7 +95,7 @@ public class SdkTestController {
   @Parameter(name = "serviceName", description = "The name of the service to discover", required = true)
   @GetMapping("/discovery/{serviceName}")
   public ResponseEntity<Map<String, Object>> discoverService(@PathVariable String serviceName) {
-    List<ServiceInstance> instances = client.instances(serviceName);
+    List<ServiceInstance> instances = client.loadBalancer().instances(serviceName);
     Map<String, Object> result = new LinkedHashMap<>();
     result.put("status", "ok");
     result.put("serviceName", serviceName);
@@ -117,14 +119,14 @@ public class SdkTestController {
   @Parameter(name = "serviceName", description = "Service name to choose from", required = true)
   @GetMapping("/choose/{serviceName}")
   public ResponseEntity<Map<String, Object>> chooseInstance(@PathVariable String serviceName) {
-    ServiceInstance chosen = client.choose(serviceName);
+    ServiceInstance chosen = client.loadBalancer().choose(serviceName);
     if (chosen == null) {
       return ResponseEntity.notFound().build();
     }
     Map<String, Object> result = new LinkedHashMap<>();
     result.put("status", "ok");
     result.put("serviceName", serviceName);
-    result.put("strategy", client.loadBalancerStrategy());
+    result.put("strategy", client.loadBalancer().strategy());
     result.put("chosen", Map.of(
         "instanceId", chosen.getInstanceId(),
         "host", chosen.getHost(),
@@ -152,7 +154,7 @@ public class SdkTestController {
       @PathVariable String policy) {
     try {
       LoadBalancerStrategy.Policy policyEnum = LoadBalancerStrategy.Policy.fromString(policy);
-      ServiceInstance chosen = client.choose(serviceName, policyEnum);
+      ServiceInstance chosen = client.loadBalancer().choose(serviceName, policyEnum);
       if (chosen == null) {
         return ResponseEntity.notFound().build();
       }
@@ -203,7 +205,7 @@ public class SdkTestController {
   @Parameter(name = "key", description = "The configuration key to retrieve", required = true)
   @GetMapping("/config/{key}")
   public ResponseEntity<Map<String, Object>> getConfigValue(@PathVariable String key) {
-    String value = client.get(key);
+    String value = client.config().get(key);
     Map<String, Object> result = new LinkedHashMap<>();
     result.put("status", "ok");
     result.put("key", key);
@@ -221,7 +223,7 @@ public class SdkTestController {
   public ResponseEntity<Map<String, Object>> getAvailablePolicies() {
     Map<String, Object> result = new LinkedHashMap<>();
     result.put("status", "ok");
-    result.put("currentStrategy", client.loadBalancerStrategy());
+    result.put("currentStrategy", client.loadBalancer().strategy());
     result.put("availablePolicies", Map.of(
         "ROUND_ROBIN", "Round-robin load balancing (default)",
         "RANDOM", "Random instance selection",
@@ -241,6 +243,115 @@ public class SdkTestController {
    * @param endpoint    relative endpoint path (e.g., /api/health)
    * @return response body from the target service
    */
+  @Operation(summary = "Choose instance with request context",
+      description = "Selects a service instance using LbRequest for advanced load balancing scenarios like session affinity.")
+  @Parameter(name = "serviceName", description = "Service name to choose from", required = true)
+  @Parameter(name = "policy", description = "Load balancing policy", required = true)
+  @GetMapping("/choose-with-context/{serviceName}/{policy}")
+  public ResponseEntity<Map<String, Object>> chooseWithContext(
+      @PathVariable String serviceName,
+      @PathVariable String policy,
+      @RequestParam(required = false) String requestId,
+      @RequestParam(required = false) String userId,
+      @RequestParam(required = false) String sessionId,
+      @RequestParam(required = false) String clientId) {
+    
+    try {
+      LoadBalancerStrategy.Policy lbPolicy = LoadBalancerStrategy.Policy.fromString(policy);
+      
+      // Create LbRequest with provided context
+      LbRequest.Builder builder = LbRequest.builder();
+      if (requestId != null) builder.requestId(requestId);
+      if (userId != null) builder.userId(userId);
+      if (sessionId != null) builder.sessionId(sessionId);
+      if (clientId != null) builder.clientId(clientId);
+      
+      LbRequest request = builder.build();
+      ServiceInstance chosen = client.loadBalancer().choose(serviceName, lbPolicy, request);
+      
+      if (chosen == null) {
+        return ResponseEntity.notFound().build();
+      }
+      
+      Map<String, Object> result = new LinkedHashMap<>();
+      result.put("status", "ok");
+      result.put("serviceName", serviceName);
+      result.put("strategy", lbPolicy.getValue());
+      result.put("requestContext", Map.of(
+          "requestId", request.getRequestId(),
+          "userId", request.getUserId() != null ? request.getUserId() : "null",
+          "sessionId", request.getSessionId() != null ? request.getSessionId() : "null",
+          "clientId", request.getClientId() != null ? request.getClientId() : "null",
+          "hashKey", request.getHashKey(),
+          "timestamp", request.getTimestamp()
+      ));
+      result.put("chosen", Map.of(
+          "instanceId", chosen.getInstanceId(),
+          "host", chosen.getHost(),
+          "port", chosen.getPort(),
+          "metadata", chosen.getMetadata(),
+          "uri", chosen.getUri().toString()
+      ));
+      
+      return ResponseEntity.ok(result);
+      
+    } catch (Exception e) {
+      Map<String, Object> error = new LinkedHashMap<>();
+      error.put("status", "error");
+      error.put("message", e.getMessage());
+      return ResponseEntity.badRequest().body(error);
+    }
+  }
+
+  @Operation(summary = "Test session affinity",
+      description = "Demonstrates session affinity by making multiple requests with the same session ID.")
+  @Parameter(name = "serviceName", description = "Service name to test", required = true)
+  @Parameter(name = "sessionId", description = "Session ID for affinity testing", required = true)
+  @Parameter(name = "count", description = "Number of requests to make", required = false)
+  @GetMapping("/test-session-affinity/{serviceName}/{sessionId}")
+  public ResponseEntity<Map<String, Object>> testSessionAffinity(
+      @PathVariable String serviceName,
+      @PathVariable String sessionId,
+      @RequestParam(defaultValue = "5") int count) {
+    
+    Map<String, Object> result = new LinkedHashMap<>();
+    result.put("status", "ok");
+    result.put("serviceName", serviceName);
+    result.put("sessionId", sessionId);
+    result.put("testCount", count);
+    
+    List<Map<String, Object>> results = new ArrayList<>();
+    
+    for (int i = 0; i < count; i++) {
+      LbRequest request = LbRequest.builder()
+          .requestId("req-" + i)
+          .sessionId(sessionId)
+          .build();
+      
+      ServiceInstance chosen = client.loadBalancer().choose(serviceName, LoadBalancerStrategy.Policy.RENDEZVOUS, request);
+      
+      if (chosen != null) {
+        results.add(Map.of(
+            "request", i,
+            "instanceId", chosen.getInstanceId(),
+            "host", chosen.getHost(),
+            "port", chosen.getPort()
+        ));
+      }
+    }
+    
+    result.put("results", results);
+    
+    // Check if all requests went to the same instance (session affinity working)
+    String firstInstanceId = results.isEmpty() ? null : (String) results.get(0).get("instanceId");
+    boolean sessionAffinityWorking = results.stream()
+        .allMatch(r -> firstInstanceId != null && firstInstanceId.equals(r.get("instanceId")));
+    
+    result.put("sessionAffinityWorking", sessionAffinityWorking);
+    
+    return ResponseEntity.ok(result);
+  }
+
   @Operation(summary = "Call another HTTP service via SDK",
       description = "Perform a GET request to another service using the SDK's load-balanced RestClient.")
   @ApiResponse(responseCode = "200", description = "Call succeeded",
@@ -255,7 +366,7 @@ public class SdkTestController {
 
     try {
       // Use RestClient to make the call
-      RestClient restClient = client.http();
+      RestClient restClient = client.http().client();
       ResponseEntity<String> response = restClient.get()
           .uri("http://" + serviceName + endpoint)
           .retrieve()

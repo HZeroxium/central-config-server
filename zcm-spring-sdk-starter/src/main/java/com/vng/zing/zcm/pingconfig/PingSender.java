@@ -132,7 +132,16 @@ public class PingSender {
   private String buildEndpoint(ServiceInstance instance) {
     return switch (pingStrategy.getProtocol()) {
       case HTTP -> instance.getUri().toString();
-      case THRIFT, GRPC -> instance.getHost() + ":" + instance.getPort();
+      case THRIFT -> {
+        String thriftPort = instance.getMetadata().get("thrift_port");
+        int port = thriftPort != null ? Integer.parseInt(thriftPort) : 9090;
+        yield instance.getHost() + ":" + port;
+      }
+      case GRPC -> {
+        String grpcPort = instance.getMetadata().get("grpc_port");
+        int port = grpcPort != null ? Integer.parseInt(grpcPort) : 9091;
+        yield instance.getHost() + ":" + port;
+      }
     };
   }
 

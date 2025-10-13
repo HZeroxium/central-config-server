@@ -43,7 +43,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: "*"
+        include: "health,refresh,busrefresh,env,configprops,loggers,threaddump,heapdump,caches,circuitbreakers,retries,timelimiters"
   endpoint:
     health:
       show-details: always
