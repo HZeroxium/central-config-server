@@ -15,7 +15,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  * configuration management.
  * Provides drift detection, heartbeat tracking, and refresh orchestration.
  */
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = "com.example.control")
 @EnableDiscoveryClient
 @EnableScheduling
 @EnableAsync

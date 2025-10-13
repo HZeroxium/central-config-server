@@ -2,10 +2,15 @@ plugins {
     alias(libs.plugins.java)
     alias(libs.plugins.spring.boot)
     alias(libs.plugins.spring.dependency.management)
+    id 'com.google.protobuf' version '0.9.4'
 }
 
 group = 'com.example'
 version = '1.0.0'
+
+repositories {
+    mavenCentral()
+}
 
 java {
     toolchain {
@@ -75,6 +80,22 @@ dependencies {
     compileOnly libs.lombok
     annotationProcessor libs.lombok
     
+    // Thrift
+    implementation libs.thrift.lib
+    implementation libs.javax.annotation.api
+    
+    // gRPC
+    implementation 'io.grpc:grpc-netty-shaded:1.58.0'
+    implementation 'io.grpc:grpc-protobuf:1.58.0'
+    implementation 'io.grpc:grpc-stub:1.58.0'
+    implementation 'io.grpc:grpc-services:1.58.0'  // For health check
+    implementation 'com.google.protobuf:protobuf-java:3.24.4'
+    implementation 'net.devh:grpc-spring-boot-starter:2.14.0.RELEASE'
+    
+    // etcd client (official Java client)
+    implementation 'io.etcd:jetcd-core:0.8.5'
+    implementation 'io.etcd:jetcd-common:0.8.5'
+    
     // Testing
     testImplementation libs.spring.boot.starter.test
     testImplementation libs.bundles.testing
@@ -85,6 +106,46 @@ dependencies {
 tasks.named('test') {
     useJUnitPlatform()
 }
+
+// Thrift generation
+task generateThrift(type: Exec) {
+    commandLine 'thrift', '--gen', 'java', '-out', 
+        'build/generated/source/thrift/main/java', 'src/main/thrift/zcm_sdk.thrift'
+    doFirst {
+        mkdir('build/generated/source/thrift/main/java')
+    }
+}
+
+// gRPC generation
+protobuf {
+    protoc {
+        artifact = "com.google.protobuf:protoc:3.24.4"
+    }
+    plugins {
+        grpc {
+            artifact = "io.grpc:protoc-gen-grpc-java:1.58.0"
+        }
+    }
+    generateProtoTasks {
+        all().each { task ->
+            task.plugins {
+                grpc {}
+            }
+        }
+    }
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs += ['build/generated/source/proto/main/grpc']
+            srcDirs += ['build/generated/source/proto/main/java']
+            srcDirs += ['build/generated/source/thrift/main/java']
+        }
+    }
+}
+
+compileJava.dependsOn generateThrift
 
 // Docker build task
 tasks.register('buildDocker', Exec) {

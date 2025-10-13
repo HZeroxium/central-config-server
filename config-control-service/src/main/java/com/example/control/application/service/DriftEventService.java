@@ -5,6 +5,8 @@ import com.example.control.infrastructure.repository.DriftEventDocument;
 import com.example.control.infrastructure.repository.DriftEventRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -29,6 +31,7 @@ public class DriftEventService {
    * @param event domain drift event
    * @return persisted {@link DriftEvent}
    */
+  @CacheEvict(value = "drift-events", allEntries = true)
   public DriftEvent save(DriftEvent event) {
     DriftEventDocument document = DriftEventDocument.fromDomain(event);
     repository.save(document);
@@ -40,6 +43,7 @@ public class DriftEventService {
    *
    * @return list of unresolved drift events
    */
+  @Cacheable(value = "drift-events", key = "'unresolved'")
   public List<DriftEvent> findUnresolved() {
     return repository.findUnresolvedEvents().stream()
         .map(DriftEventDocument::toDomain)
@@ -64,6 +68,7 @@ public class DriftEventService {
    * @param serviceName service name
    * @return list of drift events
    */
+  @Cacheable(value = "drift-events", key = "#serviceName")
   public List<DriftEvent> findByService(String serviceName) {
     return repository.findByServiceName(serviceName).stream()
         .map(DriftEventDocument::toDomain)
@@ -111,6 +116,7 @@ public class DriftEventService {
    * @param serviceName service name
    * @param instanceId  instance identifier
    */
+  @CacheEvict(value = "drift-events", allEntries = true)
   public void resolveForInstance(String serviceName, String instanceId) {
     repository.findByServiceNameAndInstanceId(serviceName, instanceId).forEach(doc -> {
       if (!DriftEvent.DriftStatus.RESOLVED.name().equals(doc.getStatus())) {

@@ -5,6 +5,8 @@ import com.example.control.infrastructure.repository.ServiceInstanceDocument;
 import com.example.control.infrastructure.repository.ServiceInstanceRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -32,6 +34,7 @@ public class ServiceInstanceService {
    * @param instance the instance to save or update
    * @return persisted {@link ServiceInstance}
    */
+  @CacheEvict(value = "service-instances", key = "#instance.serviceName + ':' + #instance.instanceId")
   public ServiceInstance saveOrUpdate(ServiceInstance instance) {
     ServiceInstanceDocument document = ServiceInstanceDocument.fromDomain(instance);
     if (document.getCreatedAt() == null) {
@@ -48,6 +51,7 @@ public class ServiceInstanceService {
    * @param serviceName the service name
    * @return list of instances
    */
+  @Cacheable(value = "service-instances", key = "#serviceName")
   public List<ServiceInstance> findByServiceName(String serviceName) {
     return repository.findByServiceName(serviceName)
         .stream()
@@ -62,6 +66,7 @@ public class ServiceInstanceService {
    * @param instanceId  instance ID
    * @return optional instance
    */
+  @Cacheable(value = "service-instances", key = "#serviceName + ':' + #instanceId")
   public Optional<ServiceInstance> findByServiceAndInstance(String serviceName, String instanceId) {
     return repository.findByServiceNameAndInstanceId(serviceName, instanceId)
         .map(ServiceInstanceDocument::toDomain);
@@ -116,7 +121,7 @@ public class ServiceInstanceService {
   }
 
   /**
-   * Updates an instance’s status, drift flag, and hash information.
+   * Updates an instance's status, drift flag, and hash information.
    * <p>
    * Creates a new record if one does not already exist.
    *
@@ -128,6 +133,7 @@ public class ServiceInstanceService {
    * @param lastAppliedHash last applied config hash
    * @return updated {@link ServiceInstance}
    */
+  @CacheEvict(value = "service-instances", allEntries = true)
   public ServiceInstance updateStatusAndDrift(String serviceName,
                                               String instanceId,
                                               ServiceInstance.InstanceStatus status,

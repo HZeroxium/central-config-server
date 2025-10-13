@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cloud.client.ServiceInstance;
 import org.springframework.cloud.client.discovery.DiscoveryClient;
 import org.springframework.http.MediaType;
@@ -42,6 +43,7 @@ public class ConfigProxyService {
    * @param profile     environment profile (e.g., dev, prod)
    * @return SHA-256 hash of effective configuration
    */
+  @Cacheable(value = "config-hashes", key = "#serviceName + ':' + #profile")
   public String getEffectiveConfigHash(String serviceName, String profile) {
     if (serviceName == null || serviceName.trim().isEmpty()) {
       throw new IllegalArgumentException("Service name cannot be null or empty");
@@ -108,6 +110,7 @@ public class ConfigProxyService {
    * @param serviceName service name
    * @return list of service instances
    */
+  @Cacheable(value = "consul-services", key = "#serviceName")
   public List<ServiceInstance> getServiceInstances(String serviceName) {
     if (serviceName == null || serviceName.trim().isEmpty()) {
       throw new IllegalArgumentException("Service name cannot be null or empty");
@@ -133,6 +136,7 @@ public class ConfigProxyService {
    * 
    * @return list of service names
    */
+  @Cacheable(value = "consul-services", key = "'all'")
   public List<String> getAllServices() {
     try {
       return discoveryClient.getServices();
@@ -155,9 +159,11 @@ public class ConfigProxyService {
       log.info("Triggering bus refresh via Config Server for destination: {}", destination);
       
       String base = normalizeUrl(configServerProperties.getUrl()) + "/actuator/busrefresh";
-      String busRefreshUrl = (destination != null && !destination.trim().isEmpty())
-          ? base + "/" + destination
-          : base;
+      // String busRefreshUrl = (destination != null && !destination.trim().isEmpty())
+      //     ? base + "/" + destination
+      //     : base;
+
+      String busRefreshUrl = base;
       
       String response;
       response = restClient.post()

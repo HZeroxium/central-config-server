@@ -7,7 +7,7 @@ spring:
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:default}
   cache:
-    type: none
+    type: caffeine
   main:
     allow-bean-definition-overriding: true
 
@@ -55,6 +55,8 @@ spring:
         instance-id: ${spring.application.name}-${server.port}-${random.value}
         metadata:
           version: "1.0.0"
+          thrift_port: ${thrift.server.port}
+          grpc_port: ${grpc.server.port}
         tags:
           - config-control
           - management
@@ -63,11 +65,56 @@ spring:
       refresh:
         enabled: true
 
+# New Consul SDK Configuration
+consulclient:
+  consul-url: ${CONSUL_URL:http://consul:8500}
+  token: ${CONSUL_TOKEN:}
+  connect-timeout: 5s
+  read-timeout: 10s
+  write-timeout: 10s
+
 # App configuration
 app:
   name: config-control-service
   version: 1.0.0
   environment: ${ENVIRONMENT:development}
+  cache:
+    provider: CAFFEINE  # Default to local cache
+    enable-fallback: true
+    caffeine:
+      maximum-size: 10000
+      expire-after-write: 10m
+      expire-after-access: 30m
+      record-stats: true
+    redis:
+      default-ttl: 10m
+      enable-statistics: true
+      transaction-aware: true
+      fallback-to-caffeine: true
+    two-level:
+      write-through: true
+      invalidate-l1-on-l2-update: true
+    caches:
+      service-instances:
+        ttl: 5m
+        maximum-size: 10000
+        allow-null-values: false
+      drift-events:
+        ttl: 2m
+        maximum-size: 5000
+        allow-null-values: false
+      config-hashes:
+        ttl: 10m
+        maximum-size: 1000
+        allow-null-values: false
+      consul-services:
+        ttl: 1m
+        maximum-size: 500
+        allow-null-values: false
+      consul-health:
+        ttl: 30s
+        maximum-size: 1000
+        allow-null-values: false
 
 # Config Server client configuration
 config-server:
@@ -125,6 +172,30 @@ management:
       enabled: true
     mongo:
       enabled: true
+
+# Thrift Server Configuration
+thrift:
+  server:
+    port: ${THRIFT_PORT:9090}
+
+# gRPC Server Configuration  
+grpc:
+  server:
+    port: ${GRPC_PORT:9091}
+
+# KV Store Configuration
+kv:
+  backend: ${KV_BACKEND:consul} # consul or etcd
+  consul:
+    base-url: ${KV_CONSUL_URL:http://consul:8500}
+    wait: 5m
+    token: ${KV_CONSUL_TOKEN:}
+  etcd:
+    endpoints:
+      - ${KV_ETCD_ENDPOINTS:http://etcd:2379}
+    connect-timeout: 5s
+    keepalive-time: 10s
+    namespace: ${KV_ETCD_NAMESPACE:}
 
 logging:
   level:

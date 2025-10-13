@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package com.example.control.grpc;
+
+option java_multiple_files = true;
+option java_package = "com.example.control.grpc";
+option java_outer_classname = "ZcmSdkProto";
+
+/**
+ * gRPC service definition for ZCM SDK heartbeat communication.
+ * 
+ * This proto file defines the data structures and service interface used for
+ * sending heartbeat messages via gRPC protocol.
+ */
+
+/**
+ * Service interface for heartbeat communication.
+ * 
+ * This service is implemented by the config-control-service to receive
+ * heartbeat messages from SDK-enabled services.
+ */
+service ConfigControlService {
+  /**
+   * Record a heartbeat from a service instance.
+   * 
+   * @param request The heartbeat request containing service metadata
+   * @return Response indicating success/failure and optional message
+   */
+  rpc RecordHeartbeat(HeartbeatRequest) returns (HeartbeatResponse);
+}
+
+/**
+ * Request message containing heartbeat data from a service instance.
+ */
+message HeartbeatRequest {
+  string service_name = 1;           // Service name identifier
+  string instance_id = 2;            // Unique instance identifier
+  string config_hash = 3;            // SHA-256 hash of applied configuration
+  string host = 4;                   // Instance host address
+  int32 port = 5;                    // Instance port number
+  string environment = 6;            // Deployment environment (dev, staging, prod)
+  string version = 7;                // Service version
+  map<string, string> metadata = 8;  // Additional instance metadata
+}
+
+/**
+ * Response message from the control service after processing a heartbeat.
+ */
+message HeartbeatResponse {
+  bool success = 1;                  // Whether the heartbeat was processed successfully
+  string message = 2;                // Response message from control service
+  int64 timestamp = 3;               // Server timestamp when heartbeat was received
+}

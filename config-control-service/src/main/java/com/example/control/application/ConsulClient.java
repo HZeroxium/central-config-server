@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -32,6 +33,7 @@ public class ConsulClient {
   /**
    * Get all services from Consul catalog
    */
+  @Cacheable(value = "consul-services", key = "'catalog'")
   public String getServices() {
     String url = consulUrl + "/v1/catalog/services";
     log.debug("Getting services from: {}", url);
@@ -50,6 +52,7 @@ public class ConsulClient {
   /**
    * Get service details by name
    */
+  @Cacheable(value = "consul-services", key = "#serviceName")
   public String getService(String serviceName) {
     String url = consulUrl + "/v1/catalog/service/" + serviceName;
     log.debug("Getting service details from: {}", url);
@@ -104,6 +107,7 @@ public class ConsulClient {
   /**
    * Get health checks for a service
    */
+  @Cacheable(value = "consul-health", key = "#serviceName")
   public String getServiceHealth(String serviceName) {
     String url = consulUrl + "/v1/health/checks/" + serviceName;
     log.debug("Getting service health from: {}", url);
