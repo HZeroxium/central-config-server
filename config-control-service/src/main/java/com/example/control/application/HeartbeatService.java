@@ -12,6 +12,10 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import io.micrometer.core.annotation.Timed;
+import io.micrometer.observation.annotation.Observed;
+import io.micrometer.tracing.annotation.SpanTag;
+import io.micrometer.tracing.annotation.NewSpan;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -68,8 +72,12 @@ public class HeartbeatService {
    */
   @Transactional
   @CacheEvict(value = {"service-instances", "drift-events"}, allEntries = true)
-  public ServiceInstance processHeartbeat(HeartbeatPayload payload) {
+  @Timed("config_control.heartbeat.process")
+  @Observed(name = "heartbeat.process", contextualName = "process-heartbeat")
+  public ServiceInstance processHeartbeat(
+      @SpanTag("service.name") HeartbeatPayload payload) {
     log.debug("Processing heartbeat from {}:{}", payload.getServiceName(), payload.getInstanceId());
+    
 
     // 1️⃣ Validate payload (basic sanity checks)
     validateHeartbeatPayload(payload);
@@ -91,6 +99,7 @@ public class HeartbeatService {
     if (instance.getCreatedAt() == null) {
       instance.setCreatedAt(now);
       log.info("New service instance registered: {}", id);
+      
     }
 
     // 4️⃣ Update runtime metadata (host, port, version, hashes)
@@ -106,9 +115,7 @@ public class HeartbeatService {
     // 5️⃣ Retrieve expected config hash from Config Server
     String expectedHash;
     try {
-      expectedHash = configProxyService.getEffectiveConfigHash(
-          payload.getServiceName(),
-          payload.getEnvironment());
+      expectedHash = getExpectedConfigHashWithSpan(payload.getServiceName(), payload.getEnvironment());
     } catch (Exception e) {
       log.error("Failed to get effective config hash for {}:{}", payload.getServiceName(), payload.getEnvironment(), e);
       throw new ConfigurationException(payload.getServiceName(), payload.getEnvironment(),
@@ -137,11 +144,13 @@ public class HeartbeatService {
       instance.setConfigHash(expectedHash);
       instance.setStatus(ServiceInstance.InstanceStatus.DRIFT);
 
+
       // Create a drift event record for observability
       createDriftEvent(payload, expectedHash);
 
       // Trigger /busrefresh to resync configuration
       triggerRefreshForInstance(payload.getServiceName(), payload.getInstanceId());
+      
 
       // Initialize retry counters for exponential backoff
       driftRetryCount.put(id, 1);
@@ -153,6 +162,7 @@ public class HeartbeatService {
       instance.setHasDrift(false);
       instance.setDriftDetectedAt(null);
       instance.setStatus(ServiceInstance.InstanceStatus.HEALTHY);
+
 
       // Resolve any open drift events in persistence
       driftEventService.resolveForInstance(payload.getServiceName(), payload.getInstanceId());
@@ -174,6 +184,8 @@ public class HeartbeatService {
         log.warn("Persistent drift for {} after {} heartbeats (threshold {}). Re-triggering refresh.",
             id, count, threshold);
         triggerRefreshForInstance(payload.getServiceName(), payload.getInstanceId());
+        
+        
         driftRetryCount.put(id, 0);
         driftBackoffPow.put(id, Math.min(pow + 1, 4));
       }
@@ -220,6 +232,16 @@ public class HeartbeatService {
     } catch (Exception e) {
       log.error("Failed to trigger refresh for {}:{}", serviceName, instanceId, e);
     }
+  }
+
+  /**
+   * Retrieves expected config hash from Config Server with tracing span.
+   */
+  @NewSpan("config.get_effective_hash")
+  private String getExpectedConfigHashWithSpan(
+      @SpanTag("service.name") String serviceName,
+      @SpanTag("environment") String environment) {
+    return configProxyService.getEffectiveConfigHash(serviceName, environment);
   }
 
   /**

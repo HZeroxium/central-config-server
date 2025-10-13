@@ -78,6 +78,43 @@ app:
   name: config-control-service
   version: 1.0.0
   environment: ${ENVIRONMENT:development}
+  
+  # Metrics configuration
+  metrics:
+    enabled: true
+    prefix: config_control
+    tags:
+      application: config-control-service
+      service: config-control-service
+    aspectj:
+      enabled: true
+      sampling-rate: 1.0
+      include-parameters: false
+    http:
+      enabled: true
+      track-payload-size: true
+      track-response-size: true
+    rpc:
+      enabled: true
+      thrift: true
+      grpc: true
+    cache:
+      enabled: true
+      track-hit-miss-ratio: true
+      track-evictions: true
+    business:
+      enabled: true
+      heartbeat: true
+      drift: true
+      config-refresh: true
+      instance-count: true
+      gauge-update-interval: 30s
+    histogram:
+      percentiles: [0.5, 0.75, 0.9, 0.95, 0.99]
+      percentiles-histogram: true
+      slo-boundaries: [10ms, 50ms, 100ms, 200ms, 500ms, 1s, 2s, 5s]
+      minimum-expected-value: 1ms
+      maximum-expected-value: 1m
   cache:
     provider: CAFFEINE  # Default to local cache
     enable-fallback: true
@@ -135,9 +172,17 @@ consul:
 # Management/Actuator
 management:
   tracing:
-    enabled: false # Disable Zipkin tracing
+    enabled: true
     sampling:
-      probability: 0.0
+      probability: 1.0  # For dev/testing - sample all traces
+  otlp:
+    tracing:
+      endpoint: http://alloy:4318/v1/traces
+    metrics:
+      export:
+        enabled: true
+        url: http://alloy:4318/v1/metrics
+        step: 15s
   endpoints:
     web:
       exposure:
@@ -151,27 +196,42 @@ management:
       enabled: true
     busrefresh:
       enabled: true
+    metrics:
+      enabled: true
   metrics:
     enable:
       jvm: true
       system: true
       web: true
+      cache: true
+      database: true
     tags:
       application: config-control-service
       service: config-control-service
+      service.name: config-control-service
       environment: ${ENVIRONMENT:development}
     distribution:
       percentiles-histogram:
         http.server.requests: true
+        config_control.*.duration: true
       percentiles:
         http.server.requests: 0.5, 0.9, 0.95, 0.99
+        config_control.*.duration: 0.5, 0.9, 0.95, 0.99
       slo:
         http.server.requests: 50ms, 100ms, 200ms, 500ms, 1s, 2s, 5s
+        config_control.*.duration: 10ms, 50ms, 100ms, 200ms, 500ms, 1s
+      exemplars:
+        enabled: true
   health:
     redis:
       enabled: true
     mongo:
       enabled: true
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+        step: 15s
 
 # Thrift Server Configuration
 thrift:
@@ -202,5 +262,9 @@ logging:
     root: ${LOGGING_LEVEL_ROOT:INFO}
     com.example.control: ${LOGGING_LEVEL_COM_EXAMPLE_CONTROL:DEBUG}
     org.springframework.web: INFO
-    org.springframework.cloud: DEBUG
+    org.springframework.integration.handler.LoggingHandler: WARN
+    org.springframework.cloud.stream.binder.kafka.KafkaMessageChannelBinder: WARN
+    org.springframework.cloud.stream.binder.kafka: WARN
+    org.springframework.cloud.util.random.CachedRandomPropertySource: WARN
+    org.springframework.cloud: WARN
   config: classpath:log4j2-spring.xml

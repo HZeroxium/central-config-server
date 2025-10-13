@@ -65,7 +65,7 @@ dependencies {
     
     // Micrometer & Observability
     implementation libs.bundles.micrometer
-    implementation libs.bundles.zipkin
+    // implementation libs.bundles.opentelemetry
     
     // Validation
     implementation libs.jakarta.validation.api
@@ -95,6 +95,9 @@ dependencies {
     // etcd client (official Java client)
     implementation 'io.etcd:jetcd-core:0.8.5'
     implementation 'io.etcd:jetcd-common:0.8.5'
+    
+    // AspectJ for AOP profiling
+    implementation libs.aspectjweaver
     
     // Testing
     testImplementation libs.spring.boot.starter.test

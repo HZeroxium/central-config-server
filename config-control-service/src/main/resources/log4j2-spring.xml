@@ -14,12 +14,15 @@
     </Console>
 
     <!-- Console Appender with JSON Layout (for production / structured logging) -->
-    <Console name="ConsoleJson" target="SYSTEM_ERR">
+    <Console name="ConsoleJson" target="SYSTEM_OUT">
       <JsonLayout complete="false" compact="true" eventEol="true" stacktraceAsString="true">
         <KeyValuePair key="service" value="config-control-service"/>
         <KeyValuePair key="environment" value="${env:ENVIRONMENT:-dev}"/>
         <KeyValuePair key="container_id" value="${env:HOSTNAME:-unknown}"/>
         <KeyValuePair key="log_type" value="application"/>
+        <KeyValuePair key="trace_id" value="%X{traceId}"/>
+        <KeyValuePair key="span_id" value="%X{spanId}"/>
+        <KeyValuePair key="trace_flags" value="%X{traceFlags}"/>
       </JsonLayout>
     </Console>
 

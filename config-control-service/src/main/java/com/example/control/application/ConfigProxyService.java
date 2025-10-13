@@ -8,6 +8,8 @@ import com.example.control.configsnapshot.Sha256Hasher;
 import com.example.control.config.ConfigServerProperties;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.micrometer.tracing.annotation.NewSpan;
+import io.micrometer.tracing.annotation.SpanTag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -44,7 +46,10 @@ public class ConfigProxyService {
    * @return SHA-256 hash of effective configuration
    */
   @Cacheable(value = "config-hashes", key = "#serviceName + ':' + #profile")
-  public String getEffectiveConfigHash(String serviceName, String profile) {
+  @NewSpan("config.get_effective_hash")
+  public String getEffectiveConfigHash(
+      @SpanTag("service.name") String serviceName, 
+      @SpanTag("profile") String profile) {
     if (serviceName == null || serviceName.trim().isEmpty()) {
       throw new IllegalArgumentException("Service name cannot be null or empty");
     }
