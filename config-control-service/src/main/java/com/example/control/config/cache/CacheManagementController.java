@@ -8,13 +8,31 @@ import org.springframework.cache.CacheManager;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
- * REST controller for cache management and monitoring.
- * Provides endpoints for runtime cache configuration and statistics.
+ * REST controller exposing administrative and observability endpoints for the cache layer.
+ *
+ * <p><strong>Responsibilities</strong></p>
+ * <ul>
+ *   <li>Report runtime cache health and configuration {@code (/api/cache/health, /api/cache/status)}.</li>
+ *   <li>Inspect provider availability and switch cache provider at runtime {@code (/api/cache/providers/**)}.</li>
+ *   <li>Inspect basic per-cache statistics (Caffeine-only, when stats are enabled) {@code (/api/cache/stats/{name})}.</li>
+ *   <li>Administrative operations: clear a cache or all caches {@code (DELETE /api/cache/...)}.</li>
+ * </ul>
+ *
+ * <p><strong>Notes</strong></p>
+ * <ul>
+ *   <li>Cache names come from the underlying {@link CacheManager}; names may be lazily created depending on the provider,
+ *       as per Spring's cache abstraction contract. </li>
+ *   <li>Caffeine statistics require {@code Caffeine.recordStats()} at build time; otherwise counts/rates will be zeros.</li>
+ *   <li>Health details can also be obtained via Spring Boot Actuator. Exposing details depends on
+ *       {@code management.endpoint.health.show-details}. </li>
+ * </ul>
+ *
+ * <p><strong>Security</strong>: these endpoints perform administrative actions (e.g., provider switch, cache clear) and
+ * should be protected by authentication/authorization in production environments.</p>
  */
 @Slf4j
 @RestController
@@ -22,23 +40,55 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class CacheManagementController {
 
+  /**
+   * Factory that knows how to build cache managers for configured providers and can report provider availability.
+   */
   private final CacheManagerFactory cacheManagerFactory;
+
+  /**
+   * Strongly-typed cache configuration properties (source of truth for provider intent, TTL overrides, fallback flags).
+   */
   private final CacheProperties cacheProperties;
+
+  /**
+   * Primary cache manager wrapper that allows atomic runtime switching of the underlying provider.
+   */
   @Qualifier("delegatingCacheManager")
   private final DelegatingCacheManager delegatingCacheManager;
+
+  /**
+   * Health indicator that assembles diagnostics about the cache layer (configured vs. actual provider, availability, etc.).
+   */
   private final CacheHealthIndicator cacheHealthIndicator;
 
   /**
-   * Get cache health status.
+   * Return a diagnostic map describing the current cache health (suitable for UI/ops dashboards).
+   *
+   * <p>For full health aggregation and standardized JSON format, consider using Spring Boot Actuator's
+   * {@code /actuator/health} (ensure details exposure is configured). </p>
+   *
+   * @return HTTP 200 with health details; never throws
    */
   @GetMapping("/health")
   public ResponseEntity<Map<String, Object>> getCacheHealth() {
-    Map<String, Object> health = cacheHealthIndicator.getHealthStatus();
+    Map<String, Object> health = cacheHealthIndicator.getHealthDetails();
     return ResponseEntity.ok(health);
   }
 
   /**
-   * Get current cache configuration and statistics.
+   * Return current cache configuration and lightweight status indicators.
+   *
+   * <p>Includes:</p>
+   * <ul>
+   *   <li><b>currentProvider</b>: detected from the current delegate type of {@link DelegatingCacheManager}.</li>
+   *   <li><b>configuredProvider</b>: desired provider from {@link CacheProperties}.</li>
+   *   <li><b>fallbackEnabled</b>: whether provider fallbacks are allowed.</li>
+   *   <li><b>cacheNames</b>: names known to the current {@link CacheManager}. Caches may be lazily created by providers. </li>
+   *   <li><b>availableProviders</b>: availability map for all providers.</li>
+   *   <li><b>cacheStats</b>: a summary of cache types/native types currently in use.</li>
+   * </ul>
+   *
+   * @return HTTP 200 with status; HTTP 500 if an unexpected error occurs
    */
   @GetMapping("/status")
   public ResponseEntity<Map<String, Object>> getCacheStatus() {
@@ -63,7 +113,14 @@ public class CacheManagementController {
   }
 
   /**
-   * Get detailed statistics for a specific cache.
+   * Return provider-specific statistics for a single cache (Caffeine only, when statistics are enabled).
+   *
+   * <p><strong>Caffeine statistics</strong>: requires {@code Caffeine.recordStats()} during cache build.
+   * When enabled, {@code cache.getNativeCache()} returns the underlying Caffeine {@code Cache} and
+   * {@code Cache.stats()} provides hit/miss/eviction metrics. </p>
+   *
+   * @param cacheName logical cache name
+   * @return HTTP 200 with stats or HTTP 404 if the cache name is unknown
    */
   @GetMapping("/stats/{cacheName}")
   public ResponseEntity<Map<String, Object>> getCacheStats(@PathVariable String cacheName) {
@@ -71,13 +128,13 @@ public class CacheManagementController {
       Cache cache = delegatingCacheManager.getCache(cacheName);
       if (cache == null) {
         return ResponseEntity.notFound().build();
-      }
+        }
 
       Map<String, Object> stats = new HashMap<>();
       stats.put("cacheName", cacheName);
       stats.put("cacheType", cache.getClass().getSimpleName());
 
-      // Add provider-specific statistics if available
+      // Add provider-specific statistics if available (Caffeine)
       Object nativeCache = cache.getNativeCache();
       if (nativeCache instanceof com.github.benmanes.caffeine.cache.Cache) {
         var caffeineCache = (com.github.benmanes.caffeine.cache.Cache<?, ?>) nativeCache;
@@ -99,7 +156,13 @@ public class CacheManagementController {
   }
 
   /**
-   * Clear a specific cache.
+   * Clear the contents of a specific cache by name.
+   *
+   * <p>Semantics follow the underlying provider; for example, {@code clear()} may be asynchronous
+   * or immediate depending on implementation details of the native cache. </p>
+   *
+   * @param cacheName logical cache name
+   * @return HTTP 200 on success, HTTP 404 if the cache does not exist
    */
   @DeleteMapping("/{cacheName}")
   public ResponseEntity<Map<String, String>> clearCache(@PathVariable String cacheName) {
@@ -125,7 +188,9 @@ public class CacheManagementController {
   }
 
   /**
-   * Clear all caches.
+   * Clear all known caches as reported by the current {@link CacheManager}.
+   *
+   * @return HTTP 200 with number of caches cleared; HTTP 500 on error
    */
   @DeleteMapping("/all")
   public ResponseEntity<Map<String, Object>> clearAllCaches() {
@@ -157,7 +222,12 @@ public class CacheManagementController {
   }
 
   /**
-   * Get available cache providers.
+   * Return a map of cache providers to their availability flags and descriptions.
+   *
+   * <p>Availability is determined by {@link CacheManagerFactory#isProviderAvailable(CacheProperties.CacheProvider)}
+   * (e.g., Redis requires a {@code RedisConnectionFactory} to be present). </p>
+   *
+   * @return HTTP 200 with current configured provider and availability map
    */
   @GetMapping("/providers")
   public ResponseEntity<Map<String, Object>> getAvailableProviders() {
@@ -176,41 +246,38 @@ public class CacheManagementController {
   }
 
   /**
-   * Switch cache provider at runtime.
-   * <p>
-   * This method atomically switches the underlying cache manager delegate,
-   * ensuring all subsequent cache operations use the new provider.
+   * Switch the cache provider at runtime.
+   *
+   * <p><strong>Current behavior</strong> (by design of this controller):
+   * updates {@link CacheProperties#setProvider(CacheProperties.CacheProvider)} first, then creates a new manager
+   * and atomically switches the delegate. If manager creation fails, the switch is not applied and the old manager
+   * stays active; however the configured provider value may already have been updated (see suggestions). </p>
+   *
+   * @param provider provider name (case-insensitive): CAFFEINE | REDIS | TWO_LEVEL | NOOP
+   * @return HTTP 200 on success; HTTP 400 for invalid/unavailable provider; HTTP 500 on error
    */
   @PostMapping("/providers/{provider}")
   public ResponseEntity<Map<String, Object>> switchCacheProvider(@PathVariable String provider) {
     try {
-      CacheProperties.CacheProvider newProvider;
-      try {
-        newProvider = CacheProperties.CacheProvider.valueOf(provider.toUpperCase());
-      } catch (IllegalArgumentException e) {
-        return ResponseEntity.badRequest()
-            .body(Map.of("error", "Invalid provider: " + provider,
-                "availableProviders", Arrays.stream(CacheProperties.CacheProvider.values())
-                    .map(Enum::name).toList()));
-      }
+      CacheProperties.CacheProvider newProvider = CacheProperties.CacheProvider.valueOf(provider.toUpperCase());
 
       // Check if provider is available
       if (!cacheManagerFactory.isProviderAvailable(newProvider)) {
         return ResponseEntity.badRequest()
             .body(Map.of("error", "Provider not available: " + provider,
-                "reason", getProviderUnavailableReason(newProvider)));
+                        "reason", getProviderUnavailableReason(newProvider)));
       }
-
-      CacheProperties.CacheProvider oldProvider = cacheProperties.getProvider();
-
-      // Update the provider configuration
-      cacheProperties.setProvider(newProvider);
-      log.info("Switching cache provider from {} to {}", oldProvider, newProvider);
 
       // Create new manager and switch the delegate atomically
       CacheManager newManager = cacheManagerFactory.createCacheManager();
-      delegatingCacheManager.switchCacheManager(newManager);
       
+      CacheProperties.CacheProvider oldProvider = cacheProperties.getProvider();
+      delegatingCacheManager.switchCacheManager(newManager);
+      log.info("Switching cache provider from {} to {}", oldProvider, newProvider);
+
+      // Update the provider configuration
+      cacheProperties.setProvider(newProvider);
+
       log.info("Successfully switched cache provider from {} to {}", oldProvider, newProvider);
 
       Map<String, Object> response = Map.of(
@@ -221,23 +288,33 @@ public class CacheManagementController {
           "cacheManagerType", newManager.getClass().getSimpleName());
 
       return ResponseEntity.ok(response);
+    } catch (IllegalArgumentException iae) {
+      return ResponseEntity.badRequest().body(Map.of("error", "Invalid provider: " + provider));
     } catch (Exception e) {
       log.error("Error switching cache provider to: {}", provider, e);
-
-      // Note: No rollback needed as switchCacheManager is atomic
-      // If newManager creation fails, the old manager remains active
-      Map<String, Object> error = Map.of(
+      return ResponseEntity.internalServerError().body(Map.of(
           "error", "Failed to switch cache provider",
           "provider", provider,
-          "details", e.getMessage(),
-          "currentProvider", cacheProperties.getProvider().name());
-
-      return ResponseEntity.internalServerError().body(error);
+          "details", e.getMessage()));
     }
   }
 
   /**
-   * Update cache configuration at runtime.
+   * Update portions of the cache configuration at runtime.
+   *
+   * <p>Supported updates:</p>
+   * <ul>
+   *   <li><b>provider</b>: switch desired provider in {@link CacheProperties} (availability checked).</li>
+   *   <li><b>enableFallback</b>: toggle global fallback flag.</li>
+   *   <li><b>cacheTtl</b>: map of {@code cacheName -> ISO-8601 Duration} (e.g., {@code PT2M}, {@code PT30S}).
+   *       Parsed via {@link java.time.Duration#parse(CharSequence)}. </li>
+   * </ul>
+   *
+   * <p><strong>Important</strong>: this endpoint mutates configuration but does <em>not</em> rebuild the current
+   * providers. TTL/provider changes take effect after you create/switch a manager accordingly. </p>
+   *
+   * @param configUpdates JSON map of updates
+   * @return HTTP 200 with applied changes; HTTP 400 for invalid input; HTTP 500 on error
    */
   @PutMapping("/config")
   public ResponseEntity<Map<String, Object>> updateCacheConfig(@RequestBody Map<String, Object> configUpdates) {
@@ -283,7 +360,7 @@ public class CacheManagementController {
             if (cacheProperties.getCaches().containsKey(cacheName)) {
               try {
                 String ttlStr = value.toString();
-                java.time.Duration newTtl = java.time.Duration.parse(ttlStr);
+                java.time.Duration newTtl = java.time.Duration.parse(ttlStr); // ISO-8601 (e.g., PT10M, PT30S)
                 java.time.Duration oldTtl = cacheProperties.getCaches().get(cacheName).getTtl();
                 cacheProperties.getCaches().get(cacheName).setTtl(newTtl);
                 ttlChanges.put(cacheName, Map.of("old", oldTtl.toString(), "new", newTtl.toString()));
@@ -315,7 +392,12 @@ public class CacheManagementController {
   }
 
   /**
-   * Test cache functionality.
+   * Perform a simple put/get/evict cycle against the {@code service-instances} cache to verify that
+   * the current provider is functioning end-to-end.
+   *
+   * <p>Returns the generated key/value and the retrieved value (if any). </p>
+   *
+   * @return HTTP 200 with test results; HTTP 400 if the test cache does not exist; HTTP 500 on error
    */
   @PostMapping("/test")
   public ResponseEntity<Map<String, Object>> testCache() {
@@ -356,6 +438,14 @@ public class CacheManagementController {
     }
   }
 
+  /**
+   * Build a summary of cache types and their native cache types, as returned by the current manager.
+   *
+   * <p>When the underlying cache is Spring's Caffeine adapter, {@code getNativeCache()} returns the
+   * actual Caffeine {@code Cache} implementation class. </p>
+   *
+   * @return a map from cacheName → {type, nativeType}
+   */
   private Map<String, Object> getCacheStatistics() {
     Map<String, Object> stats = new HashMap<>();
 
@@ -372,11 +462,13 @@ public class CacheManagementController {
   }
 
   /**
-   * Detects the current provider based on the actual CacheManager delegate.
+   * Determine the current provider by mapping the delegate type of the active {@link CacheManager}.
+   *
+   * @return one of CAFFEINE | REDIS | TWO_LEVEL | NOOP | or the raw delegate type if unknown
    */
   private String getCurrentProviderFromManager() {
     String managerType = delegatingCacheManager.getCurrentDelegateType();
-    
+
     // Map manager types to provider names
     switch (managerType) {
       case "CaffeineCacheManager":
@@ -392,6 +484,12 @@ public class CacheManagementController {
     }
   }
 
+  /**
+   * Human-readable description for each provider.
+   *
+   * @param provider enum value
+   * @return short description
+   */
   private String getProviderDescription(CacheProperties.CacheProvider provider) {
     switch (provider) {
       case CAFFEINE:
@@ -407,6 +505,12 @@ public class CacheManagementController {
     }
   }
 
+  /**
+   * Reason string for unavailability of a provider, primarily used for HTTP 400 responses.
+   *
+   * @param provider enum value
+   * @return textual reason
+   */
   private String getProviderUnavailableReason(CacheProperties.CacheProvider provider) {
     switch (provider) {
       case REDIS:

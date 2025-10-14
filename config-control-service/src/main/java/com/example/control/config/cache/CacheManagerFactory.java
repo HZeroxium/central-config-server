@@ -23,21 +23,71 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Factory for creating different types of cache managers based on
- * configuration.
- * Supports dynamic switching between cache providers with fallback mechanisms.
+ * Factory for creating {@link CacheManager} instances according to {@link CacheProperties}.
+ * <p>
+ * <strong>Goals</strong>
+ * <ul>
+ *   <li>Provide a single place to instantiate cache providers (Caffeine, Redis, Two-level, NoOp).</li>
+ *   <li>Support dynamic provider switching and graceful fallback based on configuration &amp; environment.</li>
+ *   <li>Apply sensible defaults and per-cache overrides (e.g., TTL/null caching for Redis).</li>
+ * </ul>
+ *
+ * <h2>Providers</h2>
+ * <ul>
+ *   <li><b>Caffeine</b> — in-memory, ultra-low latency. Built via {@link CaffeineCacheManager}.</li>
+ *   <li><b>Redis</b> — distributed, cross-instance sharing. Built via {@link RedisCacheManager} with {@link RedisCacheConfiguration}.</li>
+ *   <li><b>Two-level</b> — L1: Caffeine, L2: Redis, composed by {@code TwoLevelCacheManager} for read-through &amp; optional write-through. (See your {@code TwoLevelCacheManager}).</li>
+ *   <li><b>NoOp</b> — disabled caching for troubleshooting or environments where cache is unavailable.</li>
+ * </ul>
+ *
+ * <h2>Serialization (Redis)</h2>
+ * Values are serialized with {@link GenericJackson2JsonRedisSerializer} using a tuned {@link ObjectMapper}:
+ * <ul>
+ *   <li>Registers {@link JavaTimeModule} to properly handle {@code java.time}.</li>
+ *   <li>Enables guarded polymorphic typing via {@link ObjectMapper#activateDefaultTyping}: required for heterogeneous value types,
+ *       but should be <em>carefully constrained</em> (see Security notes).</li>
+ * </ul>
+ *
+ * <h2>Security Note (Jackson Typing)</h2>
+ * Global default typing can be risky if overbroad; this class uses {@link BasicPolymorphicTypeValidator} but you should restrict base types
+ * or packages to your domain model to minimize gadget exposure.
+ *
+ * <p>Instances returned by this factory comply with Spring's {@link CacheManager} contract
+ * (e.g., {@link CacheManager#getCache(String)}, {@link CacheManager#getCacheNames()}).
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class CacheManagerFactory {
 
+  /**
+   * Application-level cache properties, including provider selection, L1/L2 settings,
+   * and per-cache overrides (e.g., TTL/null handling).
+   */
   private final CacheProperties cacheProperties;
+
+  /**
+   * Optional Redis connection factory. Absence typically means Redis is not available
+   * in the current runtime (local dev/test or degraded environments).
+   */
   private final Optional<RedisConnectionFactory> redisConnectionFactory;
 
   /**
-   * Creates a cache manager based on the configured provider with fallback
-   * support.
+   * Create a {@link CacheManager} according to {@link CacheProperties#getProvider()} and
+   * the current environment, applying graceful fallback when enabled.
+   * <p>
+   * <strong>Behavior</strong>
+   * <ul>
+   *   <li>CAFFEINE → {@link #createCaffeineCacheManager()}</li>
+   *   <li>REDIS → {@link #createRedisCacheManagerWithFallback()}</li>
+   *   <li>TWO_LEVEL → {@link #createTwoLevelCacheManager()}</li>
+   *   <li>NOOP → {@link #createNoOpCacheManager()}</li>
+   *   <li>Unknown → log warning, fall back to Caffeine</li>
+   * </ul>
+   * If an unexpected error occurs during construction and <code>enableFallback=true</code>,
+   * a {@link NoOpCacheManager} is returned; otherwise the exception is propagated.
+   *
+   * @return a fully initialized {@link CacheManager} (possibly a fallback)
    */
   public CacheManager createCacheManager() {
     CacheProperties.CacheProvider provider = cacheProperties.getProvider();
@@ -72,7 +122,19 @@ public class CacheManagerFactory {
   }
 
   /**
-   * Creates a Caffeine-based cache manager.
+   * Build a {@link CaffeineCacheManager} using global Caffeine policies from {@link CacheProperties.CaffeineConfig}.
+   * <p>
+   * Applied settings:
+   * <ul>
+   *   <li>{@code maximumSize}</li>
+   *   <li>{@code expireAfterWrite}</li>
+   *   <li>{@code expireAfterAccess}</li>
+   *   <li>{@code recordStats} (optional)</li>
+   *   <li>Static cache names via {@link CaffeineCacheManager#setCacheNames}</li>
+   * </ul>
+   * Note: These policies are global for all configured Caffeine caches managed here.
+   *
+   * @return a configured {@link CaffeineCacheManager}
    */
   public CacheManager createCaffeineCacheManager() {
     log.info("Creating Caffeine cache manager");
@@ -91,14 +153,19 @@ public class CacheManagerFactory {
     CaffeineCacheManager manager = new CaffeineCacheManager();
     manager.setCaffeine(builder);
 
-    // Configure cache names
+    // Configure cache names (static mode).
     manager.setCacheNames(cacheProperties.getCaches().keySet());
 
     return manager;
   }
 
   /**
-   * Creates a Redis-based cache manager with Caffeine fallback.
+   * Attempt to create a {@link RedisCacheManager}; if Redis is not available or fails to initialize,
+   * optionally fall back to Caffeine according to {@link CacheProperties.RedisConfig#isFallbackToCaffeine()}
+   * and {@link CacheProperties#isEnableFallback()}.
+   *
+   * @return a {@link RedisCacheManager} or a fallback {@link CacheManager}
+   * @throws IllegalStateException when Redis is unavailable and fallback is disabled
    */
   public CacheManager createRedisCacheManagerWithFallback() {
     if (redisConnectionFactory.isEmpty()) {
@@ -124,21 +191,32 @@ public class CacheManagerFactory {
   }
 
   /**
-   * Creates a Redis cache manager.
+   * Create a {@link RedisCacheManager} using {@link RedisCacheConfiguration} defaults and per-cache overrides.
+   * <p>
+   * <strong>Serialization</strong> uses {@link GenericJackson2JsonRedisSerializer} with a custom {@link ObjectMapper}
+   * that registers {@link JavaTimeModule} and activates guarded default typing via {@link BasicPolymorphicTypeValidator}.
+   * (Required when your cached values are heterogeneous, e.g., interfaces/abstract classes.)
+   * <p>
+   * <strong>Per-Cache Overrides</strong>:
+   * For each configured cache name in {@link CacheProperties#getCaches()}, applies an individual TTL and
+   * optional {@code allowNullValues=false}. Other aspects inherit from {@code defaultConfig}.
+   *
+   * @param connectionFactory the Redis connection factory (must be present)
+   * @return a configured {@link RedisCacheManager}
    */
   private CacheManager createRedisCacheManager(RedisConnectionFactory connectionFactory) {
     CacheProperties.RedisConfig config = cacheProperties.getRedis();
 
-    // Configure JSON serialization
+    // Configure JSON serialization (values)
     ObjectMapper mapper = new ObjectMapper();
-    mapper.registerModule(new JavaTimeModule());
+    mapper.registerModule(new JavaTimeModule()); // java.time support
     BasicPolymorphicTypeValidator ptv = BasicPolymorphicTypeValidator.builder()
-        .allowIfBaseType(Object.class)
+        .allowIfBaseType(Object.class) // NOTE: broad; see Security Note in class JavaDoc
         .build();
     mapper.activateDefaultTyping(ptv, ObjectMapper.DefaultTyping.NON_FINAL, JsonTypeInfo.As.PROPERTY);
     GenericJackson2JsonRedisSerializer serializer = new GenericJackson2JsonRedisSerializer(mapper);
 
-    // Default config allows null values by default, only disable if explicitly configured
+    // Default config (value serializer + default TTL). Key serializer can also be customized if needed.
     RedisCacheConfiguration defaultConfig = RedisCacheConfiguration.defaultCacheConfig()
         .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(serializer))
         .entryTtl(config.getDefaultTtl());
@@ -169,7 +247,13 @@ public class CacheManagerFactory {
   }
 
   /**
-   * Creates a two-level cache manager (L1: Caffeine, L2: Redis).
+   * Create a two-level cache manager (L1: Caffeine; L2: Redis).
+   * <p>
+   * If Redis is unavailable or fails to initialize, the returned manager uses L1 only
+   * and logs a warning. Read-through and (optional) write-through semantics are enforced
+   * by the {@code TwoLevelCacheManager} / {@code TwoLevelCache}. (See its Javadoc for details.)
+   *
+   * @return a {@link CacheManager} that composes L1/L2 tiers
    */
   public CacheManager createTwoLevelCacheManager() {
     log.info("Creating two-level cache manager");
@@ -189,7 +273,10 @@ public class CacheManagerFactory {
   }
 
   /**
-   * Creates a no-op cache manager (disables caching).
+   * Create a {@link NoOpCacheManager} to effectively disable caching.
+   * Useful for tests, local dev, or when feature-flagging cache off while keeping code paths intact.
+   *
+   * @return a {@link NoOpCacheManager} instance
    */
   public CacheManager createNoOpCacheManager() {
     log.info("Creating NoOp cache manager (caching disabled)");
@@ -197,7 +284,13 @@ public class CacheManagerFactory {
   }
 
   /**
-   * Validates if the specified provider is available.
+   * Determine if the given provider is operationally available based on environment capabilities.
+   * <p>
+   * For CAFFEINE/NOOP, availability is unconditional. For REDIS/TWO_LEVEL, a redis connection factory
+   * must be present.
+   *
+   * @param provider the provider to check
+   * @return {@code true} if the provider is usable in the current environment; {@code false} otherwise
    */
   public boolean isProviderAvailable(CacheProperties.CacheProvider provider) {
     switch (provider) {

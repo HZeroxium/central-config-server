@@ -2,7 +2,6 @@ package com.example.control.config.observability;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.config.MeterFilter;
-import io.micrometer.tracing.Tracer;
 import io.micrometer.tracing.exporter.SpanExportingPredicate;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

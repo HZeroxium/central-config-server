@@ -61,9 +61,9 @@ spring:
           - config-control
           - management
     bus:
-      enabled: true
+      enabled: false
       refresh:
-        enabled: true
+        enabled: false  
 
 # New Consul SDK Configuration
 consulclient:
@@ -227,6 +227,8 @@ management:
       enabled: true
     mongo:
       enabled: true
+    observability:
+      enabled: false
   prometheus:
     metrics:
       export:

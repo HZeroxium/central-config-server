@@ -8,16 +8,8 @@
         <processorPath useClasspath="false">
           <entry name="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.projectlombok/lombok/1.18.32/17d46b3e205515e1e8efd3ee4d57ce8018914163/lombok-1.18.32.jar" />
         </processorPath>
-        <module name="thrift-demo.user-rest-spring-service.main" />
-        <module name="thrift-demo.user-watcher-service.main" />
         <module name="thrift-demo.zcm-spring-sdk-starter.test" />
-        <module name="thrift-demo.user-thrift-server-service.user-contracts.main" />
-        <module name="thrift-demo.user-rest-spring-service.test" />
-        <module name="thrift-demo.user-thrift-server-service.main" />
-        <module name="thrift-demo.user-watcher-service.test" />
-        <module name="thrift-demo.spring-boot-admin-server.main" />
         <module name="thrift-demo.config-control-service.main" />
-        <module name="thrift-demo.user-thrift-server-service.test" />
         <module name="thrift-demo.config-server.main" />
       </profile>
       <profile name="Gradle Imported" enabled="true">
@@ -26,6 +18,7 @@
           <entry name="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.projectlombok/lombok/1.18.32/17d46b3e205515e1e8efd3ee4d57ce8018914163/lombok-1.18.32.jar" />
           <entry name="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.springframework.boot/spring-boot-configuration-processor/3.3.13/faf31cf602c6c5cd0ddd0f2715a46f94129b5e69/spring-boot-configuration-processor-3.3.13.jar" />
         </processorPath>
+        <module name="thrift-demo.sample-service.main" />
         <module name="thrift-demo.zcm-spring-sdk-starter.main" />
       </profile>
     </annotationProcessing>
@@ -36,9 +29,24 @@
       <module name="thrift-demo.shared-thrift-definitions" target="21" />
       <module name="thrift-demo.shared-thrift-definitions.main" target="21" />
       <module name="thrift-demo.shared-thrift-definitions.test" target="21" />
+      <module name="thrift-demo.spring-boot-admin-server" target="21" />
+      <module name="thrift-demo.spring-boot-admin-server.main" target="21" />
+      <module name="thrift-demo.spring-boot-admin-server.test" target="21" />
+      <module name="thrift-demo.user-rest-spring-service" target="21" />
+      <module name="thrift-demo.user-rest-spring-service.main" target="21" />
+      <module name="thrift-demo.user-rest-spring-service.test" target="21" />
       <module name="thrift-demo.user-rpc-thrift-service" target="21" />
       <module name="thrift-demo.user-rpc-thrift-service.main" target="21" />
       <module name="thrift-demo.user-rpc-thrift-service.test" target="21" />
+      <module name="thrift-demo.user-thrift-server-service" target="21" />
+      <module name="thrift-demo.user-thrift-server-service.main" target="21" />
+      <module name="thrift-demo.user-thrift-server-service.test" target="21" />
+      <module name="thrift-demo.user-thrift-server-service.user-contracts" target="21" />
+      <module name="thrift-demo.user-thrift-server-service.user-contracts.main" target="21" />
+      <module name="thrift-demo.user-thrift-server-service.user-contracts.test" target="21" />
+      <module name="thrift-demo.user-watcher-service" target="21" />
+      <module name="thrift-demo.user-watcher-service.main" target="21" />
+      <module name="thrift-demo.user-watcher-service.test" target="21" />
     </bytecodeTargetLevel>
   </component>
   <component name="JavacSettings">
@@ -49,6 +57,9 @@
       <module name="thrift-demo.config-server" options="-parameters" />
       <module name="thrift-demo.config-server.main" options="-parameters" />
       <module name="thrift-demo.config-server.test" options="-parameters" />
+      <module name="thrift-demo.sample-service" options="-parameters" />
+      <module name="thrift-demo.sample-service.main" options="-parameters" />
+      <module name="thrift-demo.sample-service.test" options="-parameters" />
       <module name="thrift-demo.spring-boot-admin-server" options="-parameters" />
       <module name="thrift-demo.spring-boot-admin-server.main" options="-parameters" />
       <module name="thrift-demo.spring-boot-admin-server.test" options="-parameters" />

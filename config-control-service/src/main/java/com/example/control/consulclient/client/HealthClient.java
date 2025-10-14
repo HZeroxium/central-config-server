@@ -4,7 +4,6 @@ import com.example.control.consulclient.core.ConsulResponse;
 import com.example.control.consulclient.core.QueryOptions;
 import com.example.control.consulclient.model.HealthCheck;
 import com.example.control.consulclient.model.HealthService;
-import com.example.control.consulclient.model.Node;
 
 import java.util.List;
 
