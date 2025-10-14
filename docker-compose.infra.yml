@@ -1,0 +1,452 @@
+# docker-compose.infra.yml
+# Infrastructure services for thrift-demo project
+# Port range: 20000-25000 (server allocation)
+# Network: infra-network (bridge)
+
+services:
+  # ============================================================================
+  # Data Stores
+  # ============================================================================
+  
+  mongodb:
+    image: mongo:8.0
+    container_name: mongodb
+    ports:
+      - "20017:27017"
+    environment:
+      - MONGO_INITDB_DATABASE=config_control
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - infra-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  mongo-express:
+    image: mongo-express:latest
+    container_name: mongo-express
+    ports:
+      - "20081:8081"
+    environment:
+      ME_CONFIG_MONGODB_URL: mongodb://mongodb:27017/config_control
+      ME_CONFIG_MONGODB_ENABLE_ADMIN: "true"
+      ME_CONFIG_BASICAUTH_USERNAME: admin
+      ME_CONFIG_BASICAUTH_PASSWORD: admin123
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - infra-network
+    restart: unless-stopped
+
+  redis:
+    image: redis:latest
+    container_name: redis
+    ports:
+      - "20379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - infra-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  redis-insight:
+    image: redis/redisinsight:latest
+    container_name: redis-insight
+    ports:
+      - "20001:5540"
+    volumes:
+      - redisinsight_data:/data
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - infra-network
+    restart: unless-stopped
+
+  # ============================================================================
+  # Messaging
+  # ============================================================================
+
+  kafka:
+    image: bitnami/kafka:3.9
+    container_name: kafka
+    ports:
+      - "20092:9092"
+      - "20094:9094"
+    environment:
+      - KAFKA_CFG_NODE_ID=1
+      - KAFKA_CFG_PROCESS_ROLES=broker,controller
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093,PLAINTEXT_HOST://:9094
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:20094
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@kafka:9093
+      - KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+      - KAFKA_CFG_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1
+      - KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR=1
+      - ALLOW_PLAINTEXT_LISTENER=yes
+    volumes:
+      - kafka_data:/bitnami/kafka
+    networks:
+      - infra-network
+    healthcheck:
+      test: ["CMD", "kafka-topics.sh", "--bootstrap-server", "kafka:9092", "--list"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  kafbat-ui:
+    image: ghcr.io/kafbat/kafka-ui:main
+    container_name: kafbat-ui
+    ports:
+      - "20084:8080"
+    environment:
+      - DYNAMIC_CONFIG_ENABLED=true
+      - KAFKA_CLUSTERS_0_NAME=infra-kafka
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9092
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - infra-network
+    restart: unless-stopped
+
+  # ============================================================================
+  # Service Discovery
+  # ============================================================================
+
+  consul:
+    image: hashicorp/consul:1.17
+    container_name: consul
+    ports:
+      - "20500:8500"
+    environment:
+      - CONSUL_BIND_INTERFACE=eth0
+    command: >
+      consul agent -dev 
+      -client=0.0.0.0 
+      -ui 
+      -log-level=info 
+      -data-dir=/consul/data
+    volumes:
+      - consul_data:/consul/data
+    networks:
+      - infra-network
+    healthcheck:
+      test: ["CMD", "consul", "members"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  # ============================================================================
+  # Object Storage
+  # ============================================================================
+
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    ports:
+      - "20000:9000"
+      - "20002:9001"
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - infra-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  minio-client:
+    image: minio/mc:latest
+    container_name: minio-client
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        until mc alias set local http://minio:9000 minioadmin minioadmin; do
+          echo 'MinIO not ready yet, waiting...'
+          sleep 2
+        done
+        mc mb local/loki-data --ignore-existing
+        mc mb local/mimir-data --ignore-existing
+        mc mb local/tempo-data --ignore-existing
+        echo 'MinIO buckets initialized successfully'
+        mc ls local/
+        # Keep container running for test access
+        echo 'MinIO client ready for test scripts'
+        tail -f /dev/null
+    networks:
+      - infra-network
+    restart: unless-stopped
+
+  # ============================================================================
+  # Observability - LGTM Stack
+  # ============================================================================
+
+  # Loki - Log Aggregation
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    ports:
+      - "23100:3100"
+    command:
+      - -config.file=/etc/loki/loki-config.yml
+    volumes:
+      - ./config/loki/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - loki_data:/loki
+    depends_on:
+      minio:
+        condition: service_healthy
+    networks:
+      - infra-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3100/ready"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 120s
+    restart: unless-stopped
+
+  # Grafana - Visualization
+  grafana:
+    image: grafana/grafana:main-ubuntu
+    container_name: grafana
+    ports:
+      - "23000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
+      - GF_FEATURE_TOGGLES_ENABLE=traceqlEditor,correlations
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./config/grafana/grafana.ini:/etc/grafana/grafana.ini:ro
+      - ./config/grafana/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+      - ./config/grafana/provisioning/dashboards/dashboard_providers.yml:/etc/grafana/provisioning/dashboards/dashboard_providers.yml:ro
+      - ./config/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      prometheus:
+        condition: service_started
+      loki:
+        condition: service_started
+      tempo:
+        condition: service_started
+      mimir:
+        condition: service_started
+    networks:
+      - infra-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  # Tempo - Distributed Tracing
+  tempo:
+    image: grafana/tempo:latest
+    container_name: tempo
+    ports:
+      - "23200:3200"    # HTTP
+      - "24317:4317"    # OTLP gRPC
+      - "24318:4318"    # OTLP HTTP
+      - "24250:14250"   # Jaeger gRPC
+      - "24268:14268"   # Jaeger HTTP
+      - "26831:6831"    # Jaeger UDP
+      - "26832:6832"    # Jaeger UDP
+      - "29411:9411"    # Zipkin
+    command:
+      - -config.file=/etc/tempo/tempo-config.yml
+    volumes:
+      - ./config/tempo/tempo-config.yml:/etc/tempo/tempo-config.yml:ro
+      - tempo_data:/var/tempo
+    depends_on:
+      minio:
+        condition: service_healthy
+    networks:
+      - infra-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3200/ready"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 120s
+    restart: unless-stopped
+
+  # Mimir - Metrics Backend
+  mimir:
+    image: grafana/mimir:latest
+    container_name: mimir
+    ports:
+      - "23009:9009"    # HTTP API
+      - "23095:9095"    # gRPC
+    command:
+      - -config.file=/etc/mimir/mimir-config.yml
+      - -server.http-listen-port=9009
+    volumes:
+      - ./config/mimir/mimir-config.yml:/etc/mimir/mimir-config.yml:ro
+      - mimir_data:/mimir
+    depends_on:
+      minio:
+        condition: service_healthy
+    networks:
+      - infra-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9009/ready"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 120s
+    restart: unless-stopped
+
+  # Alloy - Unified Telemetry Collector
+  alloy:
+    image: grafana/alloy:v1.11.2
+    container_name: alloy
+    ports:
+      - "22345:12345"  # Prometheus metrics & UI
+      - "24327:4317"   # OTLP gRPC
+      - "24328:4318"   # OTLP HTTP
+    command:
+      - run
+      - /etc/alloy/config.alloy
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/alloy
+    volumes:
+      - ./config/alloy/alloy-config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - alloy_data:/alloy
+    depends_on:
+      - loki
+      - tempo
+      - mimir
+    networks:
+      - infra-network
+    restart: unless-stopped
+
+  # Prometheus - Metrics Scraping & Remote Write
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    container_name: prometheus
+    ports:
+      - "23090:9090"
+    volumes:
+      - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./config/prometheus/prometheus-rules.yml:/etc/prometheus/rules/prometheus-rules.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/etc/prometheus/console_libraries"
+      - "--web.console.templates=/etc/prometheus/consoles"
+      - "--storage.tsdb.retention.time=200h"
+      - "--web.enable-lifecycle"
+      - "--web.enable-admin-api"
+      - "--enable-feature=exemplar-storage"
+    depends_on:
+      - mimir
+    networks:
+      - infra-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  # cAdvisor - Container Metrics
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.52.0
+    container_name: cadvisor
+    ports:
+      - "20082:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    privileged: true
+    devices:
+      - /dev/kmsg
+    networks:
+      - infra-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+# ============================================================================
+# Volumes
+# ============================================================================
+
+volumes:
+  mongodb_data:
+    name: infra_mongodb_data
+  redis_data:
+    name: infra_redis_data
+  redisinsight_data:
+    name: infra_redisinsight_data
+  kafka_data:
+    name: infra_kafka_data
+  consul_data:
+    name: infra_consul_data
+  minio_data:
+    name: infra_minio_data
+  loki_data:
+    name: infra_loki_data
+  grafana_data:
+    name: infra_grafana_data
+  tempo_data:
+    name: infra_tempo_data
+  mimir_data:
+    name: infra_mimir_data
+  alloy_data:
+    name: infra_alloy_data
+  prometheus_data:
+    name: infra_prometheus_data
+
+# ============================================================================
+# Networks
+# ============================================================================
+
+networks:
+  infra-network:
+    name: infra-network
+    driver: bridge
+
