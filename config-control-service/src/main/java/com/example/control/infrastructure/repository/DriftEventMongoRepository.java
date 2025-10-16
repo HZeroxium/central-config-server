@@ -12,8 +12,9 @@ import java.util.List;
  * <p>
  * Provides data access operations for drift detection, tracking, and reporting.
  */
+@Deprecated
 @Repository
-public interface DriftEventRepository extends MongoRepository<DriftEventDocument, String> {
+public interface DriftEventMongoRepository extends MongoRepository<DriftEventDocument, String> {
 
   /**
    * Retrieves all drift events associated with a specific service.

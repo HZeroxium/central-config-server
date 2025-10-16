@@ -1,17 +1,17 @@
 package com.example.control.application.service;
 
 import com.example.control.domain.DriftEvent;
-import com.example.control.infrastructure.repository.DriftEventDocument;
-import com.example.control.infrastructure.repository.DriftEventRepository;
+import com.example.control.domain.port.DriftEventRepositoryPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Optional;
 
 /**
  * Application service for managing {@link DriftEvent} lifecycle operations.
@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class DriftEventService {
 
-  private final DriftEventRepository repository;
+  private final DriftEventRepositoryPort repository;
 
   /**
    * Saves a new drift event to the database.
@@ -33,9 +33,32 @@ public class DriftEventService {
    */
   @CacheEvict(value = "drift-events", allEntries = true)
   public DriftEvent save(DriftEvent event) {
-    DriftEventDocument document = DriftEventDocument.fromDomain(event);
-    repository.save(document);
-    return document.toDomain();
+    return repository.save(event);
+  }
+
+  /**
+   * Retrieves a page of drift events using flexible filters and pagination.
+   * <p>
+   * Sorting is applied via {@link Pageable#getSort()} and delegated to the
+   * Mongo adapter using {@code query.with(pageable)}.
+   *
+   * @param filter   optional filter parameters encapsulated in a record
+   * @param pageable pagination and sorting information
+   * @return a page of {@link DriftEvent}
+   */
+  @Cacheable(value = "drift-events", key = "'list:' + #filter.hashCode() + ':' + #pageable")
+  public Page<DriftEvent> list(DriftEventRepositoryPort.DriftEventFilter filter, Pageable pageable) {
+    return repository.list(filter, pageable);
+  }
+
+  /**
+   * Finds a drift event by its identifier.
+   *
+   * @param id event identifier
+   * @return optional {@link DriftEvent}
+   */
+  public Optional<DriftEvent> findById(String id) {
+    return repository.findById(id);
   }
 
   /**
@@ -45,9 +68,10 @@ public class DriftEventService {
    */
   @Cacheable(value = "drift-events", key = "'unresolved'")
   public List<DriftEvent> findUnresolved() {
-    return repository.findUnresolvedEvents().stream()
-        .map(DriftEventDocument::toDomain)
-        .collect(Collectors.toList());
+    DriftEventRepositoryPort.DriftEventFilter filter = new DriftEventRepositoryPort.DriftEventFilter(
+        null, null, null, null, null, null, true);
+    Page<DriftEvent> page = repository.list(filter, Pageable.unpaged());
+    return page.getContent();
   }
 
   /**
@@ -57,9 +81,9 @@ public class DriftEventService {
    * @return list of unresolved events
    */
   public List<DriftEvent> findUnresolvedByService(String serviceName) {
-    return repository.findUnresolvedEventsByService(serviceName).stream()
-        .map(DriftEventDocument::toDomain)
-        .collect(Collectors.toList());
+    DriftEventRepositoryPort.DriftEventFilter filter = new DriftEventRepositoryPort.DriftEventFilter(
+        serviceName, null, null, null, null, null, true);
+    return repository.list(filter, Pageable.unpaged()).getContent();
   }
 
   /**
@@ -70,9 +94,9 @@ public class DriftEventService {
    */
   @Cacheable(value = "drift-events", key = "#serviceName")
   public List<DriftEvent> findByService(String serviceName) {
-    return repository.findByServiceName(serviceName).stream()
-        .map(DriftEventDocument::toDomain)
-        .collect(Collectors.toList());
+    DriftEventRepositoryPort.DriftEventFilter filter = new DriftEventRepositoryPort.DriftEventFilter(
+        serviceName, null, null, null, null, null, null);
+    return repository.list(filter, Pageable.unpaged()).getContent();
   }
 
   /**
@@ -83,9 +107,9 @@ public class DriftEventService {
    * @return list of drift events
    */
   public List<DriftEvent> findByServiceAndInstance(String serviceName, String instanceId) {
-    return repository.findByServiceNameAndInstanceId(serviceName, instanceId).stream()
-        .map(DriftEventDocument::toDomain)
-        .collect(Collectors.toList());
+    DriftEventRepositoryPort.DriftEventFilter filter = new DriftEventRepositoryPort.DriftEventFilter(
+        serviceName, instanceId, null, null, null, null, null);
+    return repository.list(filter, Pageable.unpaged()).getContent();
   }
 
   /**
@@ -94,7 +118,7 @@ public class DriftEventService {
    * @return total drift event count
    */
   public long countAll() {
-    return repository.count();
+    return repository.countAll();
   }
 
   /**
@@ -104,7 +128,7 @@ public class DriftEventService {
    * @return count of events with the given status
    */
   public long countByStatus(DriftEvent.DriftStatus status) {
-    return repository.countByStatus(status.name());
+    return repository.countByStatus(status);
   }
 
   /**
@@ -118,14 +142,6 @@ public class DriftEventService {
    */
   @CacheEvict(value = "drift-events", allEntries = true)
   public void resolveForInstance(String serviceName, String instanceId) {
-    repository.findByServiceNameAndInstanceId(serviceName, instanceId).forEach(doc -> {
-      if (!DriftEvent.DriftStatus.RESOLVED.name().equals(doc.getStatus())) {
-        doc.setStatus(DriftEvent.DriftStatus.RESOLVED.name());
-        doc.setResolvedAt(LocalDateTime.now());
-        doc.setResolvedBy("heartbeat-service");
-        doc.setNotes((doc.getNotes() != null ? doc.getNotes() : "") + " | Auto-resolved via heartbeat");
-        repository.save(doc);
-      }
-    });
+    repository.resolveForInstance(serviceName, instanceId, "heartbeat-service");
   }
 }

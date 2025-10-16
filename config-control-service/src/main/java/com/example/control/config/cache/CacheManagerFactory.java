@@ -221,6 +221,12 @@ public class CacheManagerFactory {
         .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(serializer))
         .entryTtl(config.getDefaultTtl());
 
+    // Apply service-level cache name prefix for Redis
+    String prefix = cacheProperties.getCacheNamePrefix();
+    if (prefix != null && !prefix.isBlank()) {
+      defaultConfig.prefixCacheNameWith(prefix);
+    }
+
     // Configure per-cache settings
     Map<String, RedisCacheConfiguration> cacheConfigs = new HashMap<>();
     cacheProperties.getCaches().forEach((cacheName, cacheConfig) -> {

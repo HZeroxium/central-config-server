@@ -14,8 +14,9 @@ import java.util.Optional;
  * Provides convenience methods and custom MongoDB queries for instance discovery,
  * drift detection, and lifecycle tracking.
  */
+@Deprecated
 @Repository
-public interface ServiceInstanceRepository extends MongoRepository<ServiceInstanceDocument, String> {
+public interface ServiceInstanceMongoRepository extends MongoRepository<ServiceInstanceDocument, String> {
 
   /**
    * Finds all service instances by service name.

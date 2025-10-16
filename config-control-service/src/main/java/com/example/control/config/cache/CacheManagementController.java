@@ -8,6 +8,7 @@ import org.springframework.cache.CacheManager;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -360,8 +361,8 @@ public class CacheManagementController {
             if (cacheProperties.getCaches().containsKey(cacheName)) {
               try {
                 String ttlStr = value.toString();
-                java.time.Duration newTtl = java.time.Duration.parse(ttlStr); // ISO-8601 (e.g., PT10M, PT30S)
-                java.time.Duration oldTtl = cacheProperties.getCaches().get(cacheName).getTtl();
+                Duration newTtl = Duration.parse(ttlStr); // ISO-8601 (e.g., PT10M, PT30S)
+                Duration oldTtl = cacheProperties.getCaches().get(cacheName).getTtl();
                 cacheProperties.getCaches().get(cacheName).setTtl(newTtl);
                 ttlChanges.put(cacheName, Map.of("old", oldTtl.toString(), "new", newTtl.toString()));
               } catch (Exception e) {

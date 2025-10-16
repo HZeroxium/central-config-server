@@ -2,9 +2,9 @@ package com.example.control.api;
 
 import com.example.control.application.ConfigProxyService;
 import com.example.control.infrastructure.repository.DriftEventDocument;
-import com.example.control.infrastructure.repository.DriftEventRepository;
+import com.example.control.infrastructure.repository.DriftEventMongoRepository;
 import com.example.control.infrastructure.repository.ServiceInstanceDocument;
-import com.example.control.infrastructure.repository.ServiceInstanceRepository;
+import com.example.control.infrastructure.repository.ServiceInstanceMongoRepository;
 import io.micrometer.core.annotation.Timed;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -21,7 +21,13 @@ import java.util.stream.Collectors;
 
 /**
  * REST controller for configuration drift detection and management.
+ *
+ * @deprecated Use endpoints under {@code /api/drift-events} and
+ * {@code /api/service-instances} which provide full pageable filtering
+ * via Ports & Adapters. This controller remains for backward compatibility
+ * and will be removed in a future release.
  */
+@Deprecated
 @Slf4j
 @RestController
 @RequestMapping("/api/drift")
@@ -29,8 +35,8 @@ import java.util.stream.Collectors;
 @Tag(name = "Drift", description = "Configuration drift detection and tracking")
 public class DriftController {
 
-    private final ServiceInstanceRepository instanceRepository;
-    private final DriftEventRepository driftEventRepository;
+    private final ServiceInstanceMongoRepository instanceRepository;
+    private final DriftEventMongoRepository driftEventRepository;
     private final ConfigProxyService configProxyService;
 
     @GetMapping

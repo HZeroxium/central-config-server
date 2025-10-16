@@ -342,6 +342,8 @@ public class CacheProperties {
     private CacheProvider providerOverride;
   }
 
+  private String cacheNamePrefix = "config-control-service::";
+
   /**
    * Initializes default per-cache configurations tailored for the {@code config-control-service}.
    * <p>

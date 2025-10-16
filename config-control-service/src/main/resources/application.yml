@@ -117,6 +117,7 @@ app:
       maximum-expected-value: 1m
   cache:
     provider: CAFFEINE  # Default to local cache
+    cache-name-prefix: "{spring.application.name:config-control-service}::"
     enable-fallback: true
     caffeine:
       maximum-size: 10000
@@ -226,7 +227,7 @@ management:
     redis:
       enabled: true
     mongo:
-      enabled: true
+      enabled: false
     observability:
       enabled: false
   prometheus:
