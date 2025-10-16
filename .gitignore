@@ -6,3 +6,8 @@ logs/
 .env
 scripts/
 # test/
+spring-boot-admin-server/*
+user-rest-spring-service/*
+user-thrift-server-service/*
+user-watcher-service/*
+.cursor/plans/

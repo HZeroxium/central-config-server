@@ -1,0 +1,80 @@
+services:
+  postgres:
+    image: postgres:18.0-alpine
+    container_name: kc-postgres
+    environment:
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: keycloak
+      POSTGRES_DB: keycloak
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak -d keycloak"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.4.0
+    container_name: keycloak
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Bootstrap admin (bắt buộc khi chạy container)
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+
+      # Database
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: keycloak
+
+      # Tối ưu/giám sát
+      KC_HEALTH_ENABLED: "true"
+      KC_METRICS_ENABLED: "true"
+      KC_PROXY: edge  # nếu chạy sau reverse proxy
+
+    command:
+      - start
+      # - --optimized
+      - --http-enabled=true          # dev/proxy: bật HTTP. Prod nên cấu hình TLS sau reverse proxy
+      - --hostname-strict=false
+      # - --hostname-url=https://auth.example.com   # cấu hình khi có domain TLS
+
+    ports:
+      - "8080:8080"   # HTTP (dev)
+      - "9000:9000"   # health/metrics
+    volumes:
+      - keycloak_data:/opt/keycloak/data
+    restart: unless-stopped
+    # Healthcheck Keycloak (ready)
+    healthcheck:
+      test: ["CMD", "bash", "-c", "curl -fsS http://localhost:9000/health/ready || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+
+  pgadmin:
+    image: dpage/pgadmin4:9.8
+    container_name: pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: "True"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  keycloak_data:
+  pgadmin_data:

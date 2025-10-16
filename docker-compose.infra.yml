@@ -10,7 +10,7 @@ services:
   
   mongodb:
     image: mongo:8.0
-    container_name: mongodb
+    container_name: huyng5-mongodb
     ports:
       - "20017:27017"
     environment:
@@ -29,7 +29,7 @@ services:
 
   mongo-express:
     image: mongo-express:latest
-    container_name: mongo-express
+    container_name: huyng5-mongo-express
     ports:
       - "20081:8081"
     environment:
@@ -46,7 +46,7 @@ services:
 
   redis:
     image: redis:latest
-    container_name: redis
+    container_name: huyng5-redis
     ports:
       - "20379:6379"
     command: redis-server --appendonly yes
@@ -64,7 +64,7 @@ services:
 
   redis-insight:
     image: redis/redisinsight:latest
-    container_name: redis-insight
+    container_name: huyng5-redis-insight
     ports:
       - "20001:5540"
     volumes:
@@ -82,15 +82,15 @@ services:
 
   kafka:
     image: bitnami/kafka:3.9
-    container_name: kafka
+    container_name: huyng5-kafka
     ports:
       - "20092:9092"
       - "20094:9094"
     environment:
       - KAFKA_CFG_NODE_ID=1
       - KAFKA_CFG_PROCESS_ROLES=broker,controller
-      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093,PLAINTEXT_HOST://:9094
-      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:20094
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://0.0.0.0:9092,CONTROLLER://:9093,PLAINTEXT_HOST://0.0.0.0:9094
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://10.40.30.161:20092,PLAINTEXT_HOST://10.40.30.161:20094
       - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=PLAINTEXT
       - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
@@ -113,7 +113,7 @@ services:
 
   kafbat-ui:
     image: ghcr.io/kafbat/kafka-ui:main
-    container_name: kafbat-ui
+    container_name: huyng5-kafbat-ui
     ports:
       - "20084:8080"
     environment:
@@ -133,7 +133,7 @@ services:
 
   consul:
     image: hashicorp/consul:1.17
-    container_name: consul
+    container_name: huyng5-consul
     ports:
       - "20500:8500"
     environment:
@@ -162,7 +162,7 @@ services:
 
   minio:
     image: minio/minio:latest
-    container_name: minio
+    container_name: huyng5-minio
     ports:
       - "20000:9000"
       - "20002:9001"
@@ -184,7 +184,7 @@ services:
 
   minio-client:
     image: minio/mc:latest
-    container_name: minio-client
+    container_name: huyng5-minio-client
     depends_on:
       minio:
         condition: service_healthy
@@ -215,7 +215,7 @@ services:
   # Loki - Log Aggregation
   loki:
     image: grafana/loki:latest
-    container_name: loki
+    container_name: huyng5-loki
     ports:
       - "23100:3100"
     command:
@@ -239,7 +239,7 @@ services:
   # Grafana - Visualization
   grafana:
     image: grafana/grafana:main-ubuntu
-    container_name: grafana
+    container_name: huyng5-grafana
     ports:
       - "23000:3000"
     environment:
@@ -247,7 +247,10 @@ services:
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
       - GF_FEATURE_TOGGLES_ENABLE=traceqlEditor,correlations
-      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+      # - GF_PLUGINS_PREINSTALL=grafana-piechart-panel
+      - HTTP_PROXY=http://10.40.30.21:81
+      - HTTPS_PROXY=http://10.40.30.21:81
+      - NO_PROXY=localhost,127.0.0.1,grafana,prometheus,loki,tempo,mimir,grafana-image-renderer
     volumes:
       - grafana_data:/var/lib/grafana
       - ./config/grafana/grafana.ini:/etc/grafana/grafana.ini:ro
@@ -276,7 +279,7 @@ services:
   # Tempo - Distributed Tracing
   tempo:
     image: grafana/tempo:latest
-    container_name: tempo
+    container_name: huyng5-tempo
     ports:
       - "23200:3200"    # HTTP
       - "24317:4317"    # OTLP gRPC
@@ -307,7 +310,7 @@ services:
   # Mimir - Metrics Backend
   mimir:
     image: grafana/mimir:latest
-    container_name: mimir
+    container_name: huyng5-mimir
     ports:
       - "23009:9009"    # HTTP API
       - "23095:9095"    # gRPC
@@ -333,7 +336,7 @@ services:
   # Alloy - Unified Telemetry Collector
   alloy:
     image: grafana/alloy:v1.11.2
-    container_name: alloy
+    container_name: huyng5-alloy
     ports:
       - "22345:12345"  # Prometheus metrics & UI
       - "24327:4317"   # OTLP gRPC
@@ -358,7 +361,7 @@ services:
   # Prometheus - Metrics Scraping & Remote Write
   prometheus:
     image: prom/prometheus:v3.5.0
-    container_name: prometheus
+    container_name: huyng5-prometheus
     ports:
       - "23090:9090"
     volumes:
@@ -389,7 +392,7 @@ services:
   # cAdvisor - Container Metrics
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:v0.52.0
-    container_name: cadvisor
+    container_name: huyng5-cadvisor
     ports:
       - "20082:8080"
     volumes:
