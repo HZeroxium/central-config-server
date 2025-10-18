@@ -39,7 +39,8 @@ public interface ServiceInstanceRepositoryPort {
       String environment,
       String version,
       LocalDateTime lastSeenAtFrom,
-      LocalDateTime lastSeenAtTo
+      LocalDateTime lastSeenAtTo,
+      java.util.List<String> userTeamIds
   ) {}
 }
 

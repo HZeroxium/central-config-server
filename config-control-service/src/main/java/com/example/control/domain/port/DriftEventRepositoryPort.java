@@ -4,7 +4,7 @@ import com.example.control.domain.DriftEvent;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Optional;
 
 /**
@@ -34,9 +34,10 @@ public interface DriftEventRepositoryPort {
       String instanceId,
       DriftEvent.DriftStatus status,
       DriftEvent.DriftSeverity severity,
-      LocalDateTime detectedAtFrom,
-      LocalDateTime detectedAtTo,
-      Boolean unresolvedOnly
+      Instant detectedAtFrom,
+      Instant detectedAtTo,
+      Boolean unresolvedOnly,
+      java.util.List<String> userTeamIds
   ) {}
 }
 

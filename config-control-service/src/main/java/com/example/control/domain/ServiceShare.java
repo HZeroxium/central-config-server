@@ -1,0 +1,104 @@
+package com.example.control.domain;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+import java.time.Instant;
+import java.util.List;
+
+/**
+ * Domain model representing access control for service sharing.
+ * <p>
+ * This entity implements ACL (Access Control List) to allow teams to share
+ * specific permissions for their services with other teams or individual users
+ * without granting full team membership.
+ * </p>
+ * 
+ * @see ApplicationService for the service being shared
+ * @see SharePermission for available permissions
+ */
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class ServiceShare {
+
+    /** Unique share identifier. */
+    @NotBlank(message = "Share ID is required")
+    private String id;
+
+    /** Level of resource being shared. */
+    @NotNull(message = "Resource level is required")
+    private ResourceLevel resourceLevel;
+
+    /** Service ID being shared. */
+    @NotBlank(message = "Service ID is required")
+    private String serviceId;
+
+    /** Instance ID if sharing at instance level (optional). */
+    private String instanceId;
+
+    /** Type of grantee (TEAM or USER). */
+    @NotNull(message = "Grantee type is required")
+    private GranteeType grantToType;
+
+    /** ID of the grantee (team ID or user ID). */
+    @NotBlank(message = "Grantee ID is required")
+    private String grantToId;
+
+    /** Permissions being granted. */
+    @NotNull(message = "Permissions cannot be null")
+    @Size(min = 1, message = "At least one permission must be specified")
+    private List<SharePermission> permissions;
+
+    /** Environment filter (optional, null means all environments). */
+    private List<String> environments;
+
+    /** User who created this share (Keycloak user ID). */
+    @NotBlank(message = "Granted by user ID is required")
+    private String grantedBy;
+
+    /** Timestamp when the share was created. */
+    private Instant createdAt;
+
+    /** Optional expiration timestamp. */
+    private Instant expiresAt;
+
+    /**
+     * Resource level enumeration.
+     */
+    public enum ResourceLevel {
+        /** Share all instances of a service. */
+        SERVICE,
+        
+        /** Share a specific instance. */
+        INSTANCE
+    }
+
+    /**
+     * Grantee type enumeration.
+     */
+    public enum GranteeType {
+        /** Share with a team. */
+        TEAM,
+        
+        /** Share with an individual user. */
+        USER
+    }
+
+    /**
+     * Share permission enumeration.
+     */
+    public enum SharePermission {
+        /** Can view service instances and metadata. */
+        VIEW_INSTANCE,
+        
+        /** Can edit service instances and configuration. */
+        EDIT_INSTANCE
+    }
+}

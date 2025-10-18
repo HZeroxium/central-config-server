@@ -114,10 +114,10 @@ public class ConfigProxyService {
    * 
    * @param serviceName service name
    * @return list of service instances
-   */
+   */                                                                     
   @Cacheable(value = "consul-services", key = "#serviceName")
   public List<ServiceInstance> getServiceInstances(String serviceName) {
-    if (serviceName == null || serviceName.trim().isEmpty()) {
+    if (serviceName == null || serviceName.trim().isEmpty()) {                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              
       throw new IllegalArgumentException("Service name cannot be null or empty");
     }
 

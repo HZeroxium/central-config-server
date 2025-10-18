@@ -174,7 +174,8 @@ public class PingSender {
    */
   private String host() {
     try {
-      return InetAddress.getLocalHost().getHostName();
+      // return InetAddress.getLocalHost().getHostName();
+      return InetAddress.getLocalHost().getHostAddress();
     } catch (Exception e) {
       return "unknown";
     }

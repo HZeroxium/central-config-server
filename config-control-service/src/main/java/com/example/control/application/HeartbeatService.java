@@ -17,7 +17,7 @@ import io.micrometer.observation.annotation.Observed;
 import io.micrometer.tracing.annotation.SpanTag;
 import io.micrometer.tracing.annotation.NewSpan;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -93,7 +93,7 @@ public class HeartbeatService {
             .status(ServiceInstance.InstanceStatus.HEALTHY)
             .build());
 
-    LocalDateTime now = LocalDateTime.now();
+    Instant now = Instant.now();
 
     // 3️⃣ Handle first-time heartbeat (registration)
     if (instance.getCreatedAt() == null) {
@@ -210,7 +210,7 @@ public class HeartbeatService {
         .appliedHash(payload.getConfigHash())
         .severity(DriftEvent.DriftSeverity.MEDIUM)
         .status(DriftEvent.DriftStatus.DETECTED)
-        .detectedAt(LocalDateTime.now())
+        .detectedAt(Instant.now())
         .detectedBy("heartbeat-service")
         .notes("Drift detected via heartbeat")
         .build();

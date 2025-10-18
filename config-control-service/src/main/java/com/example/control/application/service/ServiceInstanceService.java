@@ -10,7 +10,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -37,9 +37,9 @@ public class ServiceInstanceService {
   @CacheEvict(value = "service-instances", key = "#instance.serviceName + ':' + #instance.instanceId")
   public ServiceInstance saveOrUpdate(ServiceInstance instance) {
     if (instance.getCreatedAt() == null) {
-      instance.setCreatedAt(LocalDateTime.now());
+      instance.setCreatedAt(Instant.now());
     }
-    instance.setUpdatedAt(LocalDateTime.now());
+    instance.setUpdatedAt(Instant.now());
     return repository.saveOrUpdate(instance);
   }
 
@@ -53,7 +53,7 @@ public class ServiceInstanceService {
   public List<ServiceInstance> findByServiceName(String serviceName) {
     // Backward-compatible convenience: use filter via port
     ServiceInstanceRepositoryPort.ServiceInstanceFilter filter = new ServiceInstanceRepositoryPort.ServiceInstanceFilter(
-        serviceName, null, null, null, null, null, null, null);
+        serviceName, null, null, null, null, null, null, null, null);
     Page<ServiceInstance> page = repository.list(filter, Pageable.unpaged());
     return page.getContent();
   }
@@ -77,7 +77,7 @@ public class ServiceInstanceService {
    */
   public List<ServiceInstance> findAllWithDrift() {
     ServiceInstanceRepositoryPort.ServiceInstanceFilter filter = new ServiceInstanceRepositoryPort.ServiceInstanceFilter(
-        null, null, ServiceInstance.InstanceStatus.DRIFT, true, null, null, null, null);
+        null, null, ServiceInstance.InstanceStatus.DRIFT, true, null, null, null, null, null);
     return repository.list(filter, Pageable.unpaged()).getContent();
   }
 
@@ -89,7 +89,7 @@ public class ServiceInstanceService {
    */
   public List<ServiceInstance> findByServiceWithDrift(String serviceName) {
     ServiceInstanceRepositoryPort.ServiceInstanceFilter filter = new ServiceInstanceRepositoryPort.ServiceInstanceFilter(
-        serviceName, null, ServiceInstance.InstanceStatus.DRIFT, true, null, null, null, null);
+        serviceName, null, ServiceInstance.InstanceStatus.DRIFT, true, null, null, null, null, null);
     return repository.list(filter, Pageable.unpaged()).getContent();
   }
 
@@ -114,9 +114,9 @@ public class ServiceInstanceService {
    * @param threshold timestamp cutoff
    * @return list of stale instances
    */
-  public List<ServiceInstance> findStaleInstances(LocalDateTime threshold) {
+  public List<ServiceInstance> findStaleInstances(java.time.LocalDateTime threshold) {
     ServiceInstanceRepositoryPort.ServiceInstanceFilter filter = new ServiceInstanceRepositoryPort.ServiceInstanceFilter(
-        null, null, null, null, null, null, threshold, null);
+        null, null, null, null, null, null, threshold, null, null);
     return repository.list(filter, Pageable.unpaged()).getContent();
   }
 
@@ -165,14 +165,14 @@ public class ServiceInstanceService {
         ServiceInstance.builder()
             .serviceName(serviceName)
             .instanceId(instanceId)
-            .createdAt(LocalDateTime.now())
+            .createdAt(Instant.now())
             .build()
     );
     instance.setStatus(status);
     instance.setHasDrift(hasDrift);
-    instance.setConfigHash(expectedHash);
+    instance.setExpectedHash(expectedHash);
     instance.setLastAppliedHash(lastAppliedHash);
-    instance.setUpdatedAt(LocalDateTime.now());
+    instance.setUpdatedAt(Instant.now());
     return repository.saveOrUpdate(instance);
   }
 }

@@ -5,7 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * Domain model representing a configuration drift detection event.
@@ -28,6 +28,12 @@ public class DriftEvent {
   /** Instance identifier within the service. */
   private String instanceId;
 
+  /** Service ID from ApplicationService (for team-based access control). */
+  private String serviceId;
+
+  /** Team ID that owns this service (from ApplicationService.ownerTeamId). */
+  private String teamId;
+
   /** The expected configuration hash (from control server). */
   private String expectedHash;
 
@@ -41,10 +47,10 @@ public class DriftEvent {
   private DriftStatus status;
 
   /** Timestamp when drift was first detected. */
-  private LocalDateTime detectedAt;
+  private Instant detectedAt;
 
   /** Timestamp when drift was resolved. */
-  private LocalDateTime resolvedAt;
+  private Instant resolvedAt;
 
   /** Identifier (user/system) that detected the drift. */
   private String detectedBy;
@@ -85,7 +91,7 @@ public class DriftEvent {
    */
   public void resolve(String resolvedBy) {
     this.status = DriftStatus.RESOLVED;
-    this.resolvedAt = LocalDateTime.now();
+    this.resolvedAt = Instant.now();
     this.resolvedBy = resolvedBy;
   }
 }
