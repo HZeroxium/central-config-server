@@ -7,7 +7,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Data
 public class DriftEventDtos {
@@ -48,8 +48,8 @@ public class DriftEventDtos {
     private String instanceId;
     private DriftEvent.DriftStatus status;
     private DriftEvent.DriftSeverity severity;
-    private LocalDateTime detectedAtFrom;
-    private LocalDateTime detectedAtTo;
+    private Instant detectedAtFrom;
+    private Instant detectedAtTo;
     private Boolean unresolvedOnly;
   }
 
@@ -65,8 +65,8 @@ public class DriftEventDtos {
     private String appliedHash;
     private DriftEvent.DriftSeverity severity;
     private DriftEvent.DriftStatus status;
-    private LocalDateTime detectedAt;
-    private LocalDateTime resolvedAt;
+    private Instant detectedAt;
+    private Instant resolvedAt;
     private String detectedBy;
     private String resolvedBy;
     private String notes;

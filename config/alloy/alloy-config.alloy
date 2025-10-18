@@ -1,0 +1,224 @@
+// Grafana Alloy Configuration
+// Unified collector for logs, metrics, and traces
+
+// ============================================================================
+// Docker Log Collection
+// ============================================================================
+
+discovery.docker "containers" {
+  host = "unix:///var/run/docker.sock"
+}
+
+loki.source.docker "docker_logs" {
+  host = "unix:///var/run/docker.sock"
+  targets = discovery.docker.containers.targets
+  forward_to = [loki.process.add_labels.receiver]
+}
+
+loki.process "add_labels" {
+  forward_to = [loki.write.loki_endpoint.receiver]
+  
+  stage.json {
+    expressions = {
+      level = "level",
+      trace_id = "trace_id",
+      span_id = "span_id",
+      trace_flags = "trace_flags",
+      service_name = "service_name",
+      instance_id = "instance_id",
+    }
+  }
+  
+  stage.labels {
+    values = {
+      level = "",
+      trace_id = "",
+      span_id = "",
+      service_name = "",
+      instance_id = "",
+    }
+  }
+  
+  // Extract trace_id from log message if not in JSON
+  stage.regex {
+    expression = ".*trace_id=([a-f0-9]+).*"
+    source = "message"
+  }
+}
+
+loki.write "loki_endpoint" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}
+
+// ============================================================================
+// OTLP Receivers (Traces, Metrics, Logs)
+// ============================================================================
+
+otelcol.receiver.otlp "default" {
+  grpc {
+    endpoint = "0.0.0.0:4317"
+  }
+  
+  http {
+    endpoint = "0.0.0.0:4318"
+  }
+  
+  output {
+    metrics = [otelcol.processor.batch.default.input]
+    traces = [otelcol.processor.batch.default.input]
+    logs = [otelcol.processor.batch.default.input]
+  }
+}
+
+otelcol.processor.batch "default" {
+  output {
+    metrics = [otelcol.exporter.otlphttp.mimir.input]
+    traces = [otelcol.exporter.otlp.tempo.input]
+    logs = [otelcol.exporter.loki.default.input]
+  }
+}
+
+// ============================================================================
+// OTLP Exporters
+// ============================================================================
+
+otelcol.exporter.otlp "tempo" {
+  client {
+    endpoint = "tempo:4317"
+    tls {
+      insecure = true
+    }
+  }
+}
+
+otelcol.exporter.otlphttp "mimir" {
+  client {
+    endpoint = "http://mimir:9009/otlp/v1/metrics"
+    headers = {
+      "X-Scope-OrgID" = "anonymous",
+    }
+    tls {
+      insecure = true
+    }
+  }
+}
+
+otelcol.exporter.loki "default" {
+  forward_to = [loki.write.loki_endpoint.receiver]
+}
+
+// ============================================================================
+// Prometheus Scraping
+// ============================================================================
+
+prometheus.scrape "config_control_service" {
+  targets = [
+    {
+      __address__ = "config-control-service:8080",
+      __metrics_path__ = "/actuator/prometheus",
+      job = "config-control-service",
+      environment = "dev",
+    },
+  ]
+  
+  forward_to = [prometheus.remote_write.mimir.receiver]
+  
+  scrape_interval = "15s"
+  scrape_timeout = "10s"
+}
+
+prometheus.scrape "sample_service" {
+  targets = [
+    {
+      __address__ = "sample-service:8080",
+      __metrics_path__ = "/actuator/prometheus",
+      job = "sample-service",
+      environment = "dev",
+    },
+  ]
+  
+  forward_to = [prometheus.remote_write.mimir.receiver]
+  
+  scrape_interval = "15s"
+  scrape_timeout = "10s"
+}
+
+prometheus.scrape "observability_stack" {
+  targets = [
+    {
+      __address__ = "tempo:3200",
+      __metrics_path__ = "/metrics",
+      job = "tempo",
+    },
+    {
+      __address__ = "mimir:9009",
+      __metrics_path__ = "/metrics",
+      job = "mimir",
+    },
+    {
+      __address__ = "loki:3100",
+      __metrics_path__ = "/metrics",
+      job = "loki",
+    },
+  ]
+  
+  forward_to = [prometheus.remote_write.mimir.receiver]
+  
+  scrape_interval = "30s"
+  scrape_timeout = "10s"
+}
+
+prometheus.scrape "infrastructure_services" {
+  targets = [
+    {
+      __address__ = "consul:8500",
+      __metrics_path__ = "/v1/agent/metrics",
+      job = "consul",
+    },
+    {
+      __address__ = "cadvisor:8080",
+      __metrics_path__ = "/metrics",
+      job = "cadvisor",
+    },
+    {
+      __address__ = "minio:9000",
+      __metrics_path__ = "/minio/v2/metrics/cluster",
+      job = "minio",
+    },
+  ]
+  
+  forward_to = [prometheus.remote_write.mimir.receiver]
+  
+  scrape_interval = "30s"
+  scrape_timeout = "10s"
+}
+
+prometheus.scrape "config_server" {
+  targets = [
+    {
+      __address__ = "config-server:8888",
+      __metrics_path__ = "/actuator/prometheus",
+      job = "config-server",
+      environment = "dev",
+    },
+  ]
+  
+  forward_to = [prometheus.remote_write.mimir.receiver]
+  
+  scrape_interval = "15s"
+  scrape_timeout = "10s"
+}
+
+prometheus.remote_write "mimir" {
+  endpoint {
+    url = "http://mimir:9009/api/v1/push"
+    headers = {
+      "X-Scope-OrgID" = "anonymous",
+    }
+  }
+  
+  // Note: send_exemplars and queue_config are not supported in this version of Alloy
+  // Exemplars and queue configuration are handled by Prometheus configuration
+}

@@ -17,6 +17,7 @@ public final class ServiceInstanceApiMapper {
         .version(req.getVersion())
         .configHash(req.getConfigHash())
         .lastAppliedHash(req.getLastAppliedHash())
+        .expectedHash(req.getExpectedHash())
         .metadata(req.getMetadata())
         .build();
   }
@@ -28,6 +29,7 @@ public final class ServiceInstanceApiMapper {
     if (req.getVersion() != null) entity.setVersion(req.getVersion());
     if (req.getConfigHash() != null) entity.setConfigHash(req.getConfigHash());
     if (req.getLastAppliedHash() != null) entity.setLastAppliedHash(req.getLastAppliedHash());
+    if (req.getExpectedHash() != null) entity.setExpectedHash(req.getExpectedHash());
     if (req.getHasDrift() != null) entity.setHasDrift(req.getHasDrift());
     if (req.getStatus() != null) entity.setStatus(req.getStatus());
     if (req.getMetadata() != null) entity.setMetadata(req.getMetadata());
@@ -43,6 +45,7 @@ public final class ServiceInstanceApiMapper {
         .version(si.getVersion())
         .configHash(si.getConfigHash())
         .lastAppliedHash(si.getLastAppliedHash())
+        .expectedHash(si.getExpectedHash())
         .status(si.getStatus())
         .lastSeenAt(si.getLastSeenAt())
         .createdAt(si.getCreatedAt())

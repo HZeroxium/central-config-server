@@ -15,6 +15,7 @@ spring:
   data:
     mongodb:
       uri: ${MONGODB_URI:mongodb://mongodb:27017/config_control}
+      auto-index-creation: true
     redis:
       url: ${REDIS_URL:redis://:redis123@redis:6379}
       timeout: 2000ms
@@ -47,6 +48,14 @@ spring:
         register: true
         service-name: ${spring.application.name}
         health-check-critical-timeout: 30s
+
+  # Spring Security OAuth2 Resource Server configuration
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://keycloak:8082/realms/config-control}
+          audience: ${KEYCLOAK_AUDIENCE:config-control-service}
         health-check-interval: 10s
         health-check-timeout: 3s
         health-check-path: /actuator/health
@@ -260,6 +269,16 @@ kv:
     keepalive-time: 10s
     namespace: ${KV_ETCD_NAMESPACE:}
 
+# Spring Security OAuth2 Resource Server configuration (merged above)
+
+# Keycloak Admin client configuration (for optional IAM sync)
+keycloak:
+  admin:
+    url: ${KEYCLOAK_ADMIN_URL:http://keycloak:8082}
+    realm: config-control
+    client-id: ${KEYCLOAK_CLIENT_ID:config-control-service}
+    client-secret: ${KEYCLOAK_CLIENT_SECRET:}
+
 logging:
   level:
     root: ${LOGGING_LEVEL_ROOT:INFO}
@@ -270,4 +289,5 @@ logging:
     org.springframework.cloud.stream.binder.kafka: WARN
     org.springframework.cloud.util.random.CachedRandomPropertySource: WARN
     org.springframework.cloud: WARN
+    org.springframework.security: DEBUG
   config: classpath:log4j2-spring.xml

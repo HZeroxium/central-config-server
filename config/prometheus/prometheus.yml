@@ -18,40 +18,93 @@ scrape_configs:
     scrape_interval: 5s
     metrics_path: /metrics
 
-  # User RPC Thrift Service
-  - job_name: 'user-rpc-thrift-service'
+  # Config Control Service
+  - job_name: 'config-control-service'
     static_configs:
-      - targets: ['user-rpc-thrift-service:8080']
-    scrape_interval: 10s
-    metrics_path: /actuator/prometheus
-    scrape_timeout: 10s
-    honor_labels: true
-    params:
-      format: ['prometheus']
-
-  # User REST Spring Service
-  - job_name: 'user-rest-spring-service'
-    static_configs:
-      - targets: ['user-rest-spring-service:8083']
-    scrape_interval: 10s
-    metrics_path: /actuator/prometheus
-    scrape_timeout: 10s
-    honor_labels: true
-    params:
-      format: ['prometheus']
-
-  # MongoDB Exporter (if needed)
-  - job_name: 'mongodb'
-    static_configs:
-      - targets: ['mongodb:27017']
-    scrape_interval: 30s
-    scrape_timeout: 10s
-
-  # Node Exporter for system metrics (if needed)
-  - job_name: 'node-exporter'
-    static_configs:
-      - targets: ['node-exporter:9100']
+      - targets: ['config-control-service:8080']
     scrape_interval: 15s
+    metrics_path: /actuator/prometheus
+    scrape_timeout: 10s
+    honor_labels: true
+    params:
+      format: ['prometheus']
+
+  # Sample Service
+  - job_name: 'sample-service'
+    static_configs:
+      - targets: ['sample-service:8080']
+    scrape_interval: 15s
+    metrics_path: /actuator/prometheus
+    scrape_timeout: 10s
+    honor_labels: true
+    params:
+      format: ['prometheus']
+
+  # Config Server
+  - job_name: 'config-server'
+    static_configs:
+      - targets: ['config-server:8888']
+    scrape_interval: 15s
+    metrics_path: /actuator/prometheus
+    scrape_timeout: 10s
+    honor_labels: true
+    params:
+      format: ['prometheus']
+
+  # Consul
+  - job_name: 'consul'
+    static_configs:
+      - targets: ['consul:8500']
+    scrape_interval: 15s
+    metrics_path: /v1/agent/metrics
+    scrape_timeout: 10s
+
+  # Grafana Alloy
+  - job_name: 'alloy'
+    static_configs:
+      - targets: ['alloy:12345']
+    scrape_interval: 15s
+    metrics_path: /metrics
+    scrape_timeout: 10s
+
+  # Tempo
+  - job_name: 'tempo'
+    static_configs:
+      - targets: ['tempo:3200']
+    scrape_interval: 15s
+    metrics_path: /metrics
+    scrape_timeout: 10s
+
+  # Mimir
+  - job_name: 'mimir'
+    static_configs:
+      - targets: ['mimir:9009']
+    scrape_interval: 15s
+    metrics_path: /metrics
+    scrape_timeout: 10s
+
+  # Loki
+  - job_name: 'loki'
+    static_configs:
+      - targets: ['loki:3100']
+    scrape_interval: 15s
+    metrics_path: /metrics
+    scrape_timeout: 10s
+
+  # Grafana
+  - job_name: 'grafana'
+    static_configs:
+      - targets: ['grafana:3000']
+    scrape_interval: 15s
+    metrics_path: /metrics
+    scrape_timeout: 10s
+
+  # MinIO
+  - job_name: 'minio'
+    static_configs:
+      - targets: ['minio:9000']
+    scrape_interval: 15s
+    metrics_path: /minio/v2/metrics/cluster
     scrape_timeout: 10s
 
   # cAdvisor for container metrics
@@ -67,5 +120,22 @@ alerting:
     - static_configs:
         - targets:
           # - alertmanager:9093
+
+# Remote write configuration for Mimir
+remote_write:
+  - url: http://mimir:9009/api/v1/push
+    headers:
+      X-Scope-OrgID: anonymous
+    queue_config:
+      max_samples_per_send: 10000
+      batch_send_deadline: 5s
+      min_backoff: 30ms
+      max_backoff: 100ms
+    write_relabel_configs:
+      - source_labels: [__name__]
+        regex: '.*'
+        action: keep
+    # Enable exemplars forwarding
+    send_exemplars: true
 
 # Storage configuration is handled by command line arguments

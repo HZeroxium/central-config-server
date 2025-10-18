@@ -1,4 +1,4 @@
-# grafana-datasources.yml
+# config/grafana/grafana-datasources.yml
 
 apiVersion: 1
 
@@ -19,7 +19,31 @@ datasources:
       incrementalQueryOverlapWindow: 10m
       queryTimeout: 60s
       timeInterval: 15s
+      exemplarTraceIdDestinations:
+        - name: trace_id
+          datasourceUid: tempo
     uid: prometheus
+
+  - name: Mimir
+    type: prometheus
+    access: proxy
+    url: http://mimir:9009/prometheus
+    isDefault: false
+    editable: true
+    jsonData:
+      httpMethod: POST
+      manageAlerts: true
+      prometheusType: Prometheus
+      prometheusVersion: 2.48.0
+      cacheLevel: 'High'
+      disableRecordingRules: false
+      incrementalQueryOverlapWindow: 10m
+      queryTimeout: 60s
+      timeInterval: 15s
+      exemplarTraceIdDestinations:
+        - name: trace_id
+          datasourceUid: tempo
+    uid: mimir
 
   - name: Loki
     type: loki
@@ -30,8 +54,54 @@ datasources:
     jsonData:
       maxLines: 1000
       derivedFields:
-        - datasourceUid: loki
-          matcherRegex: "traceID=(\\w+)"
+        - datasourceUid: tempo
+          matcherRegex: '"trace_id":"([\\w]+)"'
           name: TraceID
-          url: "$${__value.raw}"
+          url: '$${__value.raw}'
+        - datasourceUid: tempo
+          matcherRegex: 'trace_id=([\\w]+)'
+          name: TraceIDAlt
+          url: '$${__value.raw}'
     uid: loki
+
+  - name: Tempo
+    type: tempo
+    access: proxy
+    url: http://tempo:3200
+    isDefault: false
+    editable: true
+    jsonData:
+      tracesToLogsV2:
+        datasourceUid: loki
+        filterByTraceID: true
+        filterBySpanID: false
+        spanStartTimeShift: -1h
+        spanEndTimeShift: 1h
+        tags:
+          - key: service
+            value: service
+          - key: level
+            value: level
+        customQuery: true
+        query: '{service="${__span.tags.service}", level="${__span.tags.level}"} |= "${__trace.traceId}"'
+      tracesToMetrics:
+        datasourceUid: mimir
+        tags:
+          - key: service.name
+            value: service
+        queries:
+          - name: 'Request Rate'
+            query: 'rate(http_server_requests_seconds_count{service="${__span.tags.service}"}[5m])'
+          - name: 'Error Rate'
+            query: 'rate(http_server_requests_seconds_count{service="${__span.tags.service}", outcome!="SUCCESS"}[5m])'
+          - name: 'Response Time'
+            query: 'histogram_quantile(0.95, rate(http_server_requests_seconds_bucket{service="${__span.tags.service}"}[5m]))'
+      serviceMap:
+        datasourceUid: mimir
+      nodeGraph:
+        enabled: true
+      search:
+        hide: false
+      lokiSearch:
+        datasourceUid: loki
+    uid: tempo

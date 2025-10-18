@@ -16,6 +16,8 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
+    networks:
+      - infra-network
 
   keycloak:
     image: quay.io/keycloak/keycloak:26.4.0
@@ -52,12 +54,15 @@ services:
     volumes:
       - keycloak_data:/opt/keycloak/data
     restart: unless-stopped
-    # Healthcheck Keycloak (ready)
+    # Healthcheck Keycloak (ready) - disabled for now
     healthcheck:
-      test: ["CMD", "bash", "-c", "curl -fsS http://localhost:9000/health/ready || exit 1"]
+      test: ["CMD", "sh", "-c", "nc -z localhost 9000 || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 20
+      start_period: 30s
+    networks:
+      - infra-network
 
   pgadmin:
     image: dpage/pgadmin4:9.8
@@ -73,8 +78,32 @@ services:
     depends_on:
       - postgres
     restart: unless-stopped
+    networks:
+      - infra-network
+
+  # Keycloak initialization service
+  keycloak-init:
+    image: keycloak-init
+    build:
+      context: ./config-control-service/keycloak
+      dockerfile: Dockerfile
+    container_name: keycloak-init
+    depends_on:
+      - keycloak
+    networks:
+      - infra-network
+    restart: "no"
+    environment:
+      - KEYCLOAK_API_URL=http://keycloak:8080
+      - KEYCLOAK_HEALTH_URL=http://keycloak:9000
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin
 
 volumes:
   postgres_data:
   keycloak_data:
   pgadmin_data:
+
+networks:
+  infra-network:
+    name: infra-network

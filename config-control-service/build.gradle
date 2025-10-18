@@ -44,6 +44,10 @@ dependencies {
     implementation libs.spring.boot.starter.data.redis
     implementation libs.spring.boot.starter.cache
     
+    // Spring Security OAuth2 Resource Server
+    implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    
     // Log4j2 for logging (replaces Logback)
     implementation 'org.springframework.boot:spring-boot-starter-log4j2'
     

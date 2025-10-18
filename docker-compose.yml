@@ -40,7 +40,7 @@ services:
     image: hzeroxium/sample-service:latest
     container_name: sample-service
     ports:
-      - "8080:8080"
+      - "28080:8080"
     env_file:
       - ./config/env/env.infra-remote
     environment:
@@ -100,6 +100,12 @@ services:
       - MANAGEMENT_OTLP_TRACING_ENDPOINT=${ALLOY_OTLP_HTTP}/v1/traces
       - MANAGEMENT_OTLP_METRICS_EXPORT_ENABLED=true
       - MANAGEMENT_OTLP_METRICS_EXPORT_URL=${ALLOY_OTLP_HTTP}/v1/metrics
+      # Keycloak configuration
+      - KEYCLOAK_ISSUER_URI=http://keycloak:8082/realms/config-control
+      - KEYCLOAK_AUDIENCE=config-control-service
+      - KEYCLOAK_ADMIN_URL=http://keycloak:8082
+      - KEYCLOAK_CLIENT_ID=config-control-service
+      - KEYCLOAK_CLIENT_SECRET=config-control-service-secret
     networks:
       - infra-network
     healthcheck:
@@ -109,6 +115,7 @@ services:
       retries: 3
       start_period: 60s
     restart: unless-stopped
+    
 
 networks:
   infra-network:

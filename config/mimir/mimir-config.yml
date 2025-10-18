@@ -1,0 +1,84 @@
+# Grafana Mimir Configuration
+# Monolithic mode for development with S3 storage
+
+target: all
+
+multitenancy_enabled: false
+
+server:
+  http_listen_port: 9009
+  grpc_listen_port: 9095
+  log_level: debug
+
+common:
+  storage:
+    backend: s3
+    s3:
+      endpoint: minio:9000
+      bucket_name: mimir-data
+      access_key_id: minioadmin
+      secret_access_key: minioadmin
+      insecure: true
+      region: us-east-1
+
+blocks_storage:
+  backend: s3
+  s3:
+    endpoint: minio:9000
+    bucket_name: mimir-data
+    access_key_id: minioadmin
+    secret_access_key: minioadmin
+    insecure: true
+    region: us-east-1
+  tsdb:
+    dir: /mimir/tsdb
+    head_compaction_interval: 1m  # Compact head block every minute
+    block_ranges_period:
+      - 5m  # Create blocks every 5 minutes (reduced from default 2h)
+  bucket_store:
+    sync_dir: /mimir/tsdb-sync
+
+ingester:
+  ring:
+    replication_factor: 1
+    kvstore:
+      store: inmemory
+
+distributor:
+  pool:
+    health_check_ingesters: true
+  remote_timeout: 2s
+
+compactor:
+  data_dir: /mimir/compactor
+  compaction_interval: 5m
+
+store_gateway:
+  sharding_ring:
+    replication_factor: 1
+    kvstore:
+      store: inmemory
+
+limits:
+  ingestion_rate: 50000
+  ingestion_burst_size: 100000
+  max_global_series_per_user: 1000000
+  max_global_exemplars_per_user: 100000
+  # Enable OTLP support
+  native_histograms_ingestion_enabled: true
+  out_of_order_time_window: 10m
+  max_label_names_per_series: 30
+
+ruler_storage:
+  backend: s3
+  s3:
+    endpoint: minio:9000
+    bucket_name: mimir-data
+    access_key_id: minioadmin
+    secret_access_key: minioadmin
+    insecure: true
+    region: us-east-1
+  storage_prefix: ruler
+
+usage_stats:
+  enabled: false

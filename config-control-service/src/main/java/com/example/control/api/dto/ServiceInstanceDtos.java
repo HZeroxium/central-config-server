@@ -8,7 +8,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Map;
 
 @Data
@@ -30,6 +30,7 @@ public class ServiceInstanceDtos {
     private String version;
     private String configHash;
     private String lastAppliedHash;
+    private String expectedHash;
     private Map<String, String> metadata;
   }
 
@@ -45,6 +46,7 @@ public class ServiceInstanceDtos {
     private String version;
     private String configHash;
     private String lastAppliedHash;
+    private String expectedHash;
     private Boolean hasDrift;
     private ServiceInstance.InstanceStatus status;
     private Map<String, String> metadata;
@@ -61,8 +63,8 @@ public class ServiceInstanceDtos {
     private Boolean hasDrift;
     private String environment;
     private String version;
-    private LocalDateTime lastSeenAtFrom;
-    private LocalDateTime lastSeenAtTo;
+    private Instant lastSeenAtFrom;
+    private Instant lastSeenAtTo;
   }
 
   @Data
@@ -78,13 +80,14 @@ public class ServiceInstanceDtos {
     private String version;
     private String configHash;
     private String lastAppliedHash;
+    private String expectedHash;
     private ServiceInstance.InstanceStatus status;
-    private LocalDateTime lastSeenAt;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    private Instant lastSeenAt;
+    private Instant createdAt;
+    private Instant updatedAt;
     private Map<String, String> metadata;
     private Boolean hasDrift;
-    private LocalDateTime driftDetectedAt;
+    private Instant driftDetectedAt;
   }
 }
 

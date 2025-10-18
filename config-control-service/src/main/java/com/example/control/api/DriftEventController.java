@@ -71,7 +71,7 @@ public class DriftEventController {
       @PageableDefault Pageable pageable) {
 
     com.example.control.domain.port.DriftEventRepositoryPort.DriftEventFilter filter = new com.example.control.domain.port.DriftEventRepositoryPort.DriftEventFilter(
-        serviceName, instanceId, status, severity, null, null, unresolvedOnly);
+        serviceName, instanceId, status, severity, null, null, unresolvedOnly, null);
     Page<DriftEvent> page = service.list(filter, pageable);
     Page<DriftEventDtos.Response> mapped = page.map(DriftEventApiMapper::toResponse);
     return ResponseEntity.ok(ApiResponseDto.ApiResponse.success(

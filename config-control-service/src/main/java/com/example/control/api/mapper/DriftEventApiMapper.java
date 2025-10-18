@@ -1,5 +1,7 @@
 package com.example.control.api.mapper;
 
+import java.time.Instant;
+
 import com.example.control.api.dto.DriftEventDtos;
 import com.example.control.domain.DriftEvent;
 
@@ -17,7 +19,7 @@ public final class DriftEventApiMapper {
         .status(req.getStatus())
         .detectedBy(req.getDetectedBy())
         .notes(req.getNotes())
-        .detectedAt(java.time.LocalDateTime.now())
+        .detectedAt(Instant.now())
         .build();
   }
 
@@ -25,7 +27,7 @@ public final class DriftEventApiMapper {
     if (req.getStatus() != null) {
       entity.setStatus(req.getStatus());
       if (req.getStatus() == DriftEvent.DriftStatus.RESOLVED) {
-        entity.setResolvedAt(java.time.LocalDateTime.now());
+        entity.setResolvedAt(Instant.now());
       }
     }
     if (req.getResolvedBy() != null) entity.setResolvedBy(req.getResolvedBy());
@@ -41,7 +43,7 @@ public final class DriftEventApiMapper {
         .appliedHash(ev.getAppliedHash())
         .severity(ev.getSeverity())
         .status(ev.getStatus())
-        .detectedAt(ev.getDetectedAt())
+        .detectedAt(Instant.now())
         .resolvedAt(ev.getResolvedAt())
         .detectedBy(ev.getDetectedBy())
         .resolvedBy(ev.getResolvedBy())
