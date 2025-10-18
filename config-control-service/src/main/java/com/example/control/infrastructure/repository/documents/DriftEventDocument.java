@@ -1,4 +1,4 @@
-package com.example.control.infrastructure.repository;
+package com.example.control.infrastructure.repository.documents;
 
 import com.example.control.domain.DriftEvent;
 import lombok.AllArgsConstructor;
@@ -9,7 +9,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * MongoDB document representation of {@link DriftEvent}.
@@ -33,6 +33,14 @@ public class DriftEventDocument {
   @Indexed
   private String instanceId;
 
+  /** Service ID from ApplicationService (for team-based access control). */
+  @Indexed
+  private String serviceId;
+
+  /** Team ID that owns this service (from ApplicationService.ownerTeamId). */
+  @Indexed
+  private String teamId;
+
   private String expectedHash;
   private String appliedHash;
 
@@ -47,10 +55,10 @@ public class DriftEventDocument {
    * <p>
    * TTL index ensures automatic deletion after 30 days.
    */
-  @Indexed(expireAfterSeconds = 2592000)
-  private LocalDateTime detectedAt;
+  @Indexed(expireAfter = "30d")
+  private Instant detectedAt;
 
-  private LocalDateTime resolvedAt;
+  private Instant resolvedAt;
 
   private String detectedBy;
   private String resolvedBy;
@@ -68,6 +76,8 @@ public class DriftEventDocument {
         .id(domain.getId())
         .serviceName(domain.getServiceName())
         .instanceId(domain.getInstanceId())
+        .serviceId(domain.getServiceId())
+        .teamId(domain.getTeamId())
         .expectedHash(domain.getExpectedHash())
         .appliedHash(domain.getAppliedHash())
         .severity(domain.getSeverity() != null ? domain.getSeverity().name() : null)
@@ -90,6 +100,8 @@ public class DriftEventDocument {
         .id(id)
         .serviceName(serviceName)
         .instanceId(instanceId)
+        .serviceId(serviceId)
+        .teamId(teamId)
         .expectedHash(expectedHash)
         .appliedHash(appliedHash)
         .severity(severity != null ? DriftEvent.DriftSeverity.valueOf(severity) : null)

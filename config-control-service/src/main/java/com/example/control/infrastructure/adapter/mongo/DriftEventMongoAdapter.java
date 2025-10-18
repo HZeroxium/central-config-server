@@ -2,8 +2,9 @@ package com.example.control.infrastructure.adapter.mongo;
 
 import com.example.control.domain.DriftEvent;
 import com.example.control.domain.port.DriftEventRepositoryPort;
-import com.example.control.infrastructure.repository.DriftEventDocument;
 import com.example.control.infrastructure.repository.DriftEventMongoRepository;
+import com.example.control.infrastructure.repository.documents.DriftEventDocument;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -13,6 +14,7 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -57,8 +59,8 @@ public class DriftEventMongoAdapter implements DriftEventRepositoryPort {
       if (filter.severity() != null) {
         query.addCriteria(Criteria.where("severity").is(filter.severity().name()));
       }
-      LocalDateTime from = filter.detectedAtFrom();
-      LocalDateTime to = filter.detectedAtTo();
+      Instant from = filter.detectedAtFrom();
+      Instant to = filter.detectedAtTo();
       if (from != null || to != null) {
         Criteria time = Criteria.where("detectedAt");
         if (from != null) time = time.gte(from);
@@ -67,6 +69,11 @@ public class DriftEventMongoAdapter implements DriftEventRepositoryPort {
       }
       if (Boolean.TRUE.equals(filter.unresolvedOnly())) {
         query.addCriteria(Criteria.where("status").in("DETECTED", "ACKNOWLEDGED", "RESOLVING"));
+      }
+      
+      // Team-based access control: filter by team IDs (ABAC enforcement)
+      if (filter.userTeamIds() != null && !filter.userTeamIds().isEmpty()) {
+        query.addCriteria(Criteria.where("teamId").in(filter.userTeamIds()));
       }
     }
 
@@ -82,7 +89,7 @@ public class DriftEventMongoAdapter implements DriftEventRepositoryPort {
     repository.findByServiceNameAndInstanceId(serviceName, instanceId).forEach(doc -> {
       if (!DriftEvent.DriftStatus.RESOLVED.name().equals(doc.getStatus())) {
         doc.setStatus(DriftEvent.DriftStatus.RESOLVED.name());
-        doc.setResolvedAt(java.time.LocalDateTime.now());
+        doc.setResolvedAt(Instant.now());
         doc.setResolvedBy(resolvedBy);
         doc.setNotes((doc.getNotes() != null ? doc.getNotes() : "") + " | Resolved via adapter");
         repository.save(doc);

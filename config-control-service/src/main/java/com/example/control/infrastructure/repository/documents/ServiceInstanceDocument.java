@@ -1,4 +1,4 @@
-package com.example.control.infrastructure.repository;
+package com.example.control.infrastructure.repository.documents;
 
 import com.example.control.domain.ServiceInstance;
 import lombok.AllArgsConstructor;
@@ -9,7 +9,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Map;
 
 /**
@@ -37,6 +37,14 @@ public class ServiceInstanceDocument {
   @Indexed
   private String instanceId;
 
+  /** Service ID from ApplicationService (for team-based access control). */
+  @Indexed
+  private String serviceId;
+
+  /** Team ID that owns this service instance (from ApplicationService.ownerTeamId). */
+  @Indexed
+  private String teamId;
+
   private String host;
   private Integer port;
   private String environment;
@@ -44,6 +52,7 @@ public class ServiceInstanceDocument {
 
   private String configHash;
   private String lastAppliedHash;
+  private String expectedHash;
 
   /** Current status of the instance (stored as string value). */
   @Indexed
@@ -54,16 +63,16 @@ public class ServiceInstanceDocument {
    * <p>
    * Indexed with TTL = 1 hour to automatically expire inactive instances.
    */
-  @Indexed(expireAfterSeconds = 3600)
-  private LocalDateTime lastSeenAt;
+  @Indexed(expireAfter = "1h", name = "lastSeenAt_ttl")
+  private Instant lastSeenAt;
 
-  private LocalDateTime createdAt;
-  private LocalDateTime updatedAt;
+  private Instant createdAt;
+  private Instant updatedAt;
 
   private Map<String, String> metadata;
 
   private Boolean hasDrift;
-  private LocalDateTime driftDetectedAt;
+  private Instant driftDetectedAt;
 
   /**
    * Maps a {@link ServiceInstance} domain object to a MongoDB document representation.
@@ -76,12 +85,15 @@ public class ServiceInstanceDocument {
         .id(domain.getServiceName() + ":" + domain.getInstanceId())
         .serviceName(domain.getServiceName())
         .instanceId(domain.getInstanceId())
+        .serviceId(domain.getServiceId())
+        .teamId(domain.getTeamId())
         .host(domain.getHost())
         .port(domain.getPort())
         .environment(domain.getEnvironment())
         .version(domain.getVersion())
         .configHash(domain.getConfigHash())
         .lastAppliedHash(domain.getLastAppliedHash())
+        .expectedHash(domain.getExpectedHash())
         .status(domain.getStatus() != null ? domain.getStatus().name() : null)
         .lastSeenAt(domain.getLastSeenAt())
         .createdAt(domain.getCreatedAt())
@@ -101,12 +113,15 @@ public class ServiceInstanceDocument {
     return ServiceInstance.builder()
         .serviceName(serviceName)
         .instanceId(instanceId)
+        .serviceId(serviceId)
+        .teamId(teamId)
         .host(host)
         .port(port)
         .environment(environment)
         .version(version)
         .configHash(configHash)
         .lastAppliedHash(lastAppliedHash)
+        .expectedHash(expectedHash)
         .status(status != null
             ? ServiceInstance.InstanceStatus.valueOf(status)
             : ServiceInstance.InstanceStatus.UNKNOWN)

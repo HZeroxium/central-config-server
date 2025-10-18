@@ -2,8 +2,9 @@ package com.example.control.infrastructure.adapter.mongo;
 
 import com.example.control.domain.ServiceInstance;
 import com.example.control.domain.port.ServiceInstanceRepositoryPort;
-import com.example.control.infrastructure.repository.ServiceInstanceDocument;
 import com.example.control.infrastructure.repository.ServiceInstanceMongoRepository;
+import com.example.control.infrastructure.repository.documents.ServiceInstanceDocument;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -79,6 +80,11 @@ public class ServiceInstanceMongoAdapter implements ServiceInstanceRepositoryPor
       }
       if (filter.lastSeenAtTo() != null) {
         query.addCriteria(Criteria.where("lastSeenAt").lte(filter.lastSeenAtTo()));
+      }
+      
+      // Team-based access control: filter by team IDs (ABAC enforcement)
+      if (filter.userTeamIds() != null && !filter.userTeamIds().isEmpty()) {
+        query.addCriteria(Criteria.where("teamId").in(filter.userTeamIds()));
       }
     }
 

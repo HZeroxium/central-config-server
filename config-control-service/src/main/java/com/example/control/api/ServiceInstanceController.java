@@ -86,7 +86,7 @@ public class ServiceInstanceController {
       @PageableDefault Pageable pageable) {
 
     com.example.control.domain.port.ServiceInstanceRepositoryPort.ServiceInstanceFilter filter = new com.example.control.domain.port.ServiceInstanceRepositoryPort.ServiceInstanceFilter(
-        serviceName, instanceId, status, hasDrift, environment, version, null, null);
+        serviceName, instanceId, status, hasDrift, environment, version, null, null, null);
     Page<ServiceInstance> page = service.list(filter, pageable);
     Page<ServiceInstanceDtos.Response> mapped = page.map(ServiceInstanceApiMapper::toResponse);
     return ResponseEntity.ok(ApiResponseDto.ApiResponse.success(
