@@ -58,7 +58,6 @@ public class ApprovalDecisionMongoAdapter implements ApprovalDecisionRepositoryP
         return document.map(ApprovalDecisionDocument::toDomain);
     }
 
-    @Override
     public List<ApprovalDecision> findByRequestId(String requestId) {
         log.debug("Finding approval decisions by request ID: {}", requestId);
         
@@ -68,7 +67,6 @@ public class ApprovalDecisionMongoAdapter implements ApprovalDecisionRepositoryP
                 .toList();
     }
 
-    @Override
     public List<ApprovalDecision> findByApprover(String approverUserId) {
         log.debug("Finding approval decisions by approver: {}", approverUserId);
         
@@ -78,7 +76,6 @@ public class ApprovalDecisionMongoAdapter implements ApprovalDecisionRepositoryP
                 .toList();
     }
 
-    @Override
     public List<ApprovalDecision> findByRequestIdAndGate(String requestId, String gate) {
         log.debug("Finding approval decisions by request ID: {} and gate: {}", requestId, gate);
         
@@ -112,10 +109,11 @@ public class ApprovalDecisionMongoAdapter implements ApprovalDecisionRepositoryP
     }
 
     @Override
-    public Page<ApprovalDecision> list(ApprovalDecisionFilter filter, Pageable pageable) {
+    public Page<ApprovalDecision> findAll(Object filter, Pageable pageable) {
+        ApprovalDecisionFilter decisionFilter = (ApprovalDecisionFilter) filter;
         log.debug("Listing approval decisions with filter: {}, pageable: {}", filter, pageable);
         
-        Query query = buildQuery(filter);
+        Query query = buildQuery(decisionFilter);
         
         // Get total count
         long total = mongoTemplate.count(query, ApprovalDecisionDocument.class);
@@ -132,6 +130,23 @@ public class ApprovalDecisionMongoAdapter implements ApprovalDecisionRepositoryP
                 .toList();
         
         return new PageImpl<>(decisions, pageable, total);
+    }
+
+    @Override
+    public long count(Object filter) {
+        ApprovalDecisionFilter decisionFilter = (ApprovalDecisionFilter) filter;
+        Query query = buildQuery(decisionFilter);
+        return mongoTemplate.count(query, ApprovalDecisionDocument.class);
+    }
+
+    @Override
+    public boolean existsById(String id) {
+        return repository.existsById(id);
+    }
+
+    @Override
+    public void deleteById(String id) {
+        repository.deleteById(id);
     }
 
     /**

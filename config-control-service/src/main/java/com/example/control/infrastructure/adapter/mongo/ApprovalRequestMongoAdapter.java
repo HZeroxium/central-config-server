@@ -15,7 +15,7 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -55,10 +55,11 @@ public class ApprovalRequestMongoAdapter implements ApprovalRequestRepositoryPor
     }
 
     @Override
-    public Page<ApprovalRequest> list(ApprovalRequestFilter filter, Pageable pageable) {
+    public Page<ApprovalRequest> findAll(Object filter, Pageable pageable) {
+        ApprovalRequestFilter requestFilter = (ApprovalRequestFilter) filter;
         log.debug("Listing approval requests with filter: {}, pageable: {}", filter, pageable);
         
-        Query query = buildQuery(filter);
+        Query query = buildQuery(requestFilter);
         
         // Get total count
         long total = mongoTemplate.count(query, ApprovalRequestDocument.class);
@@ -78,13 +79,28 @@ public class ApprovalRequestMongoAdapter implements ApprovalRequestRepositoryPor
     }
 
     @Override
+    public long count(Object filter) {
+        ApprovalRequestFilter requestFilter = (ApprovalRequestFilter) filter;
+        Query query = buildQuery(requestFilter);
+        return mongoTemplate.count(query, ApprovalRequestDocument.class);
+    }
+
+    @Override
+    public boolean existsById(String id) {
+        return repository.existsById(id);
+    }
+
+    @Override
+    public void deleteById(String id) {
+        repository.deleteById(id);
+    }
+
     public long countByStatus(ApprovalRequest.ApprovalStatus status) {
         log.debug("Counting approval requests by status: {}", status);
         
         return repository.countByStatus(status.name());
     }
 
-    @Override
     public List<ApprovalRequest> findPendingByGate(String gate) {
         log.debug("Finding pending approval requests by gate: {}", gate);
         
@@ -94,7 +110,6 @@ public class ApprovalRequestMongoAdapter implements ApprovalRequestRepositoryPor
                 .toList();
     }
 
-    @Override
     public List<ApprovalRequest> findByRequester(String requesterUserId) {
         log.debug("Finding approval requests by requester: {}", requesterUserId);
         
@@ -110,7 +125,7 @@ public class ApprovalRequestMongoAdapter implements ApprovalRequestRepositoryPor
                 id, status, version);
         
         try {
-            LocalDateTime now = LocalDateTime.now();
+            Instant now = Instant.now();
             long updatedCount = repository.updateStatusAndVersion(id, status.name(), version, now, version + 1);
             boolean updated = updatedCount > 0;
             

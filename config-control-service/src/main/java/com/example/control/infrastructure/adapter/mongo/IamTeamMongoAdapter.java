@@ -59,7 +59,7 @@ public class IamTeamMongoAdapter implements IamTeamRepositoryPort {
     }
 
     @Override
-    public Page<IamTeam> list(Pageable pageable) {
+    public Page<IamTeam> findAll(Object filter, Pageable pageable) {
         log.debug("Listing IAM teams with pageable: {}", pageable);
         
         org.springframework.data.domain.Page<IamTeamDocument> documentPage = repository.findAll(pageable);
@@ -69,6 +69,21 @@ public class IamTeamMongoAdapter implements IamTeamRepositoryPort {
                 .toList();
         
         return new PageImpl<>(teams, pageable, documentPage.getTotalElements());
+    }
+
+    @Override
+    public Page<IamTeam> list(Pageable pageable) {
+        return findAll(null, pageable);
+    }
+
+    @Override
+    public long count(Object filter) {
+        return repository.count();
+    }
+
+    @Override
+    public void deleteById(String id) {
+        repository.deleteById(id);
     }
 
     @Override

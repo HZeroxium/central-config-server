@@ -18,6 +18,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * MongoDB adapter implementation for {@link ApplicationServiceRepositoryPort}.
@@ -54,32 +55,13 @@ public class ApplicationServiceMongoAdapter implements ApplicationServiceReposit
         return document.map(ApplicationServiceDocument::toDomain);
     }
 
-    @Override
-    @Cacheable(value = "application-services", key = "'all'")
-    public List<ApplicationService> findAll() {
-        log.debug("Finding all application services");
-        
-        List<ApplicationServiceDocument> documents = repository.findAll();
-        return documents.stream()
-                .map(ApplicationServiceDocument::toDomain)
-                .toList();
-    }
 
     @Override
-    public List<ApplicationService> findByOwnerTeam(String ownerTeamId) {
-        log.debug("Finding application services by owner team: {}", ownerTeamId);
+    public Page<ApplicationService> findAll(Object filter, Pageable pageable) {
+        ApplicationServiceFilter serviceFilter = (ApplicationServiceFilter) filter;
+        log.debug("Finding application services with filter: {}, pageable: {}", serviceFilter, pageable);
         
-        List<ApplicationServiceDocument> documents = repository.findByOwnerTeamId(ownerTeamId);
-        return documents.stream()
-                .map(ApplicationServiceDocument::toDomain)
-                .toList();
-    }
-
-    @Override
-    public Page<ApplicationService> list(ApplicationServiceFilter filter, Pageable pageable) {
-        log.debug("Listing application services with filter: {}, pageable: {}", filter, pageable);
-        
-        Query query = buildQuery(filter);
+        Query query = buildQuery(serviceFilter);
         
         // Get total count
         long total = mongoTemplate.count(query, ApplicationServiceDocument.class);
@@ -93,13 +75,22 @@ public class ApplicationServiceMongoAdapter implements ApplicationServiceReposit
         // Convert to domain objects
         List<ApplicationService> services = documents.stream()
                 .map(ApplicationServiceDocument::toDomain)
-                .toList();
+                .collect(Collectors.toList());
         
         return new PageImpl<>(services, pageable, total);
     }
 
     @Override
-    public void delete(String id) {
+    public long count(Object filter) {
+        ApplicationServiceFilter serviceFilter = (ApplicationServiceFilter) filter;
+        log.debug("Counting application services with filter: {}", serviceFilter);
+        
+        Query query = buildQuery(serviceFilter);
+        return mongoTemplate.count(query, ApplicationServiceDocument.class);
+    }
+
+    @Override
+    public void deleteById(String id) {
         log.debug("Deleting application service: {}", id);
         
         repository.deleteById(id);
@@ -107,11 +98,10 @@ public class ApplicationServiceMongoAdapter implements ApplicationServiceReposit
     }
 
     @Override
-    public long countByOwnerTeam(String ownerTeamId) {
-        log.debug("Counting application services by owner team: {}", ownerTeamId);
-        
-        return repository.countByOwnerTeamId(ownerTeamId);
+    public boolean existsById(String id) {
+        return repository.existsById(id);
     }
+
 
     /**
      * Build MongoDB query from filter criteria.
@@ -138,6 +128,11 @@ public class ApplicationServiceMongoAdapter implements ApplicationServiceReposit
             if (filter.search() != null && !filter.search().trim().isEmpty()) {
                 String searchRegex = ".*" + filter.search().trim() + ".*";
                 query.addCriteria(Criteria.where("displayName").regex(searchRegex, "i"));
+            }
+            
+            // Team-based access control: filter by userTeamIds if provided
+            if (filter.userTeamIds() != null && !filter.userTeamIds().isEmpty()) {
+                query.addCriteria(Criteria.where("ownerTeamId").in(filter.userTeamIds()));
             }
         }
         

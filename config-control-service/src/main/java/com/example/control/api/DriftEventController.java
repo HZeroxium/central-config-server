@@ -5,15 +5,19 @@ import com.example.control.api.dto.PageDtos.PageResponse;
 import com.example.control.api.dto.DriftEventDtos;
 import com.example.control.api.mapper.DriftEventApiMapper;
 import com.example.control.application.service.DriftEventService;
+import com.example.control.config.security.UserContext;
 import com.example.control.domain.DriftEvent;
 import io.micrometer.core.annotation.Timed;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
@@ -63,15 +67,18 @@ public class DriftEventController {
   @Operation(summary = "List drift events with filters and pagination")
   @Timed("api.drift-events.list")
   public ResponseEntity<ApiResponseDto.ApiResponse<PageResponse<DriftEventDtos.Response>>> list(
-      @RequestParam(required = false) String serviceName,
-      @RequestParam(required = false) String instanceId,
-      @RequestParam(required = false) DriftEvent.DriftStatus status,
-      @RequestParam(required = false) DriftEvent.DriftSeverity severity,
-      @RequestParam(required = false) Boolean unresolvedOnly,
-      @PageableDefault Pageable pageable) {
+      @Parameter(description = "Filter by service name") @RequestParam(required = false) String serviceName,
+      @Parameter(description = "Filter by instance ID") @RequestParam(required = false) String instanceId,
+      @Parameter(description = "Filter by status") @RequestParam(required = false) DriftEvent.DriftStatus status,
+      @Parameter(description = "Filter by severity") @RequestParam(required = false) DriftEvent.DriftSeverity severity,
+      @Parameter(description = "Filter unresolved only") @RequestParam(required = false) Boolean unresolvedOnly,
+      @PageableDefault Pageable pageable,
+      @AuthenticationPrincipal Jwt jwt) {
 
+    UserContext userContext = UserContext.fromJwt(jwt);
+    
     com.example.control.domain.port.DriftEventRepositoryPort.DriftEventFilter filter = new com.example.control.domain.port.DriftEventRepositoryPort.DriftEventFilter(
-        serviceName, instanceId, status, severity, null, null, unresolvedOnly, null);
+        serviceName, instanceId, status, severity, null, null, unresolvedOnly, userContext.getTeamIds());
     Page<DriftEvent> page = service.list(filter, pageable);
     Page<DriftEventDtos.Response> mapped = page.map(DriftEventApiMapper::toResponse);
     return ResponseEntity.ok(ApiResponseDto.ApiResponse.success(

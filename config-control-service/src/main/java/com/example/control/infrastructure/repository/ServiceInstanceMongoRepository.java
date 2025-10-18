@@ -61,7 +61,7 @@ public interface ServiceInstanceMongoRepository extends MongoRepository<ServiceI
    * @return list of stale (inactive) instances
    */
   @Query("{ 'lastSeenAt': { $lt: ?0 } }")
-  List<ServiceInstanceDocument> findStaleInstances(LocalDateTime threshold);
+  List<ServiceInstanceDocument> findStaleInstances(java.time.Instant threshold);
 
   /**
    * Finds all instances with the given status.

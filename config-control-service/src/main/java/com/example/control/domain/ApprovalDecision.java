@@ -50,6 +50,11 @@ public class ApprovalDecision {
     /** Optional note from the approver. */
     private String note;
 
+    /** Alias for decidedAt for backward compatibility. */
+    public Instant getCreatedAt() {
+        return decidedAt;
+    }
+
     /**
      * Decision enumeration.
      */

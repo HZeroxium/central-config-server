@@ -15,7 +15,6 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -43,37 +42,48 @@ public class DriftEventMongoAdapter implements DriftEventRepositoryPort {
   }
 
   @Override
-  public Page<DriftEvent> list(DriftEventFilter filter, Pageable pageable) {
+  public boolean existsById(String id) {
+    return repository.existsById(id);
+  }
+
+  @Override
+  public void deleteById(String id) {
+    repository.deleteById(id);
+  }
+
+    @Override
+    public Page<DriftEvent> findAll(Object filter, Pageable pageable) {
+        DriftEventRepositoryPort.DriftEventFilter eventFilter = (DriftEventRepositoryPort.DriftEventFilter) filter;
     Query query = new Query();
 
-    if (filter != null) {
-      if (filter.serviceName() != null && !filter.serviceName().isBlank()) {
-        query.addCriteria(Criteria.where("serviceName").is(filter.serviceName()));
+    if (eventFilter != null) {
+      if (eventFilter.serviceName() != null && !eventFilter.serviceName().isBlank()) {
+        query.addCriteria(Criteria.where("serviceName").is(eventFilter.serviceName()));
       }
-      if (filter.instanceId() != null && !filter.instanceId().isBlank()) {
-        query.addCriteria(Criteria.where("instanceId").is(filter.instanceId()));
+      if (eventFilter.instanceId() != null && !eventFilter.instanceId().isBlank()) {
+        query.addCriteria(Criteria.where("instanceId").is(eventFilter.instanceId()));
       }
-      if (filter.status() != null) {
-        query.addCriteria(Criteria.where("status").is(filter.status().name()));
+      if (eventFilter.status() != null) {
+        query.addCriteria(Criteria.where("status").is(eventFilter.status().name()));
       }
-      if (filter.severity() != null) {
-        query.addCriteria(Criteria.where("severity").is(filter.severity().name()));
+      if (eventFilter.severity() != null) {
+        query.addCriteria(Criteria.where("severity").is(eventFilter.severity().name()));
       }
-      Instant from = filter.detectedAtFrom();
-      Instant to = filter.detectedAtTo();
+      Instant from = eventFilter.detectedAtFrom();
+      Instant to = eventFilter.detectedAtTo();
       if (from != null || to != null) {
         Criteria time = Criteria.where("detectedAt");
         if (from != null) time = time.gte(from);
         if (to != null) time = time.lte(to);
         query.addCriteria(time);
       }
-      if (Boolean.TRUE.equals(filter.unresolvedOnly())) {
+      if (Boolean.TRUE.equals(eventFilter.unresolvedOnly())) {
         query.addCriteria(Criteria.where("status").in("DETECTED", "ACKNOWLEDGED", "RESOLVING"));
       }
       
       // Team-based access control: filter by team IDs (ABAC enforcement)
-      if (filter.userTeamIds() != null && !filter.userTeamIds().isEmpty()) {
-        query.addCriteria(Criteria.where("teamId").in(filter.userTeamIds()));
+      if (eventFilter.userTeamIds() != null && !eventFilter.userTeamIds().isEmpty()) {
+        query.addCriteria(Criteria.where("teamId").in(eventFilter.userTeamIds()));
       }
     }
 
@@ -82,6 +92,41 @@ public class DriftEventMongoAdapter implements DriftEventRepositoryPort {
     List<DriftEvent> content = mongoTemplate.find(query, DriftEventDocument.class)
         .stream().map(DriftEventDocument::toDomain).collect(Collectors.toList());
     return new PageImpl<>(content, pageable, total);
+  }
+
+  @Override
+  public long count(Object filter) {
+    DriftEventRepositoryPort.DriftEventFilter eventFilter = (DriftEventRepositoryPort.DriftEventFilter) filter;
+    Query query = new Query();
+    if (eventFilter != null) {
+      if (eventFilter.serviceName() != null && !eventFilter.serviceName().isBlank()) {
+        query.addCriteria(Criteria.where("serviceName").is(eventFilter.serviceName()));
+      }
+      if (eventFilter.instanceId() != null && !eventFilter.instanceId().isBlank()) {
+        query.addCriteria(Criteria.where("instanceId").is(eventFilter.instanceId()));
+      }
+      if (eventFilter.status() != null) {
+        query.addCriteria(Criteria.where("status").is(eventFilter.status().name()));
+      }
+      if (eventFilter.severity() != null) {
+        query.addCriteria(Criteria.where("severity").is(eventFilter.severity().name()));
+      }
+      Instant from = eventFilter.detectedAtFrom();
+      Instant to = eventFilter.detectedAtTo();
+      if (from != null || to != null) {
+        Criteria time = Criteria.where("detectedAt");
+        if (from != null) time = time.gte(from);
+        if (to != null) time = time.lte(to);
+        query.addCriteria(time);
+      }
+      if (Boolean.TRUE.equals(eventFilter.unresolvedOnly())) {
+        query.addCriteria(Criteria.where("status").in("DETECTED", "ACKNOWLEDGED", "RESOLVING"));
+      }
+      if (eventFilter.userTeamIds() != null && !eventFilter.userTeamIds().isEmpty()) {
+        query.addCriteria(Criteria.where("teamId").in(eventFilter.userTeamIds()));
+      }
+    }
+    return mongoTemplate.count(query, DriftEventDocument.class);
   }
 
   @Override

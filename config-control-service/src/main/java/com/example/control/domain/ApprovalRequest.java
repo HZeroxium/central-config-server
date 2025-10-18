@@ -75,12 +75,39 @@ public class ApprovalRequest {
     @Builder.Default
     private Integer version = 0;
 
+    /** Optional note from the requester. */
+    private String note;
+
+    /** Reason for cancellation if cancelled. */
+    private String cancelReason;
+
+    /** Required approval gates with current status. */
+    private List<ApprovalGate> gates;
+
+    /** Alias for required gates for backward compatibility. */
+    public List<ApprovalGate> getGates() {
+        return gates != null ? gates : required;
+    }
+
+    /** Get note. */
+    public String getNote() {
+        return note;
+    }
+
+    /** Get cancel reason. */
+    public String getCancelReason() {
+        return cancelReason;
+    }
+
     /**
      * Request type enumeration.
      */
     public enum RequestType {
         /** Request to assign a service to a team. */
-        ASSIGN_SERVICE_TO_TEAM
+        ASSIGN_SERVICE_TO_TEAM,
+        
+        /** Request to transfer service ownership. */
+        SERVICE_OWNERSHIP_TRANSFER
     }
 
     /**
@@ -115,6 +142,23 @@ public class ApprovalRequest {
         /** Minimum number of approvals required from this gate. */
         @NotNull(message = "Minimum approvals is required")
         private Integer minApprovals;
+
+        /** Gate status. */
+        private GateStatus status = GateStatus.PENDING;
+
+        /** Alias for gate name for backward compatibility. */
+        public String name() {
+            return gate;
+        }
+
+        /**
+         * Gate status enumeration.
+         */
+        public enum GateStatus {
+            PENDING,
+            APPROVED,
+            REJECTED
+        }
     }
 
     /**

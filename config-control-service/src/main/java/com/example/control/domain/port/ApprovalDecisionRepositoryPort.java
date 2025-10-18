@@ -1,11 +1,8 @@
 package com.example.control.domain.port;
 
 import com.example.control.domain.ApprovalDecision;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 
 import java.util.List;
-import java.util.Optional;
 
 /**
  * Port (hexagonal architecture) for persisting and querying {@link ApprovalDecision}.
@@ -15,48 +12,8 @@ import java.util.Optional;
  * request per gate (enforced by unique constraint).
  * </p>
  */
-public interface ApprovalDecisionRepositoryPort {
+public interface ApprovalDecisionRepositoryPort extends RepositoryPort<ApprovalDecision, String> {
 
-    /**
-     * Persist or update an approval decision.
-     *
-     * @param decision the approval decision to save
-     * @return the persisted approval decision
-     */
-    ApprovalDecision save(ApprovalDecision decision);
-
-    /**
-     * Find an approval decision by its unique identifier.
-     *
-     * @param id the decision ID
-     * @return optional approval decision
-     */
-    Optional<ApprovalDecision> findById(String id);
-
-    /**
-     * Find all decisions for a specific approval request.
-     *
-     * @param requestId the approval request ID
-     * @return list of decisions for the request
-     */
-    List<ApprovalDecision> findByRequestId(String requestId);
-
-    /**
-     * Find all decisions made by a specific approver.
-     *
-     * @param approverUserId the user ID of the approver
-     * @return list of decisions made by the user
-     */
-    List<ApprovalDecision> findByApprover(String approverUserId);
-
-    /**
-     * Find decisions for a specific request and gate.
-     *
-     * @param requestId the approval request ID
-     * @param gate      the gate name
-     * @return list of decisions for the request and gate
-     */
-    List<ApprovalDecision> findByRequestIdAndGate(String requestId, String gate);
 
     /**
      * Check if a decision exists for a specific request, approver, and gate.
@@ -91,21 +48,13 @@ public interface ApprovalDecisionRepositoryPort {
     long countByRequestIdAndGateAndDecision(String requestId, String gate, ApprovalDecision.Decision decision);
 
     /**
-     * List approval decisions with filtering and pagination.
-     *
-     * @param filter   optional filter parameters
-     * @param pageable pagination and sorting information
-     * @return a page of approval decisions
-     */
-    Page<ApprovalDecision> list(ApprovalDecisionFilter filter, Pageable pageable);
-
-    /**
      * Filter object for querying approval decisions.
      */
     record ApprovalDecisionFilter(
             String requestId,
             String approverUserId,
             String gate,
-            ApprovalDecision.Decision decision
+            ApprovalDecision.Decision decision,
+            List<String> userTeamIds
     ) {}
 }

@@ -32,12 +32,13 @@ public class AudienceValidator implements OAuth2TokenValidator<Jwt> {
                 new OAuth2Error("invalid_token", "JWT token has no audience claim", null));
         }
         
-        if (audiences.contains(expectedAudience)) {
+        // Accept both the expected audience and "account" (Keycloak default)
+        if (audiences.contains(expectedAudience) || audiences.contains("account")) {
             log.debug("JWT token audience validation successful for: {}", audiences);
             return OAuth2TokenValidatorResult.success();
         }
         
-        log.warn("JWT token audience validation failed. Expected: {}, Actual: {}", 
+        log.warn("JWT token audience validation failed. Expected: {} or account, Actual: {}", 
                 expectedAudience, audiences);
         return OAuth2TokenValidatorResult.failure(
             new OAuth2Error("invalid_token", 

@@ -19,7 +19,7 @@ import java.util.Optional;
  * This is only a cached projection that should be synchronized periodically.
  * </p>
  */
-public interface IamUserRepositoryPort {
+public interface IamUserRepositoryPort extends RepositoryPort<IamUser, String> {
 
     /**
      * Persist or update a user projection.

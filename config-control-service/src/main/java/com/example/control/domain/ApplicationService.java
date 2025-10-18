@@ -24,7 +24,7 @@ import java.util.Map;
  * @see ApprovalRequest for ownership transfer requests
  */
 @Data
-@Builder
+@Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 public class ApplicationService {

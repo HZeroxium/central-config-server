@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -103,6 +104,21 @@ public class UserContext {
      * Optional manager identifier taken from the custom claim {@code manager_id}, if present.
      */
     private String managerId;
+
+    /**
+     * Timestamp when the user was created.
+     */
+    private Instant createdAt;
+
+    /**
+     * Timestamp when the user last logged in.
+     */
+    private Instant lastLoginAt;
+
+    /**
+     * Timestamp when the user context was last updated.
+     */
+    private Instant updatedAt;
 
     /**
      * Builds a {@link UserContext} from a JWT by reading standard and custom claims.
@@ -272,5 +288,29 @@ public class UserContext {
         } else {
             return username;
         }
+    }
+
+    /**
+     * Get the creation timestamp.
+     * @return the creation timestamp
+     */
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    /**
+     * Get the last login timestamp.
+     * @return the last login timestamp
+     */
+    public Instant getLastLoginAt() {
+        return lastLoginAt;
+    }
+
+    /**
+     * Get the last update timestamp.
+     * @return the last update timestamp
+     */
+    public Instant getUpdatedAt() {
+        return updatedAt;
     }
 }

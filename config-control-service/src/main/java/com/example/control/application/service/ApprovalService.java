@@ -182,12 +182,24 @@ public class ApprovalService {
                             filter.requestType(),
                             filter.fromDate(),
                             filter.toDate(),
-                            filter.gate()
+                            filter.gate(),
+                            userContext.getTeamIds()
                     );
-            return requestRepository.list(restrictedFilter, pageable);
+            return requestRepository.findAll(restrictedFilter, pageable);
         }
 
-        return requestRepository.list(filter, pageable);
+        return requestRepository.findAll(filter, pageable);
+    }
+
+    /**
+     * Count approval requests by status.
+     *
+     * @param status the status to count
+     * @return the count of requests with the given status
+     */
+    public long countByStatus(ApprovalRequest.ApprovalStatus status) {
+        log.debug("Counting approval requests by status: {}", status);
+        return requestRepository.countByStatus(status);
     }
 
     /**

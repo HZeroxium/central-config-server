@@ -60,7 +60,7 @@ public interface DriftEventMongoRepository extends MongoRepository<DriftEventDoc
    * @return list of drift events within the time range
    */
   @Query("{ 'detectedAt': { $gte: ?0, $lte: ?1 } }")
-  List<DriftEventDocument> findByDetectedAtBetween(LocalDateTime start, LocalDateTime end);
+  List<DriftEventDocument> findByDetectedAtBetween(java.time.Instant start, java.time.Instant end);
 
   /**
    * Finds all drift events by severity level.

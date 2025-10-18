@@ -48,7 +48,7 @@ public class DriftEventService {
    */
   @Cacheable(value = "drift-events", key = "'list:' + #filter.hashCode() + ':' + #pageable")
   public Page<DriftEvent> list(DriftEventRepositoryPort.DriftEventFilter filter, Pageable pageable) {
-    return repository.list(filter, pageable);
+        return repository.findAll(filter, pageable);
   }
 
   /**
@@ -70,7 +70,7 @@ public class DriftEventService {
   public List<DriftEvent> findUnresolved() {
     DriftEventRepositoryPort.DriftEventFilter filter = new DriftEventRepositoryPort.DriftEventFilter(
         null, null, null, null, null, null, true, null);
-    Page<DriftEvent> page = repository.list(filter, Pageable.unpaged());
+        Page<DriftEvent> page = repository.findAll(filter, Pageable.unpaged());
     return page.getContent();
   }
 
@@ -83,7 +83,7 @@ public class DriftEventService {
   public List<DriftEvent> findUnresolvedByService(String serviceName) {
     DriftEventRepositoryPort.DriftEventFilter filter = new DriftEventRepositoryPort.DriftEventFilter(
         serviceName, null, null, null, null, null, true, null);
-    return repository.list(filter, Pageable.unpaged()).getContent();
+        return repository.findAll(filter, Pageable.unpaged()).getContent();
   }
 
   /**
@@ -96,7 +96,7 @@ public class DriftEventService {
   public List<DriftEvent> findByService(String serviceName) {
     DriftEventRepositoryPort.DriftEventFilter filter = new DriftEventRepositoryPort.DriftEventFilter(
         serviceName, null, null, null, null, null, null, null);
-    return repository.list(filter, Pageable.unpaged()).getContent();
+        return repository.findAll(filter, Pageable.unpaged()).getContent();
   }
 
   /**
@@ -109,7 +109,7 @@ public class DriftEventService {
   public List<DriftEvent> findByServiceAndInstance(String serviceName, String instanceId) {
     DriftEventRepositoryPort.DriftEventFilter filter = new DriftEventRepositoryPort.DriftEventFilter(
         serviceName, instanceId, null, null, null, null, null, null);
-    return repository.list(filter, Pageable.unpaged()).getContent();
+        return repository.findAll(filter, Pageable.unpaged()).getContent();
   }
 
   /**

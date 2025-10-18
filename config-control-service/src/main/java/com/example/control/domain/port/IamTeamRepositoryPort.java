@@ -19,7 +19,7 @@ import java.util.Optional;
  * This is only a cached projection that should be synchronized periodically.
  * </p>
  */
-public interface IamTeamRepositoryPort {
+public interface IamTeamRepositoryPort extends RepositoryPort<IamTeam, String> {
 
     /**
      * Persist or update a team projection.

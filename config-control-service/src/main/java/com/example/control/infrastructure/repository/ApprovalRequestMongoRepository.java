@@ -60,7 +60,7 @@ public interface ApprovalRequestMongoRepository extends MongoRepository<Approval
      * @param toDate   the end date (inclusive)
      * @return list of requests created within the range
      */
-    List<ApprovalRequestDocument> findByCreatedAtBetween(LocalDateTime fromDate, LocalDateTime toDate);
+    List<ApprovalRequestDocument> findByCreatedAtBetween(java.time.Instant fromDate, java.time.Instant toDate);
 
     /**
      * Count approval requests by status.
@@ -82,5 +82,5 @@ public interface ApprovalRequestMongoRepository extends MongoRepository<Approval
      */
     @Query("{'_id': ?0, 'version': ?2}")
     @Update("{'$set': {'status': ?1, 'updatedAt': ?3, 'version': ?4}}")
-    long updateStatusAndVersion(String id, String status, Integer version, LocalDateTime updatedAt, Integer newVersion);
+    long updateStatusAndVersion(String id, String status, Integer version, java.time.Instant updatedAt, Integer newVersion);
 }

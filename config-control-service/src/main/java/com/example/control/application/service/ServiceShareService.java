@@ -10,9 +10,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 
@@ -109,7 +109,7 @@ public class ServiceShareService {
             throw new IllegalStateException("User does not have permission to revoke this share");
         }
 
-        shareRepository.delete(shareId);
+        shareRepository.deleteById(shareId);
         log.info("Successfully revoked share: {}", shareId);
     }
 
@@ -133,7 +133,9 @@ public class ServiceShareService {
             throw new IllegalStateException("User does not have permission to view shares for this service");
         }
 
-        return shareRepository.findByService(serviceId);
+        ServiceShareRepositoryPort.ServiceShareFilter filter = new ServiceShareRepositoryPort.ServiceShareFilter(
+            serviceId, null, null, null, null, userContext.getTeamIds());
+        return shareRepository.findAll(filter, Pageable.unpaged()).getContent();
     }
 
     /**
@@ -159,7 +161,51 @@ public class ServiceShareService {
             }
         }
 
-        return shareRepository.list(filter, pageable);
+        return shareRepository.findAll(filter, pageable);
+    }
+
+    /**
+     * Find a service share by ID.
+     *
+     * @param shareId the share ID
+     * @param userContext the current user context
+     * @return optional service share
+     */
+    public Optional<ServiceShare> findById(String shareId, UserContext userContext) {
+        log.debug("Finding service share by ID: {} for user: {}", shareId, userContext.getUserId());
+
+        Optional<ServiceShare> share = shareRepository.findById(shareId);
+        
+        if (share.isPresent()) {
+            ServiceShare shareEntity = share.get();
+            
+            // Check permission to view this share
+            if (!canViewShare(userContext, shareEntity)) {
+                log.warn("User {} does not have permission to view share {}", userContext.getUserId(), shareId);
+                return Optional.empty();
+            }
+        }
+        
+        return share;
+    }
+
+    /**
+     * Update a service share.
+     *
+     * @param share the updated share
+     * @param userContext the current user context
+     * @return the saved share
+     */
+    public ServiceShare update(ServiceShare share, UserContext userContext) {
+        log.debug("Updating service share: {} for user: {}", share.getId(), userContext.getUserId());
+
+        // Check permission to update this share
+        if (!canUpdateShare(userContext, share)) {
+            throw new IllegalStateException("User does not have permission to update this share");
+        }
+
+        share.setUpdatedAt(Instant.now());
+        return shareRepository.save(share);
     }
 
     /**
@@ -239,6 +285,50 @@ public class ServiceShareService {
         }
 
         // Users can revoke shares they granted
+        return userContext.getUserId().equals(share.getGrantedBy());
+    }
+
+    /**
+     * Check if user can view a specific share.
+     *
+     * @param userContext the user context
+     * @param share the share to check
+     * @return true if user can view the share
+     */
+    private boolean canViewShare(UserContext userContext, ServiceShare share) {
+        // System admins can view any share
+        if (userContext.isSysAdmin()) {
+            return true;
+        }
+
+        // Users can view shares they granted
+        if (userContext.getUserId().equals(share.getGrantedBy())) {
+            return true;
+        }
+
+        // Users can view shares granted to their teams
+        if (share.getGrantToType() == ServiceShare.GranteeType.TEAM) {
+            return userContext.getTeamIds().contains(share.getGrantToId());
+        }
+
+        // Users can view shares granted to them directly
+        return userContext.getUserId().equals(share.getGrantToId());
+    }
+
+    /**
+     * Check if user can update a specific share.
+     *
+     * @param userContext the user context
+     * @param share the share to check
+     * @return true if user can update the share
+     */
+    private boolean canUpdateShare(UserContext userContext, ServiceShare share) {
+        // System admins can update any share
+        if (userContext.isSysAdmin()) {
+            return true;
+        }
+
+        // Users can update shares they granted
         return userContext.getUserId().equals(share.getGrantedBy());
     }
 

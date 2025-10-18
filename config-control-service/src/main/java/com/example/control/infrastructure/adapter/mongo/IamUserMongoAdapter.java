@@ -79,7 +79,7 @@ public class IamUserMongoAdapter implements IamUserRepositoryPort {
     }
 
     @Override
-    public Page<IamUser> list(Pageable pageable) {
+    public Page<IamUser> findAll(Object filter, Pageable pageable) {
         log.debug("Listing IAM users with pageable: {}", pageable);
         
         org.springframework.data.domain.Page<IamUserDocument> documentPage = repository.findAll(pageable);
@@ -89,6 +89,26 @@ public class IamUserMongoAdapter implements IamUserRepositoryPort {
                 .toList();
         
         return new PageImpl<>(users, pageable, documentPage.getTotalElements());
+    }
+
+    @Override
+    public Page<IamUser> list(Pageable pageable) {
+        return findAll(null, pageable);
+    }
+
+    @Override
+    public long count(Object filter) {
+        return repository.count();
+    }
+
+    @Override
+    public boolean existsById(String id) {
+        return repository.existsById(id);
+    }
+
+    @Override
+    public void deleteById(String id) {
+        repository.deleteById(id);
     }
 
     @Override

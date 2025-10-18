@@ -5,7 +5,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
-import java.util.Optional;
 
 /**
  * Port (hexagonal architecture) for persisting and querying {@link ServiceShare}.
@@ -15,56 +14,7 @@ import java.util.Optional;
  * full team membership.
  * </p>
  */
-public interface ServiceShareRepositoryPort {
-
-    /**
-     * Persist or update a service share.
-     *
-     * @param share the service share to save
-     * @return the persisted service share
-     */
-    ServiceShare save(ServiceShare share);
-
-    /**
-     * Find a service share by its unique identifier.
-     *
-     * @param id the share ID
-     * @return optional service share
-     */
-    Optional<ServiceShare> findById(String id);
-
-    /**
-     * Find all shares for a specific service.
-     *
-     * @param serviceId the service ID
-     * @return list of shares for the service
-     */
-    List<ServiceShare> findByService(String serviceId);
-
-    /**
-     * Find all shares for a specific grantee (team or user).
-     *
-     * @param grantToType the type of grantee (TEAM or USER)
-     * @param grantToId   the grantee ID
-     * @return list of shares for the grantee
-     */
-    List<ServiceShare> findByGrantee(ServiceShare.GranteeType grantToType, String grantToId);
-
-    /**
-     * List service shares with filtering and pagination.
-     *
-     * @param filter   optional filter parameters
-     * @param pageable pagination and sorting information
-     * @return a page of service shares
-     */
-    Page<ServiceShare> list(ServiceShareFilter filter, Pageable pageable);
-
-    /**
-     * Delete a service share by ID.
-     *
-     * @param id the share ID to delete
-     */
-    void delete(String id);
+public interface ServiceShareRepositoryPort extends RepositoryPort<ServiceShare, String> {
 
     /**
      * Check if a specific share exists (for duplicate prevention).
@@ -102,6 +52,7 @@ public interface ServiceShareRepositoryPort {
             ServiceShare.GranteeType grantToType,
             String grantToId,
             List<String> environments,
-            String grantedBy
+            String grantedBy,
+            List<String> userTeamIds
     ) {}
 }

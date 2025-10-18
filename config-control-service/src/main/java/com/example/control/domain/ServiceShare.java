@@ -23,7 +23,7 @@ import java.util.List;
  * @see SharePermission for available permissions
  */
 @Data
-@Builder
+@Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 public class ServiceShare {
@@ -65,6 +65,9 @@ public class ServiceShare {
 
     /** Timestamp when the share was created. */
     private Instant createdAt;
+
+    /** Timestamp when the share was last updated. */
+    private Instant updatedAt;
 
     /** Optional expiration timestamp. */
     private Instant expiresAt;

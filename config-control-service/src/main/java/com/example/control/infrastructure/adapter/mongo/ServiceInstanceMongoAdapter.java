@@ -29,23 +29,38 @@ public class ServiceInstanceMongoAdapter implements ServiceInstanceRepositoryPor
   private final MongoTemplate mongoTemplate;
 
   @Override
-  public ServiceInstance saveOrUpdate(ServiceInstance instance) {
+  public ServiceInstance save(ServiceInstance instance) {
     ServiceInstanceDocument doc = ServiceInstanceDocument.fromDomain(instance);
     repository.save(doc);
     return doc.toDomain();
   }
 
   @Override
-  public Optional<ServiceInstance> findById(String serviceName, String instanceId) {
-    String id = serviceName + ":" + instanceId;
+  public Optional<ServiceInstance> findById(String id) {
     return repository.findById(id).map(ServiceInstanceDocument::toDomain);
   }
 
   @Override
-  public void delete(String serviceName, String instanceId) {
-    String id = serviceName + ":" + instanceId;
+  public boolean existsById(String id) {
+    return repository.existsById(id);
+  }
+
+  @Override
+  public void deleteById(String id) {
     repository.deleteById(id);
   }
+
+  // Legacy methods for composite key support
+  public Optional<ServiceInstance> findById(String serviceName, String instanceId) {
+    String id = serviceName + ":" + instanceId;
+    return findById(id);
+  }
+
+  public void delete(String serviceName, String instanceId) {
+    String id = serviceName + ":" + instanceId;
+    deleteById(id);
+  }
+
 
   @Override
   public long countByServiceName(String serviceName) {
@@ -53,38 +68,39 @@ public class ServiceInstanceMongoAdapter implements ServiceInstanceRepositoryPor
   }
 
   @Override
-  public Page<ServiceInstance> list(ServiceInstanceFilter filter, Pageable pageable) {
+  public Page<ServiceInstance> findAll(Object filter, Pageable pageable) {
+    ServiceInstanceFilter instanceFilter = (ServiceInstanceFilter) filter;
     Query query = new Query();
 
-    if (filter != null) {
-      if (filter.serviceName() != null && !filter.serviceName().isBlank()) {
-        query.addCriteria(Criteria.where("serviceName").is(filter.serviceName()));
+    if (instanceFilter != null) {
+      if (instanceFilter.serviceName() != null && !instanceFilter.serviceName().isBlank()) {
+        query.addCriteria(Criteria.where("serviceName").is(instanceFilter.serviceName()));
       }
-      if (filter.instanceId() != null && !filter.instanceId().isBlank()) {
-        query.addCriteria(Criteria.where("instanceId").is(filter.instanceId()));
+      if (instanceFilter.instanceId() != null && !instanceFilter.instanceId().isBlank()) {
+        query.addCriteria(Criteria.where("instanceId").is(instanceFilter.instanceId()));
       }
-      if (filter.status() != null) {
-        query.addCriteria(Criteria.where("status").is(filter.status().name()));
+      if (instanceFilter.status() != null) {
+        query.addCriteria(Criteria.where("status").is(instanceFilter.status().name()));
       }
-      if (filter.hasDrift() != null) {
-        query.addCriteria(Criteria.where("hasDrift").is(filter.hasDrift()));
+      if (instanceFilter.hasDrift() != null) {
+        query.addCriteria(Criteria.where("hasDrift").is(instanceFilter.hasDrift()));
       }
-      if (filter.environment() != null && !filter.environment().isBlank()) {
-        query.addCriteria(Criteria.where("environment").is(filter.environment()));
+      if (instanceFilter.environment() != null && !instanceFilter.environment().isBlank()) {
+        query.addCriteria(Criteria.where("environment").is(instanceFilter.environment()));
       }
-      if (filter.version() != null && !filter.version().isBlank()) {
-        query.addCriteria(Criteria.where("version").is(filter.version()));
+      if (instanceFilter.version() != null && !instanceFilter.version().isBlank()) {
+        query.addCriteria(Criteria.where("version").is(instanceFilter.version()));
       }
-      if (filter.lastSeenAtFrom() != null) {
-        query.addCriteria(Criteria.where("lastSeenAt").gte(filter.lastSeenAtFrom()));
+      if (instanceFilter.lastSeenAtFrom() != null) {
+        query.addCriteria(Criteria.where("lastSeenAt").gte(instanceFilter.lastSeenAtFrom()));
       }
-      if (filter.lastSeenAtTo() != null) {
-        query.addCriteria(Criteria.where("lastSeenAt").lte(filter.lastSeenAtTo()));
+      if (instanceFilter.lastSeenAtTo() != null) {
+        query.addCriteria(Criteria.where("lastSeenAt").lte(instanceFilter.lastSeenAtTo()));
       }
       
       // Team-based access control: filter by team IDs (ABAC enforcement)
-      if (filter.userTeamIds() != null && !filter.userTeamIds().isEmpty()) {
-        query.addCriteria(Criteria.where("teamId").in(filter.userTeamIds()));
+      if (instanceFilter.userTeamIds() != null && !instanceFilter.userTeamIds().isEmpty()) {
+        query.addCriteria(Criteria.where("teamId").in(instanceFilter.userTeamIds()));
       }
     }
 
@@ -94,6 +110,46 @@ public class ServiceInstanceMongoAdapter implements ServiceInstanceRepositoryPor
         .stream().map(ServiceInstanceDocument::toDomain).collect(Collectors.toList());
 
     return new PageImpl<>(content, pageable, total);
+  }
+
+  @Override
+  public long count(Object filter) {
+    ServiceInstanceFilter instanceFilter = (ServiceInstanceFilter) filter;
+    Query query = new Query();
+
+    if (instanceFilter != null) {
+      if (instanceFilter.serviceName() != null && !instanceFilter.serviceName().isBlank()) {
+        query.addCriteria(Criteria.where("serviceName").is(instanceFilter.serviceName()));
+      }
+      if (instanceFilter.instanceId() != null && !instanceFilter.instanceId().isBlank()) {
+        query.addCriteria(Criteria.where("instanceId").is(instanceFilter.instanceId()));
+      }
+      if (instanceFilter.status() != null) {
+        query.addCriteria(Criteria.where("status").is(instanceFilter.status().name()));
+      }
+      if (instanceFilter.hasDrift() != null) {
+        query.addCriteria(Criteria.where("hasDrift").is(instanceFilter.hasDrift()));
+      }
+      if (instanceFilter.environment() != null && !instanceFilter.environment().isBlank()) {
+        query.addCriteria(Criteria.where("environment").is(instanceFilter.environment()));
+      }
+      if (instanceFilter.version() != null && !instanceFilter.version().isBlank()) {
+        query.addCriteria(Criteria.where("version").is(instanceFilter.version()));
+      }
+      if (instanceFilter.lastSeenAtFrom() != null) {
+        query.addCriteria(Criteria.where("lastSeenAt").gte(instanceFilter.lastSeenAtFrom()));
+      }
+      if (instanceFilter.lastSeenAtTo() != null) {
+        query.addCriteria(Criteria.where("lastSeenAt").lte(instanceFilter.lastSeenAtTo()));
+      }
+      
+      // Team-based access control: filter by team IDs (ABAC enforcement)
+      if (instanceFilter.userTeamIds() != null && !instanceFilter.userTeamIds().isEmpty()) {
+        query.addCriteria(Criteria.where("teamId").in(instanceFilter.userTeamIds()));
+      }
+    }
+
+    return mongoTemplate.count(query, ServiceInstanceDocument.class);
   }
 }
 

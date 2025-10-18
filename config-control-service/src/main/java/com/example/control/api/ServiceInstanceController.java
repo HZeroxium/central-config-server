@@ -5,15 +5,19 @@ import com.example.control.api.dto.PageDtos.PageResponse;
 import com.example.control.api.dto.ServiceInstanceDtos;
 import com.example.control.api.mapper.ServiceInstanceApiMapper;
 import com.example.control.application.service.ServiceInstanceService;
+import com.example.control.config.security.UserContext;
 import com.example.control.domain.ServiceInstance;
 import io.micrometer.core.annotation.Timed;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
@@ -77,16 +81,19 @@ public class ServiceInstanceController {
   @Operation(summary = "List instances with filters and pagination")
   @Timed("api.service-instances.list")
   public ResponseEntity<ApiResponseDto.ApiResponse<PageResponse<ServiceInstanceDtos.Response>>> list(
-      @RequestParam(required = false) String serviceName,
-      @RequestParam(required = false) String instanceId,
-      @RequestParam(required = false) ServiceInstance.InstanceStatus status,
-      @RequestParam(required = false) Boolean hasDrift,
-      @RequestParam(required = false) String environment,
-      @RequestParam(required = false) String version,
-      @PageableDefault Pageable pageable) {
+      @Parameter(description = "Filter by service name") @RequestParam(required = false) String serviceName,
+      @Parameter(description = "Filter by instance ID") @RequestParam(required = false) String instanceId,
+      @Parameter(description = "Filter by status") @RequestParam(required = false) ServiceInstance.InstanceStatus status,
+      @Parameter(description = "Filter by drift status") @RequestParam(required = false) Boolean hasDrift,
+      @Parameter(description = "Filter by environment") @RequestParam(required = false) String environment,
+      @Parameter(description = "Filter by version") @RequestParam(required = false) String version,
+      @PageableDefault Pageable pageable,
+      @AuthenticationPrincipal Jwt jwt) {
 
+    UserContext userContext = UserContext.fromJwt(jwt);
+    
     com.example.control.domain.port.ServiceInstanceRepositoryPort.ServiceInstanceFilter filter = new com.example.control.domain.port.ServiceInstanceRepositoryPort.ServiceInstanceFilter(
-        serviceName, instanceId, status, hasDrift, environment, version, null, null, null);
+        serviceName, instanceId, status, hasDrift, environment, version, null, null, userContext.getTeamIds());
     Page<ServiceInstance> page = service.list(filter, pageable);
     Page<ServiceInstanceDtos.Response> mapped = page.map(ServiceInstanceApiMapper::toResponse);
     return ResponseEntity.ok(ApiResponseDto.ApiResponse.success(

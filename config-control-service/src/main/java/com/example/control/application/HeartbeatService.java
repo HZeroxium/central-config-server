@@ -6,6 +6,7 @@ import com.example.control.domain.DriftEvent;
 import com.example.control.domain.ServiceInstance;
 import com.example.control.application.service.DriftEventService;
 import com.example.control.application.service.ServiceInstanceService;
+import com.example.control.domain.port.ApplicationServiceRepositoryPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -44,6 +45,7 @@ public class HeartbeatService {
   private final ServiceInstanceService serviceInstanceService;
   private final DriftEventService driftEventService;
   private final ConfigProxyService configProxyService;
+  private final ApplicationServiceRepositoryPort applicationServiceRepository;
 
   /** Maintains retry count per instance for drift backoff algorithm. */
   private final ConcurrentHashMap<String, Integer> driftRetryCount = new ConcurrentHashMap<>();
@@ -100,6 +102,23 @@ public class HeartbeatService {
       instance.setCreatedAt(now);
       log.info("New service instance registered: {}", id);
       
+      // Auto-populate serviceId and teamId by looking up ApplicationService
+      try {
+        ApplicationServiceRepositoryPort.ApplicationServiceFilter filter = 
+            new ApplicationServiceRepositoryPort.ApplicationServiceFilter(null, null, null, payload.getServiceName(), null);
+        applicationServiceRepository.findAll(filter, org.springframework.data.domain.Pageable.unpaged())
+            .getContent()
+            .stream()
+            .findFirst()
+            .ifPresent(appService -> {
+              instance.setServiceId(appService.getId());
+              instance.setTeamId(appService.getOwnerTeamId());
+              log.debug("Auto-populated serviceId={} and teamId={} for instance {}", 
+                       appService.getId(), appService.getOwnerTeamId(), id);
+            });
+      } catch (Exception e) {
+        log.warn("Failed to auto-populate serviceId and teamId for instance {}: {}", id, e.getMessage());
+      }
     }
 
     // 4️⃣ Update runtime metadata (host, port, version, hashes)

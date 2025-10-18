@@ -89,7 +89,7 @@ public class ApplicationServiceService {
     @Cacheable(value = "application-services", key = "'all'")
     public List<ApplicationService> findAll() {
         log.debug("Finding all application services");
-        return repository.findAll();
+        return repository.findAll(null, Pageable.unpaged()).getContent();
     }
 
     /**
@@ -100,7 +100,9 @@ public class ApplicationServiceService {
      */
     public List<ApplicationService> findByOwnerTeam(String ownerTeamId) {
         log.debug("Finding application services by owner team: {}", ownerTeamId);
-        return repository.findByOwnerTeam(ownerTeamId);
+        ApplicationServiceRepositoryPort.ApplicationServiceFilter filter = 
+            new ApplicationServiceRepositoryPort.ApplicationServiceFilter(ownerTeamId, null, null, null, null);
+        return repository.findAll(filter, Pageable.unpaged()).getContent();
     }
 
     /**
@@ -117,7 +119,7 @@ public class ApplicationServiceService {
                                         Pageable pageable, 
                                         UserContext userContext) {
         log.debug("Listing application services with filter: {}, pageable: {}", filter, pageable);
-        return repository.list(filter, pageable);
+        return repository.findAll(filter, pageable);
     }
 
     /**
@@ -143,7 +145,7 @@ public class ApplicationServiceService {
             throw new IllegalStateException("Only system administrators can delete services");
         }
 
-        repository.delete(id);
+        repository.deleteById(id);
         log.info("Successfully deleted application service: {}", id);
     }
 
@@ -155,7 +157,9 @@ public class ApplicationServiceService {
      */
     public long countByOwnerTeam(String ownerTeamId) {
         log.debug("Counting application services by owner team: {}", ownerTeamId);
-        return repository.countByOwnerTeam(ownerTeamId);
+        ApplicationServiceRepositoryPort.ApplicationServiceFilter filter = 
+            new ApplicationServiceRepositoryPort.ApplicationServiceFilter(ownerTeamId, null, null, null, null);
+        return repository.count(filter);
     }
 
     /**

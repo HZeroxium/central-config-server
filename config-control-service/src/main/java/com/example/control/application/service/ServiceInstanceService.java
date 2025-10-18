@@ -40,7 +40,7 @@ public class ServiceInstanceService {
       instance.setCreatedAt(Instant.now());
     }
     instance.setUpdatedAt(Instant.now());
-    return repository.saveOrUpdate(instance);
+        return repository.save(instance);
   }
 
   /**
@@ -54,7 +54,7 @@ public class ServiceInstanceService {
     // Backward-compatible convenience: use filter via port
     ServiceInstanceRepositoryPort.ServiceInstanceFilter filter = new ServiceInstanceRepositoryPort.ServiceInstanceFilter(
         serviceName, null, null, null, null, null, null, null, null);
-    Page<ServiceInstance> page = repository.list(filter, Pageable.unpaged());
+        Page<ServiceInstance> page = repository.findAll(filter, Pageable.unpaged());
     return page.getContent();
   }
 
@@ -78,7 +78,7 @@ public class ServiceInstanceService {
   public List<ServiceInstance> findAllWithDrift() {
     ServiceInstanceRepositoryPort.ServiceInstanceFilter filter = new ServiceInstanceRepositoryPort.ServiceInstanceFilter(
         null, null, ServiceInstance.InstanceStatus.DRIFT, true, null, null, null, null, null);
-    return repository.list(filter, Pageable.unpaged()).getContent();
+    return repository.findAll(filter, Pageable.unpaged()).getContent();
   }
 
   /**
@@ -90,7 +90,7 @@ public class ServiceInstanceService {
   public List<ServiceInstance> findByServiceWithDrift(String serviceName) {
     ServiceInstanceRepositoryPort.ServiceInstanceFilter filter = new ServiceInstanceRepositoryPort.ServiceInstanceFilter(
         serviceName, null, ServiceInstance.InstanceStatus.DRIFT, true, null, null, null, null, null);
-    return repository.list(filter, Pageable.unpaged()).getContent();
+    return repository.findAll(filter, Pageable.unpaged()).getContent();
   }
 
   /**
@@ -105,7 +105,7 @@ public class ServiceInstanceService {
    */
   @Cacheable(value = "service-instances", key = "'list:' + #filter.hashCode() + ':' + #pageable")
   public Page<ServiceInstance> list(ServiceInstanceRepositoryPort.ServiceInstanceFilter filter, Pageable pageable) {
-    return repository.list(filter, pageable);
+    return repository.findAll(filter, pageable);
   }
 
   /**
@@ -114,10 +114,10 @@ public class ServiceInstanceService {
    * @param threshold timestamp cutoff
    * @return list of stale instances
    */
-  public List<ServiceInstance> findStaleInstances(java.time.LocalDateTime threshold) {
+  public List<ServiceInstance> findStaleInstances(java.time.Instant threshold) {
     ServiceInstanceRepositoryPort.ServiceInstanceFilter filter = new ServiceInstanceRepositoryPort.ServiceInstanceFilter(
         null, null, null, null, null, null, threshold, null, null);
-    return repository.list(filter, Pageable.unpaged()).getContent();
+    return repository.findAll(filter, Pageable.unpaged()).getContent();
   }
 
   /**
@@ -173,6 +173,6 @@ public class ServiceInstanceService {
     instance.setExpectedHash(expectedHash);
     instance.setLastAppliedHash(lastAppliedHash);
     instance.setUpdatedAt(Instant.now());
-    return repository.saveOrUpdate(instance);
+        return repository.save(instance);
   }
 }

@@ -10,16 +10,7 @@ import java.util.Optional;
 /**
  * Port (hexagonal architecture) for persisting and querying {@link DriftEvent}.
  */
-public interface DriftEventRepositoryPort {
-
-  /** Persist a drift event. */
-  DriftEvent save(DriftEvent event);
-
-  /** Find event by id. */
-  Optional<DriftEvent> findById(String id);
-
-  /** List with filtering and pagination. */
-  Page<DriftEvent> list(DriftEventFilter filter, Pageable pageable);
+public interface DriftEventRepositoryPort extends RepositoryPort<DriftEvent, String> {
 
   /** Resolve all events for an instance. */
   void resolveForInstance(String serviceName, String instanceId, String resolvedBy);

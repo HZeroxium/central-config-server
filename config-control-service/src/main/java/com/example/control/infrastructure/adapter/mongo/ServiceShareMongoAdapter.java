@@ -52,7 +52,6 @@ public class ServiceShareMongoAdapter implements ServiceShareRepositoryPort {
         return document.map(ServiceShareDocument::toDomain);
     }
 
-    @Override
     public List<ServiceShare> findByService(String serviceId) {
         log.debug("Finding service shares by service ID: {}", serviceId);
         
@@ -62,7 +61,6 @@ public class ServiceShareMongoAdapter implements ServiceShareRepositoryPort {
                 .toList();
     }
 
-    @Override
     public List<ServiceShare> findByGrantee(ServiceShare.GranteeType grantToType, String grantToId) {
         log.debug("Finding service shares by grantee: {} - {}", grantToType, grantToId);
         
@@ -74,10 +72,11 @@ public class ServiceShareMongoAdapter implements ServiceShareRepositoryPort {
     }
 
     @Override
-    public Page<ServiceShare> list(ServiceShareFilter filter, Pageable pageable) {
+    public Page<ServiceShare> findAll(Object filter, Pageable pageable) {
+        ServiceShareFilter shareFilter = (ServiceShareFilter) filter;
         log.debug("Listing service shares with filter: {}, pageable: {}", filter, pageable);
         
-        Query query = buildQuery(filter);
+        Query query = buildQuery(shareFilter);
         
         // Get total count
         long total = mongoTemplate.count(query, ServiceShareDocument.class);
@@ -97,6 +96,22 @@ public class ServiceShareMongoAdapter implements ServiceShareRepositoryPort {
     }
 
     @Override
+    public long count(Object filter) {
+        ServiceShareFilter shareFilter = (ServiceShareFilter) filter;
+        Query query = buildQuery(shareFilter);
+        return mongoTemplate.count(query, ServiceShareDocument.class);
+    }
+
+    @Override
+    public boolean existsById(String id) {
+        return repository.existsById(id);
+    }
+
+    @Override
+    public void deleteById(String id) {
+        repository.deleteById(id);
+    }
+
     public void delete(String id) {
         log.debug("Deleting service share: {}", id);
         
