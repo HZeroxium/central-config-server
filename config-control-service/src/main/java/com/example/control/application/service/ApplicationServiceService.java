@@ -95,6 +95,59 @@ public class ApplicationServiceService {
     }
 
     /**
+     * Find application service by display name.
+     * <p>
+     * This method provides O(1) lookup for service name resolution during heartbeat processing.
+     * Used for auto-linking service instances to their corresponding application services.
+     *
+     * @param displayName the exact display name to search for
+     * @return the application service if found, empty otherwise
+     */
+    @Cacheable(value = "application-services", key = "#displayName")
+    public Optional<ApplicationService> findByDisplayName(String displayName) {
+        log.debug("Finding application service by display name: {}", displayName);
+        return repository.findByDisplayName(displayName);
+    }
+
+    /**
+     * Find or create application service by display name.
+     * <p>
+     * If service exists, returns it. If not, creates an orphaned service with ownerTeamId=null.
+     * This is used during heartbeat processing when a service instance registers but no
+     * ApplicationService exists yet.
+     *
+     * @param displayName the exact display name to search for
+     * @return the application service (existing or newly created orphaned)
+     */
+    @Transactional
+    @CacheEvict(value = "application-services", allEntries = true)
+    public ApplicationService findOrCreateByDisplayName(String displayName) {
+        log.debug("Finding or creating application service by display name: {}", displayName);
+        
+        Optional<ApplicationService> existing = repository.findByDisplayName(displayName);
+        if (existing.isPresent()) {
+            return existing.get();
+        }
+        
+        // Create orphaned service (no owner team)
+        ApplicationService orphanedService = ApplicationService.builder()
+            .id(ApplicationServiceId.of(displayName.toLowerCase().replaceAll("[^a-z0-9-]", "-")))
+            .displayName(displayName)
+            .ownerTeamId(null) // Orphaned - requires approval workflow
+            .environments(List.of("dev", "staging", "prod")) // Default environments
+            .lifecycle(ApplicationService.ServiceLifecycle.ACTIVE)
+            .createdAt(Instant.now())
+            .createdBy("system") // System-created
+            .build();
+        
+        ApplicationService saved = repository.save(orphanedService);
+        log.warn("Auto-created orphaned ApplicationService: {} (displayName: {}) - requires approval workflow for team assignment", 
+                 saved.getId(), displayName);
+        
+        return saved;
+    }
+
+    /**
      * Find application services owned by a specific team.
      *
      * @param ownerTeamId the team ID

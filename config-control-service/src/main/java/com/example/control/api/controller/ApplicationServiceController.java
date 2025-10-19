@@ -38,19 +38,23 @@ public class ApplicationServiceController {
     private final ApplicationServiceApiMapper mapper;
 
     /**
-     * List all application services (public endpoint).
+     * List all application services (authenticated endpoint).
      *
      * @param filter optional query filter
      * @param pageable pagination information
+     * @param jwt the JWT token
      * @return page of application services
      */
     @GetMapping
     public ResponseEntity<Page<ApplicationServiceDtos.Response>> list(
             @RequestParam(required = false) ApplicationServiceDtos.QueryFilter filter,
-            Pageable pageable) {
+            Pageable pageable,
+            @AuthenticationPrincipal Jwt jwt) {
         log.debug("Listing application services with filter: {}", filter);
         
-        // For public endpoint, we don't need user context filtering
+        UserContext userContext = UserContext.fromJwt(jwt);
+        
+        // Application services are public to authenticated users
         List<ApplicationService> services = applicationServiceService.findAll();
         // Convert to Page manually for now
         Page<ApplicationService> page = new PageImpl<>(services, pageable, services.size());

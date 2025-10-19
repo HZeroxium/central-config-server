@@ -7,7 +7,6 @@ import org.springframework.stereotype.Repository;
 
 import com.example.control.infrastructure.repository.documents.ApprovalRequestDocument;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 /**

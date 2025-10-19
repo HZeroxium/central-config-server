@@ -71,11 +71,7 @@ public class SecurityConfig {
                 .requestMatchers("/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 .requestMatchers("/v3/api-docs/**").permitAll()
                 
-                // Application service endpoints - public read access
-                .requestMatchers("GET", "/api/application-services").permitAll()
-                .requestMatchers("GET", "/api/application-services/*").permitAll()
-                
-                // All other API endpoints require authentication
+                // All API endpoints require authentication
                 .requestMatchers("/api/**").authenticated()
                 
                 // Allow all other requests (for static resources, etc.)

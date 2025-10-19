@@ -1,7 +1,9 @@
 package com.example.control.api.controller;
 
+import com.example.control.api.dto.ApiResponseDto;
 import com.example.control.api.dto.UserDtos;
 import com.example.control.api.mapper.UserApiMapper;
+import com.example.control.application.service.UserPermissionsService;
 import com.example.control.config.security.UserContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,6 +13,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
 
 /**
  * REST controller for User operations.
@@ -26,6 +29,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserController {
 
     private final UserApiMapper mapper;
+    private final UserPermissionsService userPermissionsService;
 
     /**
      * Get current user information.
@@ -41,5 +45,22 @@ public class UserController {
         UserDtos.MeResponse response = mapper.toMeResponse(userContext);
         
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Get current user permissions and allowed routes.
+     *
+     * @param jwt the JWT token
+     * @return the user permissions
+     */
+    @GetMapping("/me/permissions")
+    public ResponseEntity<ApiResponseDto.ApiResponse<UserDtos.PermissionMatrix>> getPermissions(
+            @AuthenticationPrincipal Jwt jwt) {
+        log.debug("Getting current user permissions");
+        
+        UserContext userContext = UserContext.fromJwt(jwt);
+        UserDtos.PermissionMatrix permissions = userPermissionsService.calculatePermissions(userContext);
+        
+        return ResponseEntity.ok(ApiResponseDto.ApiResponse.success(permissions));
     }
 }

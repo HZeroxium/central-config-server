@@ -22,7 +22,6 @@ import io.micrometer.tracing.annotation.SpanTag;
 import io.micrometer.tracing.annotation.NewSpan;
 
 import java.time.Instant;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -106,20 +105,24 @@ public class HeartbeatService {
       log.info("New service instance registered: {}", id);
       
       // Auto-populate serviceId and teamId by looking up ApplicationService
-      try {
-        Optional<ApplicationService> appService = applicationServiceService.findAll()
-            .stream()
-            .filter(svc -> svc.getDisplayName().equals(payload.getServiceName()))
-            .findFirst();
-            
-        if (appService.isPresent()) {
-          instance.setServiceId(appService.get().getId().id());
-          instance.setTeamId(appService.get().getOwnerTeamId());
-          log.debug("Auto-populated serviceId={} and teamId={} for instance {}", 
-                   appService.get().getId().id(), appService.get().getOwnerTeamId(), id);
+      if (instance.getServiceId() == null || instance.getTeamId() == null) {
+        try {
+          // Use efficient O(1) lookup by display name, auto-create orphaned if not found
+          ApplicationService appService = applicationServiceService.findOrCreateByDisplayName(payload.getServiceName());
+          
+          instance.setServiceId(appService.getId().id());
+          instance.setTeamId(appService.getOwnerTeamId()); // May be null for orphaned services
+          
+          if (appService.getOwnerTeamId() == null) {
+            log.warn("Auto-linked instance {} to orphaned ApplicationService {} - requires approval workflow for team assignment", 
+                     id, appService.getId());
+          } else {
+            log.info("Auto-populated serviceId={} and teamId={} for instance {}", 
+                     appService.getId().id(), appService.getOwnerTeamId(), id);
+          }
+        } catch (Exception e) {
+          log.warn("Failed to auto-populate serviceId and teamId for instance {}: {}", id, e.getMessage());
         }
-      } catch (Exception e) {
-        log.warn("Failed to auto-populate serviceId and teamId for instance {}: {}", id, e.getMessage());
       }
     }
 

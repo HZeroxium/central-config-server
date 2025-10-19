@@ -105,4 +105,20 @@ public class ServiceShare {
         /** Can edit service instances and configuration. */
         EDIT_INSTANCE
     }
+
+    /**
+     * Check if this share applies to the given environment.
+     * <p>
+     * If environments is null or empty, the share applies to all environments.
+     * If environments has values, the share only applies to those specific environments.
+     *
+     * @param environment the environment to check
+     * @return true if the share applies to the environment, false otherwise
+     */
+    public boolean appliesToEnvironment(String environment) {
+        if (environments == null || environments.isEmpty()) {
+            return true; // No environment filter means all environments
+        }
+        return environments.contains(environment);
+    }
 }

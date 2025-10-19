@@ -1,5 +1,7 @@
 package com.example.control.application.service;
 
+import com.example.control.config.security.PermissionEvaluator;
+import com.example.control.config.security.UserContext;
 import com.example.control.domain.DriftEvent;
 import com.example.control.domain.id.DriftEventId;
 import com.example.control.domain.criteria.DriftEventCriteria;
@@ -26,6 +28,7 @@ import java.util.Optional;
 public class DriftEventService {
 
   private final DriftEventRepositoryPort repository;
+  private final PermissionEvaluator permissionEvaluator;
 
   /**
    * Saves a new drift event to the database.
@@ -43,24 +46,58 @@ public class DriftEventService {
    * <p>
    * Sorting is applied via {@link Pageable#getSort()} and delegated to the
    * Mongo adapter using {@code query.with(pageable)}.
+   * <p>
+   * Results are filtered by user permissions - users can only see drift events
+   * for services they own or have been granted access to via service shares.
    *
-   * @param filter   optional filter parameters encapsulated in a record
+   * @param criteria optional filter parameters encapsulated in a record
    * @param pageable pagination and sorting information
+   * @param userContext the user context for permission filtering
    * @return a page of {@link DriftEvent}
    */
-  @Cacheable(value = "drift-events", key = "'list:' + #filter.hashCode() + ':' + #pageable")
-  public Page<DriftEvent> list(DriftEventCriteria criteria, Pageable pageable) {
-        return repository.findAll(criteria, pageable);
+  @Cacheable(value = "drift-events", key = "'list:' + #criteria.hashCode() + ':' + #pageable + ':' + #userContext.userId")
+  public Page<DriftEvent> list(DriftEventCriteria criteria, Pageable pageable, UserContext userContext) {
+        log.debug("Listing drift events with criteria: {} for user: {}", criteria, userContext.getUserId());
+        
+        // Get all drift events first
+        Page<DriftEvent> allEvents = repository.findAll(criteria, pageable);
+        
+        // Filter by permissions
+        List<DriftEvent> filteredEvents = allEvents.getContent().stream()
+                .filter(event -> permissionEvaluator.canViewDriftEvent(userContext, event))
+                .toList();
+        
+        log.debug("Filtered {} drift events to {} for user: {}", 
+                allEvents.getTotalElements(), filteredEvents.size(), userContext.getUserId());
+        
+        // Create new page with filtered content
+        return new org.springframework.data.domain.PageImpl<>(
+                filteredEvents, 
+                pageable, 
+                filteredEvents.size()
+        );
   }
 
   /**
    * Finds a drift event by its identifier.
+   * <p>
+   * Returns the drift event only if the user has permission to view it.
    *
    * @param id event identifier
-   * @return optional {@link DriftEvent}
+   * @param userContext the user context for permission checking
+   * @return optional {@link DriftEvent} if found and user has permission
    */
-  public Optional<DriftEvent> findById(DriftEventId id) {
-    return repository.findById(id);
+  public Optional<DriftEvent> findById(DriftEventId id, UserContext userContext) {
+    log.debug("Finding drift event by ID: {} for user: {}", id, userContext.getUserId());
+    
+    Optional<DriftEvent> event = repository.findById(id);
+    
+    if (event.isPresent() && !permissionEvaluator.canViewDriftEvent(userContext, event.get())) {
+      log.warn("User {} does not have permission to view drift event {}", userContext.getUserId(), id);
+      return Optional.empty();
+    }
+    
+    return event;
   }
 
   /**

@@ -1,11 +1,16 @@
 package com.example.control.config.security;
 
+import com.example.control.application.service.ServiceShareService;
 import com.example.control.domain.ApplicationService;
 import com.example.control.domain.ApprovalRequest;
+import com.example.control.domain.DriftEvent;
 import com.example.control.domain.ServiceInstance;
+import com.example.control.domain.ServiceShare;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 
 /**
@@ -19,6 +24,8 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class PermissionEvaluator {
+
+    private final ServiceShareService serviceShareService;
 
     /**
      * Check if user can view an application service.
@@ -80,8 +87,17 @@ public class PermissionEvaluator {
             return true;
         }
         
-        // TODO: Check service shares for explicit permissions
-        // This would require querying the ServiceShareRepository
+        // Check service shares for explicit permissions
+        if (instance.getServiceId() != null) {
+            List<ServiceShare.SharePermission> permissions = serviceShareService.findEffectivePermissions(
+                userContext, instance.getServiceId(), List.of(instance.getEnvironment())
+            );
+            if (permissions.contains(ServiceShare.SharePermission.VIEW_INSTANCE)) {
+                log.debug("User {} granted VIEW_INSTANCE permission via service share for service {}", 
+                    userContext.getUserId(), instance.getServiceId());
+                return true;
+            }
+        }
         
         return false;
     }
@@ -109,8 +125,17 @@ public class PermissionEvaluator {
             return true;
         }
         
-        // TODO: Check service shares for EDIT_INSTANCE permission
-        // This would require querying the ServiceShareRepository
+        // Check service shares for EDIT_INSTANCE permission
+        if (instance.getServiceId() != null) {
+            List<ServiceShare.SharePermission> permissions = serviceShareService.findEffectivePermissions(
+                userContext, instance.getServiceId(), List.of(instance.getEnvironment())
+            );
+            if (permissions.contains(ServiceShare.SharePermission.EDIT_INSTANCE)) {
+                log.debug("User {} granted EDIT_INSTANCE permission via service share for service {}", 
+                    userContext.getUserId(), instance.getServiceId());
+                return true;
+            }
+        }
         
         return false;
     }
@@ -228,5 +253,82 @@ public class PermissionEvaluator {
         
         // Requesters can cancel their own requests
         return userContext.getUserId().equals(request.getRequesterUserId());
+    }
+
+    /**
+     * Check if user can view a drift event.
+     * <p>
+     * Users can view drift events if they belong to the owning team or have explicit share permissions.
+     * VIEW_INSTANCE permission on service also grants view on related drift_events.
+     *
+     * @param userContext the user context
+     * @param driftEvent the drift event
+     * @return true if user can view the drift event
+     */
+    public boolean canViewDriftEvent(UserContext userContext, DriftEvent driftEvent) {
+        log.debug("Checking if user {} can view drift event {} for service {}", 
+                userContext.getUserId(), driftEvent.getId(), driftEvent.getServiceName());
+        
+        // System admins can view all drift events
+        if (userContext.isSysAdmin()) {
+            return true;
+        }
+        
+        // Team members can view drift events of services owned by their team
+        if (driftEvent.getTeamId() != null && userContext.isMemberOfTeam(driftEvent.getTeamId())) {
+            return true;
+        }
+        
+        // Check service shares for explicit permissions
+        if (driftEvent.getServiceId() != null) {
+            List<ServiceShare.SharePermission> permissions = serviceShareService.findEffectivePermissions(
+                userContext, driftEvent.getServiceId(), List.of(driftEvent.getServiceName())
+            );
+            if (permissions.contains(ServiceShare.SharePermission.VIEW_INSTANCE)) {
+                log.debug("User {} granted VIEW_INSTANCE permission via service share for drift event service {}", 
+                    userContext.getUserId(), driftEvent.getServiceId());
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * Check if user can edit a drift event.
+     * <p>
+     * Similar to view permissions but requires EDIT_INSTANCE share permission.
+     *
+     * @param userContext the user context
+     * @param driftEvent the drift event
+     * @return true if user can edit the drift event
+     */
+    public boolean canEditDriftEvent(UserContext userContext, DriftEvent driftEvent) {
+        log.debug("Checking if user {} can edit drift event {} for service {}", 
+                userContext.getUserId(), driftEvent.getId(), driftEvent.getServiceName());
+        
+        // System admins can edit all drift events
+        if (userContext.isSysAdmin()) {
+            return true;
+        }
+        
+        // Team members can edit drift events of services owned by their team
+        if (driftEvent.getTeamId() != null && userContext.isMemberOfTeam(driftEvent.getTeamId())) {
+            return true;
+        }
+        
+        // Check service shares for EDIT_INSTANCE permission
+        if (driftEvent.getServiceId() != null) {
+            List<ServiceShare.SharePermission> permissions = serviceShareService.findEffectivePermissions(
+                userContext, driftEvent.getServiceId(), List.of(driftEvent.getServiceName())
+            );
+            if (permissions.contains(ServiceShare.SharePermission.EDIT_INSTANCE)) {
+                log.debug("User {} granted EDIT_INSTANCE permission via service share for drift event service {}", 
+                    userContext.getUserId(), driftEvent.getServiceId());
+                return true;
+            }
+        }
+        
+        return false;
     }
 }

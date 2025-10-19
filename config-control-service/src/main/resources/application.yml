@@ -54,7 +54,7 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://keycloak:8082/realms/config-control}
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://keycloak:8080/realms/config-control}
           audience: ${KEYCLOAK_AUDIENCE:config-control-service}
         health-check-interval: 10s
         health-check-timeout: 3s

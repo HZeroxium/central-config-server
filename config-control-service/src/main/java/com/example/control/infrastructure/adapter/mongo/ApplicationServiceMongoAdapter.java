@@ -28,9 +28,11 @@ public class ApplicationServiceMongoAdapter
     extends AbstractMongoAdapter<ApplicationService, ApplicationServiceDocument, ApplicationServiceId, ApplicationServiceCriteria> 
     implements ApplicationServiceRepositoryPort {
 
+    private final ApplicationServiceMongoRepository applicationServiceRepository;
 
     public ApplicationServiceMongoAdapter(ApplicationServiceMongoRepository repository, MongoTemplate mongoTemplate) {
         super(repository, mongoTemplate);
+        this.applicationServiceRepository = repository;
     }
 
     @Override
@@ -79,5 +81,16 @@ public class ApplicationServiceMongoAdapter
     @Override
     protected Class<ApplicationServiceDocument> getDocumentClass() {
         return ApplicationServiceDocument.class;
+    }
+
+    @Override
+    public java.util.Optional<ApplicationService> findByDisplayName(String displayName) {
+        log.debug("Finding application service by display name: {}", displayName);
+        
+        java.util.Optional<ApplicationServiceDocument> document = applicationServiceRepository.findByDisplayName(displayName);
+        java.util.Optional<ApplicationService> result = document.map(this::toDomain);
+        
+        log.debug("Found application service by display name: {}", result.isPresent());
+        return result;
     }
 }

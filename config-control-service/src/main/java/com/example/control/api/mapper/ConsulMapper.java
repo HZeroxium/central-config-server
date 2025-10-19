@@ -3,6 +3,7 @@ package com.example.control.api.mapper;
 import com.example.control.api.dto.ApiResponseDto;
 import com.example.control.api.dto.ConsulDto;
 import com.example.control.domain.ServiceInstance;
+import com.example.control.domain.id.ServiceInstanceId;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -27,8 +28,7 @@ public final class ConsulMapper {
     if (svc.getMeta() != null) meta.putAll(svc.getMeta());
 
     return ServiceInstance.builder()
-        .serviceName(svc.getService())
-        .instanceId(svc.getId())
+        .id(ServiceInstanceId.of(svc.getService(), svc.getId()))
         .host(svc.getAddress())
         .port(svc.getPort())
         .status(ServiceInstance.InstanceStatus.HEALTHY)

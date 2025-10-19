@@ -168,16 +168,11 @@ public abstract class AbstractMongoAdapter<T, D, ID, F> implements RepositoryPor
      * Get the document class for MongoDB operations.
      * <p>
      * This is used by MongoTemplate for type-safe operations.
-     * Subclasses should return their specific document class.
+     * Subclasses must return their specific document class.
      *
      * @return the document class
      */
-    @SuppressWarnings("unchecked")
-    protected Class<D> getDocumentClass() {
-        // This is a bit of a hack, but it works for our use case
-        // In a more complex scenario, we might need to pass the class explicitly
-        return (Class<D>) Object.class;
-    }
+    protected abstract Class<D> getDocumentClass();
 
     /**
      * Build a page from documents and pagination info.

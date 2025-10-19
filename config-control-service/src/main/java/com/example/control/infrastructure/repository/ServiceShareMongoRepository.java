@@ -78,7 +78,7 @@ public interface ServiceShareMongoRepository extends MongoRepository<ServiceShar
     /**
      * Find effective permissions for a user on a service.
      * This query finds all shares where the user is either directly granted access
-     * or is a member of a team that has been granted access.
+     * or is a member of a team that has been granted access, with strict environment filtering.
      *
      * @param userId      the user ID
      * @param userTeamIds the team IDs the user belongs to
@@ -86,6 +86,6 @@ public interface ServiceShareMongoRepository extends MongoRepository<ServiceShar
      * @param environments the environments to check
      * @return list of shares with effective permissions
      */
-    @Query("{'serviceId': ?2, '$or': [{'grantToType': 'USER', 'grantToId': ?0}, {'grantToType': 'TEAM', 'grantToId': {'$in': ?1}}], '$or': [{'environments': null}, {'environments': {'$in': ?3}}]}")
+    @Query("{'serviceId': ?2, '$and': [{'$or': [{'grantToType': 'USER', 'grantToId': ?0}, {'grantToType': 'TEAM', 'grantToId': {'$in': ?1}}]}, {'$or': [{'environments': null}, {'environments': {'$in': ?3}}]}]}")
     List<ServiceShareDocument> findEffectivePermissions(String userId, List<String> userTeamIds, String serviceId, List<String> environments);
 }

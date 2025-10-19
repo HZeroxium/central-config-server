@@ -5,7 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.MediaType;
@@ -20,11 +21,11 @@ import java.util.Optional;
 /**
  * Client for interacting with Consul HTTP API
  */
-@Slf4j
 @Component("customConsulClient")
 @RequiredArgsConstructor
 public class ConsulClient {
 
+  private static final Logger log = LoggerFactory.getLogger(ConsulClient.class);
   private final RestClient restClient = RestClient.create();
 
   @Value("${consul.url:http://localhost:8500}")

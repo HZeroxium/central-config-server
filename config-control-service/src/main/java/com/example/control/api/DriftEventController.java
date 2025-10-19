@@ -46,8 +46,11 @@ public class DriftEventController {
 
   @GetMapping("/{id}")
   @Operation(summary = "Get by id")
-  public ResponseEntity<ApiResponseDto.ApiResponse<DriftEventDtos.Response>> get(@PathVariable String id) {
-    Optional<DriftEvent> opt = service.findById(DriftEventId.of(id));
+  public ResponseEntity<ApiResponseDto.ApiResponse<DriftEventDtos.Response>> get(
+      @PathVariable String id,
+      @AuthenticationPrincipal Jwt jwt) {
+    UserContext userContext = UserContext.fromJwt(jwt);
+    Optional<DriftEvent> opt = service.findById(DriftEventId.of(id), userContext);
     return opt.map(ev -> ResponseEntity.ok(ApiResponseDto.ApiResponse.success(
         DriftEventApiMapper.toResponse(ev))))
         .orElse(ResponseEntity.notFound().build());
@@ -57,8 +60,10 @@ public class DriftEventController {
   @Operation(summary = "Update drift event (status/notes)")
   public ResponseEntity<ApiResponseDto.ApiResponse<DriftEventDtos.Response>> update(
       @PathVariable String id,
-      @Valid @RequestBody DriftEventDtos.UpdateRequest request) {
-    DriftEvent ev = service.findById(DriftEventId.of(id)).orElse(null);
+      @Valid @RequestBody DriftEventDtos.UpdateRequest request,
+      @AuthenticationPrincipal Jwt jwt) {
+    UserContext userContext = UserContext.fromJwt(jwt);
+    DriftEvent ev = service.findById(DriftEventId.of(id), userContext).orElse(null);
     if (ev == null) return ResponseEntity.notFound().build();
     DriftEventApiMapper.apply(ev, request);
     DriftEvent saved = service.save(ev);
@@ -89,7 +94,7 @@ public class DriftEventController {
         .build();
     
     DriftEventCriteria criteria = DriftEventApiMapper.toCriteria(queryFilter, userContext);
-    Page<DriftEvent> page = service.list(criteria, pageable);
+    Page<DriftEvent> page = service.list(criteria, pageable, userContext);
     Page<DriftEventDtos.Response> mapped = page.map(DriftEventApiMapper::toResponse);
     return ResponseEntity.ok(ApiResponseDto.ApiResponse.success(
         "Drift events", PageResponse.from(mapped)));

@@ -67,10 +67,23 @@ public class ServiceInstanceService {
    * @param serviceName service name
    * @param instanceId  instance ID
    * @return optional instance
+   * @deprecated Use {@link #findById(ServiceInstanceId)} instead
    */
+  @Deprecated
   @Cacheable(value = "service-instances", key = "#serviceName + ':' + #instanceId")
   public Optional<ServiceInstance> findByServiceAndInstance(String serviceName, String instanceId) {
-    return repository.findById(ServiceInstanceId.of(serviceName, instanceId));
+    return findById(ServiceInstanceId.of(serviceName, instanceId));
+  }
+
+  /**
+   * Retrieves a single instance by ID.
+   *
+   * @param id the service instance ID
+   * @return optional instance
+   */
+  @Cacheable(value = "service-instances", key = "#id")
+  public Optional<ServiceInstance> findById(ServiceInstanceId id) {
+    return repository.findById(id);
   }
 
   /**
@@ -107,13 +120,35 @@ public class ServiceInstanceService {
    * Sorting is applied via {@link Pageable#getSort()} and delegated to the
    * Mongo adapter using {@code query.with(pageable)}.
    *
-   * @param filter   optional filter parameters encapsulated in a record
+   * @param criteria optional filter parameters encapsulated in a record
    * @param pageable pagination and sorting information
    * @return a page of {@link ServiceInstance}
    */
-  @Cacheable(value = "service-instances", key = "'list:' + #filter.hashCode() + ':' + #pageable")
+  @Cacheable(value = "service-instances", key = "'list:' + #criteria.hashCode() + ':' + #pageable")
   public Page<ServiceInstance> list(ServiceInstanceCriteria criteria, Pageable pageable) {
     return repository.findAll(criteria, pageable);
+  }
+
+  /**
+   * Applies user-based team filtering to criteria.
+   * <p>
+   * This method ensures that team-based access control is enforced at the service layer.
+   * If userContext is null or user has no teams, returns criteria as-is (admin access).
+   *
+   * @param criteria the base criteria
+   * @param userContext the user context for team filtering
+   * @return criteria with team filtering applied
+   */
+  public ServiceInstanceCriteria applyUserFilter(ServiceInstanceCriteria criteria, com.example.control.config.security.UserContext userContext) {
+    if (userContext == null || userContext.getTeamIds() == null || userContext.getTeamIds().isEmpty()) {
+      // Admin access - no team filtering
+      return criteria;
+    }
+    
+    // Apply team filtering
+    return criteria.toBuilder()
+        .userTeamIds(userContext.getTeamIds())
+        .build();
   }
 
   /**
@@ -144,10 +179,21 @@ public class ServiceInstanceService {
    *
    * @param serviceName service name
    * @param instanceId  instance id
+   * @deprecated Use {@link #delete(ServiceInstanceId)} instead
    */
+  @Deprecated
   @CacheEvict(value = "service-instances", allEntries = true)
   public void delete(String serviceName, String instanceId) {
-    ServiceInstanceId id = ServiceInstanceId.of(serviceName, instanceId);
+    delete(ServiceInstanceId.of(serviceName, instanceId));
+  }
+
+  /**
+   * Deletes a service instance by ID.
+   *
+   * @param id the service instance ID
+   */
+  @CacheEvict(value = "service-instances", allEntries = true)
+  public void delete(ServiceInstanceId id) {
     repository.deleteById(id);
   }
 

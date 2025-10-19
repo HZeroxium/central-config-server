@@ -17,9 +17,9 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Service for managing IAM team projections with caching.
+ * Service for managing IAM teams with caching.
  * <p>
- * Provides CRUD operations for team projections with caching
+ * Provides CRUD operations for IAM teams with caching
  * for performance optimization.
  * </p>
  */
@@ -32,11 +32,11 @@ public class IamTeamService {
     private final IamTeamRepositoryPort repository;
 
     /**
-     * Save or update a team projection.
+     * Save or update an IAM team.
      * <p>
      * Evicts cache entries to ensure consistency.
      *
-     * @param team the team projection to save
+     * @param team the IAM team to save
      * @return the saved team
      */
     @Transactional
@@ -49,10 +49,10 @@ public class IamTeamService {
     }
 
     /**
-     * Find team by ID.
+     * Find IAM team by ID.
      *
      * @param id the team ID
-     * @return the team if found
+     * @return the IAM team if found
      */
     @Cacheable(value = "iam-teams", key = "#id")
     public Optional<IamTeam> findById(IamTeamId id) {
@@ -68,44 +68,56 @@ public class IamTeamService {
      * @param userId the user ID
      * @return list of teams containing the user
      */
-    @Cacheable(value = "iam-teams", key = "'by-member:' + #userId")
+    @Cacheable(value = "iam-teams", key = "'member:' + #userId")
     public List<IamTeam> findByMember(String userId) {
         log.debug("Finding teams by member: {}", userId);
-        List<IamTeam> teams = repository.findByMember(userId);
-        log.debug("Found {} teams for member: {}", teams.size(), userId);
-        return teams;
-    }
-
-    /**
-     * List teams with filtering and pagination.
-     *
-     * @param criteria the search criteria
-     * @param pageable pagination information
-     * @return page of teams
-     */
-    @Cacheable(value = "iam-teams", key = "'list:' + #criteria.hashCode() + ':' + #pageable")
-    public Page<IamTeam> list(IamTeamCriteria criteria, Pageable pageable) {
-        log.debug("Listing IAM teams with criteria: {}", criteria);
-        Page<IamTeam> result = repository.findAll(criteria, pageable);
-        log.debug("Found {} teams", result.getTotalElements());
+        List<IamTeam> result = repository.findByMember(userId);
+        log.debug("Found {} teams for member: {}", result.size(), userId);
         return result;
     }
 
     /**
+     * List IAM teams with filtering and pagination.
+     *
+     * @param criteria the search criteria
+     * @param pageable pagination information
+     * @return page of IAM teams
+     */
+    @Cacheable(value = "iam-teams", key = "'list:' + #criteria.hashCode() + ':' + #pageable")
+    public Page<IamTeam> findAll(IamTeamCriteria criteria, Pageable pageable) {
+        log.debug("Listing IAM teams with criteria: {}", criteria);
+        Page<IamTeam> result = repository.findAll(criteria, pageable);
+        log.debug("Found {} IAM teams", result.getTotalElements());
+        return result;
+    }
+
+    /**
+     * Count IAM teams matching the given filter criteria.
+     *
+     * @param criteria the filter criteria
+     * @return count of matching teams
+     */
+    @Cacheable(value = "iam-teams", key = "'count:' + #criteria.hashCode()")
+    public long count(IamTeamCriteria criteria) {
+        log.debug("Counting IAM teams with criteria: {}", criteria);
+        long count = repository.count(criteria);
+        log.debug("Found {} IAM teams matching criteria", count);
+        return count;
+    }
+
+    /**
      * Delete all team projections (for full sync).
-     * <p>
-     * This method is used during full synchronization from Keycloak.
      */
     @Transactional
     @CacheEvict(value = "iam-teams", allEntries = true)
     public void deleteAll() {
-        log.debug("Deleting all IAM team projections");
+        log.debug("Deleting all IAM teams");
         repository.deleteAll();
-        log.debug("Deleted all IAM team projections");
+        log.debug("Deleted all IAM teams");
     }
 
     /**
-     * Check if a team exists.
+     * Check if an IAM team exists.
      *
      * @param id the team ID
      * @return true if exists, false otherwise
@@ -115,18 +127,5 @@ public class IamTeamService {
         boolean exists = repository.existsById(id);
         log.debug("IAM team exists: {}", exists);
         return exists;
-    }
-
-    /**
-     * Delete a team by ID.
-     *
-     * @param id the team ID
-     */
-    @Transactional
-    @CacheEvict(value = "iam-teams", allEntries = true)
-    public void deleteById(IamTeamId id) {
-        log.debug("Deleting IAM team: {}", id);
-        repository.deleteById(id);
-        log.debug("Deleted IAM team: {}", id);
     }
 }

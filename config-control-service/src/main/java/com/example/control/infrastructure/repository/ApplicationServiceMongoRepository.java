@@ -67,4 +67,15 @@ public interface ApplicationServiceMongoRepository extends MongoRepository<Appli
      * @return true if service exists, false otherwise
      */
     boolean existsByOwnerTeamIdAndDisplayName(String ownerTeamId, String displayName);
+
+    /**
+     * Find application service by exact display name.
+     * <p>
+     * This method provides O(1) lookup for service name resolution during heartbeat processing.
+     * Should be indexed for optimal performance.
+     *
+     * @param displayName the exact display name to search for
+     * @return the application service if found, empty otherwise
+     */
+    java.util.Optional<ApplicationServiceDocument> findByDisplayName(String displayName);
 }
