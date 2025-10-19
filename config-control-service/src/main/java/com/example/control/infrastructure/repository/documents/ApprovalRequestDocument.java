@@ -1,6 +1,7 @@
 package com.example.control.infrastructure.repository.documents;
 
 import com.example.control.domain.ApprovalRequest;
+import com.example.control.domain.id.ApprovalRequestId;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -78,7 +79,7 @@ public class ApprovalRequestDocument {
      */
     public static ApprovalRequestDocument fromDomain(ApprovalRequest domain) {
         return ApprovalRequestDocument.builder()
-                .id(domain.getId())
+                .id(domain.getId().id())
                 .requesterUserId(domain.getRequesterUserId())
                 .requestType(domain.getRequestType() != null ? domain.getRequestType().name() : null)
                 .targetServiceId(domain.getTarget() != null ? domain.getTarget().getServiceId() : null)
@@ -100,7 +101,7 @@ public class ApprovalRequestDocument {
      */
     public ApprovalRequest toDomain() {
         return ApprovalRequest.builder()
-                .id(id)
+                .id(ApprovalRequestId.of(id))
                 .requesterUserId(requesterUserId)
                 .requestType(requestType != null 
                     ? ApprovalRequest.RequestType.valueOf(requestType) 

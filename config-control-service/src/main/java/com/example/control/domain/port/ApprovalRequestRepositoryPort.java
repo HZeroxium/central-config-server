@@ -1,9 +1,8 @@
 package com.example.control.domain.port;
 
 import com.example.control.domain.ApprovalRequest;
-
-import java.time.Instant;
-import java.util.List;
+import com.example.control.domain.id.ApprovalRequestId;
+import com.example.control.domain.criteria.ApprovalRequestCriteria;
 
 /**
  * Port (hexagonal architecture) for persisting and querying {@link ApprovalRequest}.
@@ -12,7 +11,7 @@ import java.util.List;
  * optimistic locking support to prevent race conditions during concurrent approvals.
  * </p>
  */
-public interface ApprovalRequestRepositoryPort extends RepositoryPort<ApprovalRequest, String> {
+public interface ApprovalRequestRepositoryPort extends RepositoryPort<ApprovalRequest, ApprovalRequestId, ApprovalRequestCriteria> {
 
     /**
      * Count approval requests by status.
@@ -30,18 +29,5 @@ public interface ApprovalRequestRepositoryPort extends RepositoryPort<ApprovalRe
      * @param version the expected version for optimistic locking
      * @return true if update successful, false if version conflict
      */
-    boolean updateStatusAndVersion(String id, ApprovalRequest.ApprovalStatus status, Integer version);
-
-    /**
-     * Filter object for querying approval requests.
-     */
-    record ApprovalRequestFilter(
-            String requesterUserId,
-            ApprovalRequest.ApprovalStatus status,
-            ApprovalRequest.RequestType requestType,
-            Instant fromDate,
-            Instant toDate,
-            String gate,
-            List<String> userTeamIds
-    ) {}
+    boolean updateStatusAndVersion(ApprovalRequestId id, ApprovalRequest.ApprovalStatus status, Integer version);
 }

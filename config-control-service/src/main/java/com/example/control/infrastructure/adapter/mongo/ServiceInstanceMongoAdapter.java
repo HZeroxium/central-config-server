@@ -1,66 +1,86 @@
 package com.example.control.infrastructure.adapter.mongo;
 
 import com.example.control.domain.ServiceInstance;
+import com.example.control.domain.id.ServiceInstanceId;
+import com.example.control.domain.criteria.ServiceInstanceCriteria;
 import com.example.control.domain.port.ServiceInstanceRepositoryPort;
 import com.example.control.infrastructure.repository.ServiceInstanceMongoRepository;
 import com.example.control.infrastructure.repository.documents.ServiceInstanceDocument;
 
-import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * MongoDB adapter implementing {@link ServiceInstanceRepositoryPort} using Spring Data and MongoTemplate.
  */
 @Component
-@RequiredArgsConstructor
-public class ServiceInstanceMongoAdapter implements ServiceInstanceRepositoryPort {
+public class ServiceInstanceMongoAdapter 
+    extends AbstractMongoAdapter<ServiceInstance, ServiceInstanceDocument, ServiceInstanceId, ServiceInstanceCriteria> 
+    implements ServiceInstanceRepositoryPort {
 
   private final ServiceInstanceMongoRepository repository;
-  private final MongoTemplate mongoTemplate;
 
-  @Override
-  public ServiceInstance save(ServiceInstance instance) {
-    ServiceInstanceDocument doc = ServiceInstanceDocument.fromDomain(instance);
-    repository.save(doc);
-    return doc.toDomain();
+  public ServiceInstanceMongoAdapter(ServiceInstanceMongoRepository repository, MongoTemplate mongoTemplate) {
+    super(repository, mongoTemplate);
+    this.repository = repository;
   }
 
   @Override
-  public Optional<ServiceInstance> findById(String id) {
-    return repository.findById(id).map(ServiceInstanceDocument::toDomain);
+  protected ServiceInstanceDocument toDocument(ServiceInstance domain) {
+    return ServiceInstanceDocument.fromDomain(domain);
   }
 
   @Override
-  public boolean existsById(String id) {
-    return repository.existsById(id);
+  protected ServiceInstance toDomain(ServiceInstanceDocument document) {
+    return document.toDomain();
   }
 
   @Override
-  public void deleteById(String id) {
-    repository.deleteById(id);
+  protected Query buildQuery(ServiceInstanceCriteria criteria) {
+    Query query = new Query();
+    if (criteria == null) return query;
+    
+    // Apply filters
+    if (criteria.serviceName() != null && !criteria.serviceName().isBlank()) {
+      query.addCriteria(Criteria.where("serviceName").is(criteria.serviceName()));
+    }
+    if (criteria.instanceId() != null && !criteria.instanceId().isBlank()) {
+      query.addCriteria(Criteria.where("instanceId").is(criteria.instanceId()));
+    }
+    if (criteria.status() != null) {
+      query.addCriteria(Criteria.where("status").is(criteria.status().name()));
+    }
+    if (criteria.hasDrift() != null) {
+      query.addCriteria(Criteria.where("hasDrift").is(criteria.hasDrift()));
+    }
+    if (criteria.environment() != null && !criteria.environment().isBlank()) {
+      query.addCriteria(Criteria.where("environment").is(criteria.environment()));
+    }
+    if (criteria.version() != null && !criteria.version().isBlank()) {
+      query.addCriteria(Criteria.where("version").is(criteria.version()));
+    }
+    if (criteria.lastSeenAtFrom() != null) {
+      query.addCriteria(Criteria.where("lastSeenAt").gte(criteria.lastSeenAtFrom()));
+    }
+    if (criteria.lastSeenAtTo() != null) {
+      query.addCriteria(Criteria.where("lastSeenAt").lte(criteria.lastSeenAtTo()));
+    }
+    
+    // ABAC: Team-based filtering
+    if (criteria.userTeamIds() != null && !criteria.userTeamIds().isEmpty()) {
+      query.addCriteria(Criteria.where("teamId").in(criteria.userTeamIds()));
+    }
+    
+    return query;
   }
 
-  // Legacy methods for composite key support
-  public Optional<ServiceInstance> findById(String serviceName, String instanceId) {
-    String id = serviceName + ":" + instanceId;
-    return findById(id);
+  @Override
+  protected String getCollectionName() {
+    return "service_instances";
   }
-
-  public void delete(String serviceName, String instanceId) {
-    String id = serviceName + ":" + instanceId;
-    deleteById(id);
-  }
-
 
   @Override
   public long countByServiceName(String serviceName) {
@@ -68,88 +88,8 @@ public class ServiceInstanceMongoAdapter implements ServiceInstanceRepositoryPor
   }
 
   @Override
-  public Page<ServiceInstance> findAll(Object filter, Pageable pageable) {
-    ServiceInstanceFilter instanceFilter = (ServiceInstanceFilter) filter;
-    Query query = new Query();
-
-    if (instanceFilter != null) {
-      if (instanceFilter.serviceName() != null && !instanceFilter.serviceName().isBlank()) {
-        query.addCriteria(Criteria.where("serviceName").is(instanceFilter.serviceName()));
-      }
-      if (instanceFilter.instanceId() != null && !instanceFilter.instanceId().isBlank()) {
-        query.addCriteria(Criteria.where("instanceId").is(instanceFilter.instanceId()));
-      }
-      if (instanceFilter.status() != null) {
-        query.addCriteria(Criteria.where("status").is(instanceFilter.status().name()));
-      }
-      if (instanceFilter.hasDrift() != null) {
-        query.addCriteria(Criteria.where("hasDrift").is(instanceFilter.hasDrift()));
-      }
-      if (instanceFilter.environment() != null && !instanceFilter.environment().isBlank()) {
-        query.addCriteria(Criteria.where("environment").is(instanceFilter.environment()));
-      }
-      if (instanceFilter.version() != null && !instanceFilter.version().isBlank()) {
-        query.addCriteria(Criteria.where("version").is(instanceFilter.version()));
-      }
-      if (instanceFilter.lastSeenAtFrom() != null) {
-        query.addCriteria(Criteria.where("lastSeenAt").gte(instanceFilter.lastSeenAtFrom()));
-      }
-      if (instanceFilter.lastSeenAtTo() != null) {
-        query.addCriteria(Criteria.where("lastSeenAt").lte(instanceFilter.lastSeenAtTo()));
-      }
-      
-      // Team-based access control: filter by team IDs (ABAC enforcement)
-      if (instanceFilter.userTeamIds() != null && !instanceFilter.userTeamIds().isEmpty()) {
-        query.addCriteria(Criteria.where("teamId").in(instanceFilter.userTeamIds()));
-      }
-    }
-
-    long total = mongoTemplate.count(query, ServiceInstanceDocument.class);
-    query.with(pageable);
-    List<ServiceInstance> content = mongoTemplate.find(query, ServiceInstanceDocument.class)
-        .stream().map(ServiceInstanceDocument::toDomain).collect(Collectors.toList());
-
-    return new PageImpl<>(content, pageable, total);
-  }
-
-  @Override
-  public long count(Object filter) {
-    ServiceInstanceFilter instanceFilter = (ServiceInstanceFilter) filter;
-    Query query = new Query();
-
-    if (instanceFilter != null) {
-      if (instanceFilter.serviceName() != null && !instanceFilter.serviceName().isBlank()) {
-        query.addCriteria(Criteria.where("serviceName").is(instanceFilter.serviceName()));
-      }
-      if (instanceFilter.instanceId() != null && !instanceFilter.instanceId().isBlank()) {
-        query.addCriteria(Criteria.where("instanceId").is(instanceFilter.instanceId()));
-      }
-      if (instanceFilter.status() != null) {
-        query.addCriteria(Criteria.where("status").is(instanceFilter.status().name()));
-      }
-      if (instanceFilter.hasDrift() != null) {
-        query.addCriteria(Criteria.where("hasDrift").is(instanceFilter.hasDrift()));
-      }
-      if (instanceFilter.environment() != null && !instanceFilter.environment().isBlank()) {
-        query.addCriteria(Criteria.where("environment").is(instanceFilter.environment()));
-      }
-      if (instanceFilter.version() != null && !instanceFilter.version().isBlank()) {
-        query.addCriteria(Criteria.where("version").is(instanceFilter.version()));
-      }
-      if (instanceFilter.lastSeenAtFrom() != null) {
-        query.addCriteria(Criteria.where("lastSeenAt").gte(instanceFilter.lastSeenAtFrom()));
-      }
-      if (instanceFilter.lastSeenAtTo() != null) {
-        query.addCriteria(Criteria.where("lastSeenAt").lte(instanceFilter.lastSeenAtTo()));
-      }
-      
-      // Team-based access control: filter by team IDs (ABAC enforcement)
-      if (instanceFilter.userTeamIds() != null && !instanceFilter.userTeamIds().isEmpty()) {
-        query.addCriteria(Criteria.where("teamId").in(instanceFilter.userTeamIds()));
-      }
-    }
-
-    return mongoTemplate.count(query, ServiceInstanceDocument.class);
+  protected Class<ServiceInstanceDocument> getDocumentClass() {
+    return ServiceInstanceDocument.class;
   }
 }
 

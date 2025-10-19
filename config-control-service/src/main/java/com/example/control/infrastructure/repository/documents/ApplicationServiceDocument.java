@@ -1,6 +1,7 @@
 package com.example.control.infrastructure.repository.documents;
 
 import com.example.control.domain.ApplicationService;
+import com.example.control.domain.id.ApplicationServiceId;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -71,7 +72,7 @@ public class ApplicationServiceDocument {
      */
     public static ApplicationServiceDocument fromDomain(ApplicationService domain) {
         return ApplicationServiceDocument.builder()
-                .id(domain.getId())
+                .id(domain.getId().id())
                 .displayName(domain.getDisplayName())
                 .ownerTeamId(domain.getOwnerTeamId())
                 .environments(domain.getEnvironments())
@@ -92,7 +93,7 @@ public class ApplicationServiceDocument {
      */
     public ApplicationService toDomain() {
         return ApplicationService.builder()
-                .id(id)
+                .id(ApplicationServiceId.of(id))
                 .displayName(displayName)
                 .ownerTeamId(ownerTeamId)
                 .environments(environments)

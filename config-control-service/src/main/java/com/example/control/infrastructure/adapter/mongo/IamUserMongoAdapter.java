@@ -1,19 +1,19 @@
 package com.example.control.infrastructure.adapter.mongo;
 
 import com.example.control.domain.IamUser;
+import com.example.control.domain.id.IamUserId;
+import com.example.control.domain.criteria.IamUserCriteria;
 import com.example.control.domain.port.IamUserRepositoryPort;
 import com.example.control.infrastructure.repository.IamUserMongoRepository;
 import com.example.control.infrastructure.repository.documents.IamUserDocument;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.Optional;
 
 /**
  * MongoDB adapter implementation for {@link IamUserRepositoryPort}.
@@ -24,28 +24,71 @@ import java.util.Optional;
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor
-public class IamUserMongoAdapter implements IamUserRepositoryPort {
+public class IamUserMongoAdapter 
+    extends AbstractMongoAdapter<IamUser, IamUserDocument, IamUserId, IamUserCriteria> 
+    implements IamUserRepositoryPort {
 
     private final IamUserMongoRepository repository;
 
-    @Override
-    public IamUser save(IamUser user) {
-        log.debug("Saving IAM user: {}", user.getUserId());
-        
-        IamUserDocument document = IamUserDocument.fromDomain(user);
-        IamUserDocument saved = repository.save(document);
-        
-        log.debug("Successfully saved IAM user: {}", saved.getUserId());
-        return saved.toDomain();
+    public IamUserMongoAdapter(IamUserMongoRepository repository, MongoTemplate mongoTemplate) {
+        super(repository, mongoTemplate);
+        this.repository = repository;
     }
 
     @Override
-    public Optional<IamUser> findById(String userId) {
-        log.debug("Finding IAM user by ID: {}", userId);
+    protected IamUserDocument toDocument(IamUser domain) {
+        return IamUserDocument.fromDomain(domain);
+    }
+
+    @Override
+    protected IamUser toDomain(IamUserDocument document) {
+        return document.toDomain();
+    }
+
+    @Override
+    protected Query buildQuery(IamUserCriteria criteria) {
+        Query query = new Query();
+        if (criteria == null) return query;
         
-        Optional<IamUserDocument> document = repository.findById(userId);
-        return document.map(IamUserDocument::toDomain);
+        // Apply filters
+        if (criteria.username() != null) {
+            query.addCriteria(Criteria.where("username").is(criteria.username()));
+        }
+        if (criteria.email() != null) {
+            query.addCriteria(Criteria.where("email").is(criteria.email()));
+        }
+        if (criteria.firstName() != null) {
+            query.addCriteria(Criteria.where("firstName").is(criteria.firstName()));
+        }
+        if (criteria.lastName() != null) {
+            query.addCriteria(Criteria.where("lastName").is(criteria.lastName()));
+        }
+        if (criteria.teamIds() != null && !criteria.teamIds().isEmpty()) {
+            query.addCriteria(Criteria.where("teamIds").in(criteria.teamIds()));
+        }
+        if (criteria.managerId() != null) {
+            query.addCriteria(Criteria.where("managerId").is(criteria.managerId()));
+        }
+        if (criteria.roles() != null && !criteria.roles().isEmpty()) {
+            query.addCriteria(Criteria.where("roles").in(criteria.roles()));
+        }
+        
+        // ABAC: Team-based filtering
+        if (criteria.userTeamIds() != null && !criteria.userTeamIds().isEmpty()) {
+            query.addCriteria(Criteria.where("teamIds").in(criteria.userTeamIds()));
+        }
+        
+        return query;
+    }
+
+    @Override
+    protected String getCollectionName() {
+        return "iam_users";
+    }
+
+    @Override
+    protected Class<IamUserDocument> getDocumentClass() {
+        return IamUserDocument.class;
     }
 
     @Override
@@ -79,39 +122,6 @@ public class IamUserMongoAdapter implements IamUserRepositoryPort {
     }
 
     @Override
-    public Page<IamUser> findAll(Object filter, Pageable pageable) {
-        log.debug("Listing IAM users with pageable: {}", pageable);
-        
-        org.springframework.data.domain.Page<IamUserDocument> documentPage = repository.findAll(pageable);
-        
-        List<IamUser> users = documentPage.getContent().stream()
-                .map(IamUserDocument::toDomain)
-                .toList();
-        
-        return new PageImpl<>(users, pageable, documentPage.getTotalElements());
-    }
-
-    @Override
-    public Page<IamUser> list(Pageable pageable) {
-        return findAll(null, pageable);
-    }
-
-    @Override
-    public long count(Object filter) {
-        return repository.count();
-    }
-
-    @Override
-    public boolean existsById(String id) {
-        return repository.existsById(id);
-    }
-
-    @Override
-    public void deleteById(String id) {
-        repository.deleteById(id);
-    }
-
-    @Override
     public List<String> findUserIdsByTeams(List<String> teamIds) {
         log.debug("Finding user IDs by teams: {}", teamIds);
         
@@ -119,14 +129,6 @@ public class IamUserMongoAdapter implements IamUserRepositoryPort {
         return documents.stream()
                 .map(IamUserDocument::getUserId)
                 .toList();
-    }
-
-    @Override
-    public void delete(String userId) {
-        log.debug("Deleting IAM user: {}", userId);
-        
-        repository.deleteById(userId);
-        log.debug("Successfully deleted IAM user: {}", userId);
     }
 
     @Override

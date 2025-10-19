@@ -1,11 +1,11 @@
 package com.example.control.domain.port;
 
 import com.example.control.domain.IamUser;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import com.example.control.domain.id.IamUserId;
+import com.example.control.domain.criteria.IamUserCriteria;
+
 
 import java.util.List;
-import java.util.Optional;
 
 /**
  * Port (hexagonal architecture) for persisting and querying {@link IamUser}.
@@ -19,23 +19,7 @@ import java.util.Optional;
  * This is only a cached projection that should be synchronized periodically.
  * </p>
  */
-public interface IamUserRepositoryPort extends RepositoryPort<IamUser, String> {
-
-    /**
-     * Persist or update a user projection.
-     *
-     * @param user the IAM user to save
-     * @return the persisted IAM user
-     */
-    IamUser save(IamUser user);
-
-    /**
-     * Find a user projection by Keycloak user ID.
-     *
-     * @param userId the Keycloak user ID (sub claim)
-     * @return optional IAM user
-     */
-    Optional<IamUser> findById(String userId);
+public interface IamUserRepositoryPort extends RepositoryPort<IamUser, IamUserId, IamUserCriteria> {
 
     /**
      * Find users belonging to a specific team.
@@ -62,27 +46,12 @@ public interface IamUserRepositoryPort extends RepositoryPort<IamUser, String> {
     List<IamUser> findByRole(String role);
 
     /**
-     * List all user projections with pagination.
-     *
-     * @param pageable pagination information
-     * @return a page of IAM users
-     */
-    Page<IamUser> list(Pageable pageable);
-
-    /**
      * Find all user IDs that belong to any of the specified teams.
      *
      * @param teamIds list of team IDs
      * @return list of user IDs
      */
     List<String> findUserIdsByTeams(List<String> teamIds);
-
-    /**
-     * Delete a user projection.
-     *
-     * @param userId the user ID to delete
-     */
-    void delete(String userId);
 
     /**
      * Delete all user projections (for full sync).

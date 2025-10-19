@@ -1,6 +1,7 @@
 package com.example.control.infrastructure.repository.documents;
 
 import com.example.control.domain.IamTeam;
+import com.example.control.domain.id.IamTeamId;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -46,7 +47,7 @@ public class IamTeamDocument {
      */
     public static IamTeamDocument fromDomain(IamTeam domain) {
         return IamTeamDocument.builder()
-                .teamId(domain.getTeamId())
+                .teamId(domain.getTeamId().teamId())
                 .displayName(domain.getDisplayName())
                 .members(domain.getMembers())
                 .syncedAt(domain.getSyncedAt())
@@ -60,7 +61,7 @@ public class IamTeamDocument {
      */
     public IamTeam toDomain() {
         return IamTeam.builder()
-                .teamId(teamId)
+                .teamId(IamTeamId.of(teamId))
                 .displayName(displayName)
                 .members(members)
                 .syncedAt(syncedAt)

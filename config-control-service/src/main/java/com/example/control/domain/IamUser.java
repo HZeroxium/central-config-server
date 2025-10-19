@@ -1,11 +1,12 @@
 package com.example.control.domain;
 
+import com.example.control.domain.id.IamUserId;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import java.time.Instant;
 import java.util.List;
 
@@ -24,8 +25,8 @@ import java.util.List;
 public class IamUser {
 
     /** Keycloak user ID (sub claim). */
-    @NotBlank(message = "User ID is required")
-    private String userId;
+    @NotNull(message = "User ID is required")
+    private IamUserId userId;
 
     /** Username. */
     private String username;

@@ -1,8 +1,8 @@
 package com.example.control.domain.port;
 
 import com.example.control.domain.ServiceShare;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import com.example.control.domain.id.ServiceShareId;
+import com.example.control.domain.criteria.ServiceShareCriteria;
 
 import java.util.List;
 
@@ -14,7 +14,7 @@ import java.util.List;
  * full team membership.
  * </p>
  */
-public interface ServiceShareRepositoryPort extends RepositoryPort<ServiceShare, String> {
+public interface ServiceShareRepositoryPort extends RepositoryPort<ServiceShare, ServiceShareId, ServiceShareCriteria> {
 
     /**
      * Check if a specific share exists (for duplicate prevention).
@@ -43,16 +43,4 @@ public interface ServiceShareRepositoryPort extends RepositoryPort<ServiceShare,
                                                                 List<String> userTeamIds, 
                                                                 String serviceId, 
                                                                 List<String> environments);
-
-    /**
-     * Filter object for querying service shares.
-     */
-    record ServiceShareFilter(
-            String serviceId,
-            ServiceShare.GranteeType grantToType,
-            String grantToId,
-            List<String> environments,
-            String grantedBy,
-            List<String> userTeamIds
-    ) {}
 }

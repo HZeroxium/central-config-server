@@ -1,6 +1,7 @@
 package com.example.control.infrastructure.repository.documents;
 
 import com.example.control.domain.ServiceShare;
+import com.example.control.domain.id.ServiceShareId;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -71,7 +72,7 @@ public class ServiceShareDocument {
      */
     public static ServiceShareDocument fromDomain(ServiceShare domain) {
         return ServiceShareDocument.builder()
-                .id(domain.getId())
+                .id(domain.getId().id())
                 .resourceLevel(domain.getResourceLevel() != null ? domain.getResourceLevel().name() : null)
                 .serviceId(domain.getServiceId())
                 .instanceId(domain.getInstanceId())
@@ -96,7 +97,7 @@ public class ServiceShareDocument {
      */
     public ServiceShare toDomain() {
         return ServiceShare.builder()
-                .id(id)
+                .id(ServiceShareId.of(id))
                 .resourceLevel(resourceLevel != null 
                     ? ServiceShare.ResourceLevel.valueOf(resourceLevel) 
                     : null)

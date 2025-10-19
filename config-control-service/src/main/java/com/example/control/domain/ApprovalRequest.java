@@ -1,5 +1,6 @@
 package com.example.control.domain;
 
+import com.example.control.domain.id.ApprovalRequestId;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -25,14 +26,14 @@ import java.util.Map;
  * @see ApprovalGate for gate configuration
  */
 @Data
-@Builder
+@Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 public class ApprovalRequest {
 
     /** Unique request identifier. */
-    @NotBlank(message = "Request ID is required")
-    private String id;
+    @NotNull(message = "Request ID is required")
+    private ApprovalRequestId id;
 
     /** User who created this request (Keycloak user ID). */
     @NotBlank(message = "Requester user ID is required")
@@ -144,6 +145,7 @@ public class ApprovalRequest {
         private Integer minApprovals;
 
         /** Gate status. */
+        @Builder.Default
         private GateStatus status = GateStatus.PENDING;
 
         /** Alias for gate name for backward compatibility. */

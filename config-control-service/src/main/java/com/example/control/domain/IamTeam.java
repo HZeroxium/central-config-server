@@ -1,11 +1,12 @@
 package com.example.control.domain;
 
+import com.example.control.domain.id.IamTeamId;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import java.time.Instant;
 import java.util.List;
 
@@ -24,8 +25,8 @@ import java.util.List;
 public class IamTeam {
 
     /** Keycloak group name (team ID). */
-    @NotBlank(message = "Team ID is required")
-    private String teamId;
+    @NotNull(message = "Team ID is required")
+    private IamTeamId teamId;
 
     /** Display name of the team. */
     private String displayName;

@@ -1,6 +1,7 @@
 package com.example.control.infrastructure.repository.documents;
 
 import com.example.control.domain.ServiceInstance;
+import com.example.control.domain.id.ServiceInstanceId;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -82,9 +83,9 @@ public class ServiceInstanceDocument {
    */
   public static ServiceInstanceDocument fromDomain(ServiceInstance domain) {
     return ServiceInstanceDocument.builder()
-        .id(domain.getServiceName() + ":" + domain.getInstanceId())
-        .serviceName(domain.getServiceName())
-        .instanceId(domain.getInstanceId())
+        .id(domain.getId().toDocumentId())
+        .serviceName(domain.getId().serviceName())
+        .instanceId(domain.getId().instanceId())
         .serviceId(domain.getServiceId())
         .teamId(domain.getTeamId())
         .host(domain.getHost())
@@ -111,8 +112,7 @@ public class ServiceInstanceDocument {
    */
   public ServiceInstance toDomain() {
     return ServiceInstance.builder()
-        .serviceName(serviceName)
-        .instanceId(instanceId)
+        .id(ServiceInstanceId.fromDocumentId(id))
         .serviceId(serviceId)
         .teamId(teamId)
         .host(host)

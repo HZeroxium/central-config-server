@@ -1,6 +1,7 @@
 package com.example.control.infrastructure.repository.documents;
 
 import com.example.control.domain.DriftEvent;
+import com.example.control.domain.id.DriftEventId;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -73,7 +74,7 @@ public class DriftEventDocument {
    */
   public static DriftEventDocument fromDomain(DriftEvent domain) {
     return DriftEventDocument.builder()
-        .id(domain.getId())
+        .id(domain.getId().id())
         .serviceName(domain.getServiceName())
         .instanceId(domain.getInstanceId())
         .serviceId(domain.getServiceId())
@@ -97,7 +98,7 @@ public class DriftEventDocument {
    */
   public DriftEvent toDomain() {
     return DriftEvent.builder()
-        .id(id)
+        .id(DriftEventId.of(id))
         .serviceName(serviceName)
         .instanceId(instanceId)
         .serviceId(serviceId)

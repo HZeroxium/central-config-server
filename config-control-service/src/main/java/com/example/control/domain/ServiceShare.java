@@ -1,5 +1,6 @@
 package com.example.control.domain;
 
+import com.example.control.domain.id.ServiceShareId;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -29,8 +30,8 @@ import java.util.List;
 public class ServiceShare {
 
     /** Unique share identifier. */
-    @NotBlank(message = "Share ID is required")
-    private String id;
+    @NotNull(message = "Share ID is required")
+    private ServiceShareId id;
 
     /** Level of resource being shared. */
     @NotNull(message = "Resource level is required")

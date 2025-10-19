@@ -6,7 +6,6 @@ import org.springframework.stereotype.Repository;
 
 import com.example.control.infrastructure.repository.documents.DriftEventDocument;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -14,7 +13,6 @@ import java.util.List;
  * <p>
  * Provides data access operations for drift detection, tracking, and reporting.
  */
-@Deprecated
 @Repository
 public interface DriftEventMongoRepository extends MongoRepository<DriftEventDocument, String> {
 

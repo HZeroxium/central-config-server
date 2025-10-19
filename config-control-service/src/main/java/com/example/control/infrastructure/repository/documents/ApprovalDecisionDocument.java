@@ -1,6 +1,8 @@
 package com.example.control.infrastructure.repository.documents;
 
 import com.example.control.domain.ApprovalDecision;
+import com.example.control.domain.id.ApprovalDecisionId;
+import com.example.control.domain.id.ApprovalRequestId;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -61,8 +63,8 @@ public class ApprovalDecisionDocument {
      */
     public static ApprovalDecisionDocument fromDomain(ApprovalDecision domain) {
         return ApprovalDecisionDocument.builder()
-                .id(domain.getId())
-                .requestId(domain.getRequestId())
+                .id(domain.getId().id())
+                .requestId(domain.getRequestId().id())
                 .approverUserId(domain.getApproverUserId())
                 .gate(domain.getGate())
                 .decision(domain.getDecision() != null ? domain.getDecision().name() : null)
@@ -78,8 +80,8 @@ public class ApprovalDecisionDocument {
      */
     public ApprovalDecision toDomain() {
         return ApprovalDecision.builder()
-                .id(id)
-                .requestId(requestId)
+                .id(ApprovalDecisionId.of(id))
+                .requestId(ApprovalRequestId.of(requestId))
                 .approverUserId(approverUserId)
                 .gate(gate)
                 .decision(decision != null 

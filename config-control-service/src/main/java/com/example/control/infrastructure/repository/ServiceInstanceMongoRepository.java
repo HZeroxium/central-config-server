@@ -6,7 +6,6 @@ import org.springframework.stereotype.Repository;
 
 import com.example.control.infrastructure.repository.documents.ServiceInstanceDocument;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -16,7 +15,6 @@ import java.util.Optional;
  * Provides convenience methods and custom MongoDB queries for instance discovery,
  * drift detection, and lifecycle tracking.
  */
-@Deprecated
 @Repository
 public interface ServiceInstanceMongoRepository extends MongoRepository<ServiceInstanceDocument, String> {
 

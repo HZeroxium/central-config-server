@@ -14,8 +14,9 @@ import java.util.Optional;
  * 
  * @param <T> the domain entity type
  * @param <ID> the entity identifier type
+ * @param <F> the filter criteria type
  */
-public interface RepositoryPort<T, ID> {
+public interface RepositoryPort<T, ID, F> {
 
     /**
      * Save or update an entity.
@@ -62,7 +63,7 @@ public interface RepositoryPort<T, ID> {
      * @param pageable pagination and sorting information
      * @return a page of matching entities
      */
-    Page<T> findAll(Object filter, Pageable pageable);
+    Page<T> findAll(F filter, Pageable pageable);
 
     /**
      * Count entities matching the given filter criteria.
@@ -73,5 +74,28 @@ public interface RepositoryPort<T, ID> {
      * @param filter the filter criteria (can be null for no filtering)
      * @return the count of matching entities
      */
-    long count(Object filter);
+    long count(F filter);
+
+    /**
+     * Find all entities with pagination (no filtering).
+     * <p>
+     * Convenience method that delegates to findAll(null, pageable).
+     *
+     * @param pageable pagination and sorting information
+     * @return a page of all entities
+     */
+    default Page<T> findAll(Pageable pageable) {
+        return findAll(null, pageable);
+    }
+
+    /**
+     * Count all entities (no filtering).
+     * <p>
+     * Convenience method that delegates to count(null).
+     *
+     * @return the total count of entities
+     */
+    default long countAll() {
+        return count(null);
+    }
 }

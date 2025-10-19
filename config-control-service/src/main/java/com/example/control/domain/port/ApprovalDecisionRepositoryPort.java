@@ -1,8 +1,9 @@
 package com.example.control.domain.port;
 
 import com.example.control.domain.ApprovalDecision;
-
-import java.util.List;
+import com.example.control.domain.id.ApprovalDecisionId;
+import com.example.control.domain.id.ApprovalRequestId;
+import com.example.control.domain.criteria.ApprovalDecisionCriteria;
 
 /**
  * Port (hexagonal architecture) for persisting and querying {@link ApprovalDecision}.
@@ -12,8 +13,7 @@ import java.util.List;
  * request per gate (enforced by unique constraint).
  * </p>
  */
-public interface ApprovalDecisionRepositoryPort extends RepositoryPort<ApprovalDecision, String> {
-
+public interface ApprovalDecisionRepositoryPort extends RepositoryPort<ApprovalDecision, ApprovalDecisionId, ApprovalDecisionCriteria> {
 
     /**
      * Check if a decision exists for a specific request, approver, and gate.
@@ -26,7 +26,7 @@ public interface ApprovalDecisionRepositoryPort extends RepositoryPort<ApprovalD
      * @param gate           the gate name
      * @return true if decision exists, false otherwise
      */
-    boolean existsByRequestAndApproverAndGate(String requestId, String approverUserId, String gate);
+    boolean existsByRequestAndApproverAndGate(ApprovalRequestId requestId, String approverUserId, String gate);
 
     /**
      * Count decisions for a specific request and gate.
@@ -35,7 +35,7 @@ public interface ApprovalDecisionRepositoryPort extends RepositoryPort<ApprovalD
      * @param gate      the gate name
      * @return number of decisions for the request and gate
      */
-    long countByRequestIdAndGate(String requestId, String gate);
+    long countByRequestIdAndGate(ApprovalRequestId requestId, String gate);
 
     /**
      * Count decisions by decision type for a specific request and gate.
@@ -45,16 +45,5 @@ public interface ApprovalDecisionRepositoryPort extends RepositoryPort<ApprovalD
      * @param decision  the decision type (APPROVE or REJECT)
      * @return number of decisions of the specified type
      */
-    long countByRequestIdAndGateAndDecision(String requestId, String gate, ApprovalDecision.Decision decision);
-
-    /**
-     * Filter object for querying approval decisions.
-     */
-    record ApprovalDecisionFilter(
-            String requestId,
-            String approverUserId,
-            String gate,
-            ApprovalDecision.Decision decision,
-            List<String> userTeamIds
-    ) {}
+    long countByRequestIdAndGateAndDecision(ApprovalRequestId requestId, String gate, ApprovalDecision.Decision decision);
 }

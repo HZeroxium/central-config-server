@@ -1,5 +1,6 @@
 package com.example.control.domain;
 
+import com.example.control.domain.id.DriftEventId;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -19,8 +20,8 @@ import java.time.Instant;
 @AllArgsConstructor
 public class DriftEvent {
 
-  /** Unique identifier of the drift event (UUID or MongoDB ObjectId). */
-  private String id;
+  /** Unique identifier of the drift event. */
+  private DriftEventId id;
 
   /** Name of the service where drift occurred. */
   private String serviceName;

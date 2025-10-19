@@ -1,5 +1,7 @@
 package com.example.control.domain;
 
+import com.example.control.domain.id.ApprovalDecisionId;
+import com.example.control.domain.id.ApprovalRequestId;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -25,12 +27,12 @@ import java.time.Instant;
 public class ApprovalDecision {
 
     /** Unique decision identifier. */
-    @NotBlank(message = "Decision ID is required")
-    private String id;
+    @NotNull(message = "Decision ID is required")
+    private ApprovalDecisionId id;
 
     /** ID of the approval request this decision belongs to. */
-    @NotBlank(message = "Request ID is required")
-    private String requestId;
+    @NotNull(message = "Request ID is required")
+    private ApprovalRequestId requestId;
 
     /** User who made this decision (Keycloak user ID). */
     @NotBlank(message = "Approver user ID is required")

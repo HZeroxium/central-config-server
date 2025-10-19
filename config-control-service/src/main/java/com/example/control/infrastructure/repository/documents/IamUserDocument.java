@@ -1,6 +1,7 @@
 package com.example.control.infrastructure.repository.documents;
 
 import com.example.control.domain.IamUser;
+import com.example.control.domain.id.IamUserId;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -64,7 +65,7 @@ public class IamUserDocument {
      */
     public static IamUserDocument fromDomain(IamUser domain) {
         return IamUserDocument.builder()
-                .userId(domain.getUserId())
+                .userId(domain.getUserId().userId())
                 .username(domain.getUsername())
                 .email(domain.getEmail())
                 .firstName(domain.getFirstName())
@@ -83,7 +84,7 @@ public class IamUserDocument {
      */
     public IamUser toDomain() {
         return IamUser.builder()
-                .userId(userId)
+                .userId(IamUserId.of(userId))
                 .username(username)
                 .email(email)
                 .firstName(firstName)
