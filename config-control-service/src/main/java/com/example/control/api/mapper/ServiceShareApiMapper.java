@@ -1,146 +1,86 @@
 package com.example.control.api.mapper;
 
 import com.example.control.api.dto.ServiceShareDtos;
+import com.example.control.config.security.UserContext;
 import com.example.control.domain.ServiceShare;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import com.example.control.domain.criteria.ServiceShareCriteria;
+import com.example.control.domain.id.ServiceShareId;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.UUID;
 
 /**
- * Mapper for converting between ServiceShare domain objects and API DTOs.
- * <pされます>
- * This mapper provides static methods for converting between the domain model
- * and the API layer, ensuring clean separation of concerns.
+ * Mapper for ServiceShare API operations.
+ * <p>
+ * Provides mapping between domain objects and API DTOs with
+ * proper validation and team-based filtering.
  * </p>
  */
-public class ServiceShareApiMapper {
+public final class ServiceShareApiMapper {
 
     /**
-     * Convert GrantRequest DTO to domain object.
+     * Map CreateRequest DTO to domain entity.
      *
-     * @param request the grant request DTO
-     * @param userContext the current user context
-     * @return the domain object
+     * @param request the create request
+     * @param userContext the user context for granted by
+     * @return the domain entity
      */
-    public static ServiceShare toDomain(ServiceShareDtos.GrantRequest request, 
-                                      com.example.control.config.security.UserContext userContext) {
+    public static ServiceShare toDomain(ServiceShareDtos.CreateRequest request, UserContext userContext) {
         return ServiceShare.builder()
+                .id(ServiceShareId.of(UUID.randomUUID().toString()))
+                .resourceLevel(ServiceShare.ResourceLevel.SERVICE)
                 .serviceId(request.serviceId())
-                .grantToType(request.grantToType())
+                .grantToType(ServiceShare.GranteeType.valueOf(request.grantToType()))
                 .grantToId(request.grantToId())
-                .permissions(request.permissions())
-                .environments(request.environments())
-                .expiresAt(request.expiresAt())
+                .permissions(request.permissions().stream()
+                        .map(ServiceShare.SharePermission::valueOf)
+                        .toList())
+                .environments(request.environments() != null ? request.environments() : List.of())
                 .grantedBy(userContext.getUserId())
-                .build();
-    }
-
-    /**
-     * Apply UpdateRequest DTO to existing domain object.
-     *
-     * @param existing the existing domain object
-     * @param request the update request DTO
-     * @param userContext the current user context
-     * @return the updated domain object
-     */
-    public static ServiceShare apply(ServiceShare existing, 
-                                   ServiceShareDtos.UpdateRequest request,
-                                   com.example.control.config.security.UserContext userContext) {
-        return existing.toBuilder()
-                .permissions(request.permissions() != null ? request.permissions() : existing.getPermissions())
-                .environments(request.environments() != null ? request.environments() : existing.getEnvironments())
+                .createdAt(Instant.now())
                 .expiresAt(request.expiresAt())
-                .updatedAt(Instant.now())
                 .build();
     }
 
     /**
-     * Convert domain object to Response DTO.
+     * Map domain entity to Response DTO.
      *
-     * @param share the domain object
+     * @param entity the domain entity
      * @return the response DTO
      */
-    public static ServiceShareDtos.Response toResponse(ServiceShare share) {
+    public static ServiceShareDtos.Response toResponse(ServiceShare entity) {
         return new ServiceShareDtos.Response(
-                share.getId(),
-                share.getServiceId(),
-                share.getGrantToType(),
-                share.getGrantToId(),
-                share.getPermissions(),
-                share.getEnvironments(),
-                share.getExpiresAt(),
-                share.getCreatedAt(),
-                share.getUpdatedAt(),
-                share.getGrantedBy()
+                entity.getId().id(),
+                entity.getResourceLevel().name(),
+                entity.getServiceId(),
+                entity.getGrantToType().name(),
+                entity.getGrantToId(),
+                entity.getPermissions().stream()
+                        .map(Enum::name)
+                        .toList(),
+                entity.getEnvironments(),
+                entity.getGrantedBy(),
+                entity.getCreatedAt(),
+                entity.getExpiresAt()
         );
     }
 
     /**
-     * Convert list of domain objects to Response DTOs.
+     * Map QueryFilter to domain criteria with team filtering.
      *
-     * @param shares the list of domain objects
-     * @return the list of response DTOs
+     * @param filter the query filter
+     * @param userContext the user context for team filtering
+     * @return the domain criteria
      */
-    public static List<ServiceShareDtos.Response> toResponseList(List<ServiceShare> shares) {
-        return shares.stream()
-                .map(ServiceShareApiMapper::toResponse)
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * Convert paginated domain objects to ListResponse DTO.
-     *
-     * @param page the paginated domain objects
-     * @return the list response DTO
-     */
-    public static ServiceShareDtos.ListResponse toListResponse(Page<ServiceShare> page) {
-        List<ServiceShareDtos.Response> content = toResponseList(page.getContent());
-        
-        return new ServiceShareDtos.ListResponse(
-                content,
-                page.getNumber(),
-                page.getSize(),
-                page.getTotalElements(),
-                page.getTotalPages(),
-                page.hasNext(),
-                page.hasPrevious()
-        );
-    }
-
-    /**
-     * Convert ListRequest DTO to repository filter.
-     *
-     * @param request the list request DTO
-     * @param userTeamIds the user's team IDs for access control
-     * @return the repository filter
-     */
-    public static com.example.control.domain.port.ServiceShareRepositoryPort.ServiceShareFilter toFilter(
-            ServiceShareDtos.ListRequest request, List<String> userTeamIds) {
-        return new com.example.control.domain.port.ServiceShareRepositoryPort.ServiceShareFilter(
-                request.serviceId(),
-                request.grantToType(),
-                request.grantToId(),
-                request.environments(),
-                request.grantedBy(),
-                userTeamIds
-        );
-    }
-
-    /**
-     * Convert ListRequest DTO to Pageable.
-     *
-     * @param request the list request DTO
-     * @return the pageable object
-     */
-    public static Pageable toPageable(ServiceShareDtos.ListRequest request) {
-        int page = request.page() != null ? request.page() : 0;
-        int size = request.size() != null ? request.size() : 20;
-        String sort = request.sort() != null ? request.sort() : "createdAt,desc";
-        
-        return org.springframework.data.domain.PageRequest.of(page, size, 
-                org.springframework.data.domain.Sort.by(sort.split(",")));
+    public static ServiceShareCriteria toCriteria(ServiceShareDtos.QueryFilter filter, UserContext userContext) {
+        return ServiceShareCriteria.builder()
+                .serviceId(filter != null ? filter.serviceId() : null)
+                .grantToType(filter != null && filter.grantToType() != null ? 
+                        ServiceShare.GranteeType.valueOf(filter.grantToType()) : null)
+                .grantToId(filter != null ? filter.grantToId() : null)
+                .environments(filter != null ? filter.environments() : null)
+                .userTeamIds(userContext.getTeamIds())
+                .build();
     }
 }

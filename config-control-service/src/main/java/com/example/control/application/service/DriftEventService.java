@@ -1,6 +1,8 @@
 package com.example.control.application.service;
 
 import com.example.control.domain.DriftEvent;
+import com.example.control.domain.id.DriftEventId;
+import com.example.control.domain.criteria.DriftEventCriteria;
 import com.example.control.domain.port.DriftEventRepositoryPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -47,8 +49,8 @@ public class DriftEventService {
    * @return a page of {@link DriftEvent}
    */
   @Cacheable(value = "drift-events", key = "'list:' + #filter.hashCode() + ':' + #pageable")
-  public Page<DriftEvent> list(DriftEventRepositoryPort.DriftEventFilter filter, Pageable pageable) {
-        return repository.findAll(filter, pageable);
+  public Page<DriftEvent> list(DriftEventCriteria criteria, Pageable pageable) {
+        return repository.findAll(criteria, pageable);
   }
 
   /**
@@ -57,7 +59,7 @@ public class DriftEventService {
    * @param id event identifier
    * @return optional {@link DriftEvent}
    */
-  public Optional<DriftEvent> findById(String id) {
+  public Optional<DriftEvent> findById(DriftEventId id) {
     return repository.findById(id);
   }
 
@@ -68,9 +70,10 @@ public class DriftEventService {
    */
   @Cacheable(value = "drift-events", key = "'unresolved'")
   public List<DriftEvent> findUnresolved() {
-    DriftEventRepositoryPort.DriftEventFilter filter = new DriftEventRepositoryPort.DriftEventFilter(
-        null, null, null, null, null, null, true, null);
-        Page<DriftEvent> page = repository.findAll(filter, Pageable.unpaged());
+    DriftEventCriteria criteria = DriftEventCriteria.builder()
+        .status(DriftEvent.DriftStatus.DETECTED)
+        .build();
+    Page<DriftEvent> page = repository.findAll(criteria, Pageable.unpaged());
     return page.getContent();
   }
 
@@ -81,9 +84,11 @@ public class DriftEventService {
    * @return list of unresolved events
    */
   public List<DriftEvent> findUnresolvedByService(String serviceName) {
-    DriftEventRepositoryPort.DriftEventFilter filter = new DriftEventRepositoryPort.DriftEventFilter(
-        serviceName, null, null, null, null, null, true, null);
-        return repository.findAll(filter, Pageable.unpaged()).getContent();
+    DriftEventCriteria criteria = DriftEventCriteria.builder()
+        .serviceName(serviceName)
+        .status(DriftEvent.DriftStatus.DETECTED)
+        .build();
+    return repository.findAll(criteria, Pageable.unpaged()).getContent();
   }
 
   /**
@@ -94,9 +99,10 @@ public class DriftEventService {
    */
   @Cacheable(value = "drift-events", key = "#serviceName")
   public List<DriftEvent> findByService(String serviceName) {
-    DriftEventRepositoryPort.DriftEventFilter filter = new DriftEventRepositoryPort.DriftEventFilter(
-        serviceName, null, null, null, null, null, null, null);
-        return repository.findAll(filter, Pageable.unpaged()).getContent();
+    DriftEventCriteria criteria = DriftEventCriteria.builder()
+        .serviceName(serviceName)
+        .build();
+    return repository.findAll(criteria, Pageable.unpaged()).getContent();
   }
 
   /**
@@ -107,9 +113,11 @@ public class DriftEventService {
    * @return list of drift events
    */
   public List<DriftEvent> findByServiceAndInstance(String serviceName, String instanceId) {
-    DriftEventRepositoryPort.DriftEventFilter filter = new DriftEventRepositoryPort.DriftEventFilter(
-        serviceName, instanceId, null, null, null, null, null, null);
-        return repository.findAll(filter, Pageable.unpaged()).getContent();
+    DriftEventCriteria criteria = DriftEventCriteria.builder()
+        .serviceName(serviceName)
+        .instanceId(instanceId)
+        .build();
+    return repository.findAll(criteria, Pageable.unpaged()).getContent();
   }
 
   /**

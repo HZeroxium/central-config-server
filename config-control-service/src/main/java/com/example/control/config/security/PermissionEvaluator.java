@@ -3,12 +3,10 @@ package com.example.control.config.security;
 import com.example.control.domain.ApplicationService;
 import com.example.control.domain.ApprovalRequest;
 import com.example.control.domain.ServiceInstance;
-import com.example.control.domain.ServiceShare;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
 
 /**
  * Service for evaluating user permissions on domain objects.

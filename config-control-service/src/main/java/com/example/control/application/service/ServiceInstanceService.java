@@ -1,6 +1,8 @@
 package com.example.control.application.service;
 
 import com.example.control.domain.ServiceInstance;
+import com.example.control.domain.id.ServiceInstanceId;
+import com.example.control.domain.criteria.ServiceInstanceCriteria;
 import com.example.control.domain.port.ServiceInstanceRepositoryPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -51,10 +53,11 @@ public class ServiceInstanceService {
    */
   @Cacheable(value = "service-instances", key = "#serviceName")
   public List<ServiceInstance> findByServiceName(String serviceName) {
-    // Backward-compatible convenience: use filter via port
-    ServiceInstanceRepositoryPort.ServiceInstanceFilter filter = new ServiceInstanceRepositoryPort.ServiceInstanceFilter(
-        serviceName, null, null, null, null, null, null, null, null);
-        Page<ServiceInstance> page = repository.findAll(filter, Pageable.unpaged());
+    // Backward-compatible convenience: use criteria via port
+    ServiceInstanceCriteria criteria = ServiceInstanceCriteria.builder()
+        .serviceName(serviceName)
+        .build();
+        Page<ServiceInstance> page = repository.findAll(criteria, Pageable.unpaged());
     return page.getContent();
   }
 
@@ -67,7 +70,7 @@ public class ServiceInstanceService {
    */
   @Cacheable(value = "service-instances", key = "#serviceName + ':' + #instanceId")
   public Optional<ServiceInstance> findByServiceAndInstance(String serviceName, String instanceId) {
-    return repository.findById(serviceName, instanceId);
+    return repository.findById(ServiceInstanceId.of(serviceName, instanceId));
   }
 
   /**
@@ -76,9 +79,11 @@ public class ServiceInstanceService {
    * @return list of drifted instances
    */
   public List<ServiceInstance> findAllWithDrift() {
-    ServiceInstanceRepositoryPort.ServiceInstanceFilter filter = new ServiceInstanceRepositoryPort.ServiceInstanceFilter(
-        null, null, ServiceInstance.InstanceStatus.DRIFT, true, null, null, null, null, null);
-    return repository.findAll(filter, Pageable.unpaged()).getContent();
+    ServiceInstanceCriteria criteria = ServiceInstanceCriteria.builder()
+        .status(ServiceInstance.InstanceStatus.DRIFT)
+        .hasDrift(true)
+        .build();
+    return repository.findAll(criteria, Pageable.unpaged()).getContent();
   }
 
   /**
@@ -88,9 +93,12 @@ public class ServiceInstanceService {
    * @return list of drifted instances
    */
   public List<ServiceInstance> findByServiceWithDrift(String serviceName) {
-    ServiceInstanceRepositoryPort.ServiceInstanceFilter filter = new ServiceInstanceRepositoryPort.ServiceInstanceFilter(
-        serviceName, null, ServiceInstance.InstanceStatus.DRIFT, true, null, null, null, null, null);
-    return repository.findAll(filter, Pageable.unpaged()).getContent();
+    ServiceInstanceCriteria criteria = ServiceInstanceCriteria.builder()
+        .serviceName(serviceName)
+        .status(ServiceInstance.InstanceStatus.DRIFT)
+        .hasDrift(true)
+        .build();
+    return repository.findAll(criteria, Pageable.unpaged()).getContent();
   }
 
   /**
@@ -104,8 +112,8 @@ public class ServiceInstanceService {
    * @return a page of {@link ServiceInstance}
    */
   @Cacheable(value = "service-instances", key = "'list:' + #filter.hashCode() + ':' + #pageable")
-  public Page<ServiceInstance> list(ServiceInstanceRepositoryPort.ServiceInstanceFilter filter, Pageable pageable) {
-    return repository.findAll(filter, pageable);
+  public Page<ServiceInstance> list(ServiceInstanceCriteria criteria, Pageable pageable) {
+    return repository.findAll(criteria, pageable);
   }
 
   /**
@@ -115,9 +123,10 @@ public class ServiceInstanceService {
    * @return list of stale instances
    */
   public List<ServiceInstance> findStaleInstances(java.time.Instant threshold) {
-    ServiceInstanceRepositoryPort.ServiceInstanceFilter filter = new ServiceInstanceRepositoryPort.ServiceInstanceFilter(
-        null, null, null, null, null, null, threshold, null, null);
-    return repository.findAll(filter, Pageable.unpaged()).getContent();
+    ServiceInstanceCriteria criteria = ServiceInstanceCriteria.builder()
+        .lastSeenAtTo(threshold)
+        .build();
+    return repository.findAll(criteria, Pageable.unpaged()).getContent();
   }
 
   /**
@@ -138,7 +147,8 @@ public class ServiceInstanceService {
    */
   @CacheEvict(value = "service-instances", allEntries = true)
   public void delete(String serviceName, String instanceId) {
-    repository.delete(serviceName, instanceId);
+    ServiceInstanceId id = ServiceInstanceId.of(serviceName, instanceId);
+    repository.deleteById(id);
   }
 
   /**
@@ -161,10 +171,9 @@ public class ServiceInstanceService {
                                               boolean hasDrift,
                                               String expectedHash,
                                               String lastAppliedHash) {
-    ServiceInstance instance = repository.findById(serviceName, instanceId).orElse(
+    ServiceInstance instance = repository.findById(ServiceInstanceId.of(serviceName, instanceId)).orElse(
         ServiceInstance.builder()
-            .serviceName(serviceName)
-            .instanceId(instanceId)
+            .id(ServiceInstanceId.of(serviceName, instanceId))
             .createdAt(Instant.now())
             .build()
     );

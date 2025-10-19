@@ -2,11 +2,14 @@ package com.example.control.application;
 
 import com.example.control.api.exception.ConfigurationException;
 import com.example.control.api.exception.ValidationException;
+import com.example.control.domain.ApplicationService;
 import com.example.control.domain.DriftEvent;
 import com.example.control.domain.ServiceInstance;
+import com.example.control.domain.id.DriftEventId;
+import com.example.control.domain.id.ServiceInstanceId;
 import com.example.control.application.service.DriftEventService;
 import com.example.control.application.service.ServiceInstanceService;
-import com.example.control.domain.port.ApplicationServiceRepositoryPort;
+import com.example.control.application.service.ApplicationServiceService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -19,6 +22,7 @@ import io.micrometer.tracing.annotation.SpanTag;
 import io.micrometer.tracing.annotation.NewSpan;
 
 import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -45,7 +49,7 @@ public class HeartbeatService {
   private final ServiceInstanceService serviceInstanceService;
   private final DriftEventService driftEventService;
   private final ConfigProxyService configProxyService;
-  private final ApplicationServiceRepositoryPort applicationServiceRepository;
+  private final ApplicationServiceService applicationServiceService;
 
   /** Maintains retry count per instance for drift backoff algorithm. */
   private final ConcurrentHashMap<String, Integer> driftRetryCount = new ConcurrentHashMap<>();
@@ -87,13 +91,12 @@ public class HeartbeatService {
     String id = payload.getServiceName() + ":" + payload.getInstanceId();
 
     // 2️⃣ Load or initialize ServiceInstance domain object
-    ServiceInstance instance = serviceInstanceService
-        .findByServiceAndInstance(payload.getServiceName(), payload.getInstanceId())
-        .orElse(ServiceInstance.builder()
-            .serviceName(payload.getServiceName())
-            .instanceId(payload.getInstanceId())
-            .status(ServiceInstance.InstanceStatus.HEALTHY)
-            .build());
+           ServiceInstance instance = serviceInstanceService
+               .findByServiceAndInstance(payload.getServiceName(), payload.getInstanceId())
+               .orElse(ServiceInstance.builder()
+                   .id(ServiceInstanceId.of(payload.getServiceName(), payload.getInstanceId()))
+                   .status(ServiceInstance.InstanceStatus.HEALTHY)
+                   .build());
 
     Instant now = Instant.now();
 
@@ -104,18 +107,17 @@ public class HeartbeatService {
       
       // Auto-populate serviceId and teamId by looking up ApplicationService
       try {
-        ApplicationServiceRepositoryPort.ApplicationServiceFilter filter = 
-            new ApplicationServiceRepositoryPort.ApplicationServiceFilter(null, null, null, payload.getServiceName(), null);
-        applicationServiceRepository.findAll(filter, org.springframework.data.domain.Pageable.unpaged())
-            .getContent()
+        Optional<ApplicationService> appService = applicationServiceService.findAll()
             .stream()
-            .findFirst()
-            .ifPresent(appService -> {
-              instance.setServiceId(appService.getId());
-              instance.setTeamId(appService.getOwnerTeamId());
-              log.debug("Auto-populated serviceId={} and teamId={} for instance {}", 
-                       appService.getId(), appService.getOwnerTeamId(), id);
-            });
+            .filter(svc -> svc.getDisplayName().equals(payload.getServiceName()))
+            .findFirst();
+            
+        if (appService.isPresent()) {
+          instance.setServiceId(appService.get().getId().id());
+          instance.setTeamId(appService.get().getOwnerTeamId());
+          log.debug("Auto-populated serviceId={} and teamId={} for instance {}", 
+                   appService.get().getId().id(), appService.get().getOwnerTeamId(), id);
+        }
       } catch (Exception e) {
         log.warn("Failed to auto-populate serviceId and teamId for instance {}: {}", id, e.getMessage());
       }
@@ -222,7 +224,7 @@ public class HeartbeatService {
    */
   private void createDriftEvent(HeartbeatPayload payload, String expectedHash) {
     DriftEvent event = DriftEvent.builder()
-        .id(UUID.randomUUID().toString())
+        .id(DriftEventId.of(UUID.randomUUID().toString()))
         .serviceName(payload.getServiceName())
         .instanceId(payload.getInstanceId())
         .expectedHash(expectedHash)

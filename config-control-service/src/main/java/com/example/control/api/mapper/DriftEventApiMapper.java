@@ -3,7 +3,9 @@ package com.example.control.api.mapper;
 import java.time.Instant;
 
 import com.example.control.api.dto.DriftEventDtos;
+import com.example.control.config.security.UserContext;
 import com.example.control.domain.DriftEvent;
+import com.example.control.domain.criteria.DriftEventCriteria;
 
 public final class DriftEventApiMapper {
 
@@ -36,7 +38,7 @@ public final class DriftEventApiMapper {
 
   public static DriftEventDtos.Response toResponse(DriftEvent ev) {
     return DriftEventDtos.Response.builder()
-        .id(ev.getId())
+        .id(ev.getId().id())
         .serviceName(ev.getServiceName())
         .instanceId(ev.getInstanceId())
         .expectedHash(ev.getExpectedHash())
@@ -48,6 +50,25 @@ public final class DriftEventApiMapper {
         .detectedBy(ev.getDetectedBy())
         .resolvedBy(ev.getResolvedBy())
         .notes(ev.getNotes())
+        .build();
+  }
+
+  /**
+   * Map QueryFilter to domain criteria with team filtering.
+   *
+   * @param filter the query filter
+   * @param userContext the user context for team filtering
+   * @return the domain criteria
+   */
+  public static DriftEventCriteria toCriteria(DriftEventDtos.QueryFilter filter, UserContext userContext) {
+    return DriftEventCriteria.builder()
+        .serviceName(filter != null ? filter.getServiceName() : null)
+        .instanceId(filter != null ? filter.getInstanceId() : null)
+        .severity(filter != null ? filter.getSeverity() : null)
+        .status(filter != null ? filter.getStatus() : null)
+        .detectedAtFrom(filter != null ? filter.getDetectedAtFrom() : null)
+        .detectedAtTo(filter != null ? filter.getDetectedAtTo() : null)
+        .userTeamIds(userContext.getTeamIds())
         .build();
   }
 }

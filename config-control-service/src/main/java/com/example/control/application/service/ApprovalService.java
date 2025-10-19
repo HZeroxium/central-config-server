@@ -5,11 +5,14 @@ import com.example.control.config.security.UserContext;
 import com.example.control.domain.ApprovalDecision;
 import com.example.control.domain.ApprovalRequest;
 import com.example.control.domain.ApplicationService;
-import com.example.control.domain.port.ApprovalDecisionRepositoryPort;
-import com.example.control.domain.port.ApprovalRequestRepositoryPort;
-import com.example.control.domain.port.ApplicationServiceRepositoryPort;
+import com.example.control.domain.id.ApplicationServiceId;
+import com.example.control.domain.id.ApprovalDecisionId;
+import com.example.control.domain.id.ApprovalRequestId;
+import com.example.control.domain.criteria.ApprovalRequestCriteria;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.retry.annotation.Backoff;
@@ -35,9 +38,9 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 public class ApprovalService {
 
-    private final ApprovalRequestRepositoryPort requestRepository;
-    private final ApprovalDecisionRepositoryPort decisionRepository;
-    private final ApplicationServiceRepositoryPort serviceRepository;
+    private final ApprovalRequestService approvalRequestService;
+    private final ApprovalDecisionService approvalDecisionService;
+    private final ApplicationServiceService applicationServiceService;
     private final PermissionEvaluator permissionEvaluator;
 
     /**
@@ -56,7 +59,7 @@ public class ApprovalService {
                 serviceId, targetTeamId, userContext.getUserId());
 
         // Validate service exists
-        ApplicationService service = serviceRepository.findById(serviceId)
+        ApplicationService service = applicationServiceService.findById(ApplicationServiceId.of(serviceId))
                 .orElseThrow(() -> new IllegalArgumentException("Service not found: " + serviceId));
 
         // Check if user can create approval request
@@ -66,7 +69,7 @@ public class ApprovalService {
 
         // Create approval request with default gates
         ApprovalRequest request = ApprovalRequest.builder()
-                .id(UUID.randomUUID().toString())
+                .id(ApprovalRequestId.of(UUID.randomUUID().toString()))
                 .requesterUserId(userContext.getUserId())
                 .requestType(ApprovalRequest.RequestType.ASSIGN_SERVICE_TO_TEAM)
                 .target(ApprovalRequest.ApprovalTarget.builder()
@@ -91,7 +94,7 @@ public class ApprovalService {
                 .version(0)
                 .build();
 
-        ApprovalRequest saved = requestRepository.save(request);
+        ApprovalRequest saved = approvalRequestService.save(request);
         log.info("Successfully created approval request: {}", saved.getId());
         return saved;
     }
@@ -109,7 +112,7 @@ public class ApprovalService {
      * @return the approval decision
      */
     @Transactional
-    @Retryable(value = {org.springframework.dao.OptimisticLockingFailureException.class}, 
+    @Retryable(value = {OptimisticLockingFailureException.class}, 
                maxAttempts = 3, backoff = @Backoff(delay = 100))
     public ApprovalDecision submitDecision(String requestId, 
                                          ApprovalDecision.Decision decision, 
@@ -120,7 +123,7 @@ public class ApprovalService {
                 requestId, decision, gate, userContext.getUserId());
 
         // Get the request
-        ApprovalRequest request = requestRepository.findById(requestId)
+        ApprovalRequest request = approvalRequestService.findById(ApprovalRequestId.of(requestId))
                 .orElseThrow(() -> new IllegalArgumentException("Approval request not found: " + requestId));
 
         // Validate request is still pending
@@ -134,14 +137,14 @@ public class ApprovalService {
         }
 
         // Check if user already made a decision for this request and gate
-        if (decisionRepository.existsByRequestAndApproverAndGate(requestId, userContext.getUserId(), gate)) {
+        if (approvalDecisionService.existsByRequestAndApproverAndGate(ApprovalRequestId.of(requestId), userContext.getUserId(), gate)) {
             throw new IllegalStateException("User has already made a decision for this request and gate");
         }
 
         // Create decision
         ApprovalDecision approvalDecision = ApprovalDecision.builder()
-                .id(UUID.randomUUID().toString())
-                .requestId(requestId)
+                .id(ApprovalDecisionId.of(UUID.randomUUID().toString()))
+                .requestId(ApprovalRequestId.of(requestId))
                 .approverUserId(userContext.getUserId())
                 .gate(gate)
                 .decision(decision)
@@ -149,7 +152,7 @@ public class ApprovalService {
                 .note(note)
                 .build();
 
-        ApprovalDecision saved = decisionRepository.save(approvalDecision);
+        ApprovalDecision saved = approvalDecisionService.save(approvalDecision);
         log.info("Successfully submitted decision: {}", saved.getId());
 
         // Check if all gates are satisfied
@@ -168,27 +171,12 @@ public class ApprovalService {
      * @param userContext the current user context
      * @return page of approval requests
      */
-    public Page<ApprovalRequest> list(ApprovalRequestRepositoryPort.ApprovalRequestFilter filter, 
+    public Page<ApprovalRequest> findAll(ApprovalRequestCriteria criteria, 
                                      Pageable pageable, 
                                      UserContext userContext) {
-        log.debug("Listing approval requests with filter: {}, pageable: {}", filter, pageable);
+        log.debug("Listing approval requests with criteria: {}, pageable: {}", criteria, pageable);
 
-        // Non-admin users can only see their own requests
-        if (!userContext.isSysAdmin()) {
-            ApprovalRequestRepositoryPort.ApprovalRequestFilter restrictedFilter = 
-                    new ApprovalRequestRepositoryPort.ApprovalRequestFilter(
-                            userContext.getUserId(),
-                            filter.status(),
-                            filter.requestType(),
-                            filter.fromDate(),
-                            filter.toDate(),
-                            filter.gate(),
-                            userContext.getTeamIds()
-                    );
-            return requestRepository.findAll(restrictedFilter, pageable);
-        }
-
-        return requestRepository.findAll(filter, pageable);
+        return approvalRequestService.findAll(criteria, pageable, userContext);
     }
 
     /**
@@ -199,7 +187,7 @@ public class ApprovalService {
      */
     public long countByStatus(ApprovalRequest.ApprovalStatus status) {
         log.debug("Counting approval requests by status: {}", status);
-        return requestRepository.countByStatus(status);
+        return approvalRequestService.countByStatus(status);
     }
 
     /**
@@ -213,19 +201,7 @@ public class ApprovalService {
      */
     public Optional<ApprovalRequest> findById(String requestId, UserContext userContext) {
         log.debug("Finding approval request by ID: {} for user: {}", requestId, userContext.getUserId());
-
-        Optional<ApprovalRequest> request = requestRepository.findById(requestId);
-        
-        if (request.isPresent()) {
-            ApprovalRequest req = request.get();
-            
-            // Non-admin users can only see their own requests
-            if (!userContext.isSysAdmin() && !userContext.getUserId().equals(req.getRequesterUserId())) {
-                return Optional.empty();
-            }
-        }
-
-        return request;
+        return approvalRequestService.findById(ApprovalRequestId.of(requestId), userContext);
     }
 
     /**
@@ -239,25 +215,7 @@ public class ApprovalService {
     @Transactional
     public void cancelRequest(String requestId, UserContext userContext) {
         log.info("Cancelling approval request: {} by user: {}", requestId, userContext.getUserId());
-
-        ApprovalRequest request = requestRepository.findById(requestId)
-                .orElseThrow(() -> new IllegalArgumentException("Approval request not found: " + requestId));
-
-        // Check if user can cancel the request
-        if (!permissionEvaluator.canCancelRequest(userContext, request)) {
-            throw new IllegalStateException("User does not have permission to cancel this request");
-        }
-
-        // Update request status
-        boolean updated = requestRepository.updateStatusAndVersion(
-                requestId, 
-                ApprovalRequest.ApprovalStatus.CANCELLED, 
-                request.getVersion());
-
-        if (!updated) {
-            throw new IllegalStateException("Failed to cancel request due to concurrent modification");
-        }
-
+        approvalRequestService.cancelRequest(ApprovalRequestId.of(requestId), userContext);
         log.info("Successfully cancelled approval request: {}", requestId);
     }
 
@@ -272,7 +230,7 @@ public class ApprovalService {
     private void checkAndUpdateRequestStatus(String requestId) {
         log.debug("Checking if request {} can be approved", requestId);
 
-        ApprovalRequest request = requestRepository.findById(requestId)
+        ApprovalRequest request = approvalRequestService.findById(ApprovalRequestId.of(requestId))
                 .orElseThrow(() -> new IllegalArgumentException("Approval request not found: " + requestId));
 
         if (request.getStatus() != ApprovalRequest.ApprovalStatus.PENDING) {
@@ -282,8 +240,8 @@ public class ApprovalService {
         // Check each required gate
         boolean allGatesSatisfied = true;
         for (ApprovalRequest.ApprovalGate gate : request.getRequired()) {
-            long approveCount = decisionRepository.countByRequestIdAndGateAndDecision(
-                    requestId, gate.getGate(), ApprovalDecision.Decision.APPROVE);
+            long approveCount = approvalDecisionService.countByRequestIdAndGateAndDecision(
+                    ApprovalRequestId.of(requestId), gate.getGate(), ApprovalDecision.Decision.APPROVE);
             
             if (approveCount < gate.getMinApprovals()) {
                 allGatesSatisfied = false;
@@ -303,12 +261,12 @@ public class ApprovalService {
      * @param requestId the request ID
      */
     private void approveRequest(String requestId) {
-        ApprovalRequest request = requestRepository.findById(requestId)
+        ApprovalRequest request = approvalRequestService.findById(ApprovalRequestId.of(requestId))
                 .orElseThrow(() -> new IllegalArgumentException("Approval request not found: " + requestId));
 
         // Update request status
-        boolean updated = requestRepository.updateStatusAndVersion(
-                requestId, 
+        boolean updated = approvalRequestService.updateStatus(
+                ApprovalRequestId.of(requestId), 
                 ApprovalRequest.ApprovalStatus.APPROVED, 
                 request.getVersion());
 
@@ -317,12 +275,21 @@ public class ApprovalService {
         }
 
         // Transfer service ownership
-        ApplicationService service = serviceRepository.findById(request.getTarget().getServiceId())
+        ApplicationService service = applicationServiceService.findById(ApplicationServiceId.of(request.getTarget().getServiceId()))
                 .orElseThrow(() -> new IllegalArgumentException("Service not found: " + request.getTarget().getServiceId()));
 
-        service.setOwnerTeamId(request.getTarget().getTeamId());
-        service.setUpdatedAt(Instant.now());
-        serviceRepository.save(service);
+               service.setOwnerTeamId(request.getTarget().getTeamId());
+               service.setUpdatedAt(Instant.now());
+               // Note: This should be called with proper user context in real implementation
+               // For now, we'll use a system context
+               UserContext systemContext = UserContext.builder()
+                       .userId("system")
+                       .username("system")
+                       .email("system@example.com")
+                       .teamIds(List.of("SYS_ADMIN"))
+                       .roles(List.of("SYS_ADMIN"))
+                       .build();
+               applicationServiceService.save(service, systemContext);
 
         log.info("Successfully approved request: {} and transferred service ownership", requestId);
     }

@@ -2,6 +2,8 @@ package com.example.control.application.service;
 
 import com.example.control.config.security.UserContext;
 import com.example.control.domain.ApplicationService;
+import com.example.control.domain.id.ApplicationServiceId;
+import com.example.control.domain.criteria.ApplicationServiceCriteria;
 import com.example.control.domain.port.ApplicationServiceRepositoryPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -74,7 +76,7 @@ public class ApplicationServiceService {
      * @return optional application service
      */
     @Cacheable(value = "application-services", key = "#id")
-    public Optional<ApplicationService> findById(String id) {
+    public Optional<ApplicationService> findById(ApplicationServiceId id) {
         log.debug("Finding application service by ID: {}", id);
         return repository.findById(id);
     }
@@ -100,9 +102,10 @@ public class ApplicationServiceService {
      */
     public List<ApplicationService> findByOwnerTeam(String ownerTeamId) {
         log.debug("Finding application services by owner team: {}", ownerTeamId);
-        ApplicationServiceRepositoryPort.ApplicationServiceFilter filter = 
-            new ApplicationServiceRepositoryPort.ApplicationServiceFilter(ownerTeamId, null, null, null, null);
-        return repository.findAll(filter, Pageable.unpaged()).getContent();
+        ApplicationServiceCriteria criteria = ApplicationServiceCriteria.builder()
+            .ownerTeamId(ownerTeamId)
+            .build();
+        return repository.findAll(criteria, Pageable.unpaged()).getContent();
     }
 
     /**
@@ -115,11 +118,11 @@ public class ApplicationServiceService {
      * @param userContext the current user context (for future use)
      * @return page of application services
      */
-    public Page<ApplicationService> list(ApplicationServiceRepositoryPort.ApplicationServiceFilter filter, 
+    public Page<ApplicationService> findAll(ApplicationServiceCriteria criteria, 
                                         Pageable pageable, 
                                         UserContext userContext) {
-        log.debug("Listing application services with filter: {}, pageable: {}", filter, pageable);
-        return repository.findAll(filter, pageable);
+        log.debug("Listing application services with criteria: {}, pageable: {}", criteria, pageable);
+        return repository.findAll(criteria, pageable);
     }
 
     /**
@@ -132,7 +135,7 @@ public class ApplicationServiceService {
      */
     @Transactional
     @CacheEvict(value = "application-services", allEntries = true)
-    public void delete(String id, UserContext userContext) {
+    public void delete(ApplicationServiceId id, UserContext userContext) {
         log.info("Deleting application service: {} by user: {}", id, userContext.getUserId());
 
         Optional<ApplicationService> service = repository.findById(id);
@@ -157,9 +160,10 @@ public class ApplicationServiceService {
      */
     public long countByOwnerTeam(String ownerTeamId) {
         log.debug("Counting application services by owner team: {}", ownerTeamId);
-        ApplicationServiceRepositoryPort.ApplicationServiceFilter filter = 
-            new ApplicationServiceRepositoryPort.ApplicationServiceFilter(ownerTeamId, null, null, null, null);
-        return repository.count(filter);
+        ApplicationServiceCriteria criteria = ApplicationServiceCriteria.builder()
+            .ownerTeamId(ownerTeamId)
+            .build();
+        return repository.count(criteria);
     }
 
     /**

@@ -7,6 +7,9 @@ import com.example.control.api.mapper.DriftEventApiMapper;
 import com.example.control.application.service.DriftEventService;
 import com.example.control.config.security.UserContext;
 import com.example.control.domain.DriftEvent;
+import com.example.control.domain.criteria.DriftEventCriteria;
+import com.example.control.domain.id.DriftEventId;
+
 import io.micrometer.core.annotation.Timed;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -44,7 +47,7 @@ public class DriftEventController {
   @GetMapping("/{id}")
   @Operation(summary = "Get by id")
   public ResponseEntity<ApiResponseDto.ApiResponse<DriftEventDtos.Response>> get(@PathVariable String id) {
-    Optional<DriftEvent> opt = service.findById(id);
+    Optional<DriftEvent> opt = service.findById(DriftEventId.of(id));
     return opt.map(ev -> ResponseEntity.ok(ApiResponseDto.ApiResponse.success(
         DriftEventApiMapper.toResponse(ev))))
         .orElse(ResponseEntity.notFound().build());
@@ -55,7 +58,7 @@ public class DriftEventController {
   public ResponseEntity<ApiResponseDto.ApiResponse<DriftEventDtos.Response>> update(
       @PathVariable String id,
       @Valid @RequestBody DriftEventDtos.UpdateRequest request) {
-    DriftEvent ev = service.findById(id).orElse(null);
+    DriftEvent ev = service.findById(DriftEventId.of(id)).orElse(null);
     if (ev == null) return ResponseEntity.notFound().build();
     DriftEventApiMapper.apply(ev, request);
     DriftEvent saved = service.save(ev);
@@ -77,9 +80,16 @@ public class DriftEventController {
 
     UserContext userContext = UserContext.fromJwt(jwt);
     
-    com.example.control.domain.port.DriftEventRepositoryPort.DriftEventFilter filter = new com.example.control.domain.port.DriftEventRepositoryPort.DriftEventFilter(
-        serviceName, instanceId, status, severity, null, null, unresolvedOnly, userContext.getTeamIds());
-    Page<DriftEvent> page = service.list(filter, pageable);
+    DriftEventDtos.QueryFilter queryFilter = DriftEventDtos.QueryFilter.builder()
+        .serviceName(serviceName)
+        .instanceId(instanceId)
+        .status(status)
+        .severity(severity)
+        .unresolvedOnly(unresolvedOnly)
+        .build();
+    
+    DriftEventCriteria criteria = DriftEventApiMapper.toCriteria(queryFilter, userContext);
+    Page<DriftEvent> page = service.list(criteria, pageable);
     Page<DriftEventDtos.Response> mapped = page.map(DriftEventApiMapper::toResponse);
     return ResponseEntity.ok(ApiResponseDto.ApiResponse.success(
         "Drift events", PageResponse.from(mapped)));

@@ -5,8 +5,11 @@ import com.example.control.api.dto.PageDtos.PageResponse;
 import com.example.control.api.dto.ServiceInstanceDtos;
 import com.example.control.api.mapper.ServiceInstanceApiMapper;
 import com.example.control.application.service.ServiceInstanceService;
+import com.example.control.domain.id.ServiceInstanceId;
 import com.example.control.config.security.UserContext;
 import com.example.control.domain.ServiceInstance;
+import com.example.control.domain.criteria.ServiceInstanceCriteria;
+
 import io.micrometer.core.annotation.Timed;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -60,7 +63,7 @@ public class ServiceInstanceController {
       @PathVariable String instanceId,
       @Valid @RequestBody ServiceInstanceDtos.UpdateRequest request) {
     ServiceInstance instance = service.findByServiceAndInstance(serviceName, instanceId)
-        .orElse(ServiceInstance.builder().serviceName(serviceName).instanceId(instanceId).build());
+        .orElse(ServiceInstance.builder().id(ServiceInstanceId.of(serviceName, instanceId)).build());
     ServiceInstanceApiMapper.apply(instance, request);
     ServiceInstance saved = service.saveOrUpdate(instance);
     return ResponseEntity.ok(ApiResponseDto.ApiResponse.success(
@@ -92,9 +95,17 @@ public class ServiceInstanceController {
 
     UserContext userContext = UserContext.fromJwt(jwt);
     
-    com.example.control.domain.port.ServiceInstanceRepositoryPort.ServiceInstanceFilter filter = new com.example.control.domain.port.ServiceInstanceRepositoryPort.ServiceInstanceFilter(
-        serviceName, instanceId, status, hasDrift, environment, version, null, null, userContext.getTeamIds());
-    Page<ServiceInstance> page = service.list(filter, pageable);
+    ServiceInstanceDtos.QueryFilter queryFilter = ServiceInstanceDtos.QueryFilter.builder()
+        .serviceName(serviceName)
+        .instanceId(instanceId)
+        .status(status)
+        .hasDrift(hasDrift)
+        .environment(environment)
+        .version(version)
+        .build();
+    
+    ServiceInstanceCriteria criteria = ServiceInstanceApiMapper.toCriteria(queryFilter, userContext);
+    Page<ServiceInstance> page = service.list(criteria, pageable);
     Page<ServiceInstanceDtos.Response> mapped = page.map(ServiceInstanceApiMapper::toResponse);
     return ResponseEntity.ok(ApiResponseDto.ApiResponse.success(
         "Instances", PageResponse.from(mapped)));

@@ -3,7 +3,9 @@ package com.example.control.application.service;
 import com.example.control.config.security.UserContext;
 import com.example.control.domain.ApplicationService;
 import com.example.control.domain.ServiceShare;
-import com.example.control.domain.port.ApplicationServiceRepositoryPort;
+import com.example.control.domain.criteria.ServiceShareCriteria;
+import com.example.control.domain.id.ApplicationServiceId;
+import com.example.control.domain.id.ServiceShareId;
 import com.example.control.domain.port.ServiceShareRepositoryPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,7 +32,7 @@ import java.util.Optional;
 public class ServiceShareService {
 
     private final ServiceShareRepositoryPort shareRepository;
-    private final ApplicationServiceRepositoryPort serviceRepository;
+    private final ApplicationServiceService applicationServiceService;
 
     /**
      * Grant share permissions for a service.
@@ -58,7 +60,7 @@ public class ServiceShareService {
                 serviceId, grantToType, grantToId, userContext.getUserId());
 
         // Validate service exists and user has permission to share
-        ApplicationService service = serviceRepository.findById(serviceId)
+        ApplicationService service = applicationServiceService.findById(ApplicationServiceId.of(serviceId))
                 .orElseThrow(() -> new IllegalArgumentException("Service not found: " + serviceId));
 
         if (!canManageShares(userContext, service)) {
@@ -72,7 +74,7 @@ public class ServiceShareService {
 
         // Create share
         ServiceShare share = ServiceShare.builder()
-                .id(generateShareId())
+                .id(ServiceShareId.of(generateShareId()))
                 .resourceLevel(ServiceShare.ResourceLevel.SERVICE)
                 .serviceId(serviceId)
                 .grantToType(grantToType)
@@ -101,7 +103,7 @@ public class ServiceShareService {
     public void revokeShare(String shareId, UserContext userContext) {
         log.info("Revoking share: {} by user: {}", shareId, userContext.getUserId());
 
-        ServiceShare share = shareRepository.findById(shareId)
+        ServiceShare share = shareRepository.findById(ServiceShareId.of(shareId))
                 .orElseThrow(() -> new IllegalArgumentException("Share not found: " + shareId));
 
         // Check permission to revoke
@@ -109,7 +111,7 @@ public class ServiceShareService {
             throw new IllegalStateException("User does not have permission to revoke this share");
         }
 
-        shareRepository.deleteById(shareId);
+        shareRepository.deleteById(ServiceShareId.of(shareId));
         log.info("Successfully revoked share: {}", shareId);
     }
 
@@ -126,16 +128,18 @@ public class ServiceShareService {
         log.debug("Listing shares for service: {} by user: {}", serviceId, userContext.getUserId());
 
         // Validate service exists and user has permission to view shares
-        ApplicationService service = serviceRepository.findById(serviceId)
+        ApplicationService service = applicationServiceService.findById(ApplicationServiceId.of(serviceId))
                 .orElseThrow(() -> new IllegalArgumentException("Service not found: " + serviceId));
 
         if (!canViewShares(userContext, service)) {
             throw new IllegalStateException("User does not have permission to view shares for this service");
         }
 
-        ServiceShareRepositoryPort.ServiceShareFilter filter = new ServiceShareRepositoryPort.ServiceShareFilter(
-            serviceId, null, null, null, null, userContext.getTeamIds());
-        return shareRepository.findAll(filter, Pageable.unpaged()).getContent();
+        ServiceShareCriteria criteria = ServiceShareCriteria.builder()
+            .serviceId(serviceId)
+            .userTeamIds(userContext.getTeamIds())
+            .build();
+        return shareRepository.findAll(criteria, Pageable.unpaged()).getContent();
     }
 
     /**
@@ -146,22 +150,22 @@ public class ServiceShareService {
      * @param userContext the current user context
      * @return page of service shares
      */
-    public Page<ServiceShare> list(ServiceShareRepositoryPort.ServiceShareFilter filter, 
+    public Page<ServiceShare> list(ServiceShareCriteria criteria, 
                                   Pageable pageable, 
                                   UserContext userContext) {
-        log.debug("Listing service shares with filter: {}, pageable: {}", filter, pageable);
+        log.debug("Listing service shares with criteria: {}, pageable: {}", criteria, pageable);
 
         // If filtering by service, check permission to view shares for that service
-        if (filter.serviceId() != null) {
-            ApplicationService service = serviceRepository.findById(filter.serviceId())
-                    .orElseThrow(() -> new IllegalArgumentException("Service not found: " + filter.serviceId()));
+        if (criteria != null && criteria.serviceId() != null) {
+            ApplicationService service = applicationServiceService.findById(ApplicationServiceId.of(criteria.serviceId()))
+                    .orElseThrow(() -> new IllegalArgumentException("Service not found: " + criteria.serviceId()));
 
             if (!canViewShares(userContext, service)) {
                 throw new IllegalStateException("User does not have permission to view shares for this service");
             }
         }
 
-        return shareRepository.findAll(filter, pageable);
+        return shareRepository.findAll(criteria, pageable);
     }
 
     /**
@@ -174,7 +178,7 @@ public class ServiceShareService {
     public Optional<ServiceShare> findById(String shareId, UserContext userContext) {
         log.debug("Finding service share by ID: {} for user: {}", shareId, userContext.getUserId());
 
-        Optional<ServiceShare> share = shareRepository.findById(shareId);
+        Optional<ServiceShare> share = shareRepository.findById(ServiceShareId.of(shareId));
         
         if (share.isPresent()) {
             ServiceShare shareEntity = share.get();

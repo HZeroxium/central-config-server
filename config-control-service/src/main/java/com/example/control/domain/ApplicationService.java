@@ -1,5 +1,6 @@
 package com.example.control.domain;
 
+import com.example.control.domain.id.ApplicationServiceId;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -29,10 +30,9 @@ import java.util.Map;
 @AllArgsConstructor
 public class ApplicationService {
 
-    /** Unique service identifier (slug format: svc_payments). */
-    @NotBlank(message = "Service ID is required")
-    @Size(max = 100, message = "Service ID must not exceed 100 characters")
-    private String id;
+    /** Unique service identifier. */
+    @NotNull(message = "Service ID is required")
+    private ApplicationServiceId id;
 
     /** Human-readable display name. */
     @NotBlank(message = "Display name is required")

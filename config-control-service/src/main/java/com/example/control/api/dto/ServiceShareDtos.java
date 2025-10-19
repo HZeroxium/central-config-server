@@ -1,6 +1,7 @@
 package com.example.control.api.dto;
 
-import com.example.control.domain.ServiceShare;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -11,91 +12,88 @@ import java.util.List;
 /**
  * DTOs for ServiceShare API operations.
  * <p>
- * These DTOs provide a clean separation between the domain model and the API layer,
- * allowing for versioning, validation, and documentation without affecting the domain.
+ * Provides request/response DTOs for managing service shares with
+ * proper validation and JSON serialization.
  * </p>
  */
 public class ServiceShareDtos {
 
     /**
-     * Request DTO for granting a service share.
+     * Request DTO for creating a new service share.
      */
-    public record GrantRequest(
+    public record CreateRequest(
             @NotBlank(message = "Service ID is required")
+            @Size(max = 100, message = "Service ID must not exceed 100 characters")
             String serviceId,
-            
-            @NotNull(message = "Grantee type is required")
-            ServiceShare.GranteeType grantToType,
-            
-            @NotBlank(message = "Grantee ID is required")
+
+            @NotBlank(message = "Grant to type is required")
+            @Size(max = 20, message = "Grant to type must not exceed 20 characters")
+            String grantToType,
+
+            @NotBlank(message = "Grant to ID is required")
+            @Size(max = 100, message = "Grant to ID must not exceed 100 characters")
             String grantToId,
-            
+
             @NotNull(message = "Permissions list is required")
-            List<ServiceShare.SharePermission> permissions,
-            
-            @NotNull(message = "Environments list is required")
-            List<@NotBlank String> environments,
-            
-            Instant expiresAt
-    ) {}
+            @Size(min = 1, message = "At least one permission must be specified")
+            List<String> permissions,
 
-    /**
-     * Request DTO for updating a service share.
-     */
-    public record UpdateRequest(
-            List<ServiceShare.SharePermission> permissions,
             List<String> environments,
+
+            @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
             Instant expiresAt
     ) {}
 
     /**
-     * Response DTO for service share data.
+     * Response DTO for service share details.
      */
     public record Response(
+            @JsonProperty("id")
             String id,
-            String serviceId,
-            ServiceShare.GranteeType grantToType,
-            String grantToId,
-            List<ServiceShare.SharePermission> permissions,
-            List<String> environments,
-            Instant expiresAt,
-            Instant createdAt,
-            Instant updatedAt,
-            String grantedBy
-    ) {}
 
-    /**
-     * Request DTO for listing service shares with filters.
-     */
-    public record ListRequest(
+            @JsonProperty("resourceLevel")
+            String resourceLevel,
+
+            @JsonProperty("serviceId")
             String serviceId,
-            ServiceShare.GranteeType grantToType,
+
+            @JsonProperty("grantToType")
+            String grantToType,
+
+            @JsonProperty("grantToId")
             String grantToId,
+
+            @JsonProperty("permissions")
+            List<String> permissions,
+
+            @JsonProperty("environments")
             List<String> environments,
+
+            @JsonProperty("grantedBy")
             String grantedBy,
-            Integer page,
-            Integer size,
-            String sort
+
+            @JsonProperty("createdAt")
+            @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
+            Instant createdAt,
+
+            @JsonProperty("expiresAt")
+            @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
+            Instant expiresAt
     ) {}
 
     /**
-     * Response DTO for paginated service share list.
+     * Query filter DTO for searching service shares.
      */
-    public record ListResponse(
-            List<Response> content,
-            int page,
-            int size,
-            long totalElements,
-            int totalPages,
-            boolean hasNext,
-            boolean hasPrevious
-    ) {}
+    public record QueryFilter(
+            @Size(max = 100, message = "Service ID must not exceed 100 characters")
+            String serviceId,
 
-    /**
-     * Request DTO for revoking a service share.
-     */
-    public record RevokeRequest(
-            @NotBlank(message = "Share ID is required")
-            String shareId
+            @Size(max = 20, message = "Grant to type must not exceed 20 characters")
+            String grantToType,
+
+            @Size(max = 100, message = "Grant to ID must not exceed 100 characters")
+            String grantToId,
+
+            List<String> environments
     ) {}
 }

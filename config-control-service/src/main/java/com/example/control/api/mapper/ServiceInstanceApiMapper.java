@@ -1,7 +1,10 @@
 package com.example.control.api.mapper;
 
 import com.example.control.api.dto.ServiceInstanceDtos;
+import com.example.control.config.security.UserContext;
 import com.example.control.domain.ServiceInstance;
+import com.example.control.domain.criteria.ServiceInstanceCriteria;
+import com.example.control.domain.id.ServiceInstanceId;
 
 public final class ServiceInstanceApiMapper {
 
@@ -9,8 +12,7 @@ public final class ServiceInstanceApiMapper {
 
   public static ServiceInstance toDomain(ServiceInstanceDtos.CreateRequest req) {
     return ServiceInstance.builder()
-        .serviceName(req.getServiceName())
-        .instanceId(req.getInstanceId())
+        .id(ServiceInstanceId.of(req.getServiceName(), req.getInstanceId()))
         .host(req.getHost())
         .port(req.getPort())
         .environment(req.getEnvironment())
@@ -53,6 +55,27 @@ public final class ServiceInstanceApiMapper {
         .metadata(si.getMetadata())
         .hasDrift(si.getHasDrift())
         .driftDetectedAt(si.getDriftDetectedAt())
+        .build();
+  }
+
+  /**
+   * Map QueryFilter to domain criteria with team filtering.
+   *
+   * @param filter the query filter
+   * @param userContext the user context for team filtering
+   * @return the domain criteria
+   */
+  public static ServiceInstanceCriteria toCriteria(ServiceInstanceDtos.QueryFilter filter, UserContext userContext) {
+    return ServiceInstanceCriteria.builder()
+        .serviceName(filter != null ? filter.getServiceName() : null)
+        .instanceId(filter != null ? filter.getInstanceId() : null)
+        .status(filter != null ? filter.getStatus() : null)
+        .hasDrift(filter != null ? filter.getHasDrift() : null)
+        .environment(filter != null ? filter.getEnvironment() : null)
+        .version(filter != null ? filter.getVersion() : null)
+        .lastSeenAtFrom(filter != null ? filter.getLastSeenAtFrom() : null)
+        .lastSeenAtTo(filter != null ? filter.getLastSeenAtTo() : null)
+        .userTeamIds(userContext.getTeamIds())
         .build();
   }
 }

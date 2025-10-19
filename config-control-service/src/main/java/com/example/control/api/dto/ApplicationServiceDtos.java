@@ -1,6 +1,7 @@
 package com.example.control.api.dto;
 
-import com.example.control.domain.ApplicationService;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -12,8 +13,8 @@ import java.util.Map;
 /**
  * DTOs for ApplicationService API operations.
  * <p>
- * These DTOs provide a clean separation between the domain model and the API layer,
- * allowing for versioning, validation, and documentation without affecting the domain.
+ * Provides request/response DTOs for creating, updating, and querying
+ * application services with proper validation and JSON serialization.
  * </p>
  */
 public class ApplicationServiceDtos {
@@ -25,23 +26,24 @@ public class ApplicationServiceDtos {
             @NotBlank(message = "Service ID is required")
             @Size(max = 100, message = "Service ID must not exceed 100 characters")
             String id,
-            
+
             @NotBlank(message = "Display name is required")
-            @Size(max = 255, message = "Display name must not exceed 255 characters")
+            @Size(max = 200, message = "Display name must not exceed 200 characters")
             String displayName,
-            
+
             @NotBlank(message = "Owner team ID is required")
             @Size(max = 100, message = "Owner team ID must not exceed 100 characters")
             String ownerTeamId,
-            
+
             @NotNull(message = "Environments list is required")
-            List<@NotBlank String> environments,
-            
-            List<@Size(max = 50) String> tags,
-            
+            @Size(min = 1, message = "At least one environment must be specified")
+            List<String> environments,
+
+            List<String> tags,
+
             @Size(max = 500, message = "Repository URL must not exceed 500 characters")
             String repoUrl,
-            
+
             Map<String, String> attributes
     ) {}
 
@@ -49,60 +51,73 @@ public class ApplicationServiceDtos {
      * Request DTO for updating an existing application service.
      */
     public record UpdateRequest(
-            @NotBlank(message = "Display name is required")
-            @Size(max = 255, message = "Display name must not exceed 255 characters")
+            @Size(max = 200, message = "Display name must not exceed 200 characters")
             String displayName,
-            
-            ApplicationService.ServiceLifecycle lifecycle,
-            
-            List<@Size(max = 50) String> tags,
-            
+
+            @Size(max = 50, message = "Lifecycle must not exceed 50 characters")
+            String lifecycle,
+
+            List<String> tags,
+
             @Size(max = 500, message = "Repository URL must not exceed 500 characters")
             String repoUrl,
-            
+
             Map<String, String> attributes
     ) {}
 
     /**
-     * Response DTO for application service data.
+     * Response DTO for application service details.
      */
     public record Response(
+            @JsonProperty("id")
             String id,
+
+            @JsonProperty("displayName")
             String displayName,
+
+            @JsonProperty("ownerTeamId")
             String ownerTeamId,
+
+            @JsonProperty("environments")
             List<String> environments,
+
+            @JsonProperty("tags")
             List<String> tags,
+
+            @JsonProperty("repoUrl")
             String repoUrl,
-            ApplicationService.ServiceLifecycle lifecycle,
+
+            @JsonProperty("lifecycle")
+            String lifecycle,
+
+            @JsonProperty("createdAt")
+            @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
             Instant createdAt,
+
+            @JsonProperty("updatedAt")
+            @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
             Instant updatedAt,
+
+            @JsonProperty("createdBy")
             String createdBy,
+
+            @JsonProperty("attributes")
             Map<String, String> attributes
     ) {}
 
     /**
-     * Request DTO for listing application services with filters.
+     * Query filter DTO for searching application services.
      */
-    public record ListRequest(
+    public record QueryFilter(
+            @Size(max = 100, message = "Owner team ID must not exceed 100 characters")
             String ownerTeamId,
-            ApplicationService.ServiceLifecycle lifecycle,
-            List<String> tags,
-            String search,
-            Integer page,
-            Integer size,
-            String sort
-    ) {}
 
-    /**
-     * Response DTO for paginated application service list.
-     */
-    public record ListResponse(
-            List<Response> content,
-            int page,
-            int size,
-            long totalElements,
-            int totalPages,
-            boolean hasNext,
-            boolean hasPrevious
+            @Size(max = 50, message = "Lifecycle must not exceed 50 characters")
+            String lifecycle,
+
+            List<String> tags,
+
+            @Size(max = 200, message = "Search term must not exceed 200 characters")
+            String search
     ) {}
 }
