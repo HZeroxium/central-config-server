@@ -101,9 +101,9 @@ services:
       - MANAGEMENT_OTLP_METRICS_EXPORT_ENABLED=true
       - MANAGEMENT_OTLP_METRICS_EXPORT_URL=${ALLOY_OTLP_HTTP}/v1/metrics
       # Keycloak configuration
-      - KEYCLOAK_ISSUER_URI=http://keycloak:8082/realms/config-control
+      - KEYCLOAK_ISSUER_URI=http://keycloak:8080/realms/config-control
       - KEYCLOAK_AUDIENCE=config-control-service
-      - KEYCLOAK_ADMIN_URL=http://keycloak:8082
+      - KEYCLOAK_ADMIN_URL=http://keycloak:8080
       - KEYCLOAK_CLIENT_ID=config-control-service
       - KEYCLOAK_CLIENT_SECRET=config-control-service-secret
     networks:
