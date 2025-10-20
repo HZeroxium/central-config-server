@@ -87,6 +87,11 @@ public class ServiceInstanceMongoAdapter
   }
 
   @Override
+  public long bulkUpdateTeamIdByServiceId(String serviceId, String newTeamId) {
+    return super.bulkUpdateTeamIdByServiceId(serviceId, newTeamId);
+  }
+
+  @Override
   protected Class<ServiceInstanceDocument> getDocumentClass() {
     return ServiceInstanceDocument.class;
   }

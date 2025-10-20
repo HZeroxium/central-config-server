@@ -230,4 +230,20 @@ public class ServiceInstanceService {
     instance.setUpdatedAt(Instant.now());
         return repository.save(instance);
   }
+
+  /**
+   * Bulk update teamId for all service instances with the given serviceId.
+   * <p>
+   * Used during ownership transfer to ensure all instances are updated
+   * to reflect the new team ownership.
+   *
+   * @param serviceId the service ID to match
+   * @param newTeamId the new team ID to set
+   * @return number of instances updated
+   */
+  @CacheEvict(value = "service-instances", allEntries = true)
+  public long bulkUpdateTeamIdByServiceId(String serviceId, String newTeamId) {
+    log.info("Bulk updating teamId to {} for all instances of service: {}", newTeamId, serviceId);
+    return repository.bulkUpdateTeamIdByServiceId(serviceId, newTeamId);
+  }
 }

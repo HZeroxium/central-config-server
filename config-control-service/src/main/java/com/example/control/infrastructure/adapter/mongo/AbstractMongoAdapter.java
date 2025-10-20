@@ -161,6 +161,12 @@ public abstract class AbstractMongoAdapter<T, D, ID, F> implements RepositoryPor
         if (id == null) {
             throw new IllegalArgumentException("ID cannot be null");
         }
+        
+        // Special handling for ServiceInstanceId composite key
+        if (id instanceof com.example.control.domain.id.ServiceInstanceId) {
+            return ((com.example.control.domain.id.ServiceInstanceId) id).toDocumentId();
+        }
+        
         return id.toString();
     }
 
@@ -189,5 +195,30 @@ public abstract class AbstractMongoAdapter<T, D, ID, F> implements RepositoryPor
                 .map(this::toDomain)
                 .toList();
         return new PageImpl<>(entities, pageable, total);
+    }
+
+    /**
+     * Bulk update teamId for all documents matching the given serviceId.
+     * <p>
+     * This method is used for ownership transfer scenarios where we need to
+     * update teamId across related collections efficiently.
+     *
+     * @param serviceId the service ID to match
+     * @param newTeamId the new team ID to set
+     * @return number of documents updated
+     */
+    protected long bulkUpdateTeamIdByServiceId(String serviceId, String newTeamId) {
+        log.debug("Bulk updating teamId to {} for serviceId: {}", newTeamId, serviceId);
+        
+        Query query = new Query(org.springframework.data.mongodb.core.query.Criteria.where("serviceId").is(serviceId));
+        org.springframework.data.mongodb.core.query.Update update = new org.springframework.data.mongodb.core.query.Update()
+                .set("teamId", newTeamId)
+                .set("updatedAt", java.time.Instant.now());
+        
+        com.mongodb.client.result.UpdateResult result = mongoTemplate.updateMulti(
+                query, update, getDocumentClass());
+        
+        log.debug("Bulk updated {} documents for serviceId: {}", result.getModifiedCount(), serviceId);
+        return result.getModifiedCount();
     }
 }

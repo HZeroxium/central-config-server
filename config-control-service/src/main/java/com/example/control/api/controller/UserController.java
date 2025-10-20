@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping("/api/user")
 @RequiredArgsConstructor
 public class UserController {
 
@@ -32,14 +32,30 @@ public class UserController {
     private final UserPermissionsService userPermissionsService;
 
     /**
-     * Get current user information.
+     * Get current user information (whoami endpoint).
+     *
+     * @param jwt the JWT token
+     * @return the user information
+     */
+    @GetMapping("/whoami")
+    public ResponseEntity<UserDtos.MeResponse> whoami(@AuthenticationPrincipal Jwt jwt) {
+        log.debug("Getting current user information (whoami)");
+        
+        UserContext userContext = UserContext.fromJwt(jwt);
+        UserDtos.MeResponse response = mapper.toMeResponse(userContext);
+        
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Get current user information (legacy /me endpoint).
      *
      * @param jwt the JWT token
      * @return the user information
      */
     @GetMapping("/me")
     public ResponseEntity<UserDtos.MeResponse> getMe(@AuthenticationPrincipal Jwt jwt) {
-        log.debug("Getting current user information");
+        log.debug("Getting current user information (legacy /me)");
         
         UserContext userContext = UserContext.fromJwt(jwt);
         UserDtos.MeResponse response = mapper.toMeResponse(userContext);
@@ -54,12 +70,12 @@ public class UserController {
      * @return the user permissions
      */
     @GetMapping("/me/permissions")
-    public ResponseEntity<ApiResponseDto.ApiResponse<UserDtos.PermissionMatrix>> getPermissions(
+    public ResponseEntity<ApiResponseDto.ApiResponse<UserPermissionsService.UserPermissions>> getPermissions(
             @AuthenticationPrincipal Jwt jwt) {
         log.debug("Getting current user permissions");
         
         UserContext userContext = UserContext.fromJwt(jwt);
-        UserDtos.PermissionMatrix permissions = userPermissionsService.calculatePermissions(userContext);
+        UserPermissionsService.UserPermissions permissions = userPermissionsService.getUserPermissions(userContext);
         
         return ResponseEntity.ok(ApiResponseDto.ApiResponse.success(permissions));
     }

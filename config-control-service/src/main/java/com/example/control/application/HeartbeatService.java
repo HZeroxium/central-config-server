@@ -91,7 +91,7 @@ public class HeartbeatService {
 
     // 2️⃣ Load or initialize ServiceInstance domain object
            ServiceInstance instance = serviceInstanceService
-               .findByServiceAndInstance(payload.getServiceName(), payload.getInstanceId())
+               .findById(ServiceInstanceId.of(payload.getServiceName(), payload.getInstanceId()))
                .orElse(ServiceInstance.builder()
                    .id(ServiceInstanceId.of(payload.getServiceName(), payload.getInstanceId()))
                    .status(ServiceInstance.InstanceStatus.HEALTHY)
@@ -165,12 +165,13 @@ public class HeartbeatService {
 
       instance.setHasDrift(true);
       instance.setDriftDetectedAt(now);
+      instance.setExpectedHash(expectedHash); // Store for future reference
       instance.setConfigHash(expectedHash);
       instance.setStatus(ServiceInstance.InstanceStatus.DRIFT);
 
 
       // Create a drift event record for observability
-      createDriftEvent(payload, expectedHash);
+      createDriftEvent(payload, expectedHash, instance);
 
       // Trigger /busrefresh to resync configuration
       triggerRefreshForInstance(payload.getServiceName(), payload.getInstanceId());
@@ -181,23 +182,41 @@ public class HeartbeatService {
       driftBackoffPow.put(id, 0); // 2^0 = 1 cycle delay
 
     } else if (!hasDrift && Boolean.TRUE.equals(instance.getHasDrift())) {
-      /** Case B: Drift resolved */
+      /** Case B: Drift resolved - config hash now matches expected */
       log.info("Configuration drift resolved for {}", id);
+      
       instance.setHasDrift(false);
       instance.setDriftDetectedAt(null);
       instance.setStatus(ServiceInstance.InstanceStatus.HEALTHY);
-
-
-      // Resolve any open drift events in persistence
-      driftEventService.resolveForInstance(payload.getServiceName(), payload.getInstanceId());
+      instance.setExpectedHash(expectedHash); // Update expectedHash for future comparisons
+      
+      // Auto-resolve all unresolved drift events for this instance
+      // Resolution is scoped by serviceName + instanceId (environment-agnostic as per policy)
+      driftEventService.resolveForInstance(
+          payload.getServiceName(), 
+          payload.getInstanceId(), 
+          "heartbeat-service"
+      );
+      
       driftRetryCount.remove(id);
+      driftBackoffPow.remove(id);
 
     } else if (!hasDrift && !Boolean.TRUE.equals(instance.getHasDrift())) {
-      /** Case C: Normal steady-state heartbeat */
+      /** Case C: Normal steady-state heartbeat - ensure any orphaned events are resolved */
       if (instance.getStatus() != ServiceInstance.InstanceStatus.HEALTHY) {
         instance.setStatus(ServiceInstance.InstanceStatus.HEALTHY);
       }
+      instance.setExpectedHash(expectedHash);
+      
+      // Resolve any orphaned DETECTED events from previous sessions
+      driftEventService.resolveForInstance(
+          payload.getServiceName(), 
+          payload.getInstanceId(), 
+          "heartbeat-service"
+      );
+      
       driftRetryCount.remove(id);
+      driftBackoffPow.remove(id);
 
     } else if (hasDrift && instance.getHasDrift()) {
       /** Case D: Persistent drift — apply exponential backoff strategy */
@@ -221,15 +240,21 @@ public class HeartbeatService {
 
   /**
    * Creates and saves a {@link DriftEvent} record to log drift detection.
+   * <p>
+   * Populates serviceId and teamId from the ServiceInstance to ensure proper
+   * team-based access control and filtering.
    *
    * @param payload      source heartbeat payload
    * @param expectedHash expected configuration hash
+   * @param instance     the service instance for context
    */
-  private void createDriftEvent(HeartbeatPayload payload, String expectedHash) {
+  private void createDriftEvent(HeartbeatPayload payload, String expectedHash, ServiceInstance instance) {
     DriftEvent event = DriftEvent.builder()
         .id(DriftEventId.of(UUID.randomUUID().toString()))
         .serviceName(payload.getServiceName())
         .instanceId(payload.getInstanceId())
+        .serviceId(instance.getServiceId()) // Populate from instance
+        .teamId(instance.getTeamId())       // Populate from instance
         .expectedHash(expectedHash)
         .appliedHash(payload.getConfigHash())
         .severity(DriftEvent.DriftSeverity.MEDIUM)

@@ -61,6 +61,7 @@ public class ApprovalService {
         ApplicationService service = applicationServiceService.findById(ApplicationServiceId.of(serviceId))
                 .orElseThrow(() -> new IllegalArgumentException("Service not found: " + serviceId));
 
+
         // Check if user can create approval request
         if (!permissionEvaluator.canCreateApprovalRequest(userContext, serviceId)) {
             throw new IllegalStateException("User does not have permission to create approval request");
@@ -273,22 +274,20 @@ public class ApprovalService {
             throw new IllegalStateException("Failed to approve request due to concurrent modification");
         }
 
-        // Transfer service ownership
-        ApplicationService service = applicationServiceService.findById(ApplicationServiceId.of(request.getTarget().getServiceId()))
-                .orElseThrow(() -> new IllegalArgumentException("Service not found: " + request.getTarget().getServiceId()));
-
-               service.setOwnerTeamId(request.getTarget().getTeamId());
-               service.setUpdatedAt(Instant.now());
-               // Note: This should be called with proper user context in real implementation
-               // For now, we'll use a system context
-               UserContext systemContext = UserContext.builder()
-                       .userId("system")
-                       .username("system")
-                       .email("system@example.com")
-                       .teamIds(List.of("SYS_ADMIN"))
-                       .roles(List.of("SYS_ADMIN"))
-                       .build();
-               applicationServiceService.save(service, systemContext);
+        // Transfer service ownership with cascade to related entities
+        UserContext systemContext = UserContext.builder()
+                .userId("system")
+                .username("system")
+                .email("system@example.com")
+                .teamIds(List.of("SYS_ADMIN"))
+                .roles(List.of("SYS_ADMIN"))
+                .build();
+        
+        applicationServiceService.transferOwnershipWithCascade(
+                request.getTarget().getServiceId(),
+                request.getTarget().getTeamId(),
+                systemContext
+        );
 
         log.info("Successfully approved request: {} and transferred service ownership", requestId);
     }

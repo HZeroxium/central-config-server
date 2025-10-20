@@ -48,7 +48,7 @@ public class ServiceInstanceController {
   public ResponseEntity<ApiResponseDto.ApiResponse<ServiceInstanceDtos.Response>> get(
       @PathVariable String serviceName,
       @PathVariable String instanceId) {
-    Optional<ServiceInstance> opt = service.findByServiceAndInstance(serviceName, instanceId);
+    Optional<ServiceInstance> opt = service.findById(ServiceInstanceId.of(serviceName, instanceId));
     return opt.map(si -> ResponseEntity.ok(ApiResponseDto.ApiResponse.success(
             ServiceInstanceApiMapper.toResponse(si))))
         .orElse(ResponseEntity.notFound().build());
@@ -60,7 +60,7 @@ public class ServiceInstanceController {
       @PathVariable String serviceName,
       @PathVariable String instanceId,
       @Valid @RequestBody ServiceInstanceDtos.UpdateRequest request) {
-    ServiceInstance instance = service.findByServiceAndInstance(serviceName, instanceId)
+    ServiceInstance instance = service.findById(ServiceInstanceId.of(serviceName, instanceId))
         .orElse(ServiceInstance.builder().id(ServiceInstanceId.of(serviceName, instanceId)).build());
     ServiceInstanceApiMapper.apply(instance, request);
     ServiceInstance saved = service.saveOrUpdate(instance);
@@ -74,7 +74,7 @@ public class ServiceInstanceController {
       @PathVariable String serviceName,
       @PathVariable String instanceId) {
     // Delegate delete through service for hexagonal boundaries
-    service.delete(serviceName, instanceId);
+    service.delete(ServiceInstanceId.of(serviceName, instanceId));
     return ResponseEntity.ok(ApiResponseDto.ApiResponse.success("Deleted", null));
   }
 

@@ -1,180 +1,227 @@
                                                                                                                                                                                                                                                                                                                                                                                                                                     package com.example.control.application.service;
 
-import com.example.control.api.dto.UserDtos;
 import com.example.control.config.security.UserContext;
-import com.example.control.domain.ApplicationService;
-import com.example.control.domain.ServiceShare;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
- * Service for calculating user permissions and authorization matrix.
+ * Service for managing user permissions and access control discovery.
  * <p>
- * Provides business logic for determining what routes, services, and actions
- * a user can access based on their roles, team memberships, and service shares.
+ * Provides methods to determine what resources and actions a user can access,
+ * which is used by the frontend to show/hide UI elements and enable/disable features.
  * </p>
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class UserPermissionsService {
 
     private final ApplicationServiceService applicationServiceService;
-    private final ServiceShareService serviceShareService;
 
     /**
-     * Calculate comprehensive permission matrix for a user.
+     * Get comprehensive permissions for a user.
      * <p>
-     * This method determines:
-     * <ul>
-     *   <li>Allowed frontend routes based on roles</li>
-     *   <li>Service-specific permissions (VIEW, EDIT) based on ownership and shares</li>
-     *   <li>System-wide capabilities (approval, management)</li>
-     *   <li>List of services owned by user's teams</li>
-     * </ul>
+     * Returns a structured view of what the user can access, including:
+     * - Team memberships and roles
+     * - Accessible routes and actions
+     * - Service ownership and sharing permissions
      *
      * @param userContext the user context
-     * @return comprehensive permission matrix
+     * @return user permissions data
      */
-    @Cacheable(value = "user-permissions", key = "#userContext.userId")
-    public UserDtos.PermissionMatrix calculatePermissions(UserContext userContext) {
-        log.debug("Calculating permissions for user: {}", userContext.getUserId());
+    public UserPermissions getUserPermissions(UserContext userContext) {
+        log.debug("Getting permissions for user: {}", userContext.getUserId());
 
-        // 1. Determine allowed routes based on roles
-        List<String> allowedRoutes = calculateAllowedRoutes(userContext);
+        UserPermissions.UserPermissionsBuilder builder = UserPermissions.builder()
+                .userId(userContext.getUserId())
+                .username(userContext.getUsername())
+                .email(userContext.getEmail())
+                .fullName(userContext.getFullName())
+                .teamIds(userContext.getTeamIds())
+                .roles(userContext.getRoles())
+                .isSysAdmin(userContext.isSysAdmin())
+                .managerId(userContext.getManagerId());
 
-        // 2. Calculate service-specific permissions
-        Map<String, List<String>> servicePermissions = calculateServicePermissions(userContext);
+        // Determine accessible routes based on roles and teams
+        Set<String> accessibleRoutes = determineAccessibleRoutes(userContext);
+        builder.accessibleRoutes(accessibleRoutes);
 
-        // 3. Determine system-wide capabilities
-        boolean canApproveRequests = userContext.hasRole("SYS_ADMIN");
-        boolean canManageAllServices = userContext.hasRole("SYS_ADMIN");
+        // Determine available actions
+        Map<String, Set<String>> actions = determineAvailableActions(userContext);
+        builder.actions(actions);
 
-        // 4. Find services owned by user's teams
-        List<String> ownedServiceIds = calculateOwnedServices(userContext);
+        // Get service ownership information
+        List<String> ownedServiceIds = getOwnedServiceIds(userContext);
+        builder.ownedServiceIds(ownedServiceIds);
 
-        UserDtos.PermissionMatrix matrix = new UserDtos.PermissionMatrix(
-                allowedRoutes,
-                servicePermissions,
-                canApproveRequests,
-                canManageAllServices,
-                ownedServiceIds
-        );
+        // Get shared service information
+        List<String> sharedServiceIds = getSharedServiceIds(userContext);
+        builder.sharedServiceIds(sharedServiceIds);
 
-        log.debug("Calculated permissions for user {}: {} routes, {} services, {} owned services",
-                userContext.getUserId(), allowedRoutes.size(), servicePermissions.size(), ownedServiceIds.size());
+        UserPermissions permissions = builder.build();
+        log.debug("Generated permissions for user {}: {} routes, {} owned services, {} shared services",
+                userContext.getUserId(), accessibleRoutes.size(), ownedServiceIds.size(), sharedServiceIds.size());
 
-        return matrix;
+        return permissions;
     }
 
     /**
-     * Calculate allowed frontend routes based on user roles.
+     * Determine which routes the user can access based on their roles and teams.
      *
      * @param userContext the user context
-     * @return list of allowed routes
+     * @return set of accessible route patterns
      */
-    private List<String> calculateAllowedRoutes(UserContext userContext) {
-        List<String> routes = new ArrayList<>();
+    private Set<String> determineAccessibleRoutes(UserContext userContext) {
+        Set<String> routes = new java.util.HashSet<>();
 
-        // Base routes for all authenticated users
-        routes.add("/dashboard");
-        routes.add("/services");
-        routes.add("/instances");
-        routes.add("/drift-events");
-        routes.add("/profile");
+        // All authenticated users can access basic routes
+        routes.add("/api/user/whoami");
+        routes.add("/api/user/permissions");
+        routes.add("/api/application-services");
 
-        // Admin routes
-        if (userContext.hasRole("SYS_ADMIN")) {
-            routes.add("/admin");
-            routes.add("/admin/services");
-            routes.add("/admin/approvals");
-            routes.add("/admin/users");
-            routes.add("/admin/teams");
-            routes.add("/admin/settings");
+        // System admins have full access
+        if (userContext.isSysAdmin()) {
+            routes.add("/api/service-instances/**");
+            routes.add("/api/drift-events/**");
+            routes.add("/api/approval-requests/**");
+            routes.add("/api/service-shares/**");
+            routes.add("/api/admin/**");
+            return routes;
         }
 
-        // User-specific routes
-        routes.add("/my-requests");
-        routes.add("/my-shares");
+        // Team members can access team-specific resources
+        if (userContext.getTeamIds() != null && !userContext.getTeamIds().isEmpty()) {
+            routes.add("/api/service-instances");
+            routes.add("/api/drift-events");
+            routes.add("/api/approval-requests");
+            routes.add("/api/service-shares");
+        }
 
         return routes;
     }
 
     /**
-     * Calculate service-specific permissions based on ownership and shares.
+     * Determine available actions for different resource types.
      *
      * @param userContext the user context
-     * @return map of serviceId -> list of permissions
+     * @return map of resource types to available actions
      */
-    private Map<String, List<String>> calculateServicePermissions(UserContext userContext) {
-        Map<String, List<String>> servicePermissions = new HashMap<>();
+    private Map<String, Set<String>> determineAvailableActions(UserContext userContext) {
+        Map<String, Set<String>> actions = new java.util.HashMap<>();
 
-        // Get all services
-        List<ApplicationService> allServices = applicationServiceService.findAll();
-
-        for (ApplicationService service : allServices) {
-            List<String> permissions = new ArrayList<>();
-
-            // Check ownership
-            if (userContext.isMemberOfTeam(service.getOwnerTeamId())) {
-                permissions.add("VIEW");
-                permissions.add("EDIT");
-                permissions.add("MANAGE_SHARES");
-            } else {
-                // Check for shared permissions
-                List<ServiceShare.SharePermission> effectivePermissions = serviceShareService
-                        .findEffectivePermissions(userContext, service.getId().id(), List.of());
-
-                if (effectivePermissions.contains(ServiceShare.SharePermission.VIEW_INSTANCE)) {
-                    permissions.add("VIEW");
-                }
-                if (effectivePermissions.contains(ServiceShare.SharePermission.EDIT_INSTANCE)) {
-                    permissions.add("EDIT");
-                }
-            }
-
-            // System admins have all permissions
-            if (userContext.hasRole("SYS_ADMIN")) {
-                if (!permissions.contains("VIEW")) permissions.add("VIEW");
-                if (!permissions.contains("EDIT")) permissions.add("EDIT");
-                if (!permissions.contains("MANAGE_SHARES")) permissions.add("MANAGE_SHARES");
-            }
-
-            if (!permissions.isEmpty()) {
-                servicePermissions.put(service.getId().id(), permissions);
-            }
+        // Application Services actions
+        Set<String> serviceActions = new java.util.HashSet<>();
+        serviceActions.add("VIEW"); // All users can view
+        if (userContext.isSysAdmin() || (userContext.getTeamIds() != null && !userContext.getTeamIds().isEmpty())) {
+            serviceActions.add("REQUEST_OWNERSHIP");
         }
+        if (userContext.isSysAdmin()) {
+            serviceActions.add("EDIT");
+            serviceActions.add("DELETE");
+        }
+        actions.put("APPLICATION_SERVICE", serviceActions);
 
-        return servicePermissions;
+        // Service Instances actions
+        Set<String> instanceActions = new java.util.HashSet<>();
+        if (userContext.isSysAdmin() || (userContext.getTeamIds() != null && !userContext.getTeamIds().isEmpty())) {
+            instanceActions.add("VIEW");
+            instanceActions.add("EDIT");
+        }
+        actions.put("SERVICE_INSTANCE", instanceActions);
+
+        // Drift Events actions
+        Set<String> driftActions = new java.util.HashSet<>();
+        if (userContext.isSysAdmin() || (userContext.getTeamIds() != null && !userContext.getTeamIds().isEmpty())) {
+            driftActions.add("VIEW");
+            driftActions.add("RESOLVE");
+        }
+        actions.put("DRIFT_EVENT", driftActions);
+
+        // Approval Requests actions
+        Set<String> approvalActions = new java.util.HashSet<>();
+        if (userContext.isSysAdmin()) {
+            approvalActions.add("VIEW");
+            approvalActions.add("APPROVE");
+            approvalActions.add("REJECT");
+        }
+        if (userContext.getUserId() != null) {
+            approvalActions.add("CREATE");
+            approvalActions.add("CANCEL");
+        }
+        actions.put("APPROVAL_REQUEST", approvalActions);
+
+        // Service Shares actions
+        Set<String> shareActions = new java.util.HashSet<>();
+        if (userContext.isSysAdmin() || (userContext.getTeamIds() != null && !userContext.getTeamIds().isEmpty())) {
+            shareActions.add("VIEW");
+            shareActions.add("CREATE");
+            shareActions.add("EDIT");
+            shareActions.add("DELETE");
+        }
+        actions.put("SERVICE_SHARE", shareActions);
+
+        return actions;
     }
 
     /**
-     * Calculate services owned by user's teams.
+     * Get service IDs owned by the user's teams.
      *
      * @param userContext the user context
      * @return list of owned service IDs
      */
-    private List<String> calculateOwnedServices(UserContext userContext) {
-        List<String> ownedServiceIds = new ArrayList<>();
-
-        // Get all services
-        List<ApplicationService> allServices = applicationServiceService.findAll();
-
-        for (ApplicationService service : allServices) {
-            if (userContext.isMemberOfTeam(service.getOwnerTeamId())) {
-                ownedServiceIds.add(service.getId().id());
-            }
+    private List<String> getOwnedServiceIds(UserContext userContext) {
+        if (userContext.getTeamIds() == null || userContext.getTeamIds().isEmpty()) {
+            return List.of();
         }
 
-        return ownedServiceIds;
+        return userContext.getTeamIds().stream()
+                .flatMap(teamId -> applicationServiceService.findByOwnerTeam(teamId).stream())
+                .map(service -> service.getId().id())
+                .toList();
+    }
+
+    /**
+     * Get service IDs shared with the user.
+     *
+     * @param userContext the user context
+     * @return list of shared service IDs
+     */
+    private List<String> getSharedServiceIds(UserContext userContext) {
+        // This is a simplified implementation
+        // In a full implementation, you would query ServiceShareService
+        // for services shared with the user's teams or directly with the user
+        return List.of(); // Placeholder
+    }
+
+    /**
+     * Data transfer object for user permissions.
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class UserPermissions {
+        private String userId;
+        private String username;
+        private String email;
+        private String fullName;
+        private List<String> teamIds;
+        private List<String> roles;
+        private boolean isSysAdmin;
+        private String managerId;
+        private Set<String> accessibleRoutes;
+        private Map<String, Set<String>> actions;
+        private List<String> ownedServiceIds;
+        private List<String> sharedServiceIds;
     }
 }

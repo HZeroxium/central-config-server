@@ -21,6 +21,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class PermissionEvaluator {
 
+    private static final String LINE_MANAGER = "LINE_MANAGER";
+    private static final String SYS_ADMIN = "SYS_ADMIN";
     private final ServiceShareService serviceShareService;
 
     /**
@@ -152,10 +154,10 @@ public class PermissionEvaluator {
                 userContext.getUserId(), request.getId(), gate);
         
         switch (gate.toUpperCase()) {
-            case "SYS_ADMIN":
-                return userContext.hasRole("SYS_ADMIN");
+            case SYS_ADMIN:
+                return userContext.hasRole(SYS_ADMIN);
                 
-            case "LINE_MANAGER":
+            case LINE_MANAGER:
                 // Check if current user is the manager of the requester
                 String requesterManagerId = request.getSnapshot() != null 
                     ? request.getSnapshot().getManagerId() 

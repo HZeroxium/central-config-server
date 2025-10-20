@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -26,6 +27,8 @@ import java.util.Map;
 @NoArgsConstructor
 @AllArgsConstructor
 @Document(collection = "application_services")
+@CompoundIndex(def = "{'ownerTeamId': 1, 'lifecycle': 1}")
+@CompoundIndex(def = "{'ownerTeamId': 1, 'createdAt': -1}")
 public class ApplicationServiceDocument {
 
     /** Document identifier: service slug. */
@@ -33,6 +36,7 @@ public class ApplicationServiceDocument {
     private String id;
 
     /** Human-readable display name. */
+    @Indexed(unique = true)
     private String displayName;
 
     /** Team that owns this service (Keycloak group ID). */

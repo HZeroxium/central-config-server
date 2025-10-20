@@ -25,20 +25,43 @@ spring:
           max-idle: 8
           min-idle: 0
 
-  # Kafka for Bus
+  # Kafka for Spring Cloud Bus
   kafka:
     bootstrap-servers: ${KAFKA_BROKERS:kafka:9092}
     consumer:
       group-id: config-control-group
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.ByteArrayDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.ByteArraySerializer
+      properties:
+        spring.json.add.type.headers: false
 
-  # Consul Discovery
+  # Spring Cloud Bus Configuration
   cloud:
+    bus:
+      enabled: true  # Enable Spring Cloud Bus
+      refresh:
+        enabled: true  # Enable configuration refresh
+      destination: springCloudBus  # Kafka topic name
+      trace:
+        enabled: true  # Enable trace for debugging
+    stream:
+      kafka:
+        binder:
+          brokers: ${KAFKA_BROKERS:kafka:9092}
+          auto-create-topics: true
+          auto-add-partitions: true
+          producer-properties:
+            key.serializer: org.apache.kafka.common.serialization.StringSerializer
+            value.serializer: org.apache.kafka.common.serialization.ByteArraySerializer
+          consumer-properties:
+            key.deserializer: org.apache.kafka.common.serialization.StringDeserializer
+            value.deserializer: org.apache.kafka.common.serialization.ByteArrayDeserializer
     consul:
       enabled: true
       host: ${CONSUL_HOST:consul}
@@ -68,11 +91,7 @@ spring:
           grpc_port: ${grpc.server.port}
         tags:
           - config-control
-          - management
-    bus:
-      enabled: false
-      refresh:
-        enabled: false  
+          - management  
 
 # New Consul SDK Configuration
 consulclient:
@@ -125,7 +144,8 @@ app:
       minimum-expected-value: 1ms
       maximum-expected-value: 1m
   cache:
-    provider: CAFFEINE  # Default to local cache
+    # provider: CAFFEINE  # Default to local cache
+    provider: NOOP
     cache-name-prefix: "{spring.application.name:config-control-service}::"
     enable-fallback: true
     caffeine:

@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -23,6 +24,9 @@ import java.time.Instant;
 @NoArgsConstructor
 @AllArgsConstructor
 @Document(collection = "drift_events")
+@CompoundIndex(def = "{'teamId': 1, 'status': 1}")
+@CompoundIndex(def = "{'serviceId': 1, 'detectedAt': -1}")
+@CompoundIndex(def = "{'teamId': 1, 'severity': 1}")
 public class DriftEventDocument {
 
   @Id

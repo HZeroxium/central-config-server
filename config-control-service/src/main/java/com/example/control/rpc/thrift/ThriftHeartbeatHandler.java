@@ -2,9 +2,11 @@ package com.example.control.rpc.thrift;
 
 import com.example.control.application.HeartbeatPayload;
 import com.example.control.application.HeartbeatService;
-import io.micrometer.core.annotation.Timed;
 import com.example.control.domain.ServiceInstance;
-import com.example.control.thrift.*;
+import com.example.control.thrift.ConfigControlService;
+import com.example.control.thrift.HeartbeatRequest;
+import com.example.control.thrift.HeartbeatResponse;
+import io.micrometer.core.annotation.Timed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

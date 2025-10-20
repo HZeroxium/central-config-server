@@ -5,6 +5,7 @@ import com.example.control.domain.ApplicationService;
 import com.example.control.domain.criteria.ApplicationServiceCriteria;
 import com.example.control.domain.id.ApplicationServiceId;
 import com.example.control.domain.port.ApplicationServiceRepositoryPort;
+import com.example.control.domain.port.DriftEventRepositoryPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -32,6 +33,8 @@ import java.util.Optional;
 public class ApplicationServiceService {
 
     private final ApplicationServiceRepositoryPort repository;
+    private final ServiceInstanceService serviceInstanceService;
+    private final DriftEventRepositoryPort driftEventRepository;
 
     /**
      * Save or update an application service.
@@ -233,8 +236,60 @@ public class ApplicationServiceService {
         if (userContext.isSysAdmin()) {
             return true;
         }
-
+        
         // Team members can edit services owned by their team
         return userContext.isMemberOfTeam(service.getOwnerTeamId());
+    }
+
+    /**
+     * Transfer ownership of an application service and cascade the change to all related entities.
+     * <p>
+     * This method updates the ApplicationService ownerTeamId and then synchronizes
+     * the teamId field across all related ServiceInstances and DriftEvents.
+     * This ensures data consistency and proper ABAC filtering.
+     *
+     * @param serviceId the service ID to transfer
+     * @param newTeamId the new team ID to assign
+     * @param userContext the user context for audit purposes
+     * @return the updated application service
+     * @throws IllegalArgumentException if service not found
+     * @throws IllegalStateException if user lacks permission
+     */
+    @Transactional
+    @CacheEvict(value = "application-services", allEntries = true)
+    public ApplicationService transferOwnershipWithCascade(String serviceId, String newTeamId, UserContext userContext) {
+        log.info("Transferring ownership of service {} to team {} by user {}", 
+                serviceId, newTeamId, userContext.getUserId());
+
+        // Get the service
+        ApplicationService service = repository.findById(ApplicationServiceId.of(serviceId))
+                .orElseThrow(() -> new IllegalArgumentException("Service not found: " + serviceId));
+
+        // Check permissions
+        if (!canEditService(userContext, service)) {
+            throw new IllegalStateException("User does not have permission to transfer ownership of this service");
+        }
+
+        // Update the service
+        String oldTeamId = service.getOwnerTeamId();
+        service.setOwnerTeamId(newTeamId);
+        service.setUpdatedAt(Instant.now());
+        
+        ApplicationService updatedService = repository.save(service);
+        log.info("Updated ApplicationService {} ownerTeamId from {} to {}", 
+                serviceId, oldTeamId, newTeamId);
+
+        // Cascade to ServiceInstances
+        long instanceCount = serviceInstanceService.bulkUpdateTeamIdByServiceId(serviceId, newTeamId);
+        log.info("Updated {} service instances for service {}", instanceCount, serviceId);
+
+        // Cascade to DriftEvents
+        long driftEventCount = driftEventRepository.bulkUpdateTeamIdByServiceId(serviceId, newTeamId);
+        log.info("Updated {} drift events for service {}", driftEventCount, serviceId);
+
+        log.info("Successfully transferred ownership of service {} to team {} (instances: {}, drift events: {})", 
+                serviceId, newTeamId, instanceCount, driftEventCount);
+
+        return updatedService;
     }
 }

@@ -6,6 +6,7 @@ import com.example.control.domain.id.DriftEventId;
 import com.example.control.domain.port.DriftEventRepositoryPort;
 import com.example.control.infrastructure.repository.DriftEventMongoRepository;
 import com.example.control.infrastructure.repository.documents.DriftEventDocument;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -16,6 +17,7 @@ import java.time.Instant;
 /**
  * MongoDB adapter for {@link DriftEventRepositoryPort}.
  */
+@Slf4j
 @Component
 public class DriftEventMongoAdapter 
     extends AbstractMongoAdapter<DriftEvent, DriftEventDocument, DriftEventId, DriftEventCriteria> 
@@ -81,20 +83,36 @@ public class DriftEventMongoAdapter
 
   @Override
   public void resolveForInstance(String serviceName, String instanceId, String resolvedBy) {
-    repository.findByServiceNameAndInstanceId(serviceName, instanceId).forEach(doc -> {
-      if (!DriftEvent.DriftStatus.RESOLVED.name().equals(doc.getStatus())) {
-        doc.setStatus(DriftEvent.DriftStatus.RESOLVED.name());
-        doc.setResolvedAt(Instant.now());
-        doc.setResolvedBy(resolvedBy);
-        doc.setNotes((doc.getNotes() != null ? doc.getNotes() : "") + " | Resolved via adapter");
-        repository.save(doc);
-      }
-    });
+    log.debug("Resolving drift events for instance: {}:{}", serviceName, instanceId);
+    
+    Query query = new Query(
+        Criteria.where("serviceName").is(serviceName)
+            .and("instanceId").is(instanceId)
+            .and("status").in("DETECTED", "ACKNOWLEDGED", "RESOLVING") // Only unresolved events
+    );
+    
+    org.springframework.data.mongodb.core.query.Update update = 
+        new org.springframework.data.mongodb.core.query.Update()
+            .set("status", DriftEvent.DriftStatus.RESOLVED.name())
+            .set("resolvedAt", Instant.now())
+            .set("resolvedBy", resolvedBy);
+    
+    com.mongodb.client.result.UpdateResult result = mongoTemplate.updateMulti(
+        query, update, DriftEventDocument.class, getCollectionName()
+    );
+    
+    log.info("Resolved {} drift events for instance {}:{}", 
+        result.getModifiedCount(), serviceName, instanceId);
   }
 
   @Override
   public long countByStatus(DriftEvent.DriftStatus status) {
     return repository.countByStatus(status.name());
+  }
+
+  @Override
+  public long bulkUpdateTeamIdByServiceId(String serviceId, String newTeamId) {
+    return super.bulkUpdateTeamIdByServiceId(serviceId, newTeamId);
   }
 
   @Override
