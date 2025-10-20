@@ -2,13 +2,13 @@ package com.example.control.domain;
 
 import com.example.control.domain.id.ApprovalDecisionId;
 import com.example.control.domain.id.ApprovalRequestId;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import java.time.Instant;
 
 /**

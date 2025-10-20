@@ -1,8 +1,8 @@
 package com.example.control.domain.port;
 
 import com.example.control.domain.ServiceInstance;
-import com.example.control.domain.id.ServiceInstanceId;
 import com.example.control.domain.criteria.ServiceInstanceCriteria;
+import com.example.control.domain.id.ServiceInstanceId;
 
 /**
  * Port (hexagonal architecture) for persisting and querying {@link ServiceInstance}.

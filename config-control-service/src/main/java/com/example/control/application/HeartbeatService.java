@@ -2,24 +2,24 @@ package com.example.control.application;
 
 import com.example.control.api.exception.ConfigurationException;
 import com.example.control.api.exception.ValidationException;
+import com.example.control.application.service.ApplicationServiceService;
+import com.example.control.application.service.DriftEventService;
+import com.example.control.application.service.ServiceInstanceService;
 import com.example.control.domain.ApplicationService;
 import com.example.control.domain.DriftEvent;
 import com.example.control.domain.ServiceInstance;
 import com.example.control.domain.id.DriftEventId;
 import com.example.control.domain.id.ServiceInstanceId;
-import com.example.control.application.service.DriftEventService;
-import com.example.control.application.service.ServiceInstanceService;
-import com.example.control.application.service.ApplicationServiceService;
+import io.micrometer.core.annotation.Timed;
+import io.micrometer.observation.annotation.Observed;
+import io.micrometer.tracing.annotation.NewSpan;
+import io.micrometer.tracing.annotation.SpanTag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
-import io.micrometer.core.annotation.Timed;
-import io.micrometer.observation.annotation.Observed;
-import io.micrometer.tracing.annotation.SpanTag;
-import io.micrometer.tracing.annotation.NewSpan;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -199,7 +199,7 @@ public class HeartbeatService {
       }
       driftRetryCount.remove(id);
 
-    } else if (hasDrift && Boolean.TRUE.equals(instance.getHasDrift())) {
+    } else if (hasDrift && instance.getHasDrift()) {
       /** Case D: Persistent drift — apply exponential backoff strategy */
       int count = driftRetryCount.merge(id, 1, Integer::sum);
       int pow = driftBackoffPow.compute(id, (k, v) -> v == null ? 0 : Math.min(v, 4)); // limit to 16 cycles

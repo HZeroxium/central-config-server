@@ -3,8 +3,8 @@ package com.example.control.consulclient.client;
 import com.example.control.consulclient.core.ConsulResponse;
 import com.example.control.consulclient.core.QueryOptions;
 import com.example.control.consulclient.core.WriteOptions;
-import com.example.control.consulclient.model.Service;
 import com.example.control.consulclient.model.HealthCheck;
+import com.example.control.consulclient.model.Service;
 
 import java.util.List;
 import java.util.Map;

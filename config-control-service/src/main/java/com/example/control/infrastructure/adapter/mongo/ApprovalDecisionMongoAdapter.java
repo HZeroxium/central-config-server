@@ -1,13 +1,12 @@
 package com.example.control.infrastructure.adapter.mongo;
 
 import com.example.control.domain.ApprovalDecision;
+import com.example.control.domain.criteria.ApprovalDecisionCriteria;
 import com.example.control.domain.id.ApprovalDecisionId;
 import com.example.control.domain.id.ApprovalRequestId;
-import com.example.control.domain.criteria.ApprovalDecisionCriteria;
 import com.example.control.domain.port.ApprovalDecisionRepositoryPort;
 import com.example.control.infrastructure.repository.ApprovalDecisionMongoRepository;
 import com.example.control.infrastructure.repository.documents.ApprovalDecisionDocument;
-
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;

@@ -5,7 +5,6 @@ import com.example.control.infrastructure.repository.DriftEventMongoRepository;
 import com.example.control.infrastructure.repository.ServiceInstanceMongoRepository;
 import com.example.control.infrastructure.repository.documents.DriftEventDocument;
 import com.example.control.infrastructure.repository.documents.ServiceInstanceDocument;
-
 import io.micrometer.core.annotation.Timed;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;

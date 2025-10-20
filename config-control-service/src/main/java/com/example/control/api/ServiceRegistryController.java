@@ -2,16 +2,16 @@ package com.example.control.api;
 
 import com.example.control.api.dto.ApiResponseDto;
 import com.example.control.api.dto.ConsulDto;
-import com.example.control.api.mapper.ConsulMapper;                                                                                                        
+import com.example.control.api.mapper.ConsulMapper;
 import com.example.control.application.ConsulClient;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.annotation.Timed;
-import org.springframework.beans.factory.annotation.Qualifier;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

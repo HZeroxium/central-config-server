@@ -1,8 +1,8 @@
 package com.example.control.domain.port;
 
 import com.example.control.domain.ApprovalRequest;
-import com.example.control.domain.id.ApprovalRequestId;
 import com.example.control.domain.criteria.ApprovalRequestCriteria;
+import com.example.control.domain.id.ApprovalRequestId;
 
 /**
  * Port (hexagonal architecture) for persisting and querying {@link ApprovalRequest}.

@@ -2,10 +2,10 @@ package com.example.control.application;
 
 import com.example.control.api.exception.ExternalServiceException;
 import com.example.control.api.exception.ServiceNotFoundException;
+import com.example.control.config.ConfigServerProperties;
 import com.example.control.configsnapshot.ConfigSnapshot;
 import com.example.control.configsnapshot.ConfigSnapshotBuilderFromConfigServer;
 import com.example.control.configsnapshot.Sha256Hasher;
-import com.example.control.config.ConfigServerProperties;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.tracing.annotation.NewSpan;

@@ -3,17 +3,7 @@ package com.example.control.consulclient.client;
 import com.example.control.consulclient.core.ConsulResponse;
 import com.example.control.consulclient.core.QueryOptions;
 import com.example.control.consulclient.core.WriteOptions;
-import com.example.control.consulclient.model.Event;
-import com.example.control.consulclient.model.HealthCheck;
-import com.example.control.consulclient.model.HealthService;
-import com.example.control.consulclient.model.KVPair;
-import com.example.control.consulclient.model.Node;
-import com.example.control.consulclient.model.Service;
-import com.example.control.consulclient.model.ServiceEntry;
-import com.example.control.consulclient.model.Session;
-import com.example.control.consulclient.model.SessionCreateRequest;
-import com.example.control.consulclient.model.TxnOp;
-import com.example.control.consulclient.model.TxnResult;
+import com.example.control.consulclient.model.*;
 
 import java.util.List;
 import java.util.Map;
