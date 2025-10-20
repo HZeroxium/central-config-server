@@ -1,6 +1,6 @@
 package com.example.control.application.service;
 
-import com.example.control.config.security.PermissionEvaluator;
+import com.example.control.config.security.DomainPermissionEvaluator;
 import com.example.control.config.security.UserContext;
 import com.example.control.domain.ApprovalRequest;
 import com.example.control.domain.criteria.ApprovalRequestCriteria;
@@ -31,7 +31,7 @@ import java.util.Optional;
 public class ApprovalRequestService {
 
     private final ApprovalRequestRepositoryPort repository;
-    private final PermissionEvaluator permissionEvaluator;
+    private final DomainPermissionEvaluator permissionEvaluator;
 
     /**
      * Save or update an approval request.

@@ -1,6 +1,6 @@
 package com.example.control.application.service;
 
-import com.example.control.config.security.PermissionEvaluator;
+import com.example.control.config.security.DomainPermissionEvaluator;
 import com.example.control.config.security.UserContext;
 import com.example.control.domain.ApplicationService;
 import com.example.control.domain.ApprovalDecision;
@@ -40,7 +40,7 @@ public class ApprovalService {
     private final ApprovalRequestService approvalRequestService;
     private final ApprovalDecisionService approvalDecisionService;
     private final ApplicationServiceService applicationServiceService;
-    private final PermissionEvaluator permissionEvaluator;
+    private final DomainPermissionEvaluator permissionEvaluator;
 
     /**
      * Create a new approval request.

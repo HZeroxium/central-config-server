@@ -19,7 +19,7 @@ import java.util.List;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class PermissionEvaluator {
+public class DomainPermissionEvaluator {
 
     private static final String LINE_MANAGER = "LINE_MANAGER";
     private static final String SYS_ADMIN = "SYS_ADMIN";
