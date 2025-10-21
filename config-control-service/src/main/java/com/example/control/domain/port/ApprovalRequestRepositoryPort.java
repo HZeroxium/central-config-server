@@ -1,6 +1,6 @@
 package com.example.control.domain.port;
 
-import com.example.control.domain.ApprovalRequest;
+import com.example.control.domain.object.ApprovalRequest;
 import com.example.control.domain.criteria.ApprovalRequestCriteria;
 import com.example.control.domain.id.ApprovalRequestId;
 

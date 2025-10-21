@@ -1,6 +1,6 @@
 package com.example.control.application.service;
 
-import com.example.control.domain.IamTeam;
+import com.example.control.domain.object.IamTeam;
 import com.example.control.domain.criteria.IamTeamCriteria;
 import com.example.control.domain.id.IamTeamId;
 import com.example.control.domain.port.IamTeamRepositoryPort;
@@ -102,6 +102,19 @@ public class IamTeamService {
         log.debug("Counting IAM teams with criteria: {}", criteria);
         long count = repository.count(criteria);
         log.debug("Found {} IAM teams matching criteria", count);
+        return count;
+    }
+
+    /**
+     * Count all IAM teams.
+     *
+     * @return total count of all teams
+     */
+    @Cacheable(value = "iam-teams", key = "'countAll'")
+    public long countAll() {
+        log.debug("Counting all IAM teams");
+        long count = repository.countAll();
+        log.debug("Found {} total IAM teams", count);
         return count;
     }
 

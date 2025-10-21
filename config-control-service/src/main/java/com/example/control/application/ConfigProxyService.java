@@ -1,11 +1,11 @@
 package com.example.control.application;
 
-import com.example.control.api.exception.ExternalServiceException;
-import com.example.control.api.exception.ServiceNotFoundException;
+import com.example.control.api.exception.exceptions.ExternalServiceException;
+import com.example.control.api.exception.exceptions.ServiceNotFoundException;
 import com.example.control.config.ConfigServerProperties;
-import com.example.control.configsnapshot.ConfigSnapshot;
-import com.example.control.configsnapshot.ConfigSnapshotBuilderFromConfigServer;
-import com.example.control.configsnapshot.Sha256Hasher;
+import com.example.control.domain.configsnapshot.ConfigSnapshot;
+import com.example.control.domain.configsnapshot.ConfigSnapshotBuilder;
+import com.example.control.domain.configsnapshot.ConfigHashCalculator;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.tracing.annotation.NewSpan;
@@ -35,7 +35,7 @@ public class ConfigProxyService {
   private final ConfigServerProperties configServerProperties;
   private final ObjectMapper objectMapper;
   private final RestClient restClient = RestClient.create();
-  private final ConfigSnapshotBuilderFromConfigServer snapshotBuilder = new ConfigSnapshotBuilderFromConfigServer();
+  private final ConfigSnapshotBuilder snapshotBuilder = new ConfigSnapshotBuilder();
 
   /**
    * Get effective configuration hash for a service in an environment.
@@ -74,7 +74,7 @@ public class ConfigProxyService {
       
       JsonNode configNode = objectMapper.readTree(configJson);
       ConfigSnapshot snapshot = snapshotBuilder.build(serviceName, profile, null, configNode);
-      String hash = Sha256Hasher.hash(snapshot.toCanonicalString());
+      String hash = ConfigHashCalculator.hash(snapshot.toCanonicalString());
       log.debug("Computed config hash for {}:{} keys={} hash={}", serviceName, profile,
           snapshot.getProperties().size(), hash);
       return hash;

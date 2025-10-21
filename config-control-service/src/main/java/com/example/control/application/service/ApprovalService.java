@@ -2,9 +2,9 @@ package com.example.control.application.service;
 
 import com.example.control.config.security.DomainPermissionEvaluator;
 import com.example.control.config.security.UserContext;
-import com.example.control.domain.ApplicationService;
-import com.example.control.domain.ApprovalDecision;
-import com.example.control.domain.ApprovalRequest;
+import com.example.control.domain.object.ApplicationService;
+import com.example.control.domain.object.ApprovalDecision;
+import com.example.control.domain.object.ApprovalRequest;
 import com.example.control.domain.criteria.ApprovalRequestCriteria;
 import com.example.control.domain.id.ApplicationServiceId;
 import com.example.control.domain.id.ApprovalDecisionId;
@@ -67,7 +67,24 @@ public class ApprovalService {
             throw new IllegalStateException("User does not have permission to create approval request");
         }
 
-        // Create approval request with default gates
+        // Create approval request with dynamic gates based on requester
+        List<ApprovalRequest.ApprovalGate> requiredGates = new java.util.ArrayList<>();
+        
+        // Always require SYS_ADMIN gate
+        requiredGates.add(ApprovalRequest.ApprovalGate.builder()
+                .gate("SYS_ADMIN")
+                .minApprovals(1)
+                .build());
+        
+        // Add LINE_MANAGER gate if requester has a manager
+        if (userContext.getManagerId() != null && !userContext.getManagerId().trim().isEmpty()) {
+            requiredGates.add(ApprovalRequest.ApprovalGate.builder()
+                    .gate("LINE_MANAGER")
+                    .minApprovals(1)
+                    .build());
+            log.debug("Added LINE_MANAGER gate for requester with manager: {}", userContext.getManagerId());
+        }
+
         ApprovalRequest request = ApprovalRequest.builder()
                 .id(ApprovalRequestId.of(UUID.randomUUID().toString()))
                 .requesterUserId(userContext.getUserId())
@@ -76,12 +93,7 @@ public class ApprovalService {
                         .serviceId(serviceId)
                         .teamId(targetTeamId)
                         .build())
-                .required(List.of(
-                        ApprovalRequest.ApprovalGate.builder()
-                                .gate("SYS_ADMIN")
-                                .minApprovals(1)
-                                .build()
-                ))
+                .required(requiredGates)
                 .status(ApprovalRequest.ApprovalStatus.PENDING)
                 .snapshot(ApprovalRequest.RequesterSnapshot.builder()
                         .teamIds(userContext.getTeamIds())

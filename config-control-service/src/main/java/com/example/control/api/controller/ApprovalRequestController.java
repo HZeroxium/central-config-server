@@ -1,11 +1,11 @@
 package com.example.control.api.controller;
 
-import com.example.control.api.dto.ApprovalRequestDtos;
-import com.example.control.api.mapper.ApprovalRequestApiMapper;
+import com.example.control.api.dto.domain.ApprovalRequestDtos;
+import com.example.control.api.mapper.domain.ApprovalRequestApiMapper;
 import com.example.control.application.service.ApprovalService;
 import com.example.control.config.security.UserContext;
-import com.example.control.domain.ApprovalDecision;
-import com.example.control.domain.ApprovalRequest;
+import com.example.control.domain.object.ApprovalDecision;
+import com.example.control.domain.object.ApprovalRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -1,6 +1,6 @@
 package com.example.control.application;
 
-import com.example.control.api.exception.ExternalServiceException;
+import com.example.control.api.exception.exceptions.ExternalServiceException;
 import com.example.control.config.ConfigServerProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

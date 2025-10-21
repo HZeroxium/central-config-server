@@ -1,6 +1,6 @@
 package com.example.control.domain.criteria;
 
-import com.example.control.domain.ApprovalDecision;
+import com.example.control.domain.object.ApprovalDecision;
 import lombok.Builder;
 import lombok.With;
 

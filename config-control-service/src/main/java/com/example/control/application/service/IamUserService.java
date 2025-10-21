@@ -1,6 +1,6 @@
 package com.example.control.application.service;
 
-import com.example.control.domain.IamUser;
+import com.example.control.domain.object.IamUser;
 import com.example.control.domain.criteria.IamUserCriteria;
 import com.example.control.domain.id.IamUserId;
 import com.example.control.domain.port.IamUserRepositoryPort;
@@ -183,6 +183,19 @@ public class IamUserService {
         log.debug("Counting IAM users with criteria: {}", criteria);
         long count = repository.count(criteria);
         log.debug("Found {} IAM users matching criteria", count);
+        return count;
+    }
+
+    /**
+     * Count all IAM users.
+     *
+     * @return total count of all users
+     */
+    @Cacheable(value = "iam-users", key = "'countAll'")
+    public long countAll() {
+        log.debug("Counting all IAM users");
+        long count = repository.countAll();
+        log.debug("Found {} total IAM users", count);
         return count;
     }
 

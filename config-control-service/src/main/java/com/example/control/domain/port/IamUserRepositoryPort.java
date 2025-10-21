@@ -1,6 +1,6 @@
 package com.example.control.domain.port;
 
-import com.example.control.domain.IamUser;
+import com.example.control.domain.object.IamUser;
 import com.example.control.domain.criteria.IamUserCriteria;
 import com.example.control.domain.id.IamUserId;
 
@@ -72,4 +72,11 @@ public interface IamUserRepositoryPort extends RepositoryPort<IamUser, IamUserId
      * @return number of users with the role
      */
     long countByRole(String role);
+
+    /**
+     * Count all users.
+     *
+     * @return total number of users
+     */
+    long countAll();
 }

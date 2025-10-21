@@ -1,7 +1,7 @@
 package com.example.control.application.service;
 
 import com.example.control.config.security.UserContext;
-import com.example.control.domain.ApplicationService;
+import com.example.control.domain.object.ApplicationService;
 import com.example.control.domain.criteria.ApplicationServiceCriteria;
 import com.example.control.domain.id.ApplicationServiceId;
 import com.example.control.domain.port.ApplicationServiceRepositoryPort;
@@ -239,6 +239,39 @@ public class ApplicationServiceService {
         
         // Team members can edit services owned by their team
         return userContext.isMemberOfTeam(service.getOwnerTeamId());
+    }
+
+    /**
+     * Get list of serviceIds that the user has access to through team ownership or sharing.
+     * <p>
+     * This method pre-computes accessible services to optimize database queries
+     * by avoiding the need to check permissions for each individual entity.
+     *
+     * @param userContext the user context
+     * @return list of accessible service IDs
+     */
+    public List<String> findAccessibleServiceIds(UserContext userContext) {
+        log.debug("Getting accessible serviceIds for user: {}", userContext.getUserId());
+        
+        List<String> accessibleServiceIds = new java.util.ArrayList<>();
+        
+        // Get team-owned services
+        if (userContext.getTeamIds() != null && !userContext.getTeamIds().isEmpty()) {
+            for (String teamId : userContext.getTeamIds()) {
+                List<ApplicationService> teamServices = findByOwnerTeam(teamId);
+                List<String> teamServiceIds = teamServices.stream()
+                        .map(service -> service.getId().id())
+                        .collect(java.util.stream.Collectors.toList());
+                accessibleServiceIds.addAll(teamServiceIds);
+            }
+        }
+        
+        // TODO: Get shared services (services shared with user's teams or directly with user)
+        // This would require integration with ServiceShareService to find services
+        // that have been shared with the user's teams or directly with the user
+        
+        log.debug("Found {} accessible serviceIds for user: {}", accessibleServiceIds.size(), userContext.getUserId());
+        return accessibleServiceIds;
     }
 
     /**

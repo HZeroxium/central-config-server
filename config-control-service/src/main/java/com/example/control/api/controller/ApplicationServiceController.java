@@ -1,10 +1,10 @@
 package com.example.control.api.controller;
 
-import com.example.control.api.dto.ApplicationServiceDtos;
-import com.example.control.api.mapper.ApplicationServiceApiMapper;
+import com.example.control.api.dto.domain.ApplicationServiceDtos;
+import com.example.control.api.mapper.domain.ApplicationServiceApiMapper;
 import com.example.control.application.service.ApplicationServiceService;
 import com.example.control.config.security.UserContext;
-import com.example.control.domain.ApplicationService;
+import com.example.control.domain.object.ApplicationService;
 import com.example.control.domain.id.ApplicationServiceId;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

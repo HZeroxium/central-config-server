@@ -1,6 +1,6 @@
 package com.example.control.domain.criteria;
 
-import com.example.control.domain.ServiceShare;
+import com.example.control.domain.object.ServiceShare;
 import lombok.Builder;
 import lombok.With;
 

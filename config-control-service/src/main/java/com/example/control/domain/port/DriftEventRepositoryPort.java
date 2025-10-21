@@ -1,6 +1,6 @@
 package com.example.control.domain.port;
 
-import com.example.control.domain.DriftEvent;
+import com.example.control.domain.object.DriftEvent;
 import com.example.control.domain.criteria.DriftEventCriteria;
 import com.example.control.domain.id.DriftEventId;
 

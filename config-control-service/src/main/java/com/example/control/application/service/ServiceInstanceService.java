@@ -1,6 +1,6 @@
 package com.example.control.application.service;
 
-import com.example.control.domain.ServiceInstance;
+import com.example.control.domain.object.ServiceInstance;
 import com.example.control.domain.criteria.ServiceInstanceCriteria;
 import com.example.control.domain.id.ServiceInstanceId;
 import com.example.control.domain.port.ServiceInstanceRepositoryPort;
@@ -127,6 +127,31 @@ public class ServiceInstanceService {
   @Cacheable(value = "service-instances", key = "'list:' + #criteria.hashCode() + ':' + #pageable")
   public Page<ServiceInstance> list(ServiceInstanceCriteria criteria, Pageable pageable) {
     return repository.findAll(criteria, pageable);
+  }
+
+  /**
+   * Retrieves a page of service instances with permission-aware filtering.
+   * <p>
+   * Results are filtered by user permissions - users can only see instances
+   * for services they own or have been granted access to via service shares.
+   *
+   * @param criteria optional filter parameters encapsulated in a record
+   * @param pageable pagination and sorting information
+   * @param userContext the user context for permission filtering
+   * @return a page of {@link ServiceInstance}
+   */
+  @Cacheable(value = "service-instances", key = "'list:' + #criteria.hashCode() + ':' + #pageable + ':' + #userContext.userId")
+  public Page<ServiceInstance> list(ServiceInstanceCriteria criteria, Pageable pageable, com.example.control.config.security.UserContext userContext) {
+    log.debug("Listing service instances with criteria: {} for user: {}", criteria, userContext.getUserId());
+    
+    // System admins can see all instances
+    if (userContext.isSysAdmin()) {
+      return repository.findAll(criteria, pageable);
+    }
+    
+    // Apply team-based filtering
+    ServiceInstanceCriteria filteredCriteria = applyUserFilter(criteria, userContext);
+    return repository.findAll(filteredCriteria, pageable);
   }
 
   /**

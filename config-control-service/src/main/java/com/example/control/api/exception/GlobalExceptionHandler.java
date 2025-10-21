@@ -1,5 +1,6 @@
 package com.example.control.api.exception;
 
+import com.example.control.api.exception.exceptions.*;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import jakarta.validation.ConstraintViolation;

@@ -1,6 +1,6 @@
 package com.example.control.domain.port;
 
-import com.example.control.domain.ServiceShare;
+import com.example.control.domain.object.ServiceShare;
 import com.example.control.domain.criteria.ServiceShareCriteria;
 import com.example.control.domain.id.ServiceShareId;
 

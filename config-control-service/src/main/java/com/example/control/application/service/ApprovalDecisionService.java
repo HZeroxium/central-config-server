@@ -1,6 +1,6 @@
 package com.example.control.application.service;
 
-import com.example.control.domain.ApprovalDecision;
+import com.example.control.domain.object.ApprovalDecision;
 import com.example.control.domain.id.ApprovalDecisionId;
 import com.example.control.domain.id.ApprovalRequestId;
 import com.example.control.domain.port.ApprovalDecisionRepositoryPort;

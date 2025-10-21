@@ -1,8 +1,8 @@
 package com.example.control.application.service;
 
 import com.example.control.config.security.UserContext;
-import com.example.control.domain.ApplicationService;
-import com.example.control.domain.ServiceShare;
+import com.example.control.domain.object.ApplicationService;
+import com.example.control.domain.object.ServiceShare;
 import com.example.control.domain.criteria.ServiceShareCriteria;
 import com.example.control.domain.id.ApplicationServiceId;
 import com.example.control.domain.id.ServiceShareId;

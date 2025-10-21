@@ -2,7 +2,7 @@ package com.example.control.application.service;
 
 import com.example.control.config.security.DomainPermissionEvaluator;
 import com.example.control.config.security.UserContext;
-import com.example.control.domain.ApprovalRequest;
+import com.example.control.domain.object.ApprovalRequest;
 import com.example.control.domain.criteria.ApprovalRequestCriteria;
 import com.example.control.domain.id.ApprovalRequestId;
 import com.example.control.domain.port.ApprovalRequestRepositoryPort;

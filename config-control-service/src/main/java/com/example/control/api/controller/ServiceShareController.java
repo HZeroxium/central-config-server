@@ -1,10 +1,10 @@
 package com.example.control.api.controller;
 
-import com.example.control.api.dto.ServiceShareDtos;
-import com.example.control.api.mapper.ServiceShareApiMapper;
+import com.example.control.api.dto.domain.ServiceShareDtos;
+import com.example.control.api.mapper.domain.ServiceShareApiMapper;
 import com.example.control.application.service.ServiceShareService;
 import com.example.control.config.security.UserContext;
-import com.example.control.domain.ServiceShare;
+import com.example.control.domain.object.ServiceShare;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

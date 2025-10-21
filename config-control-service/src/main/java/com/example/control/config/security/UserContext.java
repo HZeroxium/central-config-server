@@ -151,7 +151,9 @@ public class UserContext {
         List<String> groups = jwt.getClaimAsStringList("groups");
         List<String> teamIds = groups != null
             ? groups.stream()
-                .map(group -> group.replaceFirst("^/teams/", "")) // Remove /teams/ prefix
+                .map(group -> group
+                    .replaceFirst("^/+", "")  // strip leading slashes
+                    .replaceFirst("^teams/", "")) // normalize "/teams/<x>" -> "<x>"
                 .collect(Collectors.toList())
             : List.of();
 

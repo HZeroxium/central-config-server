@@ -1,6 +1,6 @@
 package com.example.control.domain.criteria;
 
-import com.example.control.domain.DriftEvent;
+import com.example.control.domain.object.DriftEvent;
 import lombok.Builder;
 import lombok.With;
 

@@ -1,7 +1,7 @@
 package com.example.control.config.security;
 
 import com.example.control.application.service.ServiceShareService;
-import com.example.control.domain.*;
+import com.example.control.domain.object.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -280,7 +280,7 @@ public class DomainPermissionEvaluator {
         // Check service shares for explicit permissions
         if (driftEvent.getServiceId() != null) {
             List<ServiceShare.SharePermission> permissions = serviceShareService.findEffectivePermissions(
-                userContext, driftEvent.getServiceId(), List.of(driftEvent.getServiceName())
+                userContext, driftEvent.getServiceId(), List.of(driftEvent.getEnvironment())
             );
             if (permissions.contains(ServiceShare.SharePermission.VIEW_INSTANCE)) {
                 log.debug("User {} granted VIEW_INSTANCE permission via service share for drift event service {}", 
@@ -318,7 +318,7 @@ public class DomainPermissionEvaluator {
         // Check service shares for EDIT_INSTANCE permission
         if (driftEvent.getServiceId() != null) {
             List<ServiceShare.SharePermission> permissions = serviceShareService.findEffectivePermissions(
-                userContext, driftEvent.getServiceId(), List.of(driftEvent.getServiceName())
+                userContext, driftEvent.getServiceId(), List.of(driftEvent.getEnvironment())
             );
             if (permissions.contains(ServiceShare.SharePermission.EDIT_INSTANCE)) {
                 log.debug("User {} granted EDIT_INSTANCE permission via service share for drift event service {}", 

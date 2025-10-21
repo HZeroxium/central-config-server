@@ -1,6 +1,6 @@
 package com.example.control.domain.criteria;
 
-import com.example.control.domain.ApplicationService;
+import com.example.control.domain.object.ApplicationService;
 import lombok.Builder;
 import lombok.With;
 

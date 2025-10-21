@@ -1,8 +1,8 @@
 package com.example.control.api.controller;
 
-import com.example.control.api.dto.ApiResponseDto;
-import com.example.control.api.dto.UserDtos;
-import com.example.control.api.mapper.UserApiMapper;
+import com.example.control.api.dto.common.ApiResponseDto;
+import com.example.control.api.dto.domain.UserDtos;
+import com.example.control.api.mapper.domain.UserApiMapper;
 import com.example.control.application.service.UserPermissionsService;
 import com.example.control.config.security.UserContext;
 import lombok.RequiredArgsConstructor;

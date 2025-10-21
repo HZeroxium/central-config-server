@@ -1,6 +1,6 @@
 package com.example.control.domain.port;
 
-import com.example.control.domain.ServiceInstance;
+import com.example.control.domain.object.ServiceInstance;
 import com.example.control.domain.criteria.ServiceInstanceCriteria;
 import com.example.control.domain.id.ServiceInstanceId;
 
