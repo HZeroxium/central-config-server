@@ -4,7 +4,6 @@ import { useListInstancesQuery } from '@features/services/api'
 import Loading from '@components/common/Loading'
 import ErrorFallback from '@components/common/ErrorFallback'
 import InstanceListTable from '@features/services/components/InstanceListTable'
-import ServiceNavigation from '@features/services/components/ServiceNavigation'
 
 export default function ServiceDetailPage() {
   const { serviceName = '' } = useParams()
