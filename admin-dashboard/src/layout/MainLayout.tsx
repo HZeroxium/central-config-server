@@ -10,9 +10,6 @@ import {
   ListItemText,
   Toolbar,
   Typography,
-  Avatar,
-  Menu,
-  MenuItem,
   useMediaQuery,
   useTheme
 } from '@mui/material'
@@ -20,38 +17,50 @@ import MenuIcon from '@mui/icons-material/Menu'
 import SettingsIcon from '@mui/icons-material/Settings'
 import StorageIcon from '@mui/icons-material/Storage'
 import DashboardIcon from '@mui/icons-material/Dashboard'
-import AccountCircleIcon from '@mui/icons-material/AccountCircle'
+import AppsIcon from '@mui/icons-material/Apps'
+import CheckCircleIcon from '@mui/icons-material/CheckCircle'
+import TrendingUpIcon from '@mui/icons-material/TrendingUp'
+import ShareIcon from '@mui/icons-material/Share'
+import PeopleIcon from '@mui/icons-material/People'
+import MemoryIcon from '@mui/icons-material/Memory'
 import LightModeIcon from '@mui/icons-material/LightMode'
 import DarkModeIcon from '@mui/icons-material/DarkMode'
 import { useState } from 'react'
 import Breadcrumbs from '@components/common/Breadcrumbs'
 import { useTheme as useCustomTheme } from '@app/providers/ThemeProvider'
+import UserMenu from '@features/auth/components/UserMenu'
+import { usePermissions } from '@features/auth/hooks/usePermissions'
 
 export default function MainLayout() {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
+  const { mode, toggleMode } = useCustomTheme()
+  const { isSysAdmin } = usePermissions()
 
   const [open, setOpen] = useState(true)
-  const [userMenuAnchor, setUserMenuAnchor] = useState<null | HTMLElement>(null)
   const location = useLocation()
-  const { mode, toggleMode } = useCustomTheme()
 
   // Kích thước khi mở / khi đóng
   const openWidth = 240
   const closedWidth = 60
 
   const navigationItems = [
-    { path: '/', label: 'Dashboard', icon: <DashboardIcon /> },
-    { path: '/services', label: 'Services', icon: <StorageIcon /> },
-    { path: '/configs', label: 'Configs', icon: <SettingsIcon /> },
+    { path: '/dashboard', label: 'Dashboard', icon: <DashboardIcon /> },
+    { path: '/application-services', label: 'Application Services', icon: <AppsIcon /> },
+    { path: '/service-instances', label: 'Service Instances', icon: <MemoryIcon /> },
+    { path: '/services', label: 'Service Registry', icon: <StorageIcon /> },
+    { path: '/configs', label: 'Config Server', icon: <SettingsIcon /> },
+    { path: '/approvals', label: 'Approvals', icon: <CheckCircleIcon /> },
+    { path: '/drift-events', label: 'Drift Events', icon: <TrendingUpIcon /> },
+    { path: '/service-shares', label: 'Service Shares', icon: <ShareIcon /> },
   ]
 
-  const handleUserMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setUserMenuAnchor(event.currentTarget)
-  }
-
-  const handleUserMenuClose = () => {
-    setUserMenuAnchor(null)
+  // Add admin-only items
+  if (isSysAdmin) {
+    navigationItems.push(
+      { path: '/iam/users', label: 'Users', icon: <PeopleIcon /> },
+      { path: '/iam/teams', label: 'Teams', icon: <PeopleIcon /> }
+    )
   }
 
   return (
@@ -92,20 +101,7 @@ export default function MainLayout() {
             <IconButton onClick={toggleMode} sx={{ mr: 1 }}>
               {mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
             </IconButton>
-            <IconButton onClick={handleUserMenuOpen} sx={{ ml: 2 }}>
-              <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main' }}>
-                <AccountCircleIcon />
-              </Avatar>
-            </IconButton>
-            <Menu
-              anchorEl={userMenuAnchor}
-              open={Boolean(userMenuAnchor)}
-              onClose={handleUserMenuClose}
-            >
-              <MenuItem onClick={handleUserMenuClose}>Profile</MenuItem>
-              <MenuItem onClick={handleUserMenuClose}>Settings</MenuItem>
-              <MenuItem onClick={handleUserMenuClose}>Logout</MenuItem>
-            </Menu>
+            <UserMenu />
           </Box>
         </Toolbar>
       </AppBar>

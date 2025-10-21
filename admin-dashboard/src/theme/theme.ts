@@ -4,20 +4,20 @@ export const appTheme = createTheme({
   palette: {
     mode: 'light',
     primary: {
-      main: '#2196f3',
-      light: '#64b5f6',
-      dark: '#1976d2',
+      main: '#2563eb', // blue.600
+      light: '#3b82f6', // blue.500
+      dark: '#1d4ed8', // blue.700
       contrastText: '#ffffff',
     },
     secondary: {
-      main: '#f5f5f5',
-      light: '#ffffff',
-      dark: '#e0e0e0',
-      contrastText: '#333333',
+      main: '#60a5fa', // blue.400
+      light: '#93c5fd', // blue.300
+      dark: '#3b82f6', // blue.500
+      contrastText: '#ffffff',
     },
     background: {
-      default: '#fafafa',
-      paper: '#ffffff',
+      default: '#ffffff', // white
+      paper: '#ffffff', // white
     },
     text: {
       primary: '#1a1a1a',

@@ -1,223 +1,150 @@
-import { Box, Typography} from '@mui/material'
-import Grid from '@mui/material/Grid'
-import { useListServicesQuery, useListAllInstancesQuery } from '@features/services/api'
-import StatCard from '@components/common/StatCard'
-import { Storage, Settings, CheckCircle, Error } from '@mui/icons-material'
-import { useMemo } from 'react'
+import React from 'react';
+import { Box, Grid } from '@mui/material';
+import {
+  Apps as AppsIcon,
+  Storage as StorageIcon,
+  Warning as WarningIcon,
+  Assignment as AssignmentIcon,
+} from '@mui/icons-material';
+import { PageHeader } from '@components/common/PageHeader';
+import { StatsCard } from '../components/StatsCard';
+import { ServiceDistributionChart } from '../components/ServiceDistributionChart';
+import { InstanceStatusChart } from '../components/InstanceStatusChart';
+import { DriftEventsChart } from '../components/DriftEventsChart';
+import { RecentActivityList } from '../components/RecentActivityList';
 
-export default function DashboardPage() {
-  const { data: services, isLoading: servicesLoading } = useListServicesQuery()
-  const { data: instanceCounts, isLoading: instancesLoading } = useListAllInstancesQuery()
-  
-  const stats = useMemo(() => {
-    if (!services || !instanceCounts) return null
-    
-    const serviceCount = Object.keys(services).length
-    const totalInstances = Object.values(instanceCounts).reduce((acc, count) => acc + count, 0)
-    
-    return {
-      serviceCount,
-      totalInstances,
-      // healthyServices: Math.floor(serviceCount * 0.85), // Mock data
-      // unhealthyServices: Math.floor(serviceCount * 0.15) // Mock data
-      healthyServices: 4,
-      unhealthyServices: 0
-    }
-  }, [services, instanceCounts])
+const DashboardPage: React.FC = () => {
+  // Mock data - in a real app, this would come from API calls
+  const statsData = {
+    totalServices: 42,
+    totalInstances: 156,
+    pendingApprovals: 8,
+    unresolvedDrifts: 12,
+  };
 
-  if (servicesLoading || instancesLoading) {
-    return (
-      <Box sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
-        <Grid container spacing={{ xs: 2, sm: 3 }}>
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Grid key={i} size={{ xs: 12, sm: 6, lg: 3 }}>
-              <Box sx={{ 
-                height: 140, 
-                bgcolor: 'action.hover', 
-                borderRadius: 2,
-                animation: 'pulse 1.5s ease-in-out infinite',
-                '@keyframes pulse': {
-                  '0%, 100%': { opacity: 1 },
-                  '50%': { opacity: 0.5 }
-                }
-              }} />
-            </Grid>
-          ))}
-        </Grid>
-      </Box>
-    )
-  }
+  const serviceDistributionData = [
+    { name: 'Team Alpha', value: 15, color: '#2563eb' },
+    { name: 'Team Beta', value: 12, color: '#60a5fa' },
+    { name: 'Team Gamma', value: 10, color: '#93c5fd' },
+    { name: 'Team Delta', value: 5, color: '#dbeafe' },
+  ];
+
+  const instanceStatusData = [
+    { name: 'UP', value: 142, color: '#10b981' },
+    { name: 'DOWN', value: 8, color: '#ef4444' },
+    { name: 'UNKNOWN', value: 6, color: '#f59e0b' },
+  ];
+
+  const driftEventsData = [
+    { date: '2024-01-01', critical: 2, high: 4, medium: 8, low: 12 },
+    { date: '2024-01-02', critical: 1, high: 3, medium: 6, low: 10 },
+    { date: '2024-01-03', critical: 3, high: 5, medium: 7, low: 9 },
+    { date: '2024-01-04', critical: 2, high: 4, medium: 9, low: 11 },
+    { date: '2024-01-05', critical: 1, high: 2, medium: 5, low: 8 },
+    { date: '2024-01-06', critical: 2, high: 3, medium: 6, low: 10 },
+    { date: '2024-01-07', critical: 1, high: 4, medium: 8, low: 12 },
+  ];
+
+  const recentActivities = [
+    {
+      id: '1',
+      type: 'approval' as const,
+      message: 'Service ownership request approved for user-service',
+      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+    },
+    {
+      id: '2',
+      type: 'drift' as const,
+      message: 'Critical drift detected in payment-service',
+      timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
+      severity: 'critical' as const,
+    },
+    {
+      id: '3',
+      type: 'service' as const,
+      message: 'New service auth-service registered',
+      timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
+    },
+    {
+      id: '4',
+      type: 'drift' as const,
+      message: 'Medium drift detected in notification-service',
+      timestamp: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
+      severity: 'medium' as const,
+    },
+    {
+      id: '5',
+      type: 'approval' as const,
+      message: 'Config change request pending approval',
+      timestamp: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
+    },
+  ];
 
   return (
-    <Box sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
-      <Typography variant="h4" sx={{ mb: { xs: 3, sm: 4 }, fontWeight: 700 }}>
-        Dashboard Overview
-      </Typography>
+    <Box>
+      <PageHeader title="Dashboard" />
       
-      <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mb: { xs: 4, sm: 6 } }}>
-        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
-          <StatCard
+      {/* Stats Cards */}
+      <Grid container spacing={3} sx={{ mb: 3 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <StatsCard
             title="Total Services"
-            value={stats?.serviceCount || 0}
-            icon={<Storage />}
+            value={statsData.totalServices}
+            icon={<AppsIcon />}
             color="primary"
-            subtitle="Registered services"
+            trend={{ value: 12, isPositive: true }}
           />
         </Grid>
-        
-        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
-          <StatCard
-            title="Total Instances"
-            value={stats?.totalInstances || 0}
-            icon={<Settings />}
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <StatsCard
+            title="Service Instances"
+            value={statsData.totalInstances}
+            icon={<StorageIcon />}
             color="info"
-            subtitle="Service instances"
+            trend={{ value: 5, isPositive: true }}
           />
         </Grid>
-        
-        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
-          <StatCard
-            title="Healthy Services"
-            value={stats?.healthyServices || 0}
-            icon={<CheckCircle />}
-            color="success"
-            subtitle="Running normally"
-            // trend={{ value: 5, isPositive: true }}
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <StatsCard
+            title="Pending Approvals"
+            value={statsData.pendingApprovals}
+            icon={<AssignmentIcon />}
+            color="warning"
+            trend={{ value: 25, isPositive: false }}
           />
         </Grid>
-        
-        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
-          <StatCard
-            title="Unhealthy Services"
-            value={stats?.unhealthyServices || 0}
-            icon={<Error />}
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <StatsCard
+            title="Unresolved Drifts"
+            value={statsData.unresolvedDrifts}
+            icon={<WarningIcon />}
             color="error"
-            subtitle="Need attention"
+            trend={{ value: 8, isPositive: true }}
           />
         </Grid>
       </Grid>
-      
-      {/* <Grid container spacing={{ xs: 2, sm: 3 }}>
+
+      {/* Charts Row */}
+      <Grid container spacing={3} sx={{ mb: 3 }}>
+        <Grid size={{ xs: 12, md: 6 }}>
+          <ServiceDistributionChart data={serviceDistributionData} />
+        </Grid>
+        <Grid size={{ xs: 12, md: 6 }}>
+          <InstanceStatusChart data={instanceStatusData} />
+        </Grid>
+      </Grid>
+
+      {/* Bottom Row */}
+      <Grid container spacing={3}>
         <Grid size={{ xs: 12, lg: 8 }}>
-          <Box sx={{ 
-            p: { xs: 2, sm: 3 }, 
-            border: 1, 
-            borderColor: 'divider', 
-            borderRadius: 2,
-            bgcolor: 'background.paper',
-            boxShadow: 1
-          }}>
-            <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
-              Recent Activity
-            </Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {[
-                { action: 'Service registered', service: 'user-service', time: '2 minutes ago' },
-                { action: 'Config updated', service: 'sample-service', time: '5 minutes ago' },
-                { action: 'Health check passed', service: 'config-server', time: '8 minutes ago' },
-                { action: 'Instance started', service: 'user-watcher', time: '12 minutes ago' }
-              ].map((activity, index) => (
-                <Box key={index} sx={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'space-between',
-                  py: 2,
-                  borderBottom: index < 3 ? 1 : 0,
-                  borderColor: 'divider'
-                }}>
-                  <Box>
-                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                      {activity.action}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {activity.service}
-                    </Typography>
-                  </Box>
-                  <Typography variant="caption" color="text.secondary">
-                    {activity.time}
-                  </Typography>
-                </Box>
-              ))}
-            </Box>
-          </Box>
+          <DriftEventsChart data={driftEventsData} />
         </Grid>
-        
         <Grid size={{ xs: 12, lg: 4 }}>
-          <Box sx={{ 
-            p: { xs: 2, sm: 3 }, 
-            border: 1, 
-            borderColor: 'divider', 
-            borderRadius: 2,
-            bgcolor: 'background.paper',
-            boxShadow: 1
-          }}>
-            <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
-              Quick Actions
-            </Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <Box sx={{ 
-                p: 2, 
-                border: 1, 
-                borderColor: 'divider', 
-                borderRadius: 1,
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                '&:hover': {
-                  bgcolor: 'action.hover',
-                  borderColor: 'primary.main'
-                }
-              }}>
-                <Typography variant="body2" sx={{ fontWeight: 500, mb: 0.5 }}>
-                  View All Services
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  Browse registered services
-                </Typography>
-              </Box>
-              
-              <Box sx={{ 
-                p: 2, 
-                border: 1, 
-                borderColor: 'divider', 
-                borderRadius: 1,
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                '&:hover': {
-                  bgcolor: 'action.hover',
-                  borderColor: 'primary.main'
-                }
-              }}>
-                <Typography variant="body2" sx={{ fontWeight: 500, mb: 0.5 }}>
-                  Check Configs
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  View configuration details
-                </Typography>
-              </Box>
-              
-              <Box sx={{ 
-                p: 2, 
-                border: 1, 
-                borderColor: 'divider', 
-                borderRadius: 1,
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                '&:hover': {
-                  bgcolor: 'action.hover',
-                  borderColor: 'primary.main'
-                }
-              }}>
-                <Typography variant="body2" sx={{ fontWeight: 500, mb: 0.5 }}>
-                  System Health
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  Monitor system status
-                </Typography>
-              </Box>
-            </Box>
-          </Box>
+          <RecentActivityList activities={recentActivities} />
         </Grid>
-      </Grid> */}
+      </Grid>
     </Box>
-  )
-}
+  );
+};
+
+export default DashboardPage;
