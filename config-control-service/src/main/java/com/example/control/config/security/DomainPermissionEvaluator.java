@@ -1,7 +1,7 @@
 package com.example.control.config.security;
 
-import com.example.control.application.service.ServiceShareService;
 import com.example.control.domain.object.*;
+import com.example.control.domain.port.ServiceShareRepositoryPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -23,7 +23,7 @@ public class DomainPermissionEvaluator {
 
     private static final String LINE_MANAGER = "LINE_MANAGER";
     private static final String SYS_ADMIN = "SYS_ADMIN";
-    private final ServiceShareService serviceShareService;
+    private final ServiceShareRepositoryPort serviceShareRepository;
 
     /**
      * Check if user can view an application service.
@@ -87,7 +87,7 @@ public class DomainPermissionEvaluator {
         
         // Check service shares for explicit permissions
         if (instance.getServiceId() != null) {
-            List<ServiceShare.SharePermission> permissions = serviceShareService.findEffectivePermissions(
+            List<ServiceShare.SharePermission> permissions = findEffectivePermissions(
                 userContext, instance.getServiceId(), List.of(instance.getEnvironment())
             );
             if (permissions.contains(ServiceShare.SharePermission.VIEW_INSTANCE)) {
@@ -125,7 +125,7 @@ public class DomainPermissionEvaluator {
         
         // Check service shares for EDIT_INSTANCE permission
         if (instance.getServiceId() != null) {
-            List<ServiceShare.SharePermission> permissions = serviceShareService.findEffectivePermissions(
+            List<ServiceShare.SharePermission> permissions = findEffectivePermissions(
                 userContext, instance.getServiceId(), List.of(instance.getEnvironment())
             );
             if (permissions.contains(ServiceShare.SharePermission.EDIT_INSTANCE)) {
@@ -279,7 +279,7 @@ public class DomainPermissionEvaluator {
         
         // Check service shares for explicit permissions
         if (driftEvent.getServiceId() != null) {
-            List<ServiceShare.SharePermission> permissions = serviceShareService.findEffectivePermissions(
+            List<ServiceShare.SharePermission> permissions = findEffectivePermissions(
                 userContext, driftEvent.getServiceId(), List.of(driftEvent.getEnvironment())
             );
             if (permissions.contains(ServiceShare.SharePermission.VIEW_INSTANCE)) {
@@ -317,7 +317,7 @@ public class DomainPermissionEvaluator {
         
         // Check service shares for EDIT_INSTANCE permission
         if (driftEvent.getServiceId() != null) {
-            List<ServiceShare.SharePermission> permissions = serviceShareService.findEffectivePermissions(
+            List<ServiceShare.SharePermission> permissions = findEffectivePermissions(
                 userContext, driftEvent.getServiceId(), List.of(driftEvent.getEnvironment())
             );
             if (permissions.contains(ServiceShare.SharePermission.EDIT_INSTANCE)) {
@@ -328,5 +328,134 @@ public class DomainPermissionEvaluator {
         }
         
         return false;
+    }
+
+    /**
+     * Check if user can view drift events for a service.
+     * <p>
+     * Users can view drift events if they have team ownership or VIEW_DRIFT share permission.
+     *
+     * @param userContext the user context
+     * @param serviceId the service ID
+     * @param environment the environment
+     * @return true if user can view drift events
+     */
+    public boolean canViewDrift(UserContext userContext, String serviceId, String environment) {
+        log.debug("Checking if user {} can view drift for service {} in environment {}", 
+                userContext.getUserId(), serviceId, environment);
+        
+        // System admins can view all drift events
+        if (userContext.isSysAdmin()) {
+            return true;
+        }
+        
+        // Check service shares for VIEW_DRIFT permission
+        List<ServiceShare.SharePermission> permissions = findEffectivePermissions(
+            userContext, serviceId, List.of(environment)
+        );
+        if (permissions.contains(ServiceShare.SharePermission.VIEW_DRIFT)) {
+            log.debug("User {} granted VIEW_DRIFT permission via service share for service {}", 
+                userContext.getUserId(), serviceId);
+            return true;
+        }
+        
+        return false;
+    }
+
+    /**
+     * Check if user can restart a service instance.
+     * <p>
+     * Users can restart instances if they have team ownership or RESTART_INSTANCE share permission.
+     *
+     * @param userContext the user context
+     * @param instance the service instance
+     * @return true if user can restart the instance
+     */
+    public boolean canRestartInstance(UserContext userContext, ServiceInstance instance) {
+        log.debug("Checking if user {} can restart instance {} of service {}", 
+                userContext.getUserId(), instance.getInstanceId(), instance.getServiceName());
+        
+        // System admins can restart all instances
+        if (userContext.isSysAdmin()) {
+            return true;
+        }
+        
+        // Team members can restart instances of services owned by their team
+        if (instance.getTeamId() != null && userContext.isMemberOfTeam(instance.getTeamId())) {
+            return true;
+        }
+        
+        // Check service shares for RESTART_INSTANCE permission
+        if (instance.getServiceId() != null) {
+            List<ServiceShare.SharePermission> permissions = findEffectivePermissions(
+                userContext, instance.getServiceId(), List.of(instance.getEnvironment())
+            );
+            if (permissions.contains(ServiceShare.SharePermission.RESTART_INSTANCE)) {
+                log.debug("User {} granted RESTART_INSTANCE permission via service share for service {}", 
+                    userContext.getUserId(), instance.getServiceId());
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * Check if user can edit service metadata.
+     * <p>
+     * Users can edit service metadata if they have team ownership or EDIT_SERVICE share permission.
+     *
+     * @param userContext the user context
+     * @param service the application service
+     * @return true if user can edit the service
+     */
+    public boolean canEditServiceMetadata(UserContext userContext, ApplicationService service) {
+        log.debug("Checking if user {} can edit service metadata for service {}", 
+                userContext.getUserId(), service.getId());
+        
+        // System admins can edit all services
+        if (userContext.isSysAdmin()) {
+            return true;
+        }
+        
+        // Team members can edit services owned by their team
+        if (service.getOwnerTeamId() != null && userContext.isMemberOfTeam(service.getOwnerTeamId())) {
+            return true;
+        }
+        
+        // Check service shares for EDIT_SERVICE permission
+        List<ServiceShare.SharePermission> permissions = findEffectivePermissions(
+            userContext, service.getId().id(), List.of() // No environment filter for service metadata
+        );
+        if (permissions.contains(ServiceShare.SharePermission.EDIT_SERVICE)) {
+            log.debug("User {} granted EDIT_SERVICE permission via service share for service {}", 
+                userContext.getUserId(), service.getId());
+            return true;
+        }
+        
+        return false;
+    }
+
+    /**
+     * Find effective permissions for a user on a service.
+     * <p>
+     * Combines direct user permissions and team-based permissions.
+     *
+     * @param userContext the user context
+     * @param serviceId the service ID
+     * @param environments the environments to check
+     * @return list of effective permissions
+     */
+    public List<ServiceShare.SharePermission> findEffectivePermissions(UserContext userContext, 
+                                                                     String serviceId, 
+                                                                     List<String> environments) {
+        log.debug("Finding effective permissions for user: {} on service: {} in environments: {}", 
+                userContext.getUserId(), serviceId, environments);
+
+        return serviceShareRepository.findEffectivePermissions(
+                userContext.getUserId(), 
+                userContext.getTeamIds(), 
+                serviceId, 
+                environments);
     }
 }

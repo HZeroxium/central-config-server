@@ -76,10 +76,16 @@ public class ApprovalRequest {
     @Builder.Default
     private Integer version = 0;
 
-    /** Optional note from the requester. */
+    /** Optional note from the requester.
+     * -- GETTER --
+     * Get note.
+     */
     private String note;
 
-    /** Reason for cancellation if cancelled. */
+    /** Reason for cancellation if cancelled.
+     * -- GETTER --
+     * Get cancel reason.
+     */
     private String cancelReason;
 
     /** Required approval gates with current status. */
@@ -88,16 +94,6 @@ public class ApprovalRequest {
     /** Alias for required gates for backward compatibility. */
     public List<ApprovalGate> getGates() {
         return gates != null ? gates : required;
-    }
-
-    /** Get note. */
-    public String getNote() {
-        return note;
-    }
-
-    /** Get cancel reason. */
-    public String getCancelReason() {
-        return cancelReason;
     }
 
     /**

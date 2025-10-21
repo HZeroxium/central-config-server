@@ -1,5 +1,6 @@
 package com.example.control.domain.criteria;
 
+import com.example.control.config.security.UserContext;
 import com.example.control.domain.object.ApplicationService;
 import lombok.Builder;
 import lombok.With;
@@ -56,7 +57,7 @@ public record ApplicationServiceCriteria(
      * @param userContext the user context containing team IDs
      * @return criteria with user team filtering
      */
-    public static ApplicationServiceCriteria forUser(com.example.control.config.security.UserContext userContext) {
+    public static ApplicationServiceCriteria forUser(UserContext userContext) {
         return ApplicationServiceCriteria.builder()
                 .userTeamIds(userContext != null ? userContext.getTeamIds() : null)
                 .build();

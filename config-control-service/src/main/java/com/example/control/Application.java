@@ -20,7 +20,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableScheduling
 @EnableAsync
 @ConfigurationPropertiesScan
-@EnableMongoRepositories(basePackages = "com.example.control.infrastructure.repository")
+@EnableMongoRepositories(basePackages = "com.example.control.infrastructure.mongo.repository")
 @EnableConfigurationProperties({ ConfigServerProperties.class })
 public class Application {
   public static void main(String[] args) {

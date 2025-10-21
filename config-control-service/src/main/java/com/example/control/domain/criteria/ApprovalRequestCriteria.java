@@ -1,5 +1,6 @@
 package com.example.control.domain.criteria;
 
+import com.example.control.config.security.UserContext;
 import com.example.control.domain.object.ApprovalRequest;
 import lombok.Builder;
 import lombok.With;
@@ -61,7 +62,7 @@ public record ApprovalRequestCriteria(
      * @param userContext the user context containing team IDs
      * @return criteria with user team filtering
      */
-    public static ApprovalRequestCriteria forUser(com.example.control.config.security.UserContext userContext) {
+    public static ApprovalRequestCriteria forUser(UserContext userContext) {
         return ApprovalRequestCriteria.builder()
                 .userTeamIds(userContext != null ? userContext.getTeamIds() : null)
                 .build();

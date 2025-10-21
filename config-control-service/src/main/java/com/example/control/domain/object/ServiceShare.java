@@ -99,11 +99,23 @@ public class ServiceShare {
      * Share permission enumeration.
      */
     public enum SharePermission {
+        /** Can view service metadata. */
+        VIEW_SERVICE,
+        
         /** Can view service instances and metadata. */
         VIEW_INSTANCE,
         
+        /** Can view drift events. */
+        VIEW_DRIFT,
+        
+        /** Can edit service metadata. */
+        EDIT_SERVICE,
+        
         /** Can edit service instances and configuration. */
-        EDIT_INSTANCE
+        EDIT_INSTANCE,
+        
+        /** Can trigger instance restarts. */
+        RESTART_INSTANCE
     }
 
     /**

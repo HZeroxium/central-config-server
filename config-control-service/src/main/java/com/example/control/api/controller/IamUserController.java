@@ -49,7 +49,7 @@ public class IamUserController {
     @GetMapping
     @Operation(summary = "List IAM users", description = "Get paginated list of cached user projections")
     @PreAuthorize("hasRole('SYS_ADMIN')")
-    public ResponseEntity<Page<IamUserDtos.Response>> list(
+    public ResponseEntity<Page<IamUserDtos.Response>> findAll(
             @Parameter(description = "Filter criteria") IamUserCriteria criteria,
             @Parameter(description = "Pagination information") Pageable pageable,
             UserContext userContext) {
@@ -72,7 +72,7 @@ public class IamUserController {
     @GetMapping("/{userId}")
     @Operation(summary = "Get IAM user by ID", description = "Get cached user projection by user ID")
     @PreAuthorize("hasRole('SYS_ADMIN')")
-    public ResponseEntity<IamUserDtos.Response> getById(
+    public ResponseEntity<IamUserDtos.Response> findById(
             @PathVariable String userId,
             UserContext userContext) {
         
@@ -94,7 +94,7 @@ public class IamUserController {
     @GetMapping("/by-team/{teamId}")
     @Operation(summary = "List users by team", description = "Get all users belonging to a specific team")
     @PreAuthorize("hasRole('SYS_ADMIN')")
-    public ResponseEntity<List<IamUserDtos.Response>> getByTeam(
+    public ResponseEntity<List<IamUserDtos.Response>> findByTeam(
             @PathVariable String teamId,
             UserContext userContext) {
         
@@ -118,7 +118,7 @@ public class IamUserController {
     @GetMapping("/by-manager/{managerId}")
     @Operation(summary = "List users by manager", description = "Get all users reporting to a specific manager")
     @PreAuthorize("hasRole('SYS_ADMIN')")
-    public ResponseEntity<List<IamUserDtos.Response>> getByManager(
+    public ResponseEntity<List<IamUserDtos.Response>> findByManager(
             @PathVariable String managerId,
             UserContext userContext) {
         

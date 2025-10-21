@@ -7,6 +7,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
+import org.springframework.data.mongodb.core.index.CompoundIndexes;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -26,6 +28,10 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Document(collection = "service_shares")
+@CompoundIndexes({
+    @CompoundIndex(name = "share_service_grantee", def = "{'serviceId': 1, 'grantToType': 1, 'grantToId': 1}"),
+    @CompoundIndex(name = "share_grantee_type", def = "{'grantToType': 1, 'grantToId': 1}")
+})
 public class ServiceShareDocument {
 
     /** Document identifier. */

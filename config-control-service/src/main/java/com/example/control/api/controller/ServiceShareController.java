@@ -81,7 +81,7 @@ public class ServiceShareController {
         log.debug("Listing service shares with filter: {}", filter);
         
         UserContext userContext = UserContext.fromJwt(jwt);
-        Page<ServiceShare> shares = serviceShareService.list(
+        Page<ServiceShare> shares = serviceShareService.findAll(
                 ServiceShareApiMapper.toCriteria(filter, userContext), pageable, userContext);
         Page<ServiceShareDtos.Response> responses = shares.map(ServiceShareApiMapper::toResponse);
         
@@ -132,6 +132,7 @@ public class ServiceShareController {
         ServiceShareDtos.Response response = ServiceShareApiMapper.toResponse(share.get());
         return ResponseEntity.ok(response);
     }
+
 
     /**
      * Revoke service share (owner or SYS_ADMIN).

@@ -151,7 +151,7 @@ public class HeartbeatService {
       instance.setHasDrift(false);
       driftRetryCount.remove(id);
       driftBackoffPow.remove(id);
-      return serviceInstanceService.saveOrUpdate(instance);
+      return serviceInstanceService.save(instance);
     }
 
     boolean hasDrift = !expectedHash.equals(payload.getConfigHash());
@@ -234,7 +234,7 @@ public class HeartbeatService {
     }
 
     // 8️⃣ Persist instance to MongoDB and return updated state
-    return serviceInstanceService.saveOrUpdate(instance);
+    return serviceInstanceService.save(instance);
   }
 
   /**

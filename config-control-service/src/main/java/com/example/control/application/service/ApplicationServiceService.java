@@ -5,7 +5,6 @@ import com.example.control.domain.object.ApplicationService;
 import com.example.control.domain.criteria.ApplicationServiceCriteria;
 import com.example.control.domain.id.ApplicationServiceId;
 import com.example.control.domain.port.ApplicationServiceRepositoryPort;
-import com.example.control.domain.port.DriftEventRepositoryPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -34,7 +33,7 @@ public class ApplicationServiceService {
 
     private final ApplicationServiceRepositoryPort repository;
     private final ServiceInstanceService serviceInstanceService;
-    private final DriftEventRepositoryPort driftEventRepository;
+    private final DriftEventService driftEventService;
 
     /**
      * Save or update an application service.
@@ -95,21 +94,6 @@ public class ApplicationServiceService {
     public List<ApplicationService> findAll() {
         log.debug("Finding all application services");
         return repository.findAll(null, Pageable.unpaged()).getContent();
-    }
-
-    /**
-     * Find application service by display name.
-     * <p>
-     * This method provides O(1) lookup for service name resolution during heartbeat processing.
-     * Used for auto-linking service instances to their corresponding application services.
-     *
-     * @param displayName the exact display name to search for
-     * @return the application service if found, empty otherwise
-     */
-    @Cacheable(value = "application-services", key = "#displayName")
-    public Optional<ApplicationService> findByDisplayName(String displayName) {
-        log.debug("Finding application service by display name: {}", displayName);
-        return repository.findByDisplayName(displayName);
     }
 
     /**
@@ -209,20 +193,6 @@ public class ApplicationServiceService {
     }
 
     /**
-     * Count application services by owner team.
-     *
-     * @param ownerTeamId the team ID
-     * @return number of services owned by the team
-     */
-    public long countByOwnerTeam(String ownerTeamId) {
-        log.debug("Counting application services by owner team: {}", ownerTeamId);
-        ApplicationServiceCriteria criteria = ApplicationServiceCriteria.builder()
-            .ownerTeamId(ownerTeamId)
-            .build();
-        return repository.count(criteria);
-    }
-
-    /**
      * Check if user can edit a service.
      * <p>
      * System admins can edit any service, team members can edit services owned by their team.
@@ -239,39 +209,6 @@ public class ApplicationServiceService {
         
         // Team members can edit services owned by their team
         return userContext.isMemberOfTeam(service.getOwnerTeamId());
-    }
-
-    /**
-     * Get list of serviceIds that the user has access to through team ownership or sharing.
-     * <p>
-     * This method pre-computes accessible services to optimize database queries
-     * by avoiding the need to check permissions for each individual entity.
-     *
-     * @param userContext the user context
-     * @return list of accessible service IDs
-     */
-    public List<String> findAccessibleServiceIds(UserContext userContext) {
-        log.debug("Getting accessible serviceIds for user: {}", userContext.getUserId());
-        
-        List<String> accessibleServiceIds = new java.util.ArrayList<>();
-        
-        // Get team-owned services
-        if (userContext.getTeamIds() != null && !userContext.getTeamIds().isEmpty()) {
-            for (String teamId : userContext.getTeamIds()) {
-                List<ApplicationService> teamServices = findByOwnerTeam(teamId);
-                List<String> teamServiceIds = teamServices.stream()
-                        .map(service -> service.getId().id())
-                        .collect(java.util.stream.Collectors.toList());
-                accessibleServiceIds.addAll(teamServiceIds);
-            }
-        }
-        
-        // TODO: Get shared services (services shared with user's teams or directly with user)
-        // This would require integration with ServiceShareService to find services
-        // that have been shared with the user's teams or directly with the user
-        
-        log.debug("Found {} accessible serviceIds for user: {}", accessibleServiceIds.size(), userContext.getUserId());
-        return accessibleServiceIds;
     }
 
     /**
@@ -317,7 +254,7 @@ public class ApplicationServiceService {
         log.info("Updated {} service instances for service {}", instanceCount, serviceId);
 
         // Cascade to DriftEvents
-        long driftEventCount = driftEventRepository.bulkUpdateTeamIdByServiceId(serviceId, newTeamId);
+        long driftEventCount = driftEventService.bulkUpdateTeamIdByServiceId(serviceId, newTeamId);
         log.info("Updated {} drift events for service {}", driftEventCount, serviceId);
 
         log.info("Successfully transferred ownership of service {} to team {} (instances: {}, drift events: {})", 

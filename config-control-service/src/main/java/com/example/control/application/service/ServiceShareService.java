@@ -1,5 +1,6 @@
 package com.example.control.application.service;
 
+import com.example.control.config.security.DomainPermissionEvaluator;
 import com.example.control.config.security.UserContext;
 import com.example.control.domain.object.ApplicationService;
 import com.example.control.domain.object.ServiceShare;
@@ -33,6 +34,7 @@ public class ServiceShareService {
 
     private final ServiceShareRepositoryPort shareRepository;
     private final ApplicationServiceService applicationServiceService;
+    private final DomainPermissionEvaluator permissionEvaluator;
 
     /**
      * Grant share permissions for a service.
@@ -63,7 +65,7 @@ public class ServiceShareService {
         ApplicationService service = applicationServiceService.findById(ApplicationServiceId.of(serviceId))
                 .orElseThrow(() -> new IllegalArgumentException("Service not found: " + serviceId));
 
-        if (!canManageShares(userContext, service)) {
+        if (!permissionEvaluator.canManageShares(userContext, service)) {
             throw new IllegalStateException("User does not have permission to manage shares for this service");
         }
 
@@ -131,7 +133,7 @@ public class ServiceShareService {
         ApplicationService service = applicationServiceService.findById(ApplicationServiceId.of(serviceId))
                 .orElseThrow(() -> new IllegalArgumentException("Service not found: " + serviceId));
 
-        if (!canViewShares(userContext, service)) {
+        if (!permissionEvaluator.canViewShares(userContext, service)) {
             throw new IllegalStateException("User does not have permission to view shares for this service");
         }
 
@@ -150,9 +152,9 @@ public class ServiceShareService {
      * @param userContext the current user context
      * @return page of service shares
      */
-    public Page<ServiceShare> list(ServiceShareCriteria criteria, 
-                                  Pageable pageable, 
-                                  UserContext userContext) {
+    public Page<ServiceShare> findAll(ServiceShareCriteria criteria,
+                                      Pageable pageable,
+                                      UserContext userContext) {
         log.debug("Listing service shares with criteria: {}, pageable: {}", criteria, pageable);
 
         // If filtering by service, check permission to view shares for that service
@@ -160,7 +162,7 @@ public class ServiceShareService {
             ApplicationService service = applicationServiceService.findById(ApplicationServiceId.of(criteria.serviceId()))
                     .orElseThrow(() -> new IllegalArgumentException("Service not found: " + criteria.serviceId()));
 
-            if (!canViewShares(userContext, service)) {
+            if (!permissionEvaluator.canViewShares(userContext, service)) {
                 throw new IllegalStateException("User does not have permission to view shares for this service");
             }
         }
@@ -212,66 +214,7 @@ public class ServiceShareService {
         return shareRepository.save(share);
     }
 
-    /**
-     * Find effective permissions for a user on a service.
-     * <p>
-     * Combines direct user permissions and team-based permissions.
-     *
-     * @param userContext the user context
-     * @param serviceId the service ID
-     * @param environments the environments to check
-     * @return list of effective permissions
-     */
-    public List<ServiceShare.SharePermission> findEffectivePermissions(UserContext userContext, 
-                                                                     String serviceId, 
-                                                                     List<String> environments) {
-        log.debug("Finding effective permissions for user: {} on service: {} in environments: {}", 
-                userContext.getUserId(), serviceId, environments);
 
-        return shareRepository.findEffectivePermissions(
-                userContext.getUserId(), 
-                userContext.getTeamIds(), 
-                serviceId, 
-                environments);
-    }
-
-    /**
-     * Check if user can manage shares for a service.
-     * <p>
-     * System admins and service owners can manage shares.
-     *
-     * @param userContext the user context
-     * @param service the application service
-     * @return true if user can manage shares
-     */
-    private boolean canManageShares(UserContext userContext, ApplicationService service) {
-        // System admins can manage shares for any service
-        if (userContext.isSysAdmin()) {
-            return true;
-        }
-
-        // Service owners can manage shares for their services
-        return userContext.isMemberOfTeam(service.getOwnerTeamId());
-    }
-
-    /**
-     * Check if user can view shares for a service.
-     * <p>
-     * System admins and service owners can view shares.
-     *
-     * @param userContext the user context
-     * @param service the application service
-     * @return true if user can view shares
-     */
-    private boolean canViewShares(UserContext userContext, ApplicationService service) {
-        // System admins can view shares for any service
-        if (userContext.isSysAdmin()) {
-            return true;
-        }
-
-        // Service owners can view shares for their services
-        return userContext.isMemberOfTeam(service.getOwnerTeamId());
-    }
 
     /**
      * Check if user can revoke a specific share.

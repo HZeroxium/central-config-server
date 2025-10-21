@@ -1,7 +1,11 @@
 package com.example.control.application.service;
 
+import com.example.control.config.security.DomainPermissionEvaluator;
+import com.example.control.config.security.UserContext;
+import com.example.control.domain.object.ApplicationService;
 import com.example.control.domain.object.ServiceInstance;
 import com.example.control.domain.criteria.ServiceInstanceCriteria;
+import com.example.control.domain.id.ApplicationServiceId;
 import com.example.control.domain.id.ServiceInstanceId;
 import com.example.control.domain.port.ServiceInstanceRepositoryPort;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +15,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
@@ -27,6 +32,8 @@ import java.util.Optional;
 public class ServiceInstanceService {
 
   private final ServiceInstanceRepositoryPort repository;
+  private final DomainPermissionEvaluator permissionEvaluator;
+  // private final ApplicationServiceService applicationServiceService;
 
   /**
    * Saves or updates a {@link ServiceInstance} record in MongoDB.
@@ -37,7 +44,7 @@ public class ServiceInstanceService {
    * @return persisted {@link ServiceInstance}
    */
   @CacheEvict(value = "service-instances", key = "#instance.serviceName + ':' + #instance.instanceId")
-  public ServiceInstance saveOrUpdate(ServiceInstance instance) {
+  public ServiceInstance save(ServiceInstance instance) {
     if (instance.getCreatedAt() == null) {
       instance.setCreatedAt(Instant.now());
     }
@@ -59,20 +66,6 @@ public class ServiceInstanceService {
         .build();
         Page<ServiceInstance> page = repository.findAll(criteria, Pageable.unpaged());
     return page.getContent();
-  }
-
-  /**
-   * Retrieves a single instance by service and instance ID.
-   *
-   * @param serviceName service name
-   * @param instanceId  instance ID
-   * @return optional instance
-   * @deprecated Use {@link #findById(ServiceInstanceId)} instead
-   */
-  @Deprecated
-  @Cacheable(value = "service-instances", key = "#serviceName + ':' + #instanceId")
-  public Optional<ServiceInstance> findByServiceAndInstance(String serviceName, String instanceId) {
-    return findById(ServiceInstanceId.of(serviceName, instanceId));
   }
 
   /**
@@ -125,7 +118,7 @@ public class ServiceInstanceService {
    * @return a page of {@link ServiceInstance}
    */
   @Cacheable(value = "service-instances", key = "'list:' + #criteria.hashCode() + ':' + #pageable")
-  public Page<ServiceInstance> list(ServiceInstanceCriteria criteria, Pageable pageable) {
+  public Page<ServiceInstance> findAll(ServiceInstanceCriteria criteria, Pageable pageable) {
     return repository.findAll(criteria, pageable);
   }
 
@@ -141,7 +134,7 @@ public class ServiceInstanceService {
    * @return a page of {@link ServiceInstance}
    */
   @Cacheable(value = "service-instances", key = "'list:' + #criteria.hashCode() + ':' + #pageable + ':' + #userContext.userId")
-  public Page<ServiceInstance> list(ServiceInstanceCriteria criteria, Pageable pageable, com.example.control.config.security.UserContext userContext) {
+  public Page<ServiceInstance> findAll(ServiceInstanceCriteria criteria, Pageable pageable, UserContext userContext) {
     log.debug("Listing service instances with criteria: {} for user: {}", criteria, userContext.getUserId());
     
     // System admins can see all instances
@@ -164,16 +157,15 @@ public class ServiceInstanceService {
    * @param userContext the user context for team filtering
    * @return criteria with team filtering applied
    */
-  public ServiceInstanceCriteria applyUserFilter(ServiceInstanceCriteria criteria, com.example.control.config.security.UserContext userContext) {
-    if (userContext == null || userContext.getTeamIds() == null || userContext.getTeamIds().isEmpty()) {
-      // Admin access - no team filtering
+  public ServiceInstanceCriteria applyUserFilter(ServiceInstanceCriteria criteria, UserContext userContext) {
+    if (userContext == null || userContext.isSysAdmin()) {
       return criteria;
     }
-    
-    // Apply team filtering
-    return criteria.toBuilder()
-        .userTeamIds(userContext.getTeamIds())
-        .build();
+    List<String> teams = userContext.getTeamIds();
+    if (teams == null || teams.isEmpty()) {
+        return criteria.toBuilder().userTeamIds(List.of("__none__")).build(); // yields empty result
+    }
+    return criteria.toBuilder().userTeamIds(teams).build();
   }
 
   /**
@@ -198,20 +190,7 @@ public class ServiceInstanceService {
   public long countByServiceName(String serviceName) {
     return repository.countByServiceName(serviceName);
   }
-
-  /**
-   * Deletes a service instance by composite id.
-   *
-   * @param serviceName service name
-   * @param instanceId  instance id
-   * @deprecated Use {@link #delete(ServiceInstanceId)} instead
-   */
-  @Deprecated
-  @CacheEvict(value = "service-instances", allEntries = true)
-  public void delete(String serviceName, String instanceId) {
-    delete(ServiceInstanceId.of(serviceName, instanceId));
-  }
-
+  
   /**
    * Deletes a service instance by ID.
    *
@@ -270,5 +249,133 @@ public class ServiceInstanceService {
   public long bulkUpdateTeamIdByServiceId(String serviceId, String newTeamId) {
     log.info("Bulk updating teamId to {} for all instances of service: {}", newTeamId, serviceId);
     return repository.bulkUpdateTeamIdByServiceId(serviceId, newTeamId);
+  }
+
+  /**
+   * Creates a new service instance with permission validation.
+   * <p>
+   * Validates that the user can create instances for the specified service
+   * and sets the teamId from the ApplicationService.
+   *
+   * @param instance the instance to create
+   * @param userContext the user context for permission checking
+   * @return the created instance
+   * @throws SecurityException if user lacks permission to create instance
+   */
+  // @Transactional
+  // @CacheEvict(value = "service-instances", allEntries = true)
+  // public ServiceInstance create(ServiceInstance instance, UserContext userContext) {
+  //   log.debug("Creating service instance {} for user {}", instance.getId(), userContext.getUserId());
+    
+  //   // Validate serviceId exists and get ApplicationService
+  //   if (instance.getServiceId() == null) {
+  //     throw new IllegalArgumentException("ServiceId is required for instance creation");
+  //   }
+    
+  //   ApplicationService service = applicationServiceService.findById(ApplicationServiceId.of(instance.getServiceId()))
+  //       .orElseThrow(() -> new IllegalArgumentException("ApplicationService not found: " + instance.getServiceId()));
+    
+  //   // Set teamId from ApplicationService
+  //   instance.setTeamId(service.getOwnerTeamId());
+    
+  //   // Check if user can edit instances for this service
+  //   if (!permissionEvaluator.canEditInstance(userContext, instance)) {
+  //     log.warn("User {} denied permission to create instance for service {}", 
+  //         userContext.getUserId(), instance.getServiceId());
+  //     throw new SecurityException("Insufficient permissions to create instance for service: " + instance.getServiceId());
+  //   }
+    
+  //   // Initialize timestamps
+  //   if (instance.getCreatedAt() == null) {
+  //     instance.setCreatedAt(Instant.now());
+  //   }
+  //   instance.setUpdatedAt(Instant.now());
+    
+  //   return repository.save(instance);
+  // }
+
+  /**
+   * Updates an existing service instance with permission validation.
+   * <p>
+   * Validates that the user can edit the instance before applying updates.
+   *
+   * @param id the instance ID
+   * @param updates the updates to apply
+   * @param userContext the user context for permission checking
+   * @return the updated instance
+   * @throws SecurityException if user lacks permission to edit instance
+   */
+  @Transactional
+  @CacheEvict(value = "service-instances", allEntries = true)
+  public ServiceInstance update(ServiceInstanceId id, ServiceInstance updates, UserContext userContext) {
+    log.debug("Updating service instance {} for user {}", id, userContext.getUserId());
+    
+    // Fetch existing instance
+    ServiceInstance existing = repository.findById(id)
+        .orElseThrow(() -> new IllegalArgumentException("ServiceInstance not found: " + id));
+    
+    // Check if user can edit this instance
+    if (!permissionEvaluator.canEditInstance(userContext, existing)) {
+      log.warn("User {} denied permission to edit instance {}", userContext.getUserId(), id);
+      throw new SecurityException("Insufficient permissions to edit instance: " + id);
+    }
+    
+    // Apply updates (preserve ID and teamId)
+    updates.setId(id);
+    updates.setTeamId(existing.getTeamId());
+    updates.setServiceId(existing.getServiceId());
+    updates.setUpdatedAt(Instant.now());
+    
+    return repository.save(updates);
+  }
+
+  /**
+   * Deletes a service instance with permission validation.
+   * <p>
+   * Validates that the user can edit the instance before deletion.
+   *
+   * @param id the instance ID
+   * @param userContext the user context for permission checking
+   * @throws SecurityException if user lacks permission to delete instance
+   */
+  @Transactional
+  @CacheEvict(value = "service-instances", allEntries = true)
+  public void delete(ServiceInstanceId id, UserContext userContext) {
+    log.debug("Deleting service instance {} for user {}", id, userContext.getUserId());
+    
+    // Fetch existing instance
+    ServiceInstance existing = repository.findById(id)
+        .orElseThrow(() -> new IllegalArgumentException("ServiceInstance not found: " + id));
+    
+    // Check if user can edit this instance
+    if (!permissionEvaluator.canEditInstance(userContext, existing)) {
+      log.warn("User {} denied permission to delete instance {}", userContext.getUserId(), id);
+      throw new SecurityException("Insufficient permissions to delete instance: " + id);
+    }
+    
+    repository.deleteById(id);
+  }
+
+  /**
+   * Retrieves a service instance with permission validation.
+   * <p>
+   * Returns the instance only if the user has permission to view it.
+   *
+   * @param id the instance ID
+   * @param userContext the user context for permission checking
+   * @return the instance if found and user has permission, empty otherwise
+   */
+  @Cacheable(value = "service-instances", key = "#id + ':' + #userContext.userId")
+  public Optional<ServiceInstance> findById(ServiceInstanceId id, UserContext userContext) {
+    log.debug("Finding service instance {} for user {}", id, userContext.getUserId());
+    
+    Optional<ServiceInstance> instance = repository.findById(id);
+    
+    if (instance.isPresent() && !permissionEvaluator.canViewInstance(userContext, instance.get())) {
+      log.warn("User {} does not have permission to view instance {}", userContext.getUserId(), id);
+      return Optional.empty();
+    }
+    
+    return instance;
   }
 }

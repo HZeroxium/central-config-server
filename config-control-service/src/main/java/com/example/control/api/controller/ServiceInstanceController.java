@@ -33,22 +33,26 @@ public class ServiceInstanceController {
 
   private final ServiceInstanceService service;
 
-  @PostMapping
-  @Operation(summary = "Create instance")
-  public ResponseEntity<ApiResponseDto.ApiResponse<ServiceInstanceDtos.Response>> create(
-      @Valid @RequestBody ServiceInstanceDtos.CreateRequest request) {
-    ServiceInstance toSave = ServiceInstanceApiMapper.toDomain(request);
-    ServiceInstance saved = service.saveOrUpdate(toSave);
-    return ResponseEntity.ok(ApiResponseDto.ApiResponse.success(
-        ServiceInstanceApiMapper.toResponse(saved)));
-  }
+  // @PostMapping
+  // @Operation(summary = "Create instance")
+  // public ResponseEntity<ApiResponseDto.ApiResponse<ServiceInstanceDtos.Response>> create(
+  //     @Valid @RequestBody ServiceInstanceDtos.CreateRequest request,
+  //     @AuthenticationPrincipal Jwt jwt) {
+  //   UserContext userContext = UserContext.fromJwt(jwt);
+  //   ServiceInstance toSave = ServiceInstanceApiMapper.toDomain(request);
+  //   ServiceInstance saved = service.create(toSave, userContext);
+  //   return ResponseEntity.ok(ApiResponseDto.ApiResponse.success(
+  //       ServiceInstanceApiMapper.toResponse(saved)));
+  // }
 
   @GetMapping("/{serviceName}/{instanceId}")
   @Operation(summary = "Get by id")
-  public ResponseEntity<ApiResponseDto.ApiResponse<ServiceInstanceDtos.Response>> get(
+  public ResponseEntity<ApiResponseDto.ApiResponse<ServiceInstanceDtos.Response>> findById(
       @PathVariable String serviceName,
-      @PathVariable String instanceId) {
-    Optional<ServiceInstance> opt = service.findById(ServiceInstanceId.of(serviceName, instanceId));
+      @PathVariable String instanceId,
+      @AuthenticationPrincipal Jwt jwt) {
+    UserContext userContext = UserContext.fromJwt(jwt);
+    Optional<ServiceInstance> opt = service.findById(ServiceInstanceId.of(serviceName, instanceId), userContext);
     return opt.map(si -> ResponseEntity.ok(ApiResponseDto.ApiResponse.success(
             ServiceInstanceApiMapper.toResponse(si))))
         .orElse(ResponseEntity.notFound().build());
@@ -59,11 +63,13 @@ public class ServiceInstanceController {
   public ResponseEntity<ApiResponseDto.ApiResponse<ServiceInstanceDtos.Response>> update(
       @PathVariable String serviceName,
       @PathVariable String instanceId,
-      @Valid @RequestBody ServiceInstanceDtos.UpdateRequest request) {
-    ServiceInstance instance = service.findById(ServiceInstanceId.of(serviceName, instanceId))
-        .orElse(ServiceInstance.builder().id(ServiceInstanceId.of(serviceName, instanceId)).build());
-    ServiceInstanceApiMapper.apply(instance, request);
-    ServiceInstance saved = service.saveOrUpdate(instance);
+      @Valid @RequestBody ServiceInstanceDtos.UpdateRequest request,
+      @AuthenticationPrincipal Jwt jwt) {
+    UserContext userContext = UserContext.fromJwt(jwt);
+    ServiceInstanceId id = ServiceInstanceId.of(serviceName, instanceId);
+    ServiceInstance updates = ServiceInstance.builder().id(id).build();
+    ServiceInstanceApiMapper.apply(updates, request);
+    ServiceInstance saved = service.update(id, updates, userContext);
     return ResponseEntity.ok(ApiResponseDto.ApiResponse.success(
         ServiceInstanceApiMapper.toResponse(saved)));
   }
@@ -72,16 +78,17 @@ public class ServiceInstanceController {
   @Operation(summary = "Delete instance")
   public ResponseEntity<ApiResponseDto.ApiResponse<Void>> delete(
       @PathVariable String serviceName,
-      @PathVariable String instanceId) {
-    // Delegate delete through service for hexagonal boundaries
-    service.delete(ServiceInstanceId.of(serviceName, instanceId));
+      @PathVariable String instanceId,
+      @AuthenticationPrincipal Jwt jwt) {
+    UserContext userContext = UserContext.fromJwt(jwt);
+    service.delete(ServiceInstanceId.of(serviceName, instanceId), userContext);
     return ResponseEntity.ok(ApiResponseDto.ApiResponse.success("Deleted", null));
   }
 
   @GetMapping
   @Operation(summary = "List instances with filters and pagination")
   @Timed("api.service-instances.list")
-  public ResponseEntity<ApiResponseDto.ApiResponse<PageResponse<ServiceInstanceDtos.Response>>> list(
+  public ResponseEntity<ApiResponseDto.ApiResponse<PageResponse<ServiceInstanceDtos.Response>>> findAll(
       @Parameter(description = "Filter by service name") @RequestParam(required = false) String serviceName,
       @Parameter(description = "Filter by instance ID") @RequestParam(required = false) String instanceId,
       @Parameter(description = "Filter by status") @RequestParam(required = false) ServiceInstance.InstanceStatus status,
@@ -103,7 +110,7 @@ public class ServiceInstanceController {
         .build();
     
     ServiceInstanceCriteria criteria = ServiceInstanceApiMapper.toCriteria(queryFilter, userContext);
-    Page<ServiceInstance> page = service.list(criteria, pageable, userContext);
+    Page<ServiceInstance> page = service.findAll(criteria, pageable, userContext);
     Page<ServiceInstanceDtos.Response> mapped = page.map(ServiceInstanceApiMapper::toResponse);
     return ResponseEntity.ok(ApiResponseDto.ApiResponse.success(
         "Instances", PageResponse.from(mapped)));

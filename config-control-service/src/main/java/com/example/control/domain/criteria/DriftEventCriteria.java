@@ -1,5 +1,6 @@
 package com.example.control.domain.criteria;
 
+import com.example.control.config.security.UserContext;
 import com.example.control.domain.object.DriftEvent;
 import lombok.Builder;
 import lombok.With;
@@ -63,7 +64,7 @@ public record DriftEventCriteria(
      * @param userContext the user context containing team IDs
      * @return criteria with user team filtering
      */
-    public static DriftEventCriteria forUser(com.example.control.config.security.UserContext userContext) {
+    public static DriftEventCriteria forUser(UserContext userContext) {
         return DriftEventCriteria.builder()
                 .userTeamIds(userContext != null ? userContext.getTeamIds() : null)
                 .build();

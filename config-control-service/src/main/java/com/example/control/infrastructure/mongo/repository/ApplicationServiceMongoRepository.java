@@ -6,6 +6,7 @@ import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Spring Data MongoDB repository for {@link ApplicationServiceDocument}.
@@ -15,58 +16,6 @@ import java.util.List;
  */
 @Repository
 public interface ApplicationServiceMongoRepository extends MongoRepository<ApplicationServiceDocument, String> {
-
-    /**
-     * Find application services by owner team ID.
-     *
-     * @param ownerTeamId the team ID
-     * @return list of services owned by the team
-     */
-    List<ApplicationServiceDocument> findByOwnerTeamId(String ownerTeamId);
-
-    /**
-     * Find application services by lifecycle status.
-     *
-     * @param lifecycle the lifecycle status
-     * @return list of services with the lifecycle status
-     */
-    List<ApplicationServiceDocument> findByLifecycle(String lifecycle);
-
-    /**
-     * Find application services by tags containing any of the specified values.
-     *
-     * @param tags list of tag values to search for
-     * @return list of services with matching tags
-     */
-    @Query("{'tags': {'$in': ?0}}")
-    List<ApplicationServiceDocument> findByTagsContainingAny(List<String> tags);
-
-    /**
-     * Find application services by display name containing the search term (case-insensitive).
-     *
-     * @param searchTerm the search term
-     * @return list of services with matching display names
-     */
-    @Query("{'displayName': {'$regex': ?0, '$options': 'i'}}")
-    List<ApplicationServiceDocument> findByDisplayNameContainingIgnoreCase(String searchTerm);
-
-    /**
-     * Count application services by owner team ID.
-     *
-     * @param ownerTeamId the team ID
-     * @return number of services owned by the team
-     */
-    long countByOwnerTeamId(String ownerTeamId);
-
-    /**
-     * Check if an application service exists by owner team ID and display name.
-     *
-     * @param ownerTeamId the team ID
-     * @param displayName the display name
-     * @return true if service exists, false otherwise
-     */
-    boolean existsByOwnerTeamIdAndDisplayName(String ownerTeamId, String displayName);
-
     /**
      * Find application service by exact display name.
      * <p>
@@ -76,5 +25,5 @@ public interface ApplicationServiceMongoRepository extends MongoRepository<Appli
      * @param displayName the exact display name to search for
      * @return the application service if found, empty otherwise
      */
-    java.util.Optional<ApplicationServiceDocument> findByDisplayName(String displayName);
+    Optional<ApplicationServiceDocument> findByDisplayName(String displayName);
 }

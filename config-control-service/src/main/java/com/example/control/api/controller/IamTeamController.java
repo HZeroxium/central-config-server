@@ -49,7 +49,7 @@ public class IamTeamController {
     @GetMapping
     @Operation(summary = "List IAM teams", description = "Get paginated list of cached team projections")
     @PreAuthorize("hasRole('SYS_ADMIN')")
-    public ResponseEntity<Page<IamTeamDtos.Response>> list(
+    public ResponseEntity<Page<IamTeamDtos.Response>> findAll(
             @Parameter(description = "Filter criteria") IamTeamCriteria criteria,
             @Parameter(description = "Pagination information") Pageable pageable,
             UserContext userContext) {
@@ -72,7 +72,7 @@ public class IamTeamController {
     @GetMapping("/{teamId}")
     @Operation(summary = "Get IAM team by ID", description = "Get cached team projection by team ID")
     @PreAuthorize("hasRole('SYS_ADMIN')")
-    public ResponseEntity<IamTeamDtos.Response> getById(
+    public ResponseEntity<IamTeamDtos.Response> findById(
             @PathVariable String teamId,
             UserContext userContext) {
         
@@ -94,7 +94,7 @@ public class IamTeamController {
     @GetMapping("/by-member/{userId}")
     @Operation(summary = "List teams by member", description = "Get all teams containing a specific user")
     @PreAuthorize("hasRole('SYS_ADMIN')")
-    public ResponseEntity<List<IamTeamDtos.Response>> getByMember(
+    public ResponseEntity<List<IamTeamDtos.Response>> findByMember(
             @PathVariable String userId,
             UserContext userContext) {
         

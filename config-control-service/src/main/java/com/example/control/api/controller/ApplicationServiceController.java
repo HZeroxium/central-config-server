@@ -46,7 +46,7 @@ public class ApplicationServiceController {
      * @return page of application services
      */
     @GetMapping
-    public ResponseEntity<Page<ApplicationServiceDtos.Response>> list(
+    public ResponseEntity<Page<ApplicationServiceDtos.Response>> findAll(
             @RequestParam(required = false) ApplicationServiceDtos.QueryFilter filter,
             Pageable pageable,
             @AuthenticationPrincipal Jwt jwt) {
@@ -93,7 +93,7 @@ public class ApplicationServiceController {
      * @return the service details
      */
     @GetMapping("/{id}")
-    public ResponseEntity<ApplicationServiceDtos.Response> getById(@PathVariable String id) {
+    public ResponseEntity<ApplicationServiceDtos.Response> findById(@PathVariable String id) {
         log.debug("Getting application service by ID: {}", id);
         
         Optional<ApplicationService> service = applicationServiceService.findById(ApplicationServiceId.of(id));

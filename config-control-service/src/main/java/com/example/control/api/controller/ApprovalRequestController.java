@@ -43,7 +43,7 @@ public class ApprovalRequestController {
      * @return the created request
      */
     @PostMapping("/application-services/{serviceId}/approval-requests")
-    public ResponseEntity<ApprovalRequestDtos.Response> createRequest(
+    public ResponseEntity<ApprovalRequestDtos.Response> create(
             @PathVariable String serviceId,
             @Valid @RequestBody ApprovalRequestDtos.CreateRequest request,
             @AuthenticationPrincipal Jwt jwt) {
@@ -65,7 +65,7 @@ public class ApprovalRequestController {
      * @return page of approval requests
      */
     @GetMapping
-    public ResponseEntity<Page<ApprovalRequestDtos.Response>> list(
+    public ResponseEntity<Page<ApprovalRequestDtos.Response>> findAll(
             @RequestParam(required = false) ApprovalRequestDtos.QueryFilter filter,
             Pageable pageable,
             @AuthenticationPrincipal Jwt jwt) {
@@ -87,7 +87,7 @@ public class ApprovalRequestController {
      * @return the request details
      */
     @GetMapping("/{id}")
-    public ResponseEntity<ApprovalRequestDtos.Response> getById(
+    public ResponseEntity<ApprovalRequestDtos.Response> findById(
             @PathVariable String id,
             @AuthenticationPrincipal Jwt jwt) {
         log.debug("Getting approval request by ID: {}", id);

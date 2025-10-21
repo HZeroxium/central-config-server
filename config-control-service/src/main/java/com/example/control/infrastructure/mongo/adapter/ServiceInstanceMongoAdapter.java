@@ -40,6 +40,7 @@ public class ServiceInstanceMongoAdapter
   @Override
   protected Query buildQuery(ServiceInstanceCriteria criteria) {
     Query query = new Query();
+
     if (criteria == null) return query;
     
     // Apply filters
@@ -49,9 +50,7 @@ public class ServiceInstanceMongoAdapter
     if (criteria.instanceId() != null && !criteria.instanceId().isBlank()) {
       query.addCriteria(Criteria.where("instanceId").is(criteria.instanceId()));
     }
-    if (criteria.status() != null) {
-      query.addCriteria(Criteria.where("status").is(criteria.status().name()));
-    }
+    if (criteria.status() != null) query.addCriteria(Criteria.where("status").is(criteria.status().name()));
     if (criteria.hasDrift() != null) {
       query.addCriteria(Criteria.where("hasDrift").is(criteria.hasDrift()));
     }

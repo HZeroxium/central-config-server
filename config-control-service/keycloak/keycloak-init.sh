@@ -108,30 +108,191 @@ if [ -z "$ROLE_USER" ]; then
     -d '{"name":"USER","description":"Regular user with basic access"}' >/dev/null || true
 fi
 
-# Ensure groups
-for g in teams team_core team_analytics team_infrastructure; do
+# Ensure hierarchical groups
+# First create parent /teams group
+TEAMS_GID=$(curl -s -H "Authorization: Bearer $ADMIN_TOKEN" "$KEYCLOAK_API_URL/admin/realms/$REALM_NAME/groups?search=teams" | jq -r '.[0].id // empty') || true
+if [ -z "$TEAMS_GID" ]; then
+  TEAMS_GID=$(curl -s -X POST "$KEYCLOAK_API_URL/admin/realms/$REALM_NAME/groups" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" -H "Content-Type: application/json" \
+    -d '{"name":"teams","path":"/teams"}' | jq -r '.id // empty') || true
+  echo "Created parent teams group with ID: $TEAMS_GID"
+fi
+
+# Create child teams under /teams
+for g in team_core team_analytics team_infrastructure; do
   GID=$(curl -s -H "Authorization: Bearer $ADMIN_TOKEN" "$KEYCLOAK_API_URL/admin/realms/$REALM_NAME/groups?search=$g" | jq -r '.[0].id // empty') || true
   if [ -z "$GID" ]; then
-    curl -s -o /dev/null -w "%{http_code}\n" -X POST "$KEYCLOAK_API_URL/admin/realms/$REALM_NAME/groups" \
+    GID=$(curl -s -X POST "$KEYCLOAK_API_URL/admin/realms/$REALM_NAME/groups" \
       -H "Authorization: Bearer $ADMIN_TOKEN" -H "Content-Type: application/json" \
-      -d '{"name":"'"$g"'"}' >/dev/null || true
+      -d '{"name":"'"$g"'","path":"/teams/'"$g"'"}' | jq -r '.id // empty') || true
+    echo "Created team group $g with ID: $GID"
   fi
 done
 
+# Create custom client scopes for groups, manager_id, and audience
+
+# 1. Create groups client scope
+echo "Creating groups client scope..."
+GROUPS_SCOPE_ID=$(curl -s -H "Authorization: Bearer $ADMIN_TOKEN" "$KEYCLOAK_API_URL/admin/realms/$REALM_NAME/client-scopes?search=groups" | jq -r '.[] | select(.name=="groups") | .id // empty') || true
+if [ -z "$GROUPS_SCOPE_ID" ]; then
+  GROUPS_SCOPE_ID=$(curl -s -X POST "$KEYCLOAK_API_URL/admin/realms/$REALM_NAME/client-scopes" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" -H "Content-Type: application/json" \
+    -d '{
+      "name": "groups",
+      "description": "Groups mapper",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      }
+    }' | jq -r '.id // empty') || true
+  echo "Created groups client scope with ID: $GROUPS_SCOPE_ID"
+fi
+
+# Add groups mapper to groups scope
+if [ -n "$GROUPS_SCOPE_ID" ]; then
+  echo "Adding groups mapper to groups scope..."
+  curl -s -X POST "$KEYCLOAK_API_URL/admin/realms/$REALM_NAME/client-scopes/$GROUPS_SCOPE_ID/protocol-mappers/models" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" -H "Content-Type: application/json" \
+    -d '{
+      "name": "groups",
+      "protocol": "openid-connect",
+      "protocolMapper": "oidc-group-membership-mapper",
+      "config": {
+        "full.path": "false",
+        "id.token.claim": "true",
+        "access.token.claim": "true",
+        "claim.name": "groups",
+        "userinfo.token.claim": "true"
+      }
+    }' >/dev/null || true
+fi
+
+# 2. Create manager_id client scope
+echo "Creating manager_id client scope..."
+MANAGER_SCOPE_ID=$(curl -s -H "Authorization: Bearer $ADMIN_TOKEN" "$KEYCLOAK_API_URL/admin/realms/$REALM_NAME/client-scopes?search=manager_id" | jq -r '.[] | select(.name=="manager_id") | .id // empty') || true
+if [ -z "$MANAGER_SCOPE_ID" ]; then
+  MANAGER_SCOPE_ID=$(curl -s -X POST "$KEYCLOAK_API_URL/admin/realms/$REALM_NAME/client-scopes" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" -H "Content-Type: application/json" \
+    -d '{
+      "name": "manager_id",
+      "description": "Manager ID mapper",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      }
+    }' | jq -r '.id // empty') || true
+  echo "Created manager_id client scope with ID: $MANAGER_SCOPE_ID"
+fi
+
+# Add manager_id mapper to manager_id scope
+if [ -n "$MANAGER_SCOPE_ID" ]; then
+  echo "Adding manager_id mapper to manager_id scope..."
+  curl -s -X POST "$KEYCLOAK_API_URL/admin/realms/$REALM_NAME/client-scopes/$MANAGER_SCOPE_ID/protocol-mappers/models" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" -H "Content-Type: application/json" \
+    -d '{
+      "name": "manager_id",
+      "protocol": "openid-connect",
+      "protocolMapper": "oidc-usermodel-attribute-mapper",
+      "config": {
+        "user.attribute": "manager_id",
+        "id.token.claim": "true",
+        "access.token.claim": "true",
+        "claim.name": "manager_id",
+        "userinfo.token.claim": "true",
+        "jsonType.label": "String"
+      }
+    }' >/dev/null || true
+fi
+
+# 3. Create audience client scope
+echo "Creating audience client scope..."
+AUD_SCOPE_ID=$(curl -s -H "Authorization: Bearer $ADMIN_TOKEN" "$KEYCLOAK_API_URL/admin/realms/$REALM_NAME/client-scopes?search=audience" | jq -r '.[] | select(.name=="audience") | .id // empty') || true
+if [ -z "$AUD_SCOPE_ID" ]; then
+  AUD_SCOPE_ID=$(curl -s -X POST "$KEYCLOAK_API_URL/admin/realms/$REALM_NAME/client-scopes" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" -H "Content-Type: application/json" \
+    -d '{
+      "name": "audience",
+      "description": "Audience mapper for config-control-service",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      }
+    }' | jq -r '.id // empty') || true
+  echo "Created audience client scope with ID: $AUD_SCOPE_ID"
+fi
+
+# Add audience mapper to audience scope
+if [ -n "$AUD_SCOPE_ID" ]; then
+  echo "Adding audience mapper to audience scope..."
+  curl -s -X POST "$KEYCLOAK_API_URL/admin/realms/$REALM_NAME/client-scopes/$AUD_SCOPE_ID/protocol-mappers/models" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" -H "Content-Type: application/json" \
+    -d '{
+      "name": "audience-mapper",
+      "protocol": "openid-connect",
+      "protocolMapper": "oidc-audience-mapper",
+      "config": {
+        "included.client.audience": "config-control-service",
+        "id.token.claim": "true",
+        "access.token.claim": "true"
+      }
+    }' >/dev/null || true
+fi
+
 # Ensure clients
-CLIENT_PAYLOAD_SVC='{"clientId":"config-control-service","name":"Config Control Service","enabled":true,"protocol":"openid-connect","publicClient":false,"serviceAccountsEnabled":true,"secret":"config-control-service-secret"}'
+CLIENT_PAYLOAD_SVC='{"clientId":"config-control-service","name":"Config Control Service","enabled":true,"protocol":"openid-connect","publicClient":false,"serviceAccountsEnabled":true,"secret":"config-control-service-secret","directAccessGrantsEnabled":true}'
 CLIENT_PAYLOAD_UI='{"clientId":"admin-dashboard","name":"Admin Dashboard","enabled":true,"protocol":"openid-connect","publicClient":true,"standardFlowEnabled":true,"directAccessGrantsEnabled":true,"attributes":{"pkce.code.challenge.method":"S256"},"redirectUris":["http://localhost:3000/*","http://localhost:3001/*"],"webOrigins":["http://localhost:3000","http://localhost:3001"]}'
 
 # create service client if missing
-EXISTS=$(curl -s -H "Authorization: Bearer $ADMIN_TOKEN" "$KEYCLOAK_API_URL/admin/realms/$REALM_NAME/clients?clientId=config-control-service" | jq -r '.[0].clientId // empty') || true
-if [ -z "$EXISTS" ]; then
+SVC_CLIENT_IEID=$(curl -s -H "Authorization: Bearer $ADMIN_TOKEN" "$KEYCLOAK_API_URL/admin/realms/$REALM_NAME/clients?clientId=config-control-service" | jq -r '.[0].id // empty') || true
+if [ -z "$SVC_CLIENT_IEID" ]; then
   curl -s -o /dev/null -X POST "$KEYCLOAK_API_URL/admin/realms/$REALM_NAME/clients" -H "Authorization: Bearer $ADMIN_TOKEN" -H "Content-Type: application/json" -d "$CLIENT_PAYLOAD_SVC" >/dev/null || true
+  SVC_CLIENT_IEID=$(curl -s -H "Authorization: Bearer $ADMIN_TOKEN" "$KEYCLOAK_API_URL/admin/realms/$REALM_NAME/clients?clientId=config-control-service" | jq -r '.[0].id // empty') || true
+  echo "Created service client with ID: $SVC_CLIENT_IEID"
+fi
+
+# Assign default client scopes to service client
+if [ -n "$SVC_CLIENT_IEID" ] && [ -n "$GROUPS_SCOPE_ID" ]; then
+  echo "Assigning groups scope to service client..."
+  curl -s -X PUT "$KEYCLOAK_API_URL/admin/realms/$REALM_NAME/clients/$SVC_CLIENT_IEID/default-client-scopes/$GROUPS_SCOPE_ID" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" >/dev/null || true
+fi
+if [ -n "$SVC_CLIENT_IEID" ] && [ -n "$MANAGER_SCOPE_ID" ]; then
+  echo "Assigning manager_id scope to service client..."
+  curl -s -X PUT "$KEYCLOAK_API_URL/admin/realms/$REALM_NAME/clients/$SVC_CLIENT_IEID/default-client-scopes/$MANAGER_SCOPE_ID" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" >/dev/null || true
+fi
+if [ -n "$SVC_CLIENT_IEID" ] && [ -n "$AUD_SCOPE_ID" ]; then
+  echo "Assigning audience scope to service client..."
+  curl -s -X PUT "$KEYCLOAK_API_URL/admin/realms/$REALM_NAME/clients/$SVC_CLIENT_IEID/default-client-scopes/$AUD_SCOPE_ID" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" >/dev/null || true
 fi
 
 # create ui client if missing
-EXISTS=$(curl -s -H "Authorization: Bearer $ADMIN_TOKEN" "$KEYCLOAK_API_URL/admin/realms/$REALM_NAME/clients?clientId=admin-dashboard" | jq -r '.[0].clientId // empty') || true
-if [ -z "$EXISTS" ]; then
+UI_CLIENT_IEID=$(curl -s -H "Authorization: Bearer $ADMIN_TOKEN" "$KEYCLOAK_API_URL/admin/realms/$REALM_NAME/clients?clientId=admin-dashboard" | jq -r '.[0].id // empty') || true
+if [ -z "$UI_CLIENT_IEID" ]; then
   curl -s -o /dev/null -X POST "$KEYCLOAK_API_URL/admin/realms/$REALM_NAME/clients" -H "Authorization: Bearer $ADMIN_TOKEN" -H "Content-Type: application/json" -d "$CLIENT_PAYLOAD_UI" >/dev/null || true
+  UI_CLIENT_IEID=$(curl -s -H "Authorization: Bearer $ADMIN_TOKEN" "$KEYCLOAK_API_URL/admin/realms/$REALM_NAME/clients?clientId=admin-dashboard" | jq -r '.[0].id // empty') || true
+  echo "Created UI client with ID: $UI_CLIENT_IEID"
+fi
+
+# Assign default client scopes to UI client
+if [ -n "$UI_CLIENT_IEID" ] && [ -n "$GROUPS_SCOPE_ID" ]; then
+  echo "Assigning groups scope to UI client..."
+  curl -s -X PUT "$KEYCLOAK_API_URL/admin/realms/$REALM_NAME/clients/$UI_CLIENT_IEID/default-client-scopes/$GROUPS_SCOPE_ID" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" >/dev/null || true
+fi
+if [ -n "$UI_CLIENT_IEID" ] && [ -n "$MANAGER_SCOPE_ID" ]; then
+  echo "Assigning manager_id scope to UI client..."
+  curl -s -X PUT "$KEYCLOAK_API_URL/admin/realms/$REALM_NAME/clients/$UI_CLIENT_IEID/default-client-scopes/$MANAGER_SCOPE_ID" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" >/dev/null || true
+fi
+if [ -n "$UI_CLIENT_IEID" ] && [ -n "$AUD_SCOPE_ID" ]; then
+  echo "Assigning audience scope to UI client..."
+  curl -s -X PUT "$KEYCLOAK_API_URL/admin/realms/$REALM_NAME/clients/$UI_CLIENT_IEID/default-client-scopes/$AUD_SCOPE_ID" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" >/dev/null || true
 fi
 
 # Helper: ensure user exists and return id
@@ -181,6 +342,14 @@ ensure_group_membership() {
     -H "Authorization: Bearer $ADMIN_TOKEN" >/dev/null || true
 }
 
+set_user_attribute() {
+  local uid="$1" key="$2" value="$3"
+  [ -n "$uid" ] && [ -n "$key" ] && [ -n "$value" ] || return 0
+  curl -s -X PUT "$KEYCLOAK_API_URL/admin/realms/$REALM_NAME/users/$uid" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" -H "Content-Type: application/json" \
+    -d "{\"attributes\":{\"$key\":[\"$value\"]}}" >/dev/null || true
+}
+
 # Create/ensure users and assignments
 echo "Creating sample users..."
 
@@ -212,6 +381,11 @@ if [ -n "$USER2_ID" ]; then
     
     # Add user2 to team_analytics
     ensure_group_membership "$USER2_ID" team_analytics && echo "User2 added to team_analytics"
+    
+    # Set user2's manager to user1 (for LINE_MANAGER gate testing)
+    if [ -n "$USER1_ID" ]; then
+        set_user_attribute "$USER2_ID" "manager_id" "$USER1_ID" && echo "User2's manager set to user1"
+    fi
 fi
 
 # Create user3 (infrastructure team)
@@ -225,6 +399,11 @@ if [ -n "$USER3_ID" ]; then
     
     # Add user3 to team_infrastructure
     ensure_group_membership "$USER3_ID" team_infrastructure && echo "User3 added to team_infrastructure"
+    
+    # Set user3's manager to user1 (for LINE_MANAGER gate testing)
+    if [ -n "$USER1_ID" ]; then
+        set_user_attribute "$USER3_ID" "manager_id" "$USER1_ID" && echo "User3's manager set to user1"
+    fi
 fi
 echo "Keycloak initialization completed successfully!"
 echo ""
@@ -232,7 +411,7 @@ echo "Sample users created:"
 echo "  - admin@example.com (password: admin123) - SYS_ADMIN role"
 echo "  - user1@example.com (password: user123) - USER role, team_core member"
 echo "  - user2@example.com (password: user123) - USER role, team_analytics member, reports to user1"
-echo "  - user3@example.com (password: user123) - USER role, team_infrastructure member"
+echo "  - user3@example.com (password: user123) - USER role, team_infrastructure member, reports to user1"
 echo ""
 echo "Keycloak Admin Console: $KEYCLOAK_API_URL/admin"
 echo "Realm: $REALM_NAME"

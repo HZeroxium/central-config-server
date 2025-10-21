@@ -44,22 +44,6 @@ public interface IamUserMongoRepository extends MongoRepository<IamUserDocument,
     List<IamUserDocument> findByRole(String role);
 
     /**
-     * Find users by email address.
-     *
-     * @param email the email address
-     * @return list of users with the email (should be unique)
-     */
-    List<IamUserDocument> findByEmail(String email);
-
-    /**
-     * Find users by username.
-     *
-     * @param username the username
-     * @return list of users with the username
-     */
-    List<IamUserDocument> findByUsername(String username);
-
-    /**
      * Find all user IDs that belong to any of the specified teams.
      *
      * @param teamIds list of team IDs
@@ -86,19 +70,4 @@ public interface IamUserMongoRepository extends MongoRepository<IamUserDocument,
     @Query(value = "{'roles': ?0}", count = true)
     long countByRole(String role);
 
-    /**
-     * Check if a user exists by email.
-     *
-     * @param email the email address
-     * @return true if user exists, false otherwise
-     */
-    boolean existsByEmail(String email);
-
-    /**
-     * Check if a user exists by username.
-     *
-     * @param username the username
-     * @return true if user exists, false otherwise
-     */
-    boolean existsByUsername(String username);
 }

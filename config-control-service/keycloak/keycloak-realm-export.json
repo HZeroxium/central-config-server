@@ -371,7 +371,10 @@
     "profile",
     "email",
     "roles",
-    "web-origins"
+    "web-origins",
+    "groups",
+    "manager_id",
+    "audience"
   ],
   "defaultOptionalClientScopes": [
     "offline_access",

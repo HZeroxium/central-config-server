@@ -1,5 +1,6 @@
 package com.example.control.domain.criteria;
 
+import com.example.control.config.security.UserContext;
 import com.example.control.domain.object.ServiceShare;
 import lombok.Builder;
 import lombok.With;
@@ -58,7 +59,7 @@ public record ServiceShareCriteria(
      * @param userContext the user context containing team IDs
      * @return criteria with user team filtering
      */
-    public static ServiceShareCriteria forUser(com.example.control.config.security.UserContext userContext) {
+    public static ServiceShareCriteria forUser(UserContext userContext) {
         return ServiceShareCriteria.builder()
                 .userTeamIds(userContext != null ? userContext.getTeamIds() : null)
                 .build();

@@ -89,21 +89,6 @@ public class ApprovalDecisionService {
     }
 
     /**
-     * Count decisions for a specific request and gate.
-     *
-     * @param requestId the approval request ID
-     * @param gate the gate name
-     * @return number of decisions for the request and gate
-     */
-    @Cacheable(value = "approval-decisions", key = "'count-by-request-gate:' + #requestId + ':' + #gate")
-    public long countByRequestIdAndGate(ApprovalRequestId requestId, String gate) {
-        log.debug("Counting decisions for request: {} and gate: {}", requestId, gate);
-        long count = repository.countByRequestIdAndGate(requestId, gate);
-        log.debug("Found {} decisions for request: {} and gate: {}", count, requestId, gate);
-        return count;
-    }
-
-    /**
      * Count decisions by decision type for a specific request and gate.
      *
      * @param requestId the approval request ID

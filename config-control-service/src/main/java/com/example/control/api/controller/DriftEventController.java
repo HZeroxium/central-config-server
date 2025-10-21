@@ -36,15 +36,17 @@ public class DriftEventController {
   @PostMapping
   @Operation(summary = "Create drift event")
   public ResponseEntity<ApiResponseDto.ApiResponse<DriftEventDtos.Response>> create(
-      @Valid @RequestBody DriftEventDtos.CreateRequest request) {
-    DriftEvent saved = service.save(DriftEventApiMapper.toDomain(request));
+      @Valid @RequestBody DriftEventDtos.CreateRequest request,
+      @AuthenticationPrincipal Jwt jwt) {
+    UserContext userContext = UserContext.fromJwt(jwt);
+    DriftEvent saved = service.save(DriftEventApiMapper.toDomain(request), userContext);
     return ResponseEntity.ok(ApiResponseDto.ApiResponse.success(
         DriftEventApiMapper.toResponse(saved)));
   }
 
   @GetMapping("/{id}")
   @Operation(summary = "Get by id")
-  public ResponseEntity<ApiResponseDto.ApiResponse<DriftEventDtos.Response>> get(
+  public ResponseEntity<ApiResponseDto.ApiResponse<DriftEventDtos.Response>> findById(
       @PathVariable String id,
       @AuthenticationPrincipal Jwt jwt) {
     UserContext userContext = UserContext.fromJwt(jwt);
@@ -72,7 +74,7 @@ public class DriftEventController {
   @GetMapping
   @Operation(summary = "List drift events with filters and pagination")
   @Timed("api.drift-events.list")
-  public ResponseEntity<ApiResponseDto.ApiResponse<PageResponse<DriftEventDtos.Response>>> list(
+  public ResponseEntity<ApiResponseDto.ApiResponse<PageResponse<DriftEventDtos.Response>>> findAll(
       @Parameter(description = "Filter by service name") @RequestParam(required = false) String serviceName,
       @Parameter(description = "Filter by instance ID") @RequestParam(required = false) String instanceId,
       @Parameter(description = "Filter by status") @RequestParam(required = false) DriftEvent.DriftStatus status,
@@ -92,7 +94,7 @@ public class DriftEventController {
         .build();
     
     DriftEventCriteria criteria = DriftEventApiMapper.toCriteria(queryFilter, userContext);
-    Page<DriftEvent> page = service.list(criteria, pageable, userContext);
+    Page<DriftEvent> page = service.findAll(criteria, pageable, userContext);
     Page<DriftEventDtos.Response> mapped = page.map(DriftEventApiMapper::toResponse);
     return ResponseEntity.ok(ApiResponseDto.ApiResponse.success(
         "Drift events", PageResponse.from(mapped)));

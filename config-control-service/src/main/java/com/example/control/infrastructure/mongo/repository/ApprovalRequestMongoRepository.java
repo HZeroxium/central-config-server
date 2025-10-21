@@ -6,8 +6,6 @@ import org.springframework.data.mongodb.repository.Query;
 import org.springframework.data.mongodb.repository.Update;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
-
 /**
  * Spring Data MongoDB repository for {@link ApprovalRequestDocument}.
  * <p>
@@ -17,48 +15,6 @@ import java.util.List;
  */
 @Repository
 public interface ApprovalRequestMongoRepository extends MongoRepository<ApprovalRequestDocument, String> {
-
-    /**
-     * Find approval requests by requester user ID.
-     *
-     * @param requesterUserId the user ID of the requester
-     * @return list of requests created by the user
-     */
-    List<ApprovalRequestDocument> findByRequesterUserId(String requesterUserId);
-
-    /**
-     * Find approval requests by status.
-     *
-     * @param status the approval status
-     * @return list of requests with the status
-     */
-    List<ApprovalRequestDocument> findByStatus(String status);
-
-    /**
-     * Find approval requests by request type.
-     *
-     * @param requestType the request type
-     * @return list of requests of the type
-     */
-    List<ApprovalRequestDocument> findByRequestType(String requestType);
-
-    /**
-     * Find pending approval requests that contain a specific gate in their required gates.
-     *
-     * @param gate the gate name
-     * @return list of pending requests requiring approval from the gate
-     */
-    @Query("{'status': 'PENDING', 'requiredGatesJson': {'$regex': ?0, '$options': 'i'}}")
-    List<ApprovalRequestDocument> findPendingByGate(String gate);
-
-    /**
-     * Find approval requests created within a date range.
-     *
-     * @param fromDate the start date (inclusive)
-     * @param toDate   the end date (inclusive)
-     * @return list of requests created within the range
-     */
-    List<ApprovalRequestDocument> findByCreatedAtBetween(java.time.Instant fromDate, java.time.Instant toDate);
 
     /**
      * Count approval requests by status.
