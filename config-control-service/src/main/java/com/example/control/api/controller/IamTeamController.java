@@ -6,10 +6,15 @@ import com.example.control.application.service.IamTeamService;
 import com.example.control.config.security.UserContext;
 import com.example.control.domain.criteria.IamTeamCriteria;
 import com.example.control.domain.id.IamTeamId;
+import com.example.control.api.exception.ErrorResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -47,11 +52,32 @@ public class IamTeamController {
      * @return page of IAM teams
      */
     @GetMapping
-    @Operation(summary = "List IAM teams", description = "Get paginated list of cached team projections")
+    @Operation(
+        summary = "List IAM teams",
+        description = """
+            Retrieve a paginated list of cached IAM team projections from Keycloak.
+            This endpoint is restricted to system administrators.
+            """,
+        security = @SecurityRequirement(name = "oauth2_auth_code"),
+        operationId = "findAllIamTeams"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Successfully retrieved IAM teams",
+            content = @Content(schema = @Schema(implementation = Page.class))),
+        @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+        @ApiResponse(responseCode = "403", description = "Forbidden - SYS_ADMIN role required",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+        @ApiResponse(responseCode = "500", description = "Internal server error",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
     @PreAuthorize("hasRole('SYS_ADMIN')")
     public ResponseEntity<Page<IamTeamDtos.Response>> findAll(
-            @Parameter(description = "Filter criteria") IamTeamCriteria criteria,
-            @Parameter(description = "Pagination information") Pageable pageable,
+            @Parameter(description = "Filter criteria for searching teams",
+                      schema = @Schema(implementation = IamTeamCriteria.class))
+            IamTeamCriteria criteria,
+            @Parameter(description = "Pagination parameters (page, size, sort)")
+            Pageable pageable,
             UserContext userContext) {
         
         log.debug("Listing IAM teams with criteria: {} for user: {}", criteria, userContext.getUserId());
@@ -70,9 +96,30 @@ public class IamTeamController {
      * @return IAM team details
      */
     @GetMapping("/{teamId}")
-    @Operation(summary = "Get IAM team by ID", description = "Get cached team projection by team ID")
+    @Operation(
+        summary = "Get IAM team by ID",
+        description = """
+            Retrieve a specific IAM team by its ID from cached Keycloak projections.
+            This endpoint is restricted to system administrators.
+            """,
+        security = @SecurityRequirement(name = "oauth2_auth_code"),
+        operationId = "findByIdIamTeam"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "IAM team found",
+            content = @Content(schema = @Schema(implementation = IamTeamDtos.Response.class))),
+        @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+        @ApiResponse(responseCode = "403", description = "Forbidden - SYS_ADMIN role required",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+        @ApiResponse(responseCode = "404", description = "IAM team not found",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+        @ApiResponse(responseCode = "500", description = "Internal server error",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
     @PreAuthorize("hasRole('SYS_ADMIN')")
     public ResponseEntity<IamTeamDtos.Response> findById(
+            @Parameter(description = "Team ID", example = "team_core")
             @PathVariable String teamId,
             UserContext userContext) {
         
@@ -92,9 +139,28 @@ public class IamTeamController {
      * @return list of teams containing the user
      */
     @GetMapping("/by-member/{userId}")
-    @Operation(summary = "List teams by member", description = "Get all teams containing a specific user")
+    @Operation(
+        summary = "List teams by member",
+        description = """
+            Retrieve all teams that contain a specific user as a member.
+            This endpoint is restricted to system administrators.
+            """,
+        security = @SecurityRequirement(name = "oauth2_auth_code"),
+        operationId = "findByMemberIamTeam"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Teams containing the user found",
+            content = @Content(schema = @Schema(implementation = List.class))),
+        @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+        @ApiResponse(responseCode = "403", description = "Forbidden - SYS_ADMIN role required",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+        @ApiResponse(responseCode = "500", description = "Internal server error",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
     @PreAuthorize("hasRole('SYS_ADMIN')")
     public ResponseEntity<List<IamTeamDtos.Response>> findByMember(
+            @Parameter(description = "User ID to find teams for", example = "user1")
             @PathVariable String userId,
             UserContext userContext) {
         
@@ -115,7 +181,25 @@ public class IamTeamController {
      * @return team statistics
      */
     @GetMapping("/stats")
-    @Operation(summary = "Get team statistics", description = "Get team count statistics")
+    @Operation(
+        summary = "Get team statistics",
+        description = """
+            Retrieve team count statistics from cached IAM data.
+            This endpoint is restricted to system administrators.
+            """,
+        security = @SecurityRequirement(name = "oauth2_auth_code"),
+        operationId = "getStatsIamTeam"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Team statistics retrieved successfully",
+            content = @Content(schema = @Schema(implementation = IamTeamDtos.StatsResponse.class))),
+        @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+        @ApiResponse(responseCode = "403", description = "Forbidden - SYS_ADMIN role required",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+        @ApiResponse(responseCode = "500", description = "Internal server error",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
     @PreAuthorize("hasRole('SYS_ADMIN')")
     public ResponseEntity<IamTeamDtos.StatsResponse> getStats(UserContext userContext) {
         log.debug("Getting IAM team statistics for user: {}", userContext.getUserId());

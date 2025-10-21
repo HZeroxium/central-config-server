@@ -6,6 +6,15 @@ import com.example.control.application.service.ApprovalService;
 import com.example.control.config.security.UserContext;
 import com.example.control.domain.object.ApprovalDecision;
 import com.example.control.domain.object.ApprovalRequest;
+import com.example.control.api.exception.ErrorResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +39,7 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/approval-requests")
 @RequiredArgsConstructor
+@Tag(name = "Approval Requests", description = "Multi-gate approval workflow for service ownership requests")
 public class ApprovalRequestController {
 
     private final ApprovalService approvalService;
@@ -43,8 +53,42 @@ public class ApprovalRequestController {
      * @return the created request
      */
     @PostMapping("/application-services/{serviceId}/approval-requests")
+    @Operation(
+        summary = "Create approval request",
+        description = """
+            Create a new approval request for service ownership.
+            
+            **Multi-Gate Approval Flow:**
+            - SYS_ADMIN: Can approve/reject any request
+            - LINE_MANAGER: Can approve requests from their direct reports
+            - Request requires approval from configured gates before service ownership is transferred
+            
+            **Access Control:**
+            - Team members: Can create requests for services not owned by their team
+            - SYS_ADMIN: Can create requests for any service
+            """,
+        security = @SecurityRequirement(name = "oauth2_auth_code"),
+        operationId = "createApprovalRequest"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "201", description = "Approval request created successfully",
+            content = @Content(schema = @Schema(implementation = ApprovalRequestDtos.Response.class))),
+        @ApiResponse(responseCode = "400", description = "Invalid request data",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+        @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+        @ApiResponse(responseCode = "403", description = "Forbidden - Insufficient permissions",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+        @ApiResponse(responseCode = "409", description = "Conflict - Request already exists",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+        @ApiResponse(responseCode = "500", description = "Internal server error",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
     public ResponseEntity<ApprovalRequestDtos.Response> create(
+            @Parameter(description = "Service ID to request ownership for", example = "payment-service")
             @PathVariable String serviceId,
+            @Parameter(description = "Approval request creation data", 
+                      schema = @Schema(implementation = ApprovalRequestDtos.CreateRequest.class))
             @Valid @RequestBody ApprovalRequestDtos.CreateRequest request,
             @AuthenticationPrincipal Jwt jwt) {
         log.info("Creating approval request for service: {} to team: {}", serviceId, request.targetTeamId());
@@ -65,8 +109,35 @@ public class ApprovalRequestController {
      * @return page of approval requests
      */
     @GetMapping
+    @Operation(
+        summary = "List approval requests",
+        description = """
+            Retrieve a paginated list of approval requests.
+            
+            **Access Control:**
+            - Team members: Can view their own requests
+            - SYS_ADMIN: Can view all requests
+            - LINE_MANAGER: Can view requests from their direct reports
+            - Results are automatically filtered based on user permissions
+            """,
+        security = @SecurityRequirement(name = "oauth2_auth_code"),
+        operationId = "findAllApprovalRequests"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Approval requests retrieved successfully",
+            content = @Content(schema = @Schema(implementation = Page.class))),
+        @ApiResponse(responseCode = "400", description = "Invalid request parameters",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+        @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+        @ApiResponse(responseCode = "500", description = "Internal server error",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
     public ResponseEntity<Page<ApprovalRequestDtos.Response>> findAll(
+            @Parameter(description = "Optional query filter for searching requests",
+                      schema = @Schema(implementation = ApprovalRequestDtos.QueryFilter.class))
             @RequestParam(required = false) ApprovalRequestDtos.QueryFilter filter,
+            @Parameter(description = "Pagination parameters (page, size, sort)")
             Pageable pageable,
             @AuthenticationPrincipal Jwt jwt) {
         log.debug("Listing approval requests with filter: {}", filter);
@@ -87,7 +158,33 @@ public class ApprovalRequestController {
      * @return the request details
      */
     @GetMapping("/{id}")
+    @Operation(
+        summary = "Get approval request by ID",
+        description = """
+            Retrieve a specific approval request by its ID.
+            
+            **Access Control:**
+            - Team members: Can view their own requests
+            - SYS_ADMIN: Can view any request
+            - LINE_MANAGER: Can view requests from their direct reports
+            """,
+        security = @SecurityRequirement(name = "oauth2_auth_code"),
+        operationId = "findApprovalRequestById"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Approval request found",
+            content = @Content(schema = @Schema(implementation = ApprovalRequestDtos.Response.class))),
+        @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+        @ApiResponse(responseCode = "403", description = "Forbidden - Insufficient permissions",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+        @ApiResponse(responseCode = "404", description = "Approval request not found",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+        @ApiResponse(responseCode = "500", description = "Internal server error",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
     public ResponseEntity<ApprovalRequestDtos.Response> findById(
+            @Parameter(description = "Approval request ID", example = "request-12345")
             @PathVariable String id,
             @AuthenticationPrincipal Jwt jwt) {
         log.debug("Getting approval request by ID: {}", id);
@@ -111,8 +208,42 @@ public class ApprovalRequestController {
      * @return the decision response
      */
     @PostMapping("/{id}/decisions")
+    @Operation(
+        summary = "Submit approval decision",
+        description = """
+            Submit a decision (approve/reject) for an approval request.
+            
+            **Multi-Gate Approval:**
+            - SYS_ADMIN: Can approve/reject any request
+            - LINE_MANAGER: Can approve/reject requests from their direct reports
+            - Request status is updated based on required approvals from configured gates
+            
+            **Access Control:**
+            - Only authorized approvers can submit decisions
+            - Decision is recorded with approver information and timestamp
+            """,
+        security = @SecurityRequirement(name = "oauth2_auth_code"),
+        operationId = "submitApprovalDecision"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Decision submitted successfully",
+            content = @Content(schema = @Schema(implementation = ApprovalRequestDtos.Response.class))),
+        @ApiResponse(responseCode = "400", description = "Invalid decision data",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+        @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+        @ApiResponse(responseCode = "403", description = "Forbidden - Not authorized to approve this request",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+        @ApiResponse(responseCode = "404", description = "Approval request not found",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+        @ApiResponse(responseCode = "500", description = "Internal server error",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
     public ResponseEntity<ApprovalRequestDtos.Response> submitDecision(
+            @Parameter(description = "Approval request ID", example = "request-12345")
             @PathVariable String id,
+            @Parameter(description = "Decision data (approve/reject with optional note)", 
+                      schema = @Schema(implementation = ApprovalRequestDtos.DecisionRequest.class))
             @Valid @RequestBody ApprovalRequestDtos.DecisionRequest request,
             @AuthenticationPrincipal Jwt jwt) {
         log.info("Submitting decision for request: {} with decision: {}", id, request.decision());
@@ -142,7 +273,38 @@ public class ApprovalRequestController {
      * @return no content
      */
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> cancelRequest(@PathVariable String id, @AuthenticationPrincipal Jwt jwt) {
+    @Operation(
+        summary = "Cancel approval request",
+        description = """
+            Cancel an approval request.
+            
+            **Access Control:**
+            - Requester: Can cancel their own requests
+            - SYS_ADMIN: Can cancel any request
+            - Request must be in PENDING status to be cancelled
+            
+            **Note:** Once cancelled, the request cannot be reactivated
+            """,
+        security = @SecurityRequirement(name = "oauth2_auth_code"),
+        operationId = "cancelApprovalRequest"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "204", description = "Approval request cancelled successfully"),
+        @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+        @ApiResponse(responseCode = "403", description = "Forbidden - Not authorized to cancel this request",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+        @ApiResponse(responseCode = "404", description = "Approval request not found",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+        @ApiResponse(responseCode = "409", description = "Conflict - Request cannot be cancelled in current status",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+        @ApiResponse(responseCode = "500", description = "Internal server error",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    public ResponseEntity<Void> cancelRequest(
+            @Parameter(description = "Approval request ID", example = "request-12345")
+            @PathVariable String id, 
+            @AuthenticationPrincipal Jwt jwt) {
         log.info("Cancelling approval request: {}", id);
         
         UserContext userContext = UserContext.fromJwt(jwt);

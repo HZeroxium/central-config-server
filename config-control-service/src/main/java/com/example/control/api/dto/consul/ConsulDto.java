@@ -1,6 +1,7 @@
 package com.example.control.api.dto.consul;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -18,6 +19,7 @@ public class ConsulDto {
   @Builder
   @NoArgsConstructor
   @AllArgsConstructor
+  @Schema(description = "Consul service details response")
   public static class ConsulServiceResponse {
     @JsonProperty("ID")
     private String id;
@@ -124,6 +126,7 @@ public class ConsulDto {
   @Builder
   @NoArgsConstructor
   @AllArgsConstructor
+  @Schema(description = "Consul health check response")
   public static class ConsulHealthResponse {
     @JsonProperty("Node")
     private NodeInfo node;
@@ -160,6 +163,7 @@ public class ConsulDto {
   @Builder
   @NoArgsConstructor
   @AllArgsConstructor
+  @Schema(description = "Service information from Consul")
   public static class ServiceInfo {
     @JsonProperty("ID")
     private String id;
@@ -193,6 +197,7 @@ public class ConsulDto {
   @Builder
   @NoArgsConstructor
   @AllArgsConstructor
+  @Schema(description = "Health check information")
   public static class HealthCheck {
     @JsonProperty("Node")
     private String node;
@@ -284,6 +289,7 @@ public class ConsulDto {
   @Builder
   @NoArgsConstructor
   @AllArgsConstructor
+  @Schema(description = "Map of all registered services in Consul")
   public static class ConsulServicesMap {
     private Map<String, List<String>> services;
   }

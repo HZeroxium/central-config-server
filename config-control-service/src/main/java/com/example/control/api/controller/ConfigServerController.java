@@ -4,11 +4,17 @@ import com.example.control.api.dto.common.ApiResponseDto;
 import com.example.control.api.dto.configserver.ConfigServerDto;
 import com.example.control.application.ConfigServerClient;
 import com.example.control.config.ConfigServerProperties;
+import com.example.control.api.exception.ErrorResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.annotation.Timed;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -28,12 +34,37 @@ public class ConfigServerController {
   private final ObjectMapper objectMapper;
 
   @GetMapping("/environment/{application}/{profile}")
-  @Operation(summary = "Get configuration environment", description = "Get configuration for application and profile")
+  @Operation(
+      summary = "Get configuration environment",
+      description = """
+          Retrieves the configuration properties for a given application and profile from the Config Server.
+          This acts as a proxy to the underlying Spring Cloud Config Server.
+          """,
+      security = @SecurityRequirement(name = "oauth2_auth_code"),
+      operationId = "getEnvironmentConfigServer"
+  )
+  @ApiResponses(value = {
+      @ApiResponse(responseCode = "200", description = "Successfully retrieved configuration environment",
+          content = @Content(schema = @Schema(implementation = ApiResponseDto.ApiResponse.class))),
+      @ApiResponse(responseCode = "400", description = "Invalid application or profile name",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "403", description = "Forbidden - Insufficient permissions",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "404", description = "Configuration not found for the specified application/profile",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "500", description = "Internal server error or Config Server unreachable",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  })
   @Timed(value = "api.config-server.environment")
   public ResponseEntity<ApiResponseDto.ApiResponse<ConfigServerDto.ConfigEnvironmentResponse>> getEnvironment(
-      @PathVariable @Parameter(description = "Application name") String application,
-      @PathVariable @Parameter(description = "Profile name") String profile,
-      @RequestParam(required = false) @Parameter(description = "Git label/branch") String label) {
+      @Parameter(description = "Name of the application", example = "payment-service") 
+      @PathVariable String application,
+      @Parameter(description = "Profile of the application (e.g., dev, prod)", example = "dev") 
+      @PathVariable String profile,
+      @Parameter(description = "Optional Git label/branch for configuration version", example = "main") 
+      @RequestParam(required = false) String label) {
 
     log.debug("Getting environment for application: {}, profile: {}, label: {}", application, profile, label);
 
@@ -49,7 +80,23 @@ public class ConfigServerController {
   }
 
   @GetMapping("/health")
-  @Operation(summary = "Config Server health", description = "Get Config Server health status")
+  @Operation(
+      summary = "Get Config Server health status",
+      description = """
+          Retrieves the health status of the underlying Spring Cloud Config Server.
+          This provides information about the Config Server's operational state.
+          """,
+      security = @SecurityRequirement(name = "oauth2_auth_code"),
+      operationId = "getHealthConfigServer"
+  )
+  @ApiResponses(value = {
+      @ApiResponse(responseCode = "200", description = "Config Server health status retrieved successfully",
+          content = @Content(schema = @Schema(implementation = ApiResponseDto.ApiResponse.class))),
+      @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "500", description = "Internal server error or Config Server unreachable",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  })
   @Timed(value = "api.config-server.health")
   public ResponseEntity<ApiResponseDto.ApiResponse<ConfigServerDto.ActuatorHealthResponse>> getHealth() {
     log.debug("Getting Config Server health status");
@@ -62,10 +109,31 @@ public class ConfigServerController {
   }
 
   @GetMapping("/actuator/{path}")
-  @Operation(summary = "Actuator endpoint", description = "Proxy to Config Server actuator endpoint")
+  @Operation(
+      summary = "Proxy to Config Server actuator endpoint",
+      description = """
+          Proxies requests to the underlying Spring Cloud Config Server actuator endpoints.
+          This allows access to Config Server management and monitoring endpoints.
+          """,
+      security = @SecurityRequirement(name = "oauth2_auth_code"),
+      operationId = "getActuatorEndpointConfigServer"
+  )
+  @ApiResponses(value = {
+      @ApiResponse(responseCode = "200", description = "Actuator endpoint response retrieved successfully",
+          content = @Content(schema = @Schema(implementation = ApiResponseDto.ApiResponse.class))),
+      @ApiResponse(responseCode = "400", description = "Invalid actuator path",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "404", description = "Actuator endpoint not found",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "500", description = "Internal server error or Config Server unreachable",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  })
   @Timed(value = "api.config-server.actuator")
   public ResponseEntity<ApiResponseDto.ApiResponse<Object>> getActuatorEndpoint(
-      @PathVariable @Parameter(description = "Actuator path") String path) {
+      @Parameter(description = "Actuator endpoint path", example = "env") 
+      @PathVariable String path) {
 
     log.debug("Getting actuator endpoint: {}", path);
 
@@ -77,7 +145,23 @@ public class ConfigServerController {
   }
 
   @GetMapping("/info")
-  @Operation(summary = "Config Server info", description = "Get Config Server information")
+  @Operation(
+      summary = "Get Config Server information",
+      description = """
+          Retrieves basic information about the Config Server instance.
+          This includes URL, status, and version information.
+          """,
+      security = @SecurityRequirement(name = "oauth2_auth_code"),
+      operationId = "getInfoConfigServer"
+  )
+  @ApiResponses(value = {
+      @ApiResponse(responseCode = "200", description = "Config Server information retrieved successfully",
+          content = @Content(schema = @Schema(implementation = ApiResponseDto.ApiResponse.class))),
+      @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "500", description = "Internal server error",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  })
   @Timed(value = "api.config-server.info")
   public ResponseEntity<ApiResponseDto.ApiResponse<ConfigServerDto.ConfigServerInfo>> getInfo() {
     log.debug("Getting Config Server info");

@@ -12,7 +12,13 @@ import com.example.control.domain.id.DriftEventId;
 import io.micrometer.core.annotation.Timed;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import com.example.control.api.exception.ErrorResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -34,8 +40,34 @@ public class DriftEventController {
   private final DriftEventService service;
 
   @PostMapping
-  @Operation(summary = "Create drift event")
+  @Operation(
+      summary = "Create drift event",
+      description = """
+          Create a new drift event when configuration drift is detected.
+          
+          **Access Control:**
+          - Team members: Can create drift events for services owned by their team
+          - SYS_ADMIN: Can create drift events for any service
+          - System: Can create drift events automatically during heartbeat processing
+          """,
+      security = @SecurityRequirement(name = "oauth2_auth_code"),
+      operationId = "createDriftEvent"
+  )
+  @ApiResponses(value = {
+      @ApiResponse(responseCode = "200", description = "Drift event created successfully",
+          content = @Content(schema = @Schema(implementation = ApiResponseDto.ApiResponse.class))),
+      @ApiResponse(responseCode = "400", description = "Invalid request data",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "403", description = "Forbidden - Insufficient permissions",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "500", description = "Internal server error",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  })
   public ResponseEntity<ApiResponseDto.ApiResponse<DriftEventDtos.Response>> create(
+      @Parameter(description = "Drift event creation request", 
+                schema = @Schema(implementation = DriftEventDtos.CreateRequest.class))
       @Valid @RequestBody DriftEventDtos.CreateRequest request,
       @AuthenticationPrincipal Jwt jwt) {
     UserContext userContext = UserContext.fromJwt(jwt);
@@ -45,8 +77,33 @@ public class DriftEventController {
   }
 
   @GetMapping("/{id}")
-  @Operation(summary = "Get by id")
+  @Operation(
+      summary = "Get drift event by ID",
+      description = """
+          Retrieve a specific drift event by its ID.
+          
+          **Access Control:**
+          - Team members: Can view drift events for services owned by their team
+          - SYS_ADMIN: Can view any drift event
+          - Shared access: Can view drift events for services shared with their team
+          """,
+      security = @SecurityRequirement(name = "oauth2_auth_code"),
+      operationId = "findDriftEventById"
+  )
+  @ApiResponses(value = {
+      @ApiResponse(responseCode = "200", description = "Drift event found",
+          content = @Content(schema = @Schema(implementation = ApiResponseDto.ApiResponse.class))),
+      @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "403", description = "Forbidden - Insufficient permissions",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "404", description = "Drift event not found",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "500", description = "Internal server error",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  })
   public ResponseEntity<ApiResponseDto.ApiResponse<DriftEventDtos.Response>> findById(
+      @Parameter(description = "Drift event ID", example = "drift-12345")
       @PathVariable String id,
       @AuthenticationPrincipal Jwt jwt) {
     UserContext userContext = UserContext.fromJwt(jwt);
@@ -57,9 +114,38 @@ public class DriftEventController {
   }
 
   @PatchMapping("/{id}")
-  @Operation(summary = "Update drift event (status/notes)")
+  @Operation(
+      summary = "Update drift event",
+      description = """
+          Update an existing drift event (status and notes).
+          
+          **Access Control:**
+          - Team members: Can update drift events for services owned by their team
+          - SYS_ADMIN: Can update any drift event
+          - Updates include status changes (DETECTED, RESOLVED, IGNORED) and resolution notes
+          """,
+      security = @SecurityRequirement(name = "oauth2_auth_code"),
+      operationId = "updateDriftEvent"
+  )
+  @ApiResponses(value = {
+      @ApiResponse(responseCode = "200", description = "Drift event updated successfully",
+          content = @Content(schema = @Schema(implementation = ApiResponseDto.ApiResponse.class))),
+      @ApiResponse(responseCode = "400", description = "Invalid request data",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "403", description = "Forbidden - Insufficient permissions",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "404", description = "Drift event not found",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "500", description = "Internal server error",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  })
   public ResponseEntity<ApiResponseDto.ApiResponse<DriftEventDtos.Response>> update(
+      @Parameter(description = "Drift event ID", example = "drift-12345")
       @PathVariable String id,
+      @Parameter(description = "Drift event update request", 
+                schema = @Schema(implementation = DriftEventDtos.UpdateRequest.class))
       @Valid @RequestBody DriftEventDtos.UpdateRequest request,
       @AuthenticationPrincipal Jwt jwt) {
     UserContext userContext = UserContext.fromJwt(jwt);
@@ -72,14 +158,43 @@ public class DriftEventController {
   }
 
   @GetMapping
-  @Operation(summary = "List drift events with filters and pagination")
+  @Operation(
+      summary = "List drift events with filters and pagination",
+      description = """
+          Retrieve a paginated list of drift events with optional filtering.
+          
+          **Access Control:**
+          - Team members: Can view drift events for services owned by their team
+          - SYS_ADMIN: Can view all drift events
+          - Shared access: Can view drift events for services shared with their team
+          - Results are automatically filtered based on user permissions
+          """,
+      security = @SecurityRequirement(name = "oauth2_auth_code"),
+      operationId = "findAllDriftEvents"
+  )
+  @ApiResponses(value = {
+      @ApiResponse(responseCode = "200", description = "Drift events retrieved successfully",
+          content = @Content(schema = @Schema(implementation = ApiResponseDto.ApiResponse.class))),
+      @ApiResponse(responseCode = "400", description = "Invalid request parameters",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "500", description = "Internal server error",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  })
   @Timed("api.drift-events.list")
   public ResponseEntity<ApiResponseDto.ApiResponse<PageResponse<DriftEventDtos.Response>>> findAll(
-      @Parameter(description = "Filter by service name") @RequestParam(required = false) String serviceName,
-      @Parameter(description = "Filter by instance ID") @RequestParam(required = false) String instanceId,
-      @Parameter(description = "Filter by status") @RequestParam(required = false) DriftEvent.DriftStatus status,
-      @Parameter(description = "Filter by severity") @RequestParam(required = false) DriftEvent.DriftSeverity severity,
-      @Parameter(description = "Filter unresolved only") @RequestParam(required = false) Boolean unresolvedOnly,
+      @Parameter(description = "Filter by service name", example = "payment-service") 
+      @RequestParam(required = false) String serviceName,
+      @Parameter(description = "Filter by instance ID", example = "payment-dev-1") 
+      @RequestParam(required = false) String instanceId,
+      @Parameter(description = "Filter by drift status", example = "DETECTED") 
+      @RequestParam(required = false) DriftEvent.DriftStatus status,
+      @Parameter(description = "Filter by severity level", example = "HIGH") 
+      @RequestParam(required = false) DriftEvent.DriftSeverity severity,
+      @Parameter(description = "Show only unresolved events", example = "true") 
+      @RequestParam(required = false) Boolean unresolvedOnly,
+      @Parameter(description = "Pagination parameters (page, size, sort)") 
       @PageableDefault Pageable pageable,
       @AuthenticationPrincipal Jwt jwt) {
 

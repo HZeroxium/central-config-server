@@ -1,6 +1,7 @@
 package com.example.control.api.dto.domain;
 
 import com.example.control.domain.object.ServiceInstance;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
@@ -11,6 +12,13 @@ import lombok.NoArgsConstructor;
 import java.time.Instant;
 import java.util.Map;
 
+/**
+ * DTOs for ServiceInstance API operations.
+ * <p>
+ * Provides request/response DTOs for managing service instances with
+ * drift detection and configuration tracking.
+ * </p>
+ */
 @Data
 public class ServiceInstanceDtos {
 
@@ -18,19 +26,39 @@ public class ServiceInstanceDtos {
   @Builder
   @NoArgsConstructor
   @AllArgsConstructor
+  @Schema(description = "Request to create a new service instance")
   public static class CreateRequest {
     @NotBlank
+    @Schema(description = "Name of the service", example = "payment-service")
     private String serviceName;
+    
     @NotBlank
+    @Schema(description = "Unique instance identifier", example = "payment-dev-1")
     private String instanceId;
+    
+    @Schema(description = "Instance host address", example = "payment-dev-1.internal.company.com")
     private String host;
+    
     @Positive
+    @Schema(description = "Instance port number", example = "8080")
     private Integer port;
+    
+    @Schema(description = "Deployment environment", example = "dev", allowableValues = {"dev", "staging", "prod"})
     private String environment;
+    
+    @Schema(description = "Service version", example = "1.2.0")
     private String version;
+    
+    @Schema(description = "Current configuration hash", example = "abc123def456")
     private String configHash;
+    
+    @Schema(description = "Last applied configuration hash", example = "abc123def456")
     private String lastAppliedHash;
+    
+    @Schema(description = "Expected configuration hash", example = "abc123def456")
     private String expectedHash;
+    
+    @Schema(description = "Instance metadata", example = "{\"region\": \"us-east-1\", \"zone\": \"us-east-1a\"}")
     private Map<String, String> metadata;
   }
 
@@ -38,17 +66,37 @@ public class ServiceInstanceDtos {
   @Builder
   @NoArgsConstructor
   @AllArgsConstructor
+  @Schema(description = "Request to update an existing service instance")
   public static class UpdateRequest {
+    @Schema(description = "Instance host address", example = "payment-dev-1.internal.company.com")
     private String host;
+    
     @Positive
+    @Schema(description = "Instance port number", example = "8080")
     private Integer port;
+    
+    @Schema(description = "Deployment environment", example = "dev", allowableValues = {"dev", "staging", "prod"})
     private String environment;
+    
+    @Schema(description = "Service version", example = "1.2.1")
     private String version;
+    
+    @Schema(description = "Current configuration hash", example = "def456ghi789")
     private String configHash;
+    
+    @Schema(description = "Last applied configuration hash", example = "abc123def456")
     private String lastAppliedHash;
+    
+    @Schema(description = "Expected configuration hash", example = "def456ghi789")
     private String expectedHash;
+    
+    @Schema(description = "Whether drift is detected", example = "true")
     private Boolean hasDrift;
+    
+    @Schema(description = "Instance status", example = "HEALTHY", allowableValues = {"HEALTHY", "UNHEALTHY", "DRIFT", "UNKNOWN"})
     private ServiceInstance.InstanceStatus status;
+    
+    @Schema(description = "Instance metadata", example = "{\"region\": \"us-east-1\", \"zone\": \"us-east-1a\", \"updated\": \"2024-01-15\"}")
     private Map<String, String> metadata;
   }
 
@@ -56,14 +104,30 @@ public class ServiceInstanceDtos {
   @Builder
   @NoArgsConstructor
   @AllArgsConstructor
+  @Schema(description = "Query filter for searching service instances")
   public static class QueryFilter {
+    @Schema(description = "Filter by service name", example = "payment-service")
     private String serviceName;
+    
+    @Schema(description = "Filter by instance ID", example = "payment-dev-1")
     private String instanceId;
+    
+    @Schema(description = "Filter by instance status", example = "HEALTHY", allowableValues = {"HEALTHY", "UNHEALTHY", "DRIFT", "UNKNOWN"})
     private ServiceInstance.InstanceStatus status;
+    
+    @Schema(description = "Filter by drift status", example = "true")
     private Boolean hasDrift;
+    
+    @Schema(description = "Filter by environment", example = "dev", allowableValues = {"dev", "staging", "prod"})
     private String environment;
+    
+    @Schema(description = "Filter by service version", example = "1.2.0")
     private String version;
+    
+    @Schema(description = "Filter instances seen after this timestamp", example = "2024-01-15T00:00:00Z")
     private Instant lastSeenAtFrom;
+    
+    @Schema(description = "Filter instances seen before this timestamp", example = "2024-01-15T23:59:59Z")
     private Instant lastSeenAtTo;
   }
 
@@ -71,22 +135,54 @@ public class ServiceInstanceDtos {
   @Builder
   @NoArgsConstructor
   @AllArgsConstructor
+  @Schema(description = "Service instance details response")
   public static class Response {
+    @Schema(description = "Name of the service", example = "payment-service")
     private String serviceName;
+    
+    @Schema(description = "Unique instance identifier", example = "payment-dev-1")
     private String instanceId;
+    
+    @Schema(description = "Instance host address", example = "payment-dev-1.internal.company.com")
     private String host;
+    
+    @Schema(description = "Instance port number", example = "8080")
     private Integer port;
+    
+    @Schema(description = "Deployment environment", example = "dev", allowableValues = {"dev", "staging", "prod"})
     private String environment;
+    
+    @Schema(description = "Service version", example = "1.2.0")
     private String version;
+    
+    @Schema(description = "Current configuration hash", example = "abc123def456")
     private String configHash;
+    
+    @Schema(description = "Last applied configuration hash", example = "abc123def456")
     private String lastAppliedHash;
+    
+    @Schema(description = "Expected configuration hash", example = "abc123def456")
     private String expectedHash;
+    
+    @Schema(description = "Instance status", example = "HEALTHY", allowableValues = {"HEALTHY", "UNHEALTHY", "DRIFT", "UNKNOWN"})
     private ServiceInstance.InstanceStatus status;
+    
+    @Schema(description = "Last time instance was seen", example = "2024-01-15T14:30:45.123Z")
     private Instant lastSeenAt;
+    
+    @Schema(description = "Instance creation timestamp", example = "2024-01-15T10:30:45.123Z")
     private Instant createdAt;
+    
+    @Schema(description = "Instance last update timestamp", example = "2024-01-15T14:30:45.123Z")
     private Instant updatedAt;
+    
+    @Schema(description = "Instance metadata", example = "{\"region\": \"us-east-1\", \"zone\": \"us-east-1a\"}")
     private Map<String, String> metadata;
+    
+    @Schema(description = "Whether drift is detected", example = "false")
     private Boolean hasDrift;
+    
+    @Schema(description = "Timestamp when drift was first detected", example = "2024-01-15T14:30:45.123Z")
     private Instant driftDetectedAt;
   }
 }

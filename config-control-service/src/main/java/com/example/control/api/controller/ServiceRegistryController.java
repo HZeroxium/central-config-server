@@ -4,11 +4,17 @@ import com.example.control.api.dto.common.ApiResponseDto;
 import com.example.control.api.dto.consul.ConsulDto;
 import com.example.control.api.mapper.consul.ConsulMapper;
 import com.example.control.application.ConsulClient;
+import com.example.control.api.exception.ErrorResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.annotation.Timed;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -32,9 +38,27 @@ public class ServiceRegistryController {
   private final ObjectMapper objectMapper;
 
   @GetMapping("/services")
-  @Operation(summary = "List all services", description = "Get list of all registered services from Consul")
+  @Operation(
+      summary = "List all registered services",
+      description = """
+          Retrieves a list of all services registered with Consul.
+          This provides an overview of available services in the ecosystem.
+          """,
+      security = @SecurityRequirement(name = "oauth2_auth_code"),
+      operationId = "listServiceRegistryServices"
+  )
+  @ApiResponses(value = {
+      @ApiResponse(responseCode = "200", description = "Successfully retrieved service list",
+          content = @Content(schema = @Schema(implementation = ApiResponseDto.ApiResponse.class))),
+      @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "403", description = "Forbidden - Insufficient permissions",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "500", description = "Internal server error or Consul unreachable",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  })
   @Timed(value = "api.registry.services.list")
-  public ResponseEntity<ApiResponseDto.ApiResponse<ConsulDto.ConsulServicesMap>> listServices() {
+  public ResponseEntity<ApiResponseDto.ApiResponse<ConsulDto.ConsulServicesMap>> listServiceRegistryServices() {
     log.debug("Listing all services from Consul");
 
     String response = consulClient.getServices();
@@ -45,10 +69,31 @@ public class ServiceRegistryController {
   }
 
   @GetMapping("/services/{serviceName}")
-  @Operation(summary = "Get service details", description = "Get detailed information about a specific service")
+  @Operation(
+      summary = "Get service details",
+      description = """
+          Retrieves detailed information about a specific service from Consul.
+          This includes all registered instances and their metadata.
+          """,
+      security = @SecurityRequirement(name = "oauth2_auth_code"),
+      operationId = "getServiceRegistryService"
+  )
+  @ApiResponses(value = {
+      @ApiResponse(responseCode = "200", description = "Service details retrieved successfully",
+          content = @Content(schema = @Schema(implementation = ApiResponseDto.ApiResponse.class))),
+      @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "403", description = "Forbidden - Insufficient permissions",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "404", description = "Service not found",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "500", description = "Internal server error or Consul unreachable",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  })
   @Timed(value = "api.registry.services.get")
-  public ResponseEntity<ApiResponseDto.ApiResponse<List<ConsulDto.ConsulServiceResponse>>> getService(
-      @PathVariable @Parameter(description = "Service name") String serviceName) {
+  public ResponseEntity<ApiResponseDto.ApiResponse<List<ConsulDto.ConsulServiceResponse>>> getServiceRegistryService(
+      @Parameter(description = "Name of the service", example = "payment-service")
+      @PathVariable String serviceName) {
 
     log.debug("Getting service details for: {}", serviceName);
 
@@ -60,11 +105,33 @@ public class ServiceRegistryController {
   }
 
   @GetMapping("/services/{serviceName}/instances")
-  @Operation(summary = "Get service instances", description = "Get healthy instances of a service")
+  @Operation(
+      summary = "Get service instances",
+      description = """
+          Retrieves instances of a specific service from Consul.
+          Can filter to show only healthy instances or all instances.
+          """,
+      security = @SecurityRequirement(name = "oauth2_auth_code"),
+      operationId = "getServiceRegistryServiceInstances"
+  )
+  @ApiResponses(value = {
+      @ApiResponse(responseCode = "200", description = "Service instances retrieved successfully",
+          content = @Content(schema = @Schema(implementation = ApiResponseDto.ApiResponse.class))),
+      @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "403", description = "Forbidden - Insufficient permissions",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "404", description = "Service not found",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "500", description = "Internal server error or Consul unreachable",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  })
   @Timed(value = "api.registry.services.instances")
-  public ResponseEntity<ApiResponseDto.ApiResponse<List<ApiResponseDto.ServiceInstanceSummary>>> getServiceInstances(
-      @PathVariable @Parameter(description = "Service name") String serviceName,
-      @RequestParam(defaultValue = "true") @Parameter(description = "Only passing instances") boolean passing) {
+  public ResponseEntity<ApiResponseDto.ApiResponse<List<ApiResponseDto.ServiceInstanceSummary>>> getServiceRegistryServiceInstances(
+      @Parameter(description = "Name of the service", example = "payment-service")
+      @PathVariable String serviceName,
+      @Parameter(description = "Filter to only healthy instances", example = "true")
+      @RequestParam(defaultValue = "true") boolean passing) {
 
     log.debug("Getting instances for service: {}, passing only: {}", serviceName, passing);
 
@@ -78,10 +145,31 @@ public class ServiceRegistryController {
   }
 
   @GetMapping("/health/{serviceName}")
-  @Operation(summary = "Get service health", description = "Get health status of a service")
+  @Operation(
+      summary = "Get service health status",
+      description = """
+          Retrieves the health status of a specific service from Consul.
+          This includes health checks for all instances of the service.
+          """,
+      security = @SecurityRequirement(name = "oauth2_auth_code"),
+      operationId = "getServiceRegistryServiceHealth"
+  )
+  @ApiResponses(value = {
+      @ApiResponse(responseCode = "200", description = "Service health status retrieved successfully",
+          content = @Content(schema = @Schema(implementation = ApiResponseDto.ApiResponse.class))),
+      @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "403", description = "Forbidden - Insufficient permissions",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "404", description = "Service not found",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "500", description = "Internal server error or Consul unreachable",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  })
   @Timed(value = "api.registry.health.get")
   public ResponseEntity<ApiResponseDto.ApiResponse<List<ConsulDto.ConsulHealthResponse>>> getServiceHealth(
-      @PathVariable @Parameter(description = "Service name") String serviceName) {
+      @Parameter(description = "Name of the service", example = "payment-service")
+      @PathVariable String serviceName) {
 
     log.debug("Getting health status for service: {}", serviceName);
 

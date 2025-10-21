@@ -2,6 +2,7 @@ package com.example.control.api.dto.domain;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
@@ -21,28 +22,35 @@ public class ApprovalRequestDtos {
     /**
      * Request DTO for creating a new approval request.
      */
+    @Schema(description = "Request to create a new approval request")
     public record CreateRequest(
             @NotBlank(message = "Service ID is required")
             @Size(max = 100, message = "Service ID must not exceed 100 characters")
+            @Schema(description = "Service ID to request ownership for", example = "payment-service", maxLength = 100)
             String serviceId,
 
             @NotBlank(message = "Target team ID is required")
             @Size(max = 100, message = "Target team ID must not exceed 100 characters")
+            @Schema(description = "Team requesting ownership", example = "team_core", maxLength = 100)
             String targetTeamId,
 
             @Size(max = 500, message = "Note must not exceed 500 characters")
+            @Schema(description = "Optional note explaining the request", example = "Our team will be responsible for maintaining this service", maxLength = 500)
             String note
     ) {}
 
     /**
      * Request DTO for submitting a decision on an approval request.
      */
+    @Schema(description = "Request to submit a decision on an approval request")
     public record DecisionRequest(
             @NotBlank(message = "Decision is required")
             @Size(max = 20, message = "Decision must not exceed 20 characters")
+            @Schema(description = "Approval decision", example = "APPROVE", allowableValues = {"APPROVE", "REJECT"})
             String decision,
 
             @Size(max = 500, message = "Note must not exceed 500 characters")
+            @Schema(description = "Optional note explaining the decision", example = "Approved based on team capacity and expertise", maxLength = 500)
             String note
     ) {}
 

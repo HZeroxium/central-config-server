@@ -3,9 +3,17 @@ package com.example.control.api.controller;
 import com.example.control.domain.object.HeartbeatPayload;
 import com.example.control.application.service.HeartbeatService;
 import com.example.control.domain.object.ServiceInstance;
+import com.example.control.api.exception.ErrorResponse;
 import io.micrometer.core.annotation.Timed;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -43,10 +51,51 @@ public class HeartbeatController {
    * @return standardized JSON response with drift and status info
    */
   @PostMapping
-  @Operation(summary = "Process heartbeat",
-      description = "Receive heartbeat from a service instance with config hash for drift detection")
+  @Operation(
+      summary = "Process heartbeat from service instance",
+      description = """
+          Receives periodic heartbeat signals from running service instances.
+          This endpoint tracks instance liveness, detects configuration drift,
+          and can trigger automatic configuration refreshes.
+          
+          **Public Endpoint:** No authentication required for SDK integration
+          **Drift Detection:** Compares current config hash with last applied hash
+          **Auto-Refresh:** Can trigger config refresh if drift is detected
+          """,
+      security = @SecurityRequirement(name = "oauth2_auth_code"),
+      operationId = "processHeartbeat"
+  )
+  @ApiResponses(value = {
+      @ApiResponse(responseCode = "200", description = "Heartbeat processed successfully",
+          content = @Content(mediaType = "application/json", examples = {
+              @ExampleObject(name = "Successful Heartbeat",
+                  value = """
+                      {
+                        "status": "ok",
+                        "message": "Heartbeat processed",
+                        "instance": {
+                          "serviceName": "payment-service",
+                          "instanceId": "payment-dev-1",
+                          "status": "HEALTHY",
+                          "hasDrift": false,
+                          "configHash": "abc123def456",
+                          "lastAppliedHash": "abc123def456"
+                        }
+                      }
+                      """)
+          })),
+      @ApiResponse(responseCode = "400", description = "Invalid heartbeat payload",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "500", description = "Internal server error during heartbeat processing",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  })
   @Timed(value = "api.heartbeat.process", description = "Time taken to process heartbeat")
-  public ResponseEntity<Map<String, Object>> processHeartbeat(@Valid @RequestBody HeartbeatPayload payload) {
+  public ResponseEntity<Map<String, Object>> processHeartbeat(
+      @Parameter(description = "Heartbeat payload with service instance information and config hash",
+                schema = @Schema(implementation = HeartbeatPayload.class))
+      @Valid @RequestBody HeartbeatPayload payload) {
     log.debug("Received heartbeat from {}:{}", payload.getServiceName(), payload.getInstanceId());
 
     ServiceInstance instance = heartbeatService.processHeartbeat(payload);
@@ -69,7 +118,29 @@ public class HeartbeatController {
    * @return status JSON with "UP" if controller is healthy
    */
   @GetMapping("/health")
-  @Operation(summary = "Health check", description = "Check if heartbeat endpoint is operational")
+  @Operation(
+      summary = "Health check endpoint",
+      description = """
+          Simple health check to verify that the heartbeat controller is operational.
+          This endpoint is used for monitoring and load balancer health checks.
+          """,
+      security = @SecurityRequirement(name = "oauth2_auth_code"),
+      operationId = "heartbeatHealth"
+  )
+  @ApiResponses(value = {
+      @ApiResponse(responseCode = "200", description = "Heartbeat controller is healthy",
+          content = @Content(mediaType = "application/json", examples = {
+              @ExampleObject(name = "Healthy Status",
+                  value = """
+                      {
+                        "status": "UP",
+                        "service": "heartbeat-controller"
+                      }
+                      """)
+          })),
+      @ApiResponse(responseCode = "500", description = "Internal server error",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  })
   public ResponseEntity<Map<String, String>> health() {
     return ResponseEntity.ok(Map.of(
         "status", "UP",
