@@ -4,12 +4,27 @@ import MainLayout from '@layout/MainLayout'
 import Loading from '@components/common/Loading'
 import ErrorBoundary from '@components/ErrorBoundary'
 import NotFoundPage from '../pages/NotFoundPage'
+import ProtectedRoute from '@components/auth/ProtectedRoute'
 
-const DashboardPage = lazy(() => import('@features/dashboard/pages/DashboardPage'))
+// Lazy load all pages
+const DashboardPage = lazy(() => import('@features/dashboard/pages/DashboardPage').then(module => ({ default: module.default })))
 const ServiceListPage = lazy(() => import('@features/services/pages/ServiceListPage'))
 const ServiceDetailPage = lazy(() => import('@features/services/pages/ServiceDetailPage'))
 const ConfigListPage = lazy(() => import('@features/configs/pages/ConfigListPage'))
 const ConfigDetailPage = lazy(() => import('@features/configs/pages/ConfigDetailPage'))
+const ApplicationServiceListPage = lazy(() => import('@features/application-services/pages/ApplicationServiceListPage'))
+const ApplicationServiceDetailPage = lazy(() => import('@features/application-services/pages/ApplicationServiceDetailPage'))
+const ServiceInstanceListPage = lazy(() => import('@features/service-instances/pages/ServiceInstanceListPage'))
+const ServiceInstanceDetailPage = lazy(() => import('@features/service-instances/pages/ServiceInstanceDetailPage'))
+const ApprovalListPage = lazy(() => import('@features/approvals/pages/ApprovalListPage'))
+const ApprovalDetailPage = lazy(() => import('@features/approvals/pages/ApprovalDetailPage'))
+const DriftEventListPage = lazy(() => import('@features/drift-events/pages/DriftEventListPage'))
+const ServiceShareListPage = lazy(() => import('@features/service-shares/pages/ServiceShareListPage'))
+const ServiceShareDetailPage = lazy(() => import('@features/service-shares/pages/ServiceShareDetailPage'))
+const IamUserListPage = lazy(() => import('@features/iam/pages/IamUserListPage'))
+const IamTeamListPage = lazy(() => import('@features/iam/pages/IamTeamListPage'))
+const ProfilePage = lazy(() => import('@features/auth/pages/ProfilePage'))
+const LoginCallbackPage = lazy(() => import('@features/auth/pages/LoginCallbackPage'))
 
 export const router = createBrowserRouter([
   {
@@ -20,10 +35,47 @@ export const router = createBrowserRouter([
       { 
         index: true, 
         element: (
-          <Suspense fallback={<Loading />}> 
-            <DashboardPage />
-          </Suspense>
+          <ProtectedRoute>
+            <Suspense fallback={<Loading />}> 
+              <DashboardPage />
+            </Suspense>
+          </ProtectedRoute>
         )
+      },
+      {
+        path: 'dashboard',
+        element: (
+          <ProtectedRoute>
+            <Suspense fallback={<Loading />}> 
+              <DashboardPage />
+            </Suspense>
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'application-services',
+        children: [
+          {
+            index: true,
+            element: (
+              <ProtectedRoute>
+                <Suspense fallback={<Loading />}> 
+                  <ApplicationServiceListPage />
+                </Suspense>
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: ':id',
+            element: (
+              <ProtectedRoute>
+                <Suspense fallback={<Loading />}> 
+                  <ApplicationServiceDetailPage />
+                </Suspense>
+              </ProtectedRoute>
+            ),
+          },
+        ],
       },
       {
         path: 'services',
@@ -31,17 +83,21 @@ export const router = createBrowserRouter([
           {
             index: true,
             element: (
-              <Suspense fallback={<Loading />}> 
-                <ServiceListPage />
-              </Suspense>
+              <ProtectedRoute>
+                <Suspense fallback={<Loading />}> 
+                  <ServiceListPage />
+                </Suspense>
+              </ProtectedRoute>
             ),
           },
           {
             path: ':serviceName',
             element: (
-              <Suspense fallback={<Loading />}> 
-                <ServiceDetailPage />
-              </Suspense>
+              <ProtectedRoute>
+                <Suspense fallback={<Loading />}> 
+                  <ServiceDetailPage />
+                </Suspense>
+              </ProtectedRoute>
             ),
           },
         ],
@@ -52,20 +108,152 @@ export const router = createBrowserRouter([
           {
             index: true,
             element: (
-              <Suspense fallback={<Loading />}> 
-                <ConfigListPage />
-              </Suspense>
+              <ProtectedRoute>
+                <Suspense fallback={<Loading />}> 
+                  <ConfigListPage />
+                </Suspense>
+              </ProtectedRoute>
             ),
           },
           {
             path: ':application/:profile',
             element: (
-              <Suspense fallback={<Loading />}> 
-                <ConfigDetailPage />
-              </Suspense>
+              <ProtectedRoute>
+                <Suspense fallback={<Loading />}> 
+                  <ConfigDetailPage />
+                </Suspense>
+              </ProtectedRoute>
             ),
           },
         ],
+      },
+      {
+        path: 'service-instances',
+        children: [
+          {
+            index: true,
+            element: (
+              <ProtectedRoute>
+                <Suspense fallback={<Loading />}> 
+                  <ServiceInstanceListPage />
+                </Suspense>
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: ':id',
+            element: (
+              <ProtectedRoute>
+                <Suspense fallback={<Loading />}> 
+                  <ServiceInstanceDetailPage />
+                </Suspense>
+              </ProtectedRoute>
+            ),
+          },
+        ],
+      },
+      {
+        path: 'approvals',
+        children: [
+          {
+            index: true,
+            element: (
+              <ProtectedRoute>
+                <Suspense fallback={<Loading />}> 
+                  <ApprovalListPage />
+                </Suspense>
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: ':id',
+            element: (
+              <ProtectedRoute>
+                <Suspense fallback={<Loading />}> 
+                  <ApprovalDetailPage />
+                </Suspense>
+              </ProtectedRoute>
+            ),
+          },
+        ],
+      },
+      {
+        path: 'drift-events',
+        element: (
+          <ProtectedRoute>
+            <Suspense fallback={<Loading />}> 
+              <DriftEventListPage />
+            </Suspense>
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'service-shares',
+        children: [
+          {
+            index: true,
+            element: (
+              <ProtectedRoute>
+                <Suspense fallback={<Loading />}> 
+                  <ServiceShareListPage />
+                </Suspense>
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: ':id',
+            element: (
+              <ProtectedRoute>
+                <Suspense fallback={<Loading />}> 
+                  <ServiceShareDetailPage />
+                </Suspense>
+              </ProtectedRoute>
+            ),
+          },
+        ],
+      },
+      {
+        path: 'iam',
+        children: [
+          {
+            path: 'users',
+            element: (
+              <ProtectedRoute>
+                <Suspense fallback={<Loading />}> 
+                  <IamUserListPage />
+                </Suspense>
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: 'teams',
+            element: (
+              <ProtectedRoute>
+                <Suspense fallback={<Loading />}> 
+                  <IamTeamListPage />
+                </Suspense>
+              </ProtectedRoute>
+            ),
+          },
+        ],
+      },
+      {
+        path: 'profile',
+        element: (
+          <ProtectedRoute>
+            <Suspense fallback={<Loading />}> 
+              <ProfilePage />
+            </Suspense>
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'login-callback',
+        element: (
+          <Suspense fallback={<Loading />}> 
+            <LoginCallbackPage />
+          </Suspense>
+        ),
       },
       {
         path: '*',

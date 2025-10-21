@@ -1,12 +1,19 @@
 import { configureStore } from '@reduxjs/toolkit'
 import { setupListeners } from '@reduxjs/toolkit/query'
-import { baseApi } from '@lib/api/baseApi'
+import { apiSlice } from '@lib/api/apiSlice'
+import authSlice from '@features/auth/authSlice'
 
 export const store = configureStore({
   reducer: {
-    [baseApi.reducerPath]: baseApi.reducer,
+    [apiSlice.reducerPath]: apiSlice.reducer,
+    auth: authSlice,
   },
-  middleware: (getDefault) => getDefault().concat(baseApi.middleware),
+  middleware: (getDefault) => 
+    getDefault({
+      serializableCheck: {
+        ignoredActions: ['persist/PERSIST', 'persist/REHYDRATE'],
+      },
+    }).concat(apiSlice.middleware),
 })
 
 export type RootState = ReturnType<typeof store.getState>

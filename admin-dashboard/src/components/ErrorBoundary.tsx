@@ -1,4 +1,4 @@
-import { Component, ReactNode } from 'react'
+import { Component, type ReactNode } from 'react'
 import { Box, Typography, Button, Alert, AlertTitle } from '@mui/material'
 import { Refresh as RefreshIcon } from '@mui/icons-material'
 
@@ -69,7 +69,7 @@ export default class ErrorBoundary extends Component<Props, State> {
             Refresh Page
           </Button>
           
-          {process.env.NODE_ENV === 'development' && this.state.error && (
+          {typeof window !== 'undefined' && window.location.hostname === 'localhost' && this.state.error && (
             <Box sx={{ mt: 3, p: 2, bgcolor: 'grey.100', borderRadius: 1, maxWidth: 600 }}>
               <Typography variant="caption" component="pre" sx={{ textAlign: 'left', overflow: 'auto' }}>
                 {this.state.error.stack}
