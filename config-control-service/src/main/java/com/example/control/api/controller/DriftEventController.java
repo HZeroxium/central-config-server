@@ -1,8 +1,6 @@
 package com.example.control.api.controller;
 
-import com.example.control.api.dto.common.ApiResponseDto;
 import com.example.control.api.dto.domain.DriftEventDtos;
-import com.example.control.api.dto.common.PageDtos.PageResponse;
 import com.example.control.api.mapper.domain.DriftEventApiMapper;
 import com.example.control.application.service.DriftEventService;
 import com.example.control.config.security.UserContext;
@@ -55,7 +53,7 @@ public class DriftEventController {
   )
   @ApiResponses(value = {
       @ApiResponse(responseCode = "200", description = "Drift event created successfully",
-          content = @Content(schema = @Schema(implementation = ApiResponseDto.ApiResponse.class))),
+          content = @Content(schema = @Schema(implementation = DriftEventDtos.Response.class))),
       @ApiResponse(responseCode = "400", description = "Invalid request data",
           content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
       @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
@@ -65,15 +63,14 @@ public class DriftEventController {
       @ApiResponse(responseCode = "500", description = "Internal server error",
           content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   })
-  public ResponseEntity<ApiResponseDto.ApiResponse<DriftEventDtos.Response>> create(
+  public ResponseEntity<DriftEventDtos.Response> create(
       @Parameter(description = "Drift event creation request", 
                 schema = @Schema(implementation = DriftEventDtos.CreateRequest.class))
       @Valid @RequestBody DriftEventDtos.CreateRequest request,
       @AuthenticationPrincipal Jwt jwt) {
     UserContext userContext = UserContext.fromJwt(jwt);
     DriftEvent saved = service.save(DriftEventApiMapper.toDomain(request), userContext);
-    return ResponseEntity.ok(ApiResponseDto.ApiResponse.success(
-        DriftEventApiMapper.toResponse(saved)));
+    return ResponseEntity.ok(DriftEventApiMapper.toResponse(saved));
   }
 
   @GetMapping("/{id}")
@@ -92,7 +89,7 @@ public class DriftEventController {
   )
   @ApiResponses(value = {
       @ApiResponse(responseCode = "200", description = "Drift event found",
-          content = @Content(schema = @Schema(implementation = ApiResponseDto.ApiResponse.class))),
+          content = @Content(schema = @Schema(implementation = DriftEventDtos.Response.class))),
       @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
           content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
       @ApiResponse(responseCode = "403", description = "Forbidden - Insufficient permissions",
@@ -102,14 +99,13 @@ public class DriftEventController {
       @ApiResponse(responseCode = "500", description = "Internal server error",
           content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   })
-  public ResponseEntity<ApiResponseDto.ApiResponse<DriftEventDtos.Response>> findById(
+  public ResponseEntity<DriftEventDtos.Response> findById(
       @Parameter(description = "Drift event ID", example = "drift-12345")
       @PathVariable String id,
       @AuthenticationPrincipal Jwt jwt) {
     UserContext userContext = UserContext.fromJwt(jwt);
     Optional<DriftEvent> opt = service.findById(DriftEventId.of(id), userContext);
-    return opt.map(ev -> ResponseEntity.ok(ApiResponseDto.ApiResponse.success(
-        DriftEventApiMapper.toResponse(ev))))
+    return opt.map(ev -> ResponseEntity.ok(DriftEventApiMapper.toResponse(ev)))
         .orElse(ResponseEntity.notFound().build());
   }
 
@@ -129,7 +125,7 @@ public class DriftEventController {
   )
   @ApiResponses(value = {
       @ApiResponse(responseCode = "200", description = "Drift event updated successfully",
-          content = @Content(schema = @Schema(implementation = ApiResponseDto.ApiResponse.class))),
+          content = @Content(schema = @Schema(implementation = DriftEventDtos.Response.class))),
       @ApiResponse(responseCode = "400", description = "Invalid request data",
           content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
       @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
@@ -141,7 +137,7 @@ public class DriftEventController {
       @ApiResponse(responseCode = "500", description = "Internal server error",
           content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   })
-  public ResponseEntity<ApiResponseDto.ApiResponse<DriftEventDtos.Response>> update(
+  public ResponseEntity<DriftEventDtos.Response> update(
       @Parameter(description = "Drift event ID", example = "drift-12345")
       @PathVariable String id,
       @Parameter(description = "Drift event update request", 
@@ -153,8 +149,7 @@ public class DriftEventController {
     if (ev == null) return ResponseEntity.notFound().build();
     DriftEventApiMapper.apply(ev, request);
     DriftEvent saved = service.save(ev);
-    return ResponseEntity.ok(ApiResponseDto.ApiResponse.success(
-        DriftEventApiMapper.toResponse(saved)));
+    return ResponseEntity.ok(DriftEventApiMapper.toResponse(saved));
   }
 
   @GetMapping
@@ -174,7 +169,7 @@ public class DriftEventController {
   )
   @ApiResponses(value = {
       @ApiResponse(responseCode = "200", description = "Drift events retrieved successfully",
-          content = @Content(schema = @Schema(implementation = ApiResponseDto.ApiResponse.class))),
+          content = @Content(schema = @Schema(implementation = Page.class))),
       @ApiResponse(responseCode = "400", description = "Invalid request parameters",
           content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
       @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
@@ -183,7 +178,7 @@ public class DriftEventController {
           content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   })
   @Timed("api.drift-events.list")
-  public ResponseEntity<ApiResponseDto.ApiResponse<PageResponse<DriftEventDtos.Response>>> findAll(
+  public ResponseEntity<Page<DriftEventDtos.Response>> findAll(
       @Parameter(description = "Filter by service name", example = "payment-service") 
       @RequestParam(required = false) String serviceName,
       @Parameter(description = "Filter by instance ID", example = "payment-dev-1") 
@@ -211,8 +206,7 @@ public class DriftEventController {
     DriftEventCriteria criteria = DriftEventApiMapper.toCriteria(queryFilter, userContext);
     Page<DriftEvent> page = service.findAll(criteria, pageable, userContext);
     Page<DriftEventDtos.Response> mapped = page.map(DriftEventApiMapper::toResponse);
-    return ResponseEntity.ok(ApiResponseDto.ApiResponse.success(
-        "Drift events", PageResponse.from(mapped)));
+    return ResponseEntity.ok(mapped);
   }
 }
 

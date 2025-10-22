@@ -1,4 +1,4 @@
-package com.example.control.api.dto;
+package com.example.control.api.dto.domain;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
@@ -14,6 +14,7 @@ import java.util.List;
  * with team-based access control.
  * </p>
  */
+@Schema(name = "IamTeamDtos", description = "DTOs for IAM team API operations")
 public class IamTeamDtos {
 
     /**
@@ -21,7 +22,7 @@ public class IamTeamDtos {
      */
     @Data
     @Builder
-    @Schema(description = "IAM team details response")
+    @Schema(name = "IamTeamResponse", description = "IAM team details response")
     public static class Response {
         @Schema(description = "Unique team identifier", example = "team_core")
         private String teamId;
@@ -47,7 +48,7 @@ public class IamTeamDtos {
      */
     @Data
     @Builder
-    @Schema(description = "Query filter for searching IAM teams")
+    @Schema(name = "IamTeamQueryFilter", description = "Query filter for searching IAM teams")
     public static class QueryFilter {
         @Schema(description = "Filter by team display name", example = "Core Team")
         private String displayName;
@@ -61,7 +62,7 @@ public class IamTeamDtos {
      */
     @Data
     @Builder
-    @Schema(description = "IAM team statistics response")
+    @Schema(name = "IamTeamStatsResponse", description = "IAM team statistics response")
     public static class StatsResponse {
         @Schema(description = "Total number of teams", example = "5")
         private long totalTeams;

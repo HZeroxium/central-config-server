@@ -1,7 +1,7 @@
 package com.example.control.api.controller;
 
-import com.example.control.api.dto.IamUserDtos;
-import com.example.control.api.mapper.IamUserApiMapper;
+import com.example.control.api.dto.domain.IamUserDtos;
+import com.example.control.api.mapper.domain.IamUserApiMapper;
 import com.example.control.application.service.IamUserService;
 import com.example.control.config.security.UserContext;
 import com.example.control.domain.criteria.IamUserCriteria;
@@ -58,7 +58,10 @@ public class IamUserController {
             Retrieve a paginated list of cached IAM user projections from Keycloak.
             This endpoint is restricted to system administrators.
             """,
-        security = @SecurityRequirement(name = "oauth2_auth_code"),
+        security = {
+            @SecurityRequirement(name = "oauth2_auth_code"),
+            @SecurityRequirement(name = "oauth2_password")
+        },
         operationId = "findAllIamUsers"
     )
     @ApiResponses(value = {
@@ -102,7 +105,10 @@ public class IamUserController {
             Retrieve a specific IAM user by their ID from cached Keycloak projections.
             This endpoint is restricted to system administrators.
             """,
-        security = @SecurityRequirement(name = "oauth2_auth_code"),
+        security = {
+            @SecurityRequirement(name = "oauth2_auth_code"),
+            @SecurityRequirement(name = "oauth2_password")
+        },
         operationId = "findByIdIamUser"
     )
     @ApiResponses(value = {
@@ -145,7 +151,10 @@ public class IamUserController {
             Retrieve all users belonging to a specific team from cached IAM data.
             This endpoint is restricted to system administrators.
             """,
-        security = @SecurityRequirement(name = "oauth2_auth_code"),
+        security = {
+            @SecurityRequirement(name = "oauth2_auth_code"),
+            @SecurityRequirement(name = "oauth2_password")
+        },
         operationId = "findByTeamIamUser"
     )
     @ApiResponses(value = {
@@ -188,7 +197,10 @@ public class IamUserController {
             Retrieve all users reporting to a specific manager from cached IAM data.
             This endpoint is restricted to system administrators.
             """,
-        security = @SecurityRequirement(name = "oauth2_auth_code"),
+        security = {
+            @SecurityRequirement(name = "oauth2_auth_code"),
+            @SecurityRequirement(name = "oauth2_password")
+        },
         operationId = "findByManagerIamUser"
     )
     @ApiResponses(value = {
@@ -230,7 +242,10 @@ public class IamUserController {
             Retrieve user count statistics from cached IAM data.
             This endpoint is restricted to system administrators.
             """,
-        security = @SecurityRequirement(name = "oauth2_auth_code"),
+        security = {
+            @SecurityRequirement(name = "oauth2_auth_code"),
+            @SecurityRequirement(name = "oauth2_password")
+        },
         operationId = "getStatsIamUser"
     )
     @ApiResponses(value = {

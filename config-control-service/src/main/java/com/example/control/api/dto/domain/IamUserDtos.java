@@ -1,4 +1,4 @@
-package com.example.control.api.dto;
+package com.example.control.api.dto.domain;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
@@ -14,6 +14,7 @@ import java.util.List;
  * with team-based access control.
  * </p>
  */
+@Schema(name = "IamUserDtos", description = "DTOs for IAM user API operations")
 public class IamUserDtos {
 
     /**
@@ -21,7 +22,7 @@ public class IamUserDtos {
      */
     @Data
     @Builder
-    @Schema(description = "IAM user details response")
+    @Schema(name = "IamUserResponse", description = "IAM user details response")
     public static class Response {
         @Schema(description = "Unique user identifier", example = "user1")
         private String userId;
@@ -62,7 +63,7 @@ public class IamUserDtos {
      */
     @Data
     @Builder
-    @Schema(description = "Query filter for searching IAM users")
+    @Schema(name = "IamUserQueryFilter", description = "Query filter for searching IAM users")
     public static class QueryFilter {
         @Schema(description = "Filter by username", example = "john.doe")
         private String username;
@@ -91,7 +92,7 @@ public class IamUserDtos {
      */
     @Data
     @Builder
-    @Schema(description = "IAM statistics response")
+    @Schema(name = "IamUserStatsResponse", description = "IAM statistics response")
     public static class StatsResponse {
         @Schema(description = "Total number of users", example = "150")
         private long totalUsers;

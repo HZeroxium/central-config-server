@@ -13,12 +13,13 @@ import java.time.Instant;
  * proper JSON serialization.
  * </p>
  */
+@Schema(name = "ApprovalDecisionDtos", description = "DTOs for ApprovalDecision API operations")
 public class ApprovalDecisionDtos {
 
     /**
      * Response DTO for approval decision details.
      */
-    @Schema(description = "Approval decision details response")
+    @Schema(name = "ApprovalDecisionResponse", description = "Approval decision details response")
     public record Response(
             @JsonProperty("id")
             @Schema(description = "Unique decision identifier", example = "decision-12345")

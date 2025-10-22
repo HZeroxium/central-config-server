@@ -1,7 +1,5 @@
 package com.example.control.api.controller;
 
-import com.example.control.api.dto.common.ApiResponseDto;
-import com.example.control.api.dto.common.PageDtos.PageResponse;
 import com.example.control.api.dto.domain.ServiceInstanceDtos;
 import com.example.control.api.mapper.domain.ServiceInstanceApiMapper;
 import com.example.control.application.service.ServiceInstanceService;
@@ -67,7 +65,7 @@ public class ServiceInstanceController {
   )
   @ApiResponses(value = {
       @ApiResponse(responseCode = "200", description = "Service instance found",
-          content = @Content(schema = @Schema(implementation = ApiResponseDto.ApiResponse.class))),
+          content = @Content(schema = @Schema(implementation = ServiceInstanceDtos.Response.class))),
       @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
           content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
       @ApiResponse(responseCode = "403", description = "Forbidden - Insufficient permissions",
@@ -77,7 +75,7 @@ public class ServiceInstanceController {
       @ApiResponse(responseCode = "500", description = "Internal server error",
           content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   })
-  public ResponseEntity<ApiResponseDto.ApiResponse<ServiceInstanceDtos.Response>> findById(
+  public ResponseEntity<ServiceInstanceDtos.Response> findById(
       @Parameter(description = "Service name", example = "payment-service")
       @PathVariable String serviceName,
       @Parameter(description = "Instance ID", example = "payment-dev-1")
@@ -85,8 +83,7 @@ public class ServiceInstanceController {
       @AuthenticationPrincipal Jwt jwt) {
     UserContext userContext = UserContext.fromJwt(jwt);
     Optional<ServiceInstance> opt = service.findById(ServiceInstanceId.of(serviceName, instanceId), userContext);
-    return opt.map(si -> ResponseEntity.ok(ApiResponseDto.ApiResponse.success(
-            ServiceInstanceApiMapper.toResponse(si))))
+    return opt.map(si -> ResponseEntity.ok(ServiceInstanceApiMapper.toResponse(si)))
         .orElse(ResponseEntity.notFound().build());
   }
 
@@ -106,7 +103,7 @@ public class ServiceInstanceController {
   )
   @ApiResponses(value = {
       @ApiResponse(responseCode = "200", description = "Service instance updated successfully",
-          content = @Content(schema = @Schema(implementation = ApiResponseDto.ApiResponse.class))),
+          content = @Content(schema = @Schema(implementation = ServiceInstanceDtos.Response.class))),
       @ApiResponse(responseCode = "400", description = "Invalid request data",
           content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
       @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
@@ -118,7 +115,7 @@ public class ServiceInstanceController {
       @ApiResponse(responseCode = "500", description = "Internal server error",
           content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   })
-  public ResponseEntity<ApiResponseDto.ApiResponse<ServiceInstanceDtos.Response>> update(
+  public ResponseEntity<ServiceInstanceDtos.Response> update(
       @Parameter(description = "Service name", example = "payment-service")
       @PathVariable String serviceName,
       @Parameter(description = "Instance ID", example = "payment-dev-1")
@@ -132,8 +129,7 @@ public class ServiceInstanceController {
     ServiceInstance updates = ServiceInstance.builder().id(id).build();
     ServiceInstanceApiMapper.apply(updates, request);
     ServiceInstance saved = service.update(id, updates, userContext);
-    return ResponseEntity.ok(ApiResponseDto.ApiResponse.success(
-        ServiceInstanceApiMapper.toResponse(saved)));
+    return ResponseEntity.ok(ServiceInstanceApiMapper.toResponse(saved));
   }
 
   @DeleteMapping("/{serviceName}/{instanceId}")
@@ -152,7 +148,7 @@ public class ServiceInstanceController {
   )
   @ApiResponses(value = {
       @ApiResponse(responseCode = "200", description = "Service instance deleted successfully",
-          content = @Content(schema = @Schema(implementation = ApiResponseDto.ApiResponse.class))),
+          content = @Content(schema = @Schema(implementation = Void.class))),
       @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
           content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
       @ApiResponse(responseCode = "403", description = "Forbidden - Insufficient permissions",
@@ -162,7 +158,7 @@ public class ServiceInstanceController {
       @ApiResponse(responseCode = "500", description = "Internal server error",
           content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   })
-  public ResponseEntity<ApiResponseDto.ApiResponse<Void>> delete(
+  public ResponseEntity<Void> delete(
       @Parameter(description = "Service name", example = "payment-service")
       @PathVariable String serviceName,
       @Parameter(description = "Instance ID", example = "payment-dev-1")
@@ -170,7 +166,7 @@ public class ServiceInstanceController {
       @AuthenticationPrincipal Jwt jwt) {
     UserContext userContext = UserContext.fromJwt(jwt);
     service.delete(ServiceInstanceId.of(serviceName, instanceId), userContext);
-    return ResponseEntity.ok(ApiResponseDto.ApiResponse.success("Deleted", null));
+    return ResponseEntity.ok().build();
   }
 
   @GetMapping
@@ -190,7 +186,7 @@ public class ServiceInstanceController {
   )
   @ApiResponses(value = {
       @ApiResponse(responseCode = "200", description = "Service instances retrieved successfully",
-          content = @Content(schema = @Schema(implementation = ApiResponseDto.ApiResponse.class))),
+          content = @Content(schema = @Schema(implementation = Page.class))),
       @ApiResponse(responseCode = "400", description = "Invalid request parameters",
           content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
       @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
@@ -199,7 +195,7 @@ public class ServiceInstanceController {
           content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   })
   @Timed("api.service-instances.list")
-  public ResponseEntity<ApiResponseDto.ApiResponse<PageResponse<ServiceInstanceDtos.Response>>> findAll(
+  public ResponseEntity<Page<ServiceInstanceDtos.Response>> findAll(
       @Parameter(description = "Filter by service name", example = "payment-service") 
       @RequestParam(required = false) String serviceName,
       @Parameter(description = "Filter by instance ID", example = "payment-dev-1") 
@@ -230,8 +226,7 @@ public class ServiceInstanceController {
     ServiceInstanceCriteria criteria = ServiceInstanceApiMapper.toCriteria(queryFilter, userContext);
     Page<ServiceInstance> page = service.findAll(criteria, pageable, userContext);
     Page<ServiceInstanceDtos.Response> mapped = page.map(ServiceInstanceApiMapper::toResponse);
-    return ResponseEntity.ok(ApiResponseDto.ApiResponse.success(
-        "Instances", PageResponse.from(mapped)));
+    return ResponseEntity.ok(mapped);
   }
 }
 

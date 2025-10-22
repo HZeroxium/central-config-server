@@ -1,13 +1,11 @@
 package com.example.control.api.controller;
 
-import com.example.control.api.dto.common.ApiResponseDto;
 import com.example.control.api.dto.domain.UserDtos;
 import com.example.control.api.mapper.domain.UserApiMapper;
 import com.example.control.application.service.UserPermissionsService;
 import com.example.control.config.security.UserContext;
 import com.example.control.api.exception.ErrorResponse;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -135,13 +133,13 @@ public class UserController {
     )
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "User permissions retrieved successfully",
-            content = @Content(schema = @Schema(implementation = ApiResponseDto.ApiResponse.class))),
+            content = @Content(schema = @Schema(implementation = UserDtos.PermissionsResponse.class))),
         @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
             content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
         @ApiResponse(responseCode = "500", description = "Internal server error",
             content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
-    public ResponseEntity<ApiResponseDto.ApiResponse<UserDtos.PermissionsResponse>> getPermissions(
+    public ResponseEntity<UserDtos.PermissionsResponse> getPermissions(
             @AuthenticationPrincipal Jwt jwt) {
         log.debug("Getting current user permissions");
         
@@ -167,6 +165,6 @@ public class UserController {
                 .sharedServiceIds(permissions.getSharedServiceIds())
                 .build();
         
-        return ResponseEntity.ok(ApiResponseDto.ApiResponse.success(response));
+        return ResponseEntity.ok(response);
     }
 }

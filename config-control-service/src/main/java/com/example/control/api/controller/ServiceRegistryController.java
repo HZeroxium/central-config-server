@@ -49,7 +49,7 @@ public class ServiceRegistryController {
   )
   @ApiResponses(value = {
       @ApiResponse(responseCode = "200", description = "Successfully retrieved service list",
-          content = @Content(schema = @Schema(implementation = ApiResponseDto.ApiResponse.class))),
+          content = @Content(schema = @Schema(implementation = ConsulDto.ConsulServicesMap.class))),
       @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
           content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
       @ApiResponse(responseCode = "403", description = "Forbidden - Insufficient permissions",
@@ -58,14 +58,13 @@ public class ServiceRegistryController {
           content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   })
   @Timed(value = "api.registry.services.list")
-  public ResponseEntity<ApiResponseDto.ApiResponse<ConsulDto.ConsulServicesMap>> listServiceRegistryServices() {
+  public ResponseEntity<ConsulDto.ConsulServicesMap> listServiceRegistryServices() {
     log.debug("Listing all services from Consul");
 
     String response = consulClient.getServices();
     ConsulDto.ConsulServicesMap services = ConsulMapper.parseServicesResponse(response, objectMapper);
 
-    return ResponseEntity.ok(ApiResponseDto.ApiResponse.success(
-        "Services retrieved successfully", services));
+    return ResponseEntity.ok(services);
   }
 
   @GetMapping("/services/{serviceName}")
@@ -80,7 +79,7 @@ public class ServiceRegistryController {
   )
   @ApiResponses(value = {
       @ApiResponse(responseCode = "200", description = "Service details retrieved successfully",
-          content = @Content(schema = @Schema(implementation = ApiResponseDto.ApiResponse.class))),
+          content = @Content(schema = @Schema(implementation = List.class))),
       @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
           content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
       @ApiResponse(responseCode = "403", description = "Forbidden - Insufficient permissions",
@@ -91,7 +90,7 @@ public class ServiceRegistryController {
           content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   })
   @Timed(value = "api.registry.services.get")
-  public ResponseEntity<ApiResponseDto.ApiResponse<List<ConsulDto.ConsulServiceResponse>>> getServiceRegistryService(
+  public ResponseEntity<List<ConsulDto.ConsulServiceResponse>> getServiceRegistryService(
       @Parameter(description = "Name of the service", example = "payment-service")
       @PathVariable String serviceName) {
 
@@ -100,8 +99,7 @@ public class ServiceRegistryController {
     String response = consulClient.getService(serviceName);
     List<ConsulDto.ConsulServiceResponse> serviceDetails = ConsulMapper.parseServiceResponse(response, objectMapper);
 
-    return ResponseEntity.ok(ApiResponseDto.ApiResponse.success(
-        "Service details retrieved successfully", serviceDetails));
+    return ResponseEntity.ok(serviceDetails);
   }
 
   @GetMapping("/services/{serviceName}/instances")
@@ -116,7 +114,7 @@ public class ServiceRegistryController {
   )
   @ApiResponses(value = {
       @ApiResponse(responseCode = "200", description = "Service instances retrieved successfully",
-          content = @Content(schema = @Schema(implementation = ApiResponseDto.ApiResponse.class))),
+          content = @Content(schema = @Schema(implementation = List.class))),
       @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
           content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
       @ApiResponse(responseCode = "403", description = "Forbidden - Insufficient permissions",
@@ -127,7 +125,7 @@ public class ServiceRegistryController {
           content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   })
   @Timed(value = "api.registry.services.instances")
-  public ResponseEntity<ApiResponseDto.ApiResponse<List<ApiResponseDto.ServiceInstanceSummary>>> getServiceRegistryServiceInstances(
+  public ResponseEntity<List<ApiResponseDto.ServiceInstanceSummary>> getServiceRegistryServiceInstances(
       @Parameter(description = "Name of the service", example = "payment-service")
       @PathVariable String serviceName,
       @Parameter(description = "Filter to only healthy instances", example = "true")
@@ -140,8 +138,7 @@ public class ServiceRegistryController {
         : consulClient.getServiceInstances(serviceName);
     List<ApiResponseDto.ServiceInstanceSummary> summaries = ConsulMapper.toSummariesFromHealthJson(response, objectMapper);
 
-    return ResponseEntity.ok(ApiResponseDto.ApiResponse.success(
-        "Service instances retrieved successfully", summaries));
+    return ResponseEntity.ok(summaries);
   }
 
   @GetMapping("/health/{serviceName}")
@@ -156,7 +153,7 @@ public class ServiceRegistryController {
   )
   @ApiResponses(value = {
       @ApiResponse(responseCode = "200", description = "Service health status retrieved successfully",
-          content = @Content(schema = @Schema(implementation = ApiResponseDto.ApiResponse.class))),
+          content = @Content(schema = @Schema(implementation = List.class))),
       @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
           content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
       @ApiResponse(responseCode = "403", description = "Forbidden - Insufficient permissions",
@@ -167,7 +164,7 @@ public class ServiceRegistryController {
           content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   })
   @Timed(value = "api.registry.health.get")
-  public ResponseEntity<ApiResponseDto.ApiResponse<List<ConsulDto.ConsulHealthResponse>>> getServiceHealth(
+  public ResponseEntity<List<ConsulDto.ConsulHealthResponse>> getServiceHealth(
       @Parameter(description = "Name of the service", example = "payment-service")
       @PathVariable String serviceName) {
 
@@ -176,7 +173,6 @@ public class ServiceRegistryController {
     String response = consulClient.getServiceHealth(serviceName);
     List<ConsulDto.ConsulHealthResponse> healthStatus = ConsulMapper.parseHealthResponse(response, objectMapper);
 
-    return ResponseEntity.ok(ApiResponseDto.ApiResponse.success(
-        "Service health retrieved successfully", healthStatus));
+    return ResponseEntity.ok(healthStatus);
   }
 }

@@ -1,6 +1,8 @@
                                                                                                                                                                                                                                                                                                                                                                                                                                     package com.example.control.application.service;
 
 import com.example.control.config.security.UserContext;
+import com.example.control.domain.criteria.ServiceShareCriteria;
+import com.example.control.domain.object.ServiceShare;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -8,11 +10,14 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Service for managing user permissions and access control discovery.
@@ -27,6 +32,7 @@ import java.util.Set;
 public class UserPermissionsService {
 
     private final ApplicationServiceService applicationServiceService;
+    private final ServiceShareService serviceShareService;
 
     /**
      * Get comprehensive permissions for a user.
@@ -53,8 +59,10 @@ public class UserPermissionsService {
                 .managerId(userContext.getManagerId());
 
         // Determine accessible routes based on roles and teams
-        Set<String> accessibleRoutes = determineAccessibleRoutes(userContext);
-        builder.accessibleRoutes(accessibleRoutes);
+        Set<String> accessibleApiRoutes = determineAccessibleApiRoutes(userContext);
+        Set<String> accessibleUiRoutes = determineAccessibleUiRoutes(userContext);
+        builder.accessibleApiRoutes(accessibleApiRoutes);
+        builder.accessibleUiRoutes(accessibleUiRoutes);
 
         // Determine available actions
         Map<String, Set<String>> actions = determineAvailableActions(userContext);
@@ -69,19 +77,19 @@ public class UserPermissionsService {
         builder.sharedServiceIds(sharedServiceIds);
 
         UserPermissions permissions = builder.build();
-        log.debug("Generated permissions for user {}: {} routes, {} owned services, {} shared services",
-                userContext.getUserId(), accessibleRoutes.size(), ownedServiceIds.size(), sharedServiceIds.size());
+        log.debug("Generated permissions for user {}: {} API routes, {} UI routes, {} owned services, {} shared services",
+                userContext.getUserId(), accessibleApiRoutes.size(), accessibleUiRoutes.size(), ownedServiceIds.size(), sharedServiceIds.size());
 
         return permissions;
     }
 
     /**
-     * Determine which routes the user can access based on their roles and teams.
+     * Determine which API routes the user can access based on their roles and teams.
      *
      * @param userContext the user context
-     * @return set of accessible route patterns
+     * @return set of accessible API route patterns
      */
-    private Set<String> determineAccessibleRoutes(UserContext userContext) {
+    private Set<String> determineAccessibleApiRoutes(UserContext userContext) {
         Set<String> routes = new java.util.HashSet<>();
 
         // All authenticated users can access basic routes
@@ -108,6 +116,43 @@ public class UserPermissionsService {
         }
 
         return routes;
+    }
+
+    /**
+     * Determine which UI routes the user can access based on their roles and teams.
+     *
+     * @param userContext the user context
+     * @return set of accessible UI route patterns
+     */
+    private Set<String> determineAccessibleUiRoutes(UserContext userContext) {
+        Set<String> uiRoutes = new java.util.HashSet<>();
+
+        // All authenticated users can access basic routes
+        uiRoutes.add("/dashboard");
+        uiRoutes.add("/profile");
+
+        // System admins have full access
+        if (userContext.isSysAdmin()) {
+            uiRoutes.add("/services");
+            uiRoutes.add("/instances");
+            uiRoutes.add("/drift-events");
+            uiRoutes.add("/approvals");
+            uiRoutes.add("/service-shares");
+            uiRoutes.add("/iam/users");
+            uiRoutes.add("/iam/teams");
+            return uiRoutes;
+        }
+
+        // Team members can access team-specific resources
+        if (userContext.getTeamIds() != null && !userContext.getTeamIds().isEmpty()) {
+            uiRoutes.add("/services");
+            uiRoutes.add("/instances");
+            uiRoutes.add("/drift-events");
+            uiRoutes.add("/approvals");
+            uiRoutes.add("/service-shares");
+        }
+
+        return uiRoutes;
     }
 
     /**
@@ -196,11 +241,20 @@ public class UserPermissionsService {
      * @param userContext the user context
      * @return list of shared service IDs
      */
+    @Cacheable(value = "user-shared-services", key = "#userContext.userId")
     private List<String> getSharedServiceIds(UserContext userContext) {
-        // This is a simplified implementation
-        // In a full implementation, you would query ServiceShareService
-        // for services shared with the user's teams or directly with the user
-        return List.of(); // Placeholder
+        if (userContext.getTeamIds() == null || userContext.getTeamIds().isEmpty()) {
+            return List.of();
+        }
+
+        // Query for shares granted to user's teams
+        ServiceShareCriteria criteria = ServiceShareCriteria.forUser(userContext);
+
+        return serviceShareService.findAll(criteria, Pageable.unpaged(), userContext)
+                .stream()
+                .map(ServiceShare::getServiceId)
+                .distinct()
+                .collect(Collectors.toList());
     }
 
     /**
@@ -219,7 +273,8 @@ public class UserPermissionsService {
         private List<String> roles;
         private boolean isSysAdmin;
         private String managerId;
-        private Set<String> accessibleRoutes;
+        private Set<String> accessibleApiRoutes;
+        private Set<String> accessibleUiRoutes;
         private Map<String, Set<String>> actions;
         private List<String> ownedServiceIds;
         private List<String> sharedServiceIds;

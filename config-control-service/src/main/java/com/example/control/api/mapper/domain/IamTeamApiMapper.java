@@ -1,6 +1,6 @@
-package com.example.control.api.mapper;
+package com.example.control.api.mapper.domain;
 
-import com.example.control.api.dto.IamTeamDtos;
+import com.example.control.api.dto.domain.IamTeamDtos;
 import com.example.control.domain.object.IamTeam;
 import org.springframework.stereotype.Component;
 

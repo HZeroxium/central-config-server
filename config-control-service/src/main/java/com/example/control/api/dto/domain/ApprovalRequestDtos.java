@@ -17,12 +17,13 @@ import java.util.Map;
  * proper validation and JSON serialization.
  * </p>
  */
+@Schema(name = "ApprovalRequestDtos", description = "DTOs for ApprovalRequest API operations")
 public class ApprovalRequestDtos {
 
     /**
      * Request DTO for creating a new approval request.
      */
-    @Schema(description = "Request to create a new approval request")
+    @Schema(name = "ApprovalRequestCreateRequest", description = "Request to create a new approval request")
     public record CreateRequest(
             @NotBlank(message = "Service ID is required")
             @Size(max = 100, message = "Service ID must not exceed 100 characters")
@@ -42,7 +43,7 @@ public class ApprovalRequestDtos {
     /**
      * Request DTO for submitting a decision on an approval request.
      */
-    @Schema(description = "Request to submit a decision on an approval request")
+    @Schema(name = "ApprovalRequestDecisionRequest", description = "Request to submit a decision on an approval request")
     public record DecisionRequest(
             @NotBlank(message = "Decision is required")
             @Size(max = 20, message = "Decision must not exceed 20 characters")
@@ -57,6 +58,7 @@ public class ApprovalRequestDtos {
     /**
      * Response DTO for approval request details.
      */
+    @Schema(name = "ApprovalRequestResponse", description = "Approval request details response")
     public record Response(
             @JsonProperty("id")
             String id,
@@ -100,6 +102,7 @@ public class ApprovalRequestDtos {
     /**
      * Query filter DTO for searching approval requests.
      */
+    @Schema(name = "ApprovalRequestQueryFilter", description = "Query filter for searching approval requests")
     public record QueryFilter(
             @Size(max = 100, message = "Requester user ID must not exceed 100 characters")
             String requesterUserId,
@@ -120,6 +123,7 @@ public class ApprovalRequestDtos {
     /**
      * Approval target information.
      */
+    @Schema(name = "ApprovalRequestApprovalTarget", description = "Approval target information")
     public record ApprovalTarget(
             @JsonProperty("serviceId")
             String serviceId,
@@ -131,6 +135,7 @@ public class ApprovalRequestDtos {
     /**
      * Approval gate information.
      */
+    @Schema(name = "ApprovalRequestApprovalGate", description = "Approval gate information")
     public record ApprovalGate(
             @JsonProperty("gate")
             String gate,
@@ -142,6 +147,7 @@ public class ApprovalRequestDtos {
     /**
      * Requester snapshot information.
      */
+    @Schema(name = "ApprovalRequestRequesterSnapshot", description = "Requester snapshot information")
     public record RequesterSnapshot(
             @JsonProperty("teamIds")
             List<String> teamIds,

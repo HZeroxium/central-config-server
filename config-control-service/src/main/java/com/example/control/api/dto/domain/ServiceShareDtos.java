@@ -17,12 +17,13 @@ import java.util.List;
  * proper validation and JSON serialization.
  * </p>
  */
+@Schema(name = "ServiceShareDtos", description = "DTOs for ServiceShare API operations")
 public class ServiceShareDtos {
 
     /**
      * Request DTO for creating a new service share.
      */
-    @Schema(description = "Request to create a new service share")
+    @Schema(name = "ServiceShareCreateRequest", description = "Request to create a new service share")
     public record CreateRequest(
             @NotBlank(message = "Service ID is required")
             @Size(max = 100, message = "Service ID must not exceed 100 characters")
@@ -55,7 +56,7 @@ public class ServiceShareDtos {
     /**
      * Response DTO for service share details.
      */
-    @Schema(description = "Service share details response")
+    @Schema(name = "ServiceShareResponse", description = "Service share details response")
     public record Response(
             @JsonProperty("id")
             @Schema(description = "Unique share identifier", example = "share-12345")
@@ -103,7 +104,7 @@ public class ServiceShareDtos {
     /**
      * Query filter DTO for searching service shares.
      */
-    @Schema(description = "Query filter for searching service shares")
+    @Schema(name = "ServiceShareQueryFilter", description = "Query filter for searching service shares")
     public record QueryFilter(
             @Size(max = 100, message = "Service ID must not exceed 100 characters")
             @Schema(description = "Filter by service ID", example = "payment-service", maxLength = 100)

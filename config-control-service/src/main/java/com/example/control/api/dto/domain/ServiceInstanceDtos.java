@@ -20,13 +20,14 @@ import java.util.Map;
  * </p>
  */
 @Data
+@Schema(name = "ServiceInstanceDtos", description = "DTOs for ServiceInstance API operations")
 public class ServiceInstanceDtos {
 
   @Data
   @Builder
   @NoArgsConstructor
   @AllArgsConstructor
-  @Schema(description = "Request to create a new service instance")
+  @Schema(name = "ServiceInstanceCreateRequest", description = "Request to create a new service instance")
   public static class CreateRequest {
     @NotBlank
     @Schema(description = "Name of the service", example = "payment-service")
@@ -66,7 +67,7 @@ public class ServiceInstanceDtos {
   @Builder
   @NoArgsConstructor
   @AllArgsConstructor
-  @Schema(description = "Request to update an existing service instance")
+  @Schema(name = "ServiceInstanceUpdateRequest", description = "Request to update an existing service instance")
   public static class UpdateRequest {
     @Schema(description = "Instance host address", example = "payment-dev-1.internal.company.com")
     private String host;
@@ -104,7 +105,7 @@ public class ServiceInstanceDtos {
   @Builder
   @NoArgsConstructor
   @AllArgsConstructor
-  @Schema(description = "Query filter for searching service instances")
+  @Schema(name = "ServiceInstanceQueryFilter", description = "Query filter for searching service instances")
   public static class QueryFilter {
     @Schema(description = "Filter by service name", example = "payment-service")
     private String serviceName;
@@ -135,7 +136,7 @@ public class ServiceInstanceDtos {
   @Builder
   @NoArgsConstructor
   @AllArgsConstructor
-  @Schema(description = "Service instance details response")
+  @Schema(name = "ServiceInstanceResponse", description = "Service instance details response")
   public static class Response {
     @Schema(description = "Name of the service", example = "payment-service")
     private String serviceName;

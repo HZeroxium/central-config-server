@@ -1,7 +1,7 @@
 package com.example.control.api.controller;
 
-import com.example.control.api.dto.IamTeamDtos;
-import com.example.control.api.mapper.IamTeamApiMapper;
+import com.example.control.api.dto.domain.IamTeamDtos;
+import com.example.control.api.mapper.domain.IamTeamApiMapper;
 import com.example.control.application.service.IamTeamService;
 import com.example.control.config.security.UserContext;
 import com.example.control.domain.criteria.IamTeamCriteria;
@@ -58,7 +58,10 @@ public class IamTeamController {
             Retrieve a paginated list of cached IAM team projections from Keycloak.
             This endpoint is restricted to system administrators.
             """,
-        security = @SecurityRequirement(name = "oauth2_auth_code"),
+        security = {
+            @SecurityRequirement(name = "oauth2_auth_code"),
+            @SecurityRequirement(name = "oauth2_password")
+        },
         operationId = "findAllIamTeams"
     )
     @ApiResponses(value = {
@@ -102,7 +105,10 @@ public class IamTeamController {
             Retrieve a specific IAM team by its ID from cached Keycloak projections.
             This endpoint is restricted to system administrators.
             """,
-        security = @SecurityRequirement(name = "oauth2_auth_code"),
+        security = {
+            @SecurityRequirement(name = "oauth2_auth_code"),
+            @SecurityRequirement(name = "oauth2_password")
+        },
         operationId = "findByIdIamTeam"
     )
     @ApiResponses(value = {
@@ -145,7 +151,10 @@ public class IamTeamController {
             Retrieve all teams that contain a specific user as a member.
             This endpoint is restricted to system administrators.
             """,
-        security = @SecurityRequirement(name = "oauth2_auth_code"),
+        security = {
+            @SecurityRequirement(name = "oauth2_auth_code"),
+            @SecurityRequirement(name = "oauth2_password")
+        },
         operationId = "findByMemberIamTeam"
     )
     @ApiResponses(value = {
@@ -187,7 +196,10 @@ public class IamTeamController {
             Retrieve team count statistics from cached IAM data.
             This endpoint is restricted to system administrators.
             """,
-        security = @SecurityRequirement(name = "oauth2_auth_code"),
+        security = {
+            @SecurityRequirement(name = "oauth2_auth_code"),
+            @SecurityRequirement(name = "oauth2_password")
+        },
         operationId = "getStatsIamTeam"
     )
     @ApiResponses(value = {

@@ -18,12 +18,13 @@ import java.util.Map;
  * application services with proper validation and JSON serialization.
  * </p>
  */
+@Schema(name = "ApplicationServiceDtos", description = "DTOs for ApplicationService API operations")
 public class ApplicationServiceDtos {
 
     /**
      * Request DTO for creating a new application service.
      */
-    @Schema(description = "Request to create a new application service")
+    @Schema(name = "ApplicationServiceCreateRequest", description = "Request to create a new application service")
     public record CreateRequest(
             @NotBlank(message = "Service ID is required")
             @Size(max = 100, message = "Service ID must not exceed 100 characters")
@@ -60,7 +61,7 @@ public class ApplicationServiceDtos {
     /**
      * Request DTO for updating an existing application service.
      */
-    @Schema(description = "Request to update an existing application service")
+    @Schema(name = "ApplicationServiceUpdateRequest", description = "Request to update an existing application service")
     public record UpdateRequest(
             @Size(max = 200, message = "Display name must not exceed 200 characters")
             @Schema(description = "Human-readable service name", example = "Payment Service v2", maxLength = 200)
@@ -84,7 +85,7 @@ public class ApplicationServiceDtos {
     /**
      * Response DTO for application service details.
      */
-    @Schema(description = "Application service details response")
+    @Schema(name = "ApplicationServiceResponse", description = "Application service details response")
     public record Response(
             @JsonProperty("id")
             @Schema(description = "Unique service identifier", example = "payment-service")
@@ -136,7 +137,7 @@ public class ApplicationServiceDtos {
     /**
      * Query filter DTO for searching application services.
      */
-    @Schema(description = "Query filter for searching application services")
+    @Schema(name = "ApplicationServiceQueryFilter", description = "Query filter for searching application services")
     public record QueryFilter(
             @Size(max = 100, message = "Owner team ID must not exceed 100 characters")
             @Schema(description = "Filter by owner team ID", example = "team_core", maxLength = 100)

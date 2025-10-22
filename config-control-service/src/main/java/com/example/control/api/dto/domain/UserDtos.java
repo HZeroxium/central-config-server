@@ -17,12 +17,13 @@ import java.util.Map;
  * proper JSON serialization.
  * </p>
  */
+@Schema(name = "UserDtos", description = "DTOs for User API operations")
 public class UserDtos {
 
     /**
      * Response DTO for current user information.
      */
-    @Schema(description = "Current user information response")
+    @Schema(name = "MeResponse", description = "Current user information response")
     public record MeResponse(
             @JsonProperty("userId")
             @Schema(description = "Unique user identifier", example = "user1")
@@ -64,7 +65,7 @@ public class UserDtos {
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    @Schema(description = "User permissions and allowed routes response")
+    @Schema(name = "PermissionsResponse", description = "User permissions and allowed routes response")
     public static class PermissionsResponse {
         @JsonProperty("allowedApiRoutes")
         @Schema(description = "API routes user can access", example = "[\"/api/application-services\", \"/api/service-instances\"]")
@@ -106,7 +107,7 @@ public class UserDtos {
      * what routes and actions the user can access.
      * </p>
      */
-    @Schema(description = "Permission matrix for frontend routing and authorization")
+    @Schema(name = "PermissionMatrix", description = "Permission matrix for frontend routing and authorization")
     public record PermissionMatrix(
             @JsonProperty("routes")
             @Schema(description = "Allowed frontend routes", example = "[\"/dashboard\", \"/services\", \"/approvals\"]")

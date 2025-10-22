@@ -18,13 +18,14 @@ import java.time.Instant;
  * </p>
  */
 @Data
+@Schema(name = "DriftEventDtos", description = "DTOs for DriftEvent API operations")
 public class DriftEventDtos {
 
   @Data
   @Builder
   @NoArgsConstructor
   @AllArgsConstructor
-  @Schema(description = "Request to create a new drift event")
+  @Schema(name = "DriftEventCreateRequest", description = "Request to create a new drift event")
   public static class CreateRequest {
     @NotBlank
     @Schema(description = "Name of the service", example = "payment-service")
@@ -57,7 +58,7 @@ public class DriftEventDtos {
   @Builder
   @NoArgsConstructor
   @AllArgsConstructor
-  @Schema(description = "Request to update an existing drift event")
+  @Schema(name = "DriftEventUpdateRequest", description = "Request to update an existing drift event")
   public static class UpdateRequest {
     @Schema(description = "New drift status", example = "RESOLVED", allowableValues = {"DETECTED", "RESOLVED", "IGNORED"})
     private DriftEvent.DriftStatus status;
@@ -73,7 +74,7 @@ public class DriftEventDtos {
   @Builder
   @NoArgsConstructor
   @AllArgsConstructor
-  @Schema(description = "Query filter for searching drift events")
+  @Schema(name = "DriftEventQueryFilter", description = "Query filter for searching drift events")
   public static class QueryFilter {
     @Schema(description = "Filter by service name", example = "payment-service")
     private String serviceName;
@@ -101,7 +102,7 @@ public class DriftEventDtos {
   @Builder
   @NoArgsConstructor
   @AllArgsConstructor
-  @Schema(description = "Drift event details response")
+  @Schema(name = "DriftEventResponse", description = "Drift event details response")
   public static class Response {
     @Schema(description = "Unique drift event identifier", example = "drift-12345")
     private String id;
