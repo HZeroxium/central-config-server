@@ -60,7 +60,10 @@ public class ServiceInstanceController {
           - Shared access: Can view instances of services shared with their team
           - SYS_ADMIN: Can view all instances
           """,
-      security = @SecurityRequirement(name = "oauth2_auth_code"),
+      security = {
+        @SecurityRequirement(name = "oauth2_auth_code"),
+        @SecurityRequirement(name = "oauth2_password")
+      },
       operationId = "findByIdServiceInstance"
   )
   @ApiResponses(value = {
@@ -98,7 +101,10 @@ public class ServiceInstanceController {
           - SYS_ADMIN: Can update any instance
           - Updates include configuration hash, status, and drift information
           """,
-      security = @SecurityRequirement(name = "oauth2_auth_code"),
+      security = {
+        @SecurityRequirement(name = "oauth2_auth_code"),
+        @SecurityRequirement(name = "oauth2_password")
+      },
       operationId = "updateServiceInstance"
   )
   @ApiResponses(value = {
@@ -143,7 +149,10 @@ public class ServiceInstanceController {
           - SYS_ADMIN: Can delete any instance
           - This action is irreversible
           """,
-      security = @SecurityRequirement(name = "oauth2_auth_code"),
+      security = {
+        @SecurityRequirement(name = "oauth2_auth_code"),
+        @SecurityRequirement(name = "oauth2_password")
+      },
       operationId = "deleteServiceInstance"
   )
   @ApiResponses(value = {
@@ -181,7 +190,10 @@ public class ServiceInstanceController {
           - SYS_ADMIN: Can view all instances
           - Results are automatically filtered based on user permissions
           """,
-      security = @SecurityRequirement(name = "oauth2_auth_code"),
+      security = {
+        @SecurityRequirement(name = "oauth2_auth_code"),
+        @SecurityRequirement(name = "oauth2_password")
+      },
       operationId = "findAllServiceInstances"
   )
   @ApiResponses(value = {

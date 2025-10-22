@@ -11,6 +11,9 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageImpl;
+
 /**
  * DTOs for ApplicationService API operations.
  * <p>
@@ -154,4 +157,15 @@ public class ApplicationServiceDtos {
             @Schema(description = "Search term for service name or description", example = "payment", maxLength = 200)
             String search
     ) {}
+
+    @Schema(name = "ApplicationServicePageResponse", description = "Page response for application services")
+    public static class ApplicationServicePageResponse
+        extends PageImpl<ApplicationServiceDtos.Response> {
+        public ApplicationServicePageResponse(List<ApplicationServiceDtos.Response> content,
+            Pageable pageable,
+            int total) {
+            super(content, pageable, total);
+        }
+    }
+
 }

@@ -44,7 +44,10 @@ public class ServiceRegistryController {
           Retrieves a list of all services registered with Consul.
           This provides an overview of available services in the ecosystem.
           """,
-      security = @SecurityRequirement(name = "oauth2_auth_code"),
+      security = {
+        @SecurityRequirement(name = "oauth2_auth_code"),
+        @SecurityRequirement(name = "oauth2_password")
+      },
       operationId = "listServiceRegistryServices"
   )
   @ApiResponses(value = {
@@ -74,7 +77,10 @@ public class ServiceRegistryController {
           Retrieves detailed information about a specific service from Consul.
           This includes all registered instances and their metadata.
           """,
-      security = @SecurityRequirement(name = "oauth2_auth_code"),
+      security = {
+        @SecurityRequirement(name = "oauth2_auth_code"),
+        @SecurityRequirement(name = "oauth2_password")
+      },
       operationId = "getServiceRegistryService"
   )
   @ApiResponses(value = {
@@ -109,7 +115,10 @@ public class ServiceRegistryController {
           Retrieves instances of a specific service from Consul.
           Can filter to show only healthy instances or all instances.
           """,
-      security = @SecurityRequirement(name = "oauth2_auth_code"),
+      security = {
+        @SecurityRequirement(name = "oauth2_auth_code"),
+        @SecurityRequirement(name = "oauth2_password")
+      },
       operationId = "getServiceRegistryServiceInstances"
   )
   @ApiResponses(value = {
@@ -148,7 +157,10 @@ public class ServiceRegistryController {
           Retrieves the health status of a specific service from Consul.
           This includes health checks for all instances of the service.
           """,
-      security = @SecurityRequirement(name = "oauth2_auth_code"),
+      security = {
+        @SecurityRequirement(name = "oauth2_auth_code"),
+        @SecurityRequirement(name = "oauth2_password")
+      },
       operationId = "getServiceRegistryServiceHealth"
   )
   @ApiResponses(value = {

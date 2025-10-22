@@ -19,7 +19,7 @@ import java.util.Map;
  * </p>
  */
 @Component
-public class ApplicationServiceApiMapper {
+public final class ApplicationServiceApiMapper {
 
     /**
      * Map CreateRequest DTO to domain entity.
@@ -27,7 +27,7 @@ public class ApplicationServiceApiMapper {
      * @param request the create request
      * @return the domain entity
      */
-    public ApplicationService toDomain(ApplicationServiceDtos.CreateRequest request) {
+    public static ApplicationService toDomain(ApplicationServiceDtos.CreateRequest request) {
         return ApplicationService.builder()
                 .id(ApplicationServiceId.of(request.id()))
                 .displayName(request.displayName())
@@ -50,7 +50,7 @@ public class ApplicationServiceApiMapper {
      * @param request the update request
      * @return the updated entity
      */
-    public ApplicationService apply(ApplicationService entity, ApplicationServiceDtos.UpdateRequest request) {
+    public static ApplicationService apply(ApplicationService entity, ApplicationServiceDtos.UpdateRequest request) {
         return entity.toBuilder()
                 .displayName(request.displayName() != null ? request.displayName() : entity.getDisplayName())
                 .lifecycle(request.lifecycle() != null ? ApplicationService.ServiceLifecycle.valueOf(request.lifecycle()) : entity.getLifecycle())
@@ -67,7 +67,7 @@ public class ApplicationServiceApiMapper {
      * @param entity the domain entity
      * @return the response DTO
      */
-    public ApplicationServiceDtos.Response toResponse(ApplicationService entity) {
+    public static ApplicationServiceDtos.Response toResponse(ApplicationService entity) {
         return new ApplicationServiceDtos.Response(
                 entity.getId().id(),
                 entity.getDisplayName(),
@@ -90,7 +90,7 @@ public class ApplicationServiceApiMapper {
      * @param userContext the user context for team filtering
      * @return the domain criteria
      */
-    public ApplicationServiceCriteria toCriteria(ApplicationServiceDtos.QueryFilter filter, UserContext userContext) {
+    public static ApplicationServiceCriteria toCriteria(ApplicationServiceDtos.QueryFilter filter, UserContext userContext) {
         return ApplicationServiceCriteria.builder()
                 .ownerTeamId(filter != null ? filter.ownerTeamId() : null)
                 .lifecycle(filter != null && filter.lifecycle() != null ? ApplicationService.ServiceLifecycle.valueOf(filter.lifecycle()) : null)

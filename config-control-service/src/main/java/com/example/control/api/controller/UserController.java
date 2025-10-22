@@ -56,7 +56,10 @@ public class UserController {
             Retrieve detailed information about the currently authenticated user.
             This includes user ID, username, email, names, team memberships, roles, and manager ID.
             """,
-        security = @SecurityRequirement(name = "oauth2_auth_code"),
+        security = {
+            @SecurityRequirement(name = "oauth2_auth_code"),
+            @SecurityRequirement(name = "oauth2_password")
+        },
         operationId = "findCurrentUserInformation"
     )
     @ApiResponses(value = {
@@ -89,7 +92,10 @@ public class UserController {
             Legacy endpoint for retrieving current user information.
             This is an alias for the /whoami endpoint for backward compatibility.
             """,
-        security = @SecurityRequirement(name = "oauth2_auth_code"),
+        security = {
+            @SecurityRequirement(name = "oauth2_auth_code"),
+            @SecurityRequirement(name = "oauth2_password")
+        },
         operationId = "findCurrentUserInformationLegacy"
     )
     @ApiResponses(value = {
@@ -128,7 +134,10 @@ public class UserController {
             - Actions: Specific operations the user can perform
             - Services: Owned and shared services the user can access
             """,
-        security = @SecurityRequirement(name = "oauth2_auth_code"),
+        security = {
+            @SecurityRequirement(name = "oauth2_auth_code"),
+            @SecurityRequirement(name = "oauth2_password")
+        },
         operationId = "findCurrentUserPermissions"
     )
     @ApiResponses(value = {

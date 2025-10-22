@@ -48,7 +48,10 @@ public class DriftEventController {
           - SYS_ADMIN: Can create drift events for any service
           - System: Can create drift events automatically during heartbeat processing
           """,
-      security = @SecurityRequirement(name = "oauth2_auth_code"),
+      security = {
+        @SecurityRequirement(name = "oauth2_auth_code"),
+        @SecurityRequirement(name = "oauth2_password")
+      },
       operationId = "createDriftEvent"
   )
   @ApiResponses(value = {
@@ -84,7 +87,10 @@ public class DriftEventController {
           - SYS_ADMIN: Can view any drift event
           - Shared access: Can view drift events for services shared with their team
           """,
-      security = @SecurityRequirement(name = "oauth2_auth_code"),
+      security = {
+        @SecurityRequirement(name = "oauth2_auth_code"),
+        @SecurityRequirement(name = "oauth2_password")
+      },
       operationId = "findDriftEventById"
   )
   @ApiResponses(value = {
@@ -120,7 +126,10 @@ public class DriftEventController {
           - SYS_ADMIN: Can update any drift event
           - Updates include status changes (DETECTED, RESOLVED, IGNORED) and resolution notes
           """,
-      security = @SecurityRequirement(name = "oauth2_auth_code"),
+      security = {
+        @SecurityRequirement(name = "oauth2_auth_code"),
+        @SecurityRequirement(name = "oauth2_password")
+      },
       operationId = "updateDriftEvent"
   )
   @ApiResponses(value = {
@@ -164,7 +173,10 @@ public class DriftEventController {
           - Shared access: Can view drift events for services shared with their team
           - Results are automatically filtered based on user permissions
           """,
-      security = @SecurityRequirement(name = "oauth2_auth_code"),
+      security = {
+        @SecurityRequirement(name = "oauth2_auth_code"),
+        @SecurityRequirement(name = "oauth2_password")
+      },
       operationId = "findAllDriftEvents"
   )
   @ApiResponses(value = {

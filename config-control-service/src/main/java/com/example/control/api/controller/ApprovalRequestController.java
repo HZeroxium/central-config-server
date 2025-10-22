@@ -67,7 +67,10 @@ public class ApprovalRequestController {
             - Team members: Can create requests for services not owned by their team
             - SYS_ADMIN: Can create requests for any service
             """,
-        security = @SecurityRequirement(name = "oauth2_auth_code"),
+        security = {
+            @SecurityRequirement(name = "oauth2_auth_code"),
+            @SecurityRequirement(name = "oauth2_password")
+        },
         operationId = "createApprovalRequest"
     )
     @ApiResponses(value = {
@@ -120,12 +123,15 @@ public class ApprovalRequestController {
             - LINE_MANAGER: Can view requests from their direct reports
             - Results are automatically filtered based on user permissions
             """,
-        security = @SecurityRequirement(name = "oauth2_auth_code"),
+        security = {
+            @SecurityRequirement(name = "oauth2_auth_code"),
+            @SecurityRequirement(name = "oauth2_password")
+        },
         operationId = "findAllApprovalRequests"
     )
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Approval requests retrieved successfully",
-            content = @Content(schema = @Schema(implementation = Page.class))),
+            content = @Content(schema = @Schema(implementation = ApprovalRequestDtos.Response.class))),
         @ApiResponse(responseCode = "400", description = "Invalid request parameters",
             content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
         @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
@@ -168,7 +174,10 @@ public class ApprovalRequestController {
             - SYS_ADMIN: Can view any request
             - LINE_MANAGER: Can view requests from their direct reports
             """,
-        security = @SecurityRequirement(name = "oauth2_auth_code"),
+        security = {
+            @SecurityRequirement(name = "oauth2_auth_code"),
+            @SecurityRequirement(name = "oauth2_password")
+        },
         operationId = "findApprovalRequestById"
     )
     @ApiResponses(value = {
@@ -222,7 +231,10 @@ public class ApprovalRequestController {
             - Only authorized approvers can submit decisions
             - Decision is recorded with approver information and timestamp
             """,
-        security = @SecurityRequirement(name = "oauth2_auth_code"),
+        security = {
+            @SecurityRequirement(name = "oauth2_auth_code"),
+            @SecurityRequirement(name = "oauth2_password")
+        },
         operationId = "submitApprovalDecision"
     )
     @ApiResponses(value = {
@@ -285,7 +297,10 @@ public class ApprovalRequestController {
             
             **Note:** Once cancelled, the request cannot be reactivated
             """,
-        security = @SecurityRequirement(name = "oauth2_auth_code"),
+        security = {
+            @SecurityRequirement(name = "oauth2_auth_code"),
+            @SecurityRequirement(name = "oauth2_password")
+        },
         operationId = "cancelApprovalRequest"
     )
     @ApiResponses(value = {

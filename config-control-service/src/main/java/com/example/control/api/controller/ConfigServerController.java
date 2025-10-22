@@ -40,7 +40,10 @@ public class ConfigServerController {
           Retrieves the configuration properties for a given application and profile from the Config Server.
           This acts as a proxy to the underlying Spring Cloud Config Server.
           """,
-      security = @SecurityRequirement(name = "oauth2_auth_code"),
+      security = {
+        @SecurityRequirement(name = "oauth2_auth_code"),
+        @SecurityRequirement(name = "oauth2_password")
+      },
       operationId = "getEnvironmentConfigServer"
   )
   @ApiResponses(value = {
@@ -86,7 +89,10 @@ public class ConfigServerController {
           Retrieves the health status of the underlying Spring Cloud Config Server.
           This provides information about the Config Server's operational state.
           """,
-      security = @SecurityRequirement(name = "oauth2_auth_code"),
+      security = {
+        @SecurityRequirement(name = "oauth2_auth_code"),
+        @SecurityRequirement(name = "oauth2_password")
+      },
       operationId = "getHealthConfigServer"
   )
   @ApiResponses(value = {
@@ -115,7 +121,10 @@ public class ConfigServerController {
           Proxies requests to the underlying Spring Cloud Config Server actuator endpoints.
           This allows access to Config Server management and monitoring endpoints.
           """,
-      security = @SecurityRequirement(name = "oauth2_auth_code"),
+      security = {
+        @SecurityRequirement(name = "oauth2_auth_code"),
+        @SecurityRequirement(name = "oauth2_password")
+      },
       operationId = "getActuatorEndpointConfigServer"
   )
   @ApiResponses(value = {
@@ -151,7 +160,10 @@ public class ConfigServerController {
           Retrieves basic information about the Config Server instance.
           This includes URL, status, and version information.
           """,
-      security = @SecurityRequirement(name = "oauth2_auth_code"),
+      security = {
+        @SecurityRequirement(name = "oauth2_auth_code"),
+        @SecurityRequirement(name = "oauth2_password")
+      },
       operationId = "getInfoConfigServer"
   )
   @ApiResponses(value = {

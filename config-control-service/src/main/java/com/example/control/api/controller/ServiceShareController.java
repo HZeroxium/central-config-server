@@ -68,7 +68,10 @@ public class ServiceShareController {
             - SYS_ADMIN: Can share any service
             - Permissions can be environment-specific (dev, staging, prod)
             """,
-        security = @SecurityRequirement(name = "oauth2_auth_code"),
+        security = {
+            @SecurityRequirement(name = "oauth2_auth_code"),
+            @SecurityRequirement(name = "oauth2_password")
+        },
         operationId = "grantServiceShare"
     )
     @ApiResponses(value = {
@@ -129,7 +132,10 @@ public class ServiceShareController {
             - SYS_ADMIN: Can view all shares
             - Results are automatically filtered based on user permissions
             """,
-        security = @SecurityRequirement(name = "oauth2_auth_code"),
+        security = {
+            @SecurityRequirement(name = "oauth2_auth_code"),
+            @SecurityRequirement(name = "oauth2_password")
+        },
         operationId = "findAllServiceShares"
 
     )
@@ -177,7 +183,10 @@ public class ServiceShareController {
             - Team members: Can view shares for services owned by their team
             - SYS_ADMIN: Can view shares for any service
             """,
-        security = @SecurityRequirement(name = "oauth2_auth_code"),
+        security = {
+            @SecurityRequirement(name = "oauth2_auth_code"),
+            @SecurityRequirement(name = "oauth2_password")
+        },
         operationId = "findAllServiceSharesForService"
     )
     @ApiResponses(value = {
@@ -225,7 +234,10 @@ public class ServiceShareController {
             - SYS_ADMIN: Can view any share
             - Shared access: Can view shares granted to their team
             """,
-        security = @SecurityRequirement(name = "oauth2_auth_code"),
+        security = {
+            @SecurityRequirement(name = "oauth2_auth_code"),
+            @SecurityRequirement(name = "oauth2_password")
+        },
         operationId = "findByIdServiceShare"
     )
     @ApiResponses(value = {
@@ -277,7 +289,10 @@ public class ServiceShareController {
             
             **Note:** This action is irreversible
             """,
-        security = @SecurityRequirement(name = "oauth2_auth_code"),
+        security = {
+            @SecurityRequirement(name = "oauth2_auth_code"),
+            @SecurityRequirement(name = "oauth2_password")
+        },
         operationId = "revokeServiceShare"
     )
     @ApiResponses(value = {
