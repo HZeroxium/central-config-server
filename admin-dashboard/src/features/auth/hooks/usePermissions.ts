@@ -1,37 +1,53 @@
-import { useSelector } from 'react-redux';
-import { type RootState } from '@app/store';
 import { useMemo } from 'react';
+import { useAuth } from '../authContext';
 
 export const usePermissions = () => {
-  const { userInfo, permissions } = useSelector((state: RootState) => state.auth);
+  const { userInfo, permissions, isSysAdmin: isSysAdminFromAuth } = useAuth();
 
-  const isSysAdmin = useMemo(() => {
-    return userInfo?.roles?.includes('SYS_ADMIN') ?? false;
-  }, [userInfo?.roles]);
+  const isSysAdmin = isSysAdminFromAuth;
 
   const isUser = useMemo(() => {
     return userInfo?.roles?.includes('USER') ?? false;
   }, [userInfo?.roles]);
 
   const canViewService = useMemo(() => {
-    return isSysAdmin || isUser;
-  }, [isSysAdmin, isUser]);
+    return (serviceId: string) => {
+      if (isSysAdmin) return true;
+      return permissions?.ownedServiceIds?.includes(serviceId) ||
+             permissions?.sharedServiceIds?.includes(serviceId);
+    };
+  }, [isSysAdmin, permissions?.ownedServiceIds, permissions?.sharedServiceIds]);
 
   const canEditService = useMemo(() => {
-    return isSysAdmin;
-  }, [isSysAdmin]);
+    return (serviceId: string) => {
+      if (isSysAdmin) return true;
+      return permissions?.ownedServiceIds?.includes(serviceId) || 
+             (permissions?.sharedServiceIds?.includes(serviceId) && 
+              permissions?.actions?.[serviceId]?.includes('EDIT_SERVICE'));
+    };
+  }, [isSysAdmin, permissions?.ownedServiceIds, permissions?.sharedServiceIds, permissions?.actions]);
 
   const canDeleteService = useMemo(() => {
-    return isSysAdmin;
-  }, [isSysAdmin]);
+    return (serviceId: string) => {
+      if (isSysAdmin) return true;
+      return permissions?.ownedServiceIds?.includes(serviceId);
+    };
+  }, [isSysAdmin, permissions?.ownedServiceIds]);
+
+  const canShareService = useMemo(() => {
+    return (serviceId: string) => {
+      if (isSysAdmin) return true;
+      return permissions?.ownedServiceIds?.includes(serviceId);
+    };
+  }, [isSysAdmin, permissions?.ownedServiceIds]);
 
   const canApproveRequests = useMemo(() => {
-    return isSysAdmin;
-  }, [isSysAdmin]);
+    return isSysAdmin || permissions?.features?.canApproveRequests || false;
+  }, [isSysAdmin, permissions?.features?.canApproveRequests]);
 
   const canManageAllServices = useMemo(() => {
-    return isSysAdmin;
-  }, [isSysAdmin]);
+    return isSysAdmin || permissions?.features?.canManageAllServices || false;
+  }, [isSysAdmin, permissions?.features?.canManageAllServices]);
 
   const canManageApplicationServices = useMemo(() => {
     return permissions?.features?.canManageApplicationServices || isSysAdmin;
@@ -44,9 +60,9 @@ export const usePermissions = () => {
   const canAccessRoute = useMemo(() => {
     return (route: string) => {
       if (isSysAdmin) return true;
-      return permissions?.allowedRoutes?.includes(route) ?? false;
+      return permissions?.allowedUiRoutes?.includes(route) ?? false;
     };
-  }, [isSysAdmin, permissions?.allowedRoutes]);
+  }, [isSysAdmin, permissions?.allowedUiRoutes]);
 
   const canViewTeamServices = useMemo(() => {
     return (teamId: string) => {
@@ -63,9 +79,12 @@ export const usePermissions = () => {
   }, [isSysAdmin, userInfo?.teamIds]);
 
   const ownedServiceIds = useMemo(() => {
-    // This would be populated from API based on user's teams
-    return [];
-  }, []);
+    return permissions?.ownedServiceIds || [];
+  }, [permissions?.ownedServiceIds]);
+
+  const sharedServiceIds = useMemo(() => {
+    return permissions?.sharedServiceIds || [];
+  }, [permissions?.sharedServiceIds]);
 
   return {
     isSysAdmin,
@@ -73,6 +92,7 @@ export const usePermissions = () => {
     canViewService,
     canEditService,
     canDeleteService,
+    canShareService,
     canApproveRequests,
     canManageAllServices,
     canManageApplicationServices,
@@ -81,6 +101,7 @@ export const usePermissions = () => {
     canViewTeamServices,
     canEditTeamServices,
     ownedServiceIds,
+    sharedServiceIds,
   };
 };
 

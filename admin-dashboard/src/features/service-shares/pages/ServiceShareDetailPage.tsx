@@ -1,203 +1,246 @@
 import React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Box, Button, Typography, Alert, Grid, Chip, Divider } from '@mui/material';
-import { ArrowBack as BackIcon } from '@mui/icons-material';
+import { useParams } from 'react-router-dom';
+import { Box, Card, CardContent, Typography, Chip, Button, Grid, Alert } from '@mui/material';
+import { Edit as EditIcon, Delete as DeleteIcon, ArrowBack as ArrowBackIcon } from '@mui/icons-material';
 import { PageHeader } from '@components/common/PageHeader';
-import { SkeletonLoader } from '@components/common/SkeletonLoader';
-import { DetailCard } from '@components/common/DetailCard';
-import { PermissionChips } from '../components/PermissionChips';
-import { useGetServiceShareByIdQuery } from '../api';
+import { useFindByIdServiceShare, useRevokeServiceShare } from '@lib/api/hooks';
+import { useErrorHandler } from '../../../hooks/useErrorHandler';
+import { usePermissions } from '@features/auth/hooks/usePermissions';
+import { PERMISSION_LABELS, ENVIRONMENT_LABELS, ENVIRONMENT_COLORS } from '../types';
+import { format } from 'date-fns';
 
-const ServiceShareDetailPage: React.FC = () => {
+export const ServiceShareDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  
-  const { data: share, isLoading, error } = useGetServiceShareByIdQuery(id!, {
-    skip: !id,
+  const { isSysAdmin, permissions } = usePermissions();
+  const { handleError, showSuccess } = useErrorHandler();
+
+  const {
+    data: shareResponse,
+    isLoading,
+    error,
+    refetch,
+  } = useFindByIdServiceShare(id!, {
+    query: {
+      enabled: !!id,
+    },
   });
 
-  const handleBack = () => {
-    navigate('/service-shares');
+  const revokeShareMutation = useRevokeServiceShare();
+
+  const share = shareResponse as any; // TODO: Fix API type generation
+
+  const handleRevoke = async () => {
+    if (!share || !id) return;
+    
+    try {
+      await revokeShareMutation.mutateAsync({ id });
+      showSuccess('Service share revoked successfully');
+      // Navigate back to list
+      window.history.back();
+    } catch (error) {
+      handleError(error, 'Failed to revoke service share');
+    }
   };
 
+  const canManageShares = isSysAdmin;
+
   if (isLoading) {
-    return <SkeletonLoader variant="page" />;
+    return (
+      <Box>
+        <PageHeader title="Loading..." />
+        <Box sx={{ p: 3 }}>Loading service share details...</Box>
+      </Box>
+    );
   }
 
   if (error || !share) {
     return (
       <Box>
-        <PageHeader
-          title="Service Share Details"
-          actions={
-            <Button variant="outlined" startIcon={<BackIcon />} onClick={handleBack}>
-              Back to Shares
-            </Button>
-          }
-        />
-        <Alert severity="error">
-          Failed to load service share. {error ? 'Please try again.' : 'Share not found.'}
+        <PageHeader title="Service Share Not Found" />
+        <Alert severity="error" sx={{ m: 3 }}>
+          The requested service share could not be found or you don't have permission to view it.
         </Alert>
       </Box>
     );
   }
 
-  const formatDateTime = (dateTime: string) => {
-    return new Date(dateTime).toLocaleString();
-  };
+  const isExpired = share.expiresAt ? new Date(share.expiresAt) < new Date() : false;
 
   return (
     <Box>
       <PageHeader
-        title={`Service Share: ${share.id.substring(0, 8)}...`}
+        title={`Service Share: ${share.serviceName}`}
+        subtitle={`Access granted to ${share.grantedToName}`}
         actions={
-          <Button variant="outlined" startIcon={<BackIcon />} onClick={handleBack}>
-            Back to Shares
-          </Button>
-        }
-      />
-      
-      <Grid container spacing={3}>
-        <Grid size={{ xs: 12, md: 8 }}>
-          <DetailCard title="Share Information">
-            <Grid container spacing={3}>
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <Box>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Service ID
-                  </Typography>
-                  <Typography variant="h6" fontWeight={500}>
-                    {share.serviceId}
-                  </Typography>
-                </Box>
-              </Grid>
-              
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <Box>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Grant To Type
-                  </Typography>
-                  <Chip 
-                    label={share.grantToType} 
-                    variant="outlined"
-                    sx={{ textTransform: 'capitalize' }}
-                  />
-                </Box>
-              </Grid>
-
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <Box>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Grant To ID
-                  </Typography>
-                  <Typography variant="body1" fontWeight={500}>
-                    {share.grantToId}
-                  </Typography>
-                </Box>
-              </Grid>
-
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <Box>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Status
-                  </Typography>
-                  <Chip 
-                    label={share.isActive ? 'Active' : 'Inactive'} 
-                    color={share.isActive ? 'success' : 'default'}
-                    variant="outlined"
-                  />
-                </Box>
-              </Grid>
-
-              <Grid size={{ xs: 12 }}>
-                <Box>
-                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                    Permissions
-                  </Typography>
-                  <PermissionChips permissions={share.permissions} />
-                </Box>
-              </Grid>
-
-              <Grid size={{ xs: 12 }}>
-                <Box>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Environments
-                  </Typography>
-                  {share.environments && share.environments.length > 0 ? (
-                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 1 }}>
-                      {share.environments.map((env) => (
-                        <Chip key={env} label={env.toUpperCase()} variant="outlined" />
-                      ))}
-                    </Box>
-                  ) : (
-                    <Typography variant="body2" color="text.secondary">
-                      All environments
-                    </Typography>
-                  )}
-                </Box>
-              </Grid>
-
-              {share.expiresAt && (
-                <Grid size={{ xs: 12, sm: 6 }}>
-                  <Box>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      Expires At
-                    </Typography>
-                    <Typography variant="body1">
-                      {formatDateTime(share.expiresAt)}
-                    </Typography>
-                  </Box>
-                </Grid>
-              )}
-            </Grid>
-          </DetailCard>
-        </Grid>
-
-        <Grid size={{ xs: 12, md: 4 }}>
-          <DetailCard title="Share History">
-            <Box>
-              <Typography variant="subtitle2" color="text.secondary">
-                Granted By
-              </Typography>
-              <Typography variant="body1">
-                {share.grantedBy}
-              </Typography>
-            </Box>
-            
-            <Divider sx={{ my: 2 }} />
-            
-            <Box>
-              <Typography variant="subtitle2" color="text.secondary">
-                Granted At
-              </Typography>
-              <Typography variant="body1">
-                {formatDateTime(share.grantedAt)}
-              </Typography>
-            </Box>
-            
-            {share.revokedAt && (
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button
+              variant="outlined"
+              startIcon={<ArrowBackIcon />}
+              onClick={() => window.history.back()}
+            >
+              Back
+            </Button>
+            {canManageShares && (
               <>
-                <Divider sx={{ my: 2 }} />
-                <Box>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Revoked By
-                  </Typography>
-                  <Typography variant="body1">
-                    {share.revokedBy}
-                  </Typography>
-                </Box>
-                
-                <Box sx={{ mt: 2 }}>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Revoked At
-                  </Typography>
-                  <Typography variant="body1">
-                    {formatDateTime(share.revokedAt)}
-                  </Typography>
-                </Box>
+                <Button
+                  variant="outlined"
+                  startIcon={<EditIcon />}
+                  onClick={() => {
+                    // Navigate to edit form
+                    console.log('Edit share:', share.id);
+                  }}
+                >
+                  Edit
+                </Button>
+                <Button
+                  variant="contained"
+                  color="error"
+                  startIcon={<DeleteIcon />}
+                  onClick={handleRevoke}
+                  disabled={revokeShareMutation.isPending}
+                >
+                  Revoke Access
+                </Button>
               </>
             )}
-          </DetailCard>
+          </Box>
+        }
+      />
+
+      <Grid container spacing={3} sx={{ p: 3 }}>
+        {/* Basic Information */}
+        <Grid size={{ xs: 12, md: 6 }}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                Basic Information
+              </Typography>
+              
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="body2" color="text.secondary">
+                  Service
+                </Typography>
+                <Typography variant="body1" fontWeight="medium">
+                  {share.serviceName}
+                </Typography>
+              </Box>
+
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="body2" color="text.secondary">
+                  Granted To
+                </Typography>
+                <Typography variant="body1" fontWeight="medium">
+                  {share.grantedToName} ({share.grantedTo})
+                </Typography>
+              </Box>
+
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="body2" color="text.secondary">
+                  Status
+                </Typography>
+                <Chip
+                  label={share.status}
+                  color={share.status === 'ACTIVE' ? 'success' : share.status === 'EXPIRED' ? 'warning' : 'error'}
+                  size="small"
+                />
+              </Box>
+
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="body2" color="text.secondary">
+                  Created
+                </Typography>
+                <Typography variant="body1">
+                  {format(new Date(share.createdAt), 'PPP')}
+                </Typography>
+              </Box>
+
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="body2" color="text.secondary">
+                  Created By
+                </Typography>
+                <Typography variant="body1">
+                  {share.createdBy}
+                </Typography>
+              </Box>
+
+              {share.expiresAt && (
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Expires
+                  </Typography>
+                  <Typography 
+                    variant="body1" 
+                    color={isExpired ? 'error' : 'text.primary'}
+                    fontWeight={isExpired ? 'medium' : 'normal'}
+                  >
+                    {format(new Date(share.expiresAt), 'PPP')}
+                    {isExpired && ' (Expired)'}
+                  </Typography>
+                </Box>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Permissions */}
+        <Grid size={{ xs: 12, md: 6 }}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                Permissions
+              </Typography>
+              
+              <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                {share.permissions.map((permission) => (
+                  <Chip
+                    key={permission}
+                    label={PERMISSION_LABELS[permission as keyof typeof PERMISSION_LABELS] || permission}
+                    size="small"
+                    variant="outlined"
+                    sx={{ mb: 0.5 }}
+                  />
+                ))}
+              </Box>
+
+              {share.permissions.length === 0 && (
+                <Typography variant="body2" color="text.secondary">
+                  No permissions granted
+                </Typography>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Environments */}
+        <Grid size={{ xs: 12 }}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                Environments
+              </Typography>
+              
+              <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                {share.environments.map((environment) => (
+                  <Chip
+                    key={environment}
+                    label={ENVIRONMENT_LABELS[environment as keyof typeof ENVIRONMENT_LABELS] || environment}
+                    size="small"
+                    sx={{
+                      backgroundColor: ENVIRONMENT_COLORS[environment as keyof typeof ENVIRONMENT_COLORS] || 'grey.300',
+                      color: 'white',
+                      fontWeight: 'medium',
+                    }}
+                  />
+                ))}
+              </Box>
+
+              {share.environments.length === 0 && (
+                <Typography variant="body2" color="text.secondary">
+                  No environments specified
+                </Typography>
+              )}
+            </CardContent>
+          </Card>
         </Grid>
       </Grid>
     </Box>

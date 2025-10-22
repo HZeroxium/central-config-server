@@ -1,111 +1,84 @@
 import React, { useState } from 'react';
-import { Box, TextField, InputAdornment, FormControl, InputLabel, Select, MenuItem, Alert } from '@mui/material';
-import { Search as SearchIcon } from '@mui/icons-material';
+import { Box, Button, TextField, InputAdornment, FormControl, InputLabel, Select, MenuItem, Chip, Card, CardContent, Typography, Grid } from '@mui/material';
+import { Search as SearchIcon, Refresh as RefreshIcon, Person as PersonIcon, Group as GroupIcon } from '@mui/icons-material';
 import { PageHeader } from '@components/common/PageHeader';
-import { DataTable } from '@components/common/DataTable';
-import { ChipStatus } from '@components/common/ChipStatus';
-import { useGetIamUsersQuery } from '../api';
+import { IamUserTable } from '../components/IamUserTable';
+import { UserDetailCard } from '../components/UserDetailCard';
+import {
+  useFindAllIamUsers,
+  useGetStatsIamUser,
+} from '@lib/api/hooks';
+import { useErrorHandler } from '../../../hooks/useErrorHandler';
+import type { IamUser, IamFilter, UserRole } from '../types';
+import { USER_ROLES, ROLE_LABELS } from '../types';
 import { usePermissions } from '@features/auth/hooks/usePermissions';
-import { type GridColDef } from '@mui/x-data-grid';
 
-const IamUserListPage: React.FC = () => {
+export const IamUserListPage: React.FC = () => {
   const [page] = useState(0);
   const [pageSize] = useState(10);
   const [search, setSearch] = useState('');
-  const [enabledFilter, setEnabledFilter] = useState('');
+  const [filter, setFilter] = useState<IamFilter>({});
+  const [selectedUser, setSelectedUser] = useState<IamUser | null>(null);
 
   const { isSysAdmin } = usePermissions();
+  const { handleError } = useErrorHandler();
 
-  const { data, isLoading } = useGetIamUsersQuery({
-    page,
-    size: pageSize,
-    search: search || undefined,
-    enabled: enabledFilter === 'enabled' ? true : enabledFilter === 'disabled' ? false : undefined,
-  });
-
-  const columns: GridColDef[] = [
-    { 
-      field: 'username', 
-      headerName: 'Username', 
-      width: 200,
-      renderCell: (params) => (
-        <strong>{params.value}</strong>
-      ),
-    },
-    { 
-      field: 'email', 
-      headerName: 'Email', 
-      width: 250,
-    },
-    { 
-      field: 'firstName', 
-      headerName: 'First Name', 
-      width: 150,
-      renderCell: (params) => params.value || 'N/A',
-    },
-    { 
-      field: 'lastName', 
-      headerName: 'Last Name', 
-      width: 150,
-      renderCell: (params) => params.value || 'N/A',
-    },
+  const {
+    data: usersResponse,
+    isLoading,
+    refetch,
+  } = useFindAllIamUsers(
     {
-      field: 'enabled',
-      headerName: 'Status',
-      width: 120,
-      renderCell: (params) => <ChipStatus status={params.value ? 'ACTIVE' : 'INACTIVE'} />,
-    },
-    {
-      field: 'emailVerified',
-      headerName: 'Email Verified',
-      width: 140,
-      renderCell: (params) => <ChipStatus status={params.value ? 'VERIFIED' : 'UNVERIFIED'} />,
-    },
-    {
-      field: 'roles',
-      headerName: 'Roles',
-      width: 200,
-      renderCell: (params) => {
-        const roles = params.value || [];
-        return (
-          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-            {roles.map((role: string) => (
-              <ChipStatus key={role} status={role} />
-            ))}
-          </div>
-        );
+      criteria: {
+        ...filter,
+        username: search || undefined,
       },
+      userContext: {
+        userId: 'current', // This would be the current user ID
+      },
+      pageable: { page, size: pageSize },
     },
     {
-      field: 'lastLoginAt',
-      headerName: 'Last Login',
-      width: 150,
-      type: 'dateTime',
-      valueFormatter: (value: any) => {
-        if (!value) return 'Never';
-        return new Date(value).toLocaleDateString();
+      query: {
+        staleTime: 30000,
       },
-    },
-  ];
+    }
+  );
 
-  if (!isSysAdmin) {
-    return (
-      <Box>
-        <PageHeader title="IAM Users" />
-        <Alert severity="warning">
-          You don't have permission to view IAM users. This feature is only available to system administrators.
-        </Alert>
-      </Box>
-    );
-  }
+  // Get the page data from API response
+  const pageData = usersResponse;
+  const users = (pageData?.content || []) as IamUser[];
+
+  const handleUserSelect = (user: IamUser) => {
+    setSelectedUser(user);
+  };
+
+  const handleClearFilters = () => {
+    setFilter({});
+    setSearch('');
+  };
 
   return (
     <Box>
-      <PageHeader title="IAM Users" />
-      
-      <Box sx={{ mb: 3, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+      <PageHeader
+        title="Users"
+        subtitle="Manage users and their team memberships"
+        actions={
+          <Button
+            variant="outlined"
+            startIcon={<RefreshIcon />}
+            onClick={() => refetch()}
+            disabled={isLoading}
+          >
+            Refresh
+          </Button>
+        }
+      />
+
+      {/* Search and Filters */}
+      <Box sx={{ mb: 3, display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
         <TextField
-          placeholder="Search by username or email..."
+          placeholder="Search users..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           InputProps={{
@@ -117,28 +90,173 @@ const IamUserListPage: React.FC = () => {
           }}
           sx={{ minWidth: 300 }}
         />
-        
+
+        <FormControl sx={{ minWidth: 120 }}>
+          <InputLabel>Role</InputLabel>
+          <Select
+            value={filter.role || ''}
+            onChange={(e) => setFilter(prev => ({ ...prev, role: e.target.value || undefined }))}
+            label="Role"
+          >
+            <MenuItem value="">All</MenuItem>
+            {Object.entries(ROLE_LABELS).map(([value, label]) => (
+              <MenuItem key={value} value={value}>
+                {label}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+
         <FormControl sx={{ minWidth: 120 }}>
           <InputLabel>Status</InputLabel>
           <Select
-            value={enabledFilter}
-            onChange={(e) => setEnabledFilter(e.target.value)}
+            value={filter.isActive === undefined ? '' : filter.isActive.toString()}
+            onChange={(e) => setFilter(prev => ({ 
+              ...prev, 
+              isActive: e.target.value === '' ? undefined : e.target.value === 'true' 
+            }))}
             label="Status"
           >
             <MenuItem value="">All</MenuItem>
-            <MenuItem value="enabled">Enabled</MenuItem>
-            <MenuItem value="disabled">Disabled</MenuItem>
+            <MenuItem value="true">Active</MenuItem>
+            <MenuItem value="false">Inactive</MenuItem>
           </Select>
         </FormControl>
+
+        <FormControl sx={{ minWidth: 120 }}>
+          <InputLabel>Team</InputLabel>
+          <Select
+            value={filter.teamId || ''}
+            onChange={(e) => setFilter(prev => ({ ...prev, teamId: e.target.value || undefined }))}
+            label="Team"
+          >
+            <MenuItem value="">All</MenuItem>
+            {/* This would be populated from teams API */}
+            <MenuItem value="team1">Development Team</MenuItem>
+            <MenuItem value="team2">QA Team</MenuItem>
+            <MenuItem value="team3">DevOps Team</MenuItem>
+          </Select>
+        </FormControl>
+
+        {Object.keys(filter).length > 0 && (
+          <Button variant="text" onClick={handleClearFilters}>
+            Clear Filters
+          </Button>
+        )}
       </Box>
 
-      <DataTable 
-        rows={data?.content || []} 
-        columns={columns} 
-        loading={isLoading} 
-        getRowId={(row) => row.id}
-        noRowsMessage="No users found"
-      />
+      {/* Active Filters Display */}
+      {Object.keys(filter).length > 0 && (
+        <Box sx={{ mb: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+          {Object.entries(filter).map(([key, value]) => (
+            value !== undefined && value !== '' && (
+              <Chip
+                key={key}
+                label={`${key}: ${value}`}
+                onDelete={() => setFilter(prev => ({ ...prev, [key]: undefined }))}
+                size="small"
+              />
+            )
+          ))}
+        </Box>
+      )}
+
+      <Grid container spacing={3}>
+        {/* Users Table */}
+        <Grid size={{ xs: selectedUser ? 8 : 12 }}>
+          <IamUserTable
+            users={users}
+            loading={isLoading}
+            onUserSelect={handleUserSelect}
+            selectedUser={selectedUser}
+          />
+        </Grid>
+
+        {/* User Detail Card */}
+        {selectedUser && (
+          <Grid size={{ xs: 4 }}>
+            <UserDetailCard
+              user={selectedUser}
+              onClose={() => setSelectedUser(null)}
+            />
+          </Grid>
+        )}
+      </Grid>
+
+      {/* Summary Cards */}
+      <Box sx={{ mt: 3 }}>
+        <Grid container spacing={2}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Card>
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <PersonIcon color="primary" />
+                  <Box>
+                    <Typography variant="h6">{users.length}</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Total Users
+                    </Typography>
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Card>
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <PersonIcon color="success" />
+                  <Box>
+                    <Typography variant="h6">
+                      {users.filter(user => user.isActive).length}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Active Users
+                    </Typography>
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Card>
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <GroupIcon color="warning" />
+                  <Box>
+                    <Typography variant="h6">
+                      {users.filter(user => user.teamIds.length > 0).length}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Users in Teams
+                    </Typography>
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Card>
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <PersonIcon color="error" />
+                  <Box>
+                    <Typography variant="h6">
+                      {users.filter(user => user.roles.includes(USER_ROLES.SYS_ADMIN)).length}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      System Admins
+                    </Typography>
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+      </Box>
     </Box>
   );
 };

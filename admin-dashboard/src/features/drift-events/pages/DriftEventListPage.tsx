@@ -2,52 +2,56 @@ import React, { useState, useEffect } from 'react';
 import { Box, Button, Alert } from '@mui/material';
 import { Refresh as RefreshIcon, AutoAwesome as AutoRefreshIcon } from '@mui/icons-material';
 import { PageHeader } from '@components/common/PageHeader';
-import { useGetDriftEventsQuery } from '../api';
+import { useFindAllDriftEvents, useUpdateDriftEvent } from '@lib/api/hooks';
 import type { DriftEvent, UpdateDriftEventRequest } from '../types';
 import { usePermissions } from '@features/auth/hooks/usePermissions';
 import { DriftEventTable } from '../components/DriftEventTable';
 import { DriftFilterBar } from '../components/DriftFilterBar';
 import { ResolveDialog } from '../components/ResolveDialog';
+import type { FindAllDriftEventsStatus, FindAllDriftEventsSeverity } from '@lib/api/models';
 
 const DriftEventListPage: React.FC = () => {
-  const [page] = useState(0);
-  const [pageSize] = useState(10);
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
   const [serviceName, setServiceName] = useState('');
-  const [status, setStatus] = useState('');
-  const [severity, setSeverity] = useState('');
+  const [status, setStatus] = useState<FindAllDriftEventsStatus | ''>('');
+  const [severity, setSeverity] = useState<FindAllDriftEventsSeverity | ''>('');
   const [environment, setEnvironment] = useState('');
   const [resolveDialogOpen, setResolveDialogOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<DriftEvent | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(false);
 
-  const { canViewDriftEvents } = usePermissions();
+  const { permissions } = usePermissions();
 
-  const { data, isLoading, refetch } = useGetDriftEventsQuery({
-    page,
-    size: pageSize,
-    serviceName: serviceName || undefined,
-    status: status || undefined,
-    severity: severity || undefined,
-    environment: environment || undefined,
-  });
+  const { data: eventsResponse, isLoading, refetch } = useFindAllDriftEvents(
+    {
+      serviceName: serviceName || undefined,
+      status: (status as FindAllDriftEventsStatus) || undefined,
+      severity: (severity as FindAllDriftEventsSeverity) || undefined,
+      pageable: { page, size: pageSize },
+    },
+    {
+      query: {
+        staleTime: 10000, // 10 seconds for drift events (more real-time)
+        refetchInterval: autoRefresh ? 30000 : false, // Auto-refresh if enabled
+      },
+    }
+  );
 
-  // Auto-refresh every 30 seconds when enabled
-  useEffect(() => {
-    if (!autoRefresh) return;
+  const updateEventMutation = useUpdateDriftEvent();
 
-    const interval = setInterval(() => {
-      refetch();
-    }, 30000); // 30 seconds
-
-    return () => clearInterval(interval);
-  }, [autoRefresh, refetch]);
+  // Get the page data from API response
+  const pageData = eventsResponse;
+  const events = (pageData?.content || []) as DriftEvent[];
 
   const handleResolveEvent = async (update: UpdateDriftEventRequest) => {
     if (!selectedEvent) return;
     
     try {
-      // This would call the update mutation
-      console.log('Resolving drift event:', selectedEvent.id, update);
+      await updateEventMutation.mutateAsync({
+        id: selectedEvent.id,
+        data: update as any,
+      });
       setResolveDialogOpen(false);
       setSelectedEvent(null);
       refetch(); // Refresh the data
@@ -81,12 +85,14 @@ const DriftEventListPage: React.FC = () => {
     setEnvironment('');
   };
 
-  if (!canViewDriftEvents) {
+  // Permission check - allow if user has permissions object
+  // Individual permissions are checked by ProtectedRoute
+  if (!permissions) {
     return (
       <Box>
         <PageHeader title="Drift Events" />
         <Alert severity="warning">
-          You don't have permission to view drift events.
+          Loading permissions...
         </Alert>
       </Box>
     );
@@ -137,7 +143,7 @@ const DriftEventListPage: React.FC = () => {
       />
 
       <DriftEventTable
-        events={data?.content || []}
+        events={events}
         loading={isLoading}
         onView={handleViewClick}
         onResolve={handleResolveClick}

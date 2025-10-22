@@ -44,10 +44,11 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
-  ApiResponse,
   ErrorResponse,
   FindAllServiceInstancesParams,
-  UpdateRequest
+  Page,
+  ServiceInstanceResponse,
+  ServiceInstanceUpdateRequest
 } from '../../models';
 
 import { customInstance } from '../../mutator';
@@ -74,7 +75,7 @@ export const findByIdServiceInstance = (
 ) => {
       
       
-      return customInstance<ApiResponse>(
+      return customInstance<ServiceInstanceResponse>(
       {url: `/api/service-instances/${serviceName}/${instanceId}`, method: 'GET', signal
     },
       options);
@@ -253,14 +254,14 @@ export function useFindByIdServiceInstance<TData = Awaited<ReturnType<typeof fin
 export const updateServiceInstance = (
     serviceName: string,
     instanceId: string,
-    updateRequest: UpdateRequest,
+    serviceInstanceUpdateRequest: ServiceInstanceUpdateRequest,
  options?: SecondParameter<typeof customInstance>,) => {
       
       
-      return customInstance<ApiResponse>(
+      return customInstance<ServiceInstanceResponse>(
       {url: `/api/service-instances/${serviceName}/${instanceId}`, method: 'PUT',
       headers: {'Content-Type': 'application/json', },
-      data: updateRequest
+      data: serviceInstanceUpdateRequest
     },
       options);
     }
@@ -268,8 +269,8 @@ export const updateServiceInstance = (
 
 
 export const getUpdateServiceInstanceMutationOptions = <TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateServiceInstance>>, TError,{serviceName: string;instanceId: string;data: UpdateRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof updateServiceInstance>>, TError,{serviceName: string;instanceId: string;data: UpdateRequest}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateServiceInstance>>, TError,{serviceName: string;instanceId: string;data: ServiceInstanceUpdateRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateServiceInstance>>, TError,{serviceName: string;instanceId: string;data: ServiceInstanceUpdateRequest}, TContext> => {
 
 const mutationKey = ['updateServiceInstance'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -281,7 +282,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateServiceInstance>>, {serviceName: string;instanceId: string;data: UpdateRequest}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateServiceInstance>>, {serviceName: string;instanceId: string;data: ServiceInstanceUpdateRequest}> = (props) => {
           const {serviceName,instanceId,data} = props ?? {};
 
           return  updateServiceInstance(serviceName,instanceId,data,requestOptions)
@@ -293,18 +294,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type UpdateServiceInstanceMutationResult = NonNullable<Awaited<ReturnType<typeof updateServiceInstance>>>
-    export type UpdateServiceInstanceMutationBody = UpdateRequest
+    export type UpdateServiceInstanceMutationBody = ServiceInstanceUpdateRequest
     export type UpdateServiceInstanceMutationError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse
 
     /**
  * @summary Update service instance
  */
 export const useUpdateServiceInstance = <TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateServiceInstance>>, TError,{serviceName: string;instanceId: string;data: UpdateRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateServiceInstance>>, TError,{serviceName: string;instanceId: string;data: ServiceInstanceUpdateRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof updateServiceInstance>>,
         TError,
-        {serviceName: string;instanceId: string;data: UpdateRequest},
+        {serviceName: string;instanceId: string;data: ServiceInstanceUpdateRequest},
         TContext
       > => {
 
@@ -328,7 +329,7 @@ export const deleteServiceInstance = (
  options?: SecondParameter<typeof customInstance>,) => {
       
       
-      return customInstance<ApiResponse>(
+      return customInstance<void>(
       {url: `/api/service-instances/${serviceName}/${instanceId}`, method: 'DELETE'
     },
       options);
@@ -398,7 +399,7 @@ export const findAllServiceInstances = (
 ) => {
       
       
-      return customInstance<ApiResponse>(
+      return customInstance<Page>(
       {url: `/api/service-instances`, method: 'GET',
         params, signal
     },

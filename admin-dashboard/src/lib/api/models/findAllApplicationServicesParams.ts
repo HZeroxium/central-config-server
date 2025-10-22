@@ -19,14 +19,14 @@
 
  * OpenAPI spec version: 1.0.0
  */
-import type { QueryFilter } from './queryFilter';
+import type { ApplicationServiceQueryFilter } from './applicationServiceQueryFilter';
 import type { Pageable } from './pageable';
 
 export type FindAllApplicationServicesParams = {
 /**
  * Optional query filter for searching services
  */
-filter?: QueryFilter;
+filter?: ApplicationServiceQueryFilter;
 /**
  * Pagination parameters (page, size, sort)
  */

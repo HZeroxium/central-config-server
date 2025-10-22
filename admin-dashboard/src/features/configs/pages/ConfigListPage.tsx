@@ -1,14 +1,25 @@
-import { Card, CardContent, Stack, TextField, Button, Typography, Box} from '@mui/material'
+import { Card, CardContent, Stack, TextField, Button, Typography, Box,  CircularProgress } from '@mui/material'
 import Grid from '@mui/material/Grid'
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { History, Search } from '@mui/icons-material'
+import { History, Search, Refresh as RefreshIcon, HealthAndSafety as HealthIcon, Info as InfoIcon } from '@mui/icons-material'
+import { PageHeader } from '@components/common/PageHeader'
+import { useGetHealthConfigServer, useGetInfoConfigServer } from '@lib/api/hooks'
+// import { useErrorHandler } from '@hooks/useErrorHandler'
 
 export default function ConfigListPage() {
   const [application, setApplication] = useState('sample-service')
   const [profile, setProfile] = useState('dev')
   const [label, setLabel] = useState('')
   const navigate = useNavigate()
+  // const { handleError } = useErrorHandler()
+
+  // Fetch config server health and info
+  const { data: healthResponse, isLoading: healthLoading, refetch: refetchHealth } = useGetHealthConfigServer()
+  const { data: infoResponse, isLoading: infoLoading, refetch: refetchInfo } = useGetInfoConfigServer()
+
+  const healthData = healthResponse
+  const infoData = infoResponse
 
   // Mock recent searches - in real app this would come from localStorage or API
   const recentSearches = useMemo(() => [
@@ -32,9 +43,96 @@ export default function ConfigListPage() {
 
   return (
     <Box sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
-      <Typography variant="h4" sx={{ mb: { xs: 3, sm: 4 } }}>
-        Configuration Explorer
-      </Typography>
+      <PageHeader
+        title="Configuration Explorer"
+        subtitle="Browse and manage application configurations"
+        actions={
+          <Button
+            variant="outlined"
+            startIcon={<RefreshIcon />}
+            onClick={() => {
+              refetchHealth()
+              refetchInfo()
+            }}
+            disabled={healthLoading || infoLoading}
+          >
+            Refresh
+          </Button>
+        }
+      />
+
+      {/* Config Server Status */}
+      <Box sx={{ mb: 3 }}>
+        <Grid container spacing={2}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Card>
+              <CardContent sx={{ textAlign: 'center' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mb: 1 }}>
+                  <HealthIcon color={healthData?.status === 'UP' ? 'success' : 'error'} />
+                  {healthLoading ? (
+                    <CircularProgress size={20} />
+                  ) : (
+                    <Typography variant="h6">
+                      {healthData?.status || 'Unknown'}
+                    </Typography>
+                  )}
+                </Box>
+                <Typography variant="body2" color="text.secondary">
+                  Server Health
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Card>
+              <CardContent sx={{ textAlign: 'center' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mb: 1 }}>
+                  <InfoIcon color="primary" />
+                  <Typography variant="h6">
+                    {infoData?.git?.branch || 'N/A'}
+                  </Typography>
+                </Box>
+                <Typography variant="body2" color="text.secondary">
+                  Git Branch
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Card>
+              <CardContent sx={{ textAlign: 'center' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mb: 1 }}>
+                  <InfoIcon color="secondary" />
+                  <Typography variant="h6">
+                    {infoData?.git?.commit?.id?.substring(0, 7) || 'N/A'}
+                  </Typography>
+                </Box>
+                <Typography variant="body2" color="text.secondary">
+                  Commit Hash
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Card>
+              <CardContent sx={{ textAlign: 'center' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mb: 1 }}>
+                  <InfoIcon color="info" />
+                  <Typography variant="h6">
+                    {infoData?.build?.version || 'N/A'}
+                  </Typography>
+                </Box>
+                <Typography variant="body2" color="text.secondary">
+                  Version
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+      </Box>
       
       <Grid container spacing={{ xs: 2, sm: 3 }}>
         <Grid size={{ xs: 12, lg: 8 }}>

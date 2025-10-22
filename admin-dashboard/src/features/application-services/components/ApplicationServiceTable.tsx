@@ -28,7 +28,7 @@ export const ApplicationServiceTable: React.FC<ApplicationServiceTableProps> = (
   onDelete,
   onShare,
 }) => {
-  const { canEditService, canDeleteService } = usePermissions();
+  const { canEditService, canDeleteService, canShareService } = usePermissions();
 
   const columns: GridColDef[] = [
     {
@@ -119,7 +119,7 @@ export const ApplicationServiceTable: React.FC<ApplicationServiceTableProps> = (
           );
         }
 
-        if (canEditService && onEdit) {
+        if (canEditService(service.id) && onEdit) {
           actions.push(
             <GridActionsCellItem
               key="edit"
@@ -130,7 +130,7 @@ export const ApplicationServiceTable: React.FC<ApplicationServiceTableProps> = (
           );
         }
 
-        if (onShare) {
+        if (canShareService(service.id) && onShare) {
           actions.push(
             <GridActionsCellItem
               key="share"
@@ -141,7 +141,7 @@ export const ApplicationServiceTable: React.FC<ApplicationServiceTableProps> = (
           );
         }
 
-        if (canDeleteService && onDelete) {
+        if (canDeleteService(service.id) && onDelete) {
           actions.push(
             <GridActionsCellItem
               key="delete"

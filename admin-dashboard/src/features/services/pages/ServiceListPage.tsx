@@ -1,32 +1,80 @@
-import { Box, Typography, Button, TextField, InputAdornment } from '@mui/material'
-import { Search, Refresh, Storage } from '@mui/icons-material'
+import { Box, Typography, Button, TextField, InputAdornment, Card, CardContent, Grid, Chip, CircularProgress } from '@mui/material'
+import { Search, Refresh, Storage, HealthAndSafety as HealthIcon, Warning as WarningIcon, CheckCircle as CheckCircleIcon } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
-import { useListServicesQuery } from '@features/services/api'
+import { useGetServiceRegistryService } from '@lib/api/hooks'
 import Loading from '@components/common/Loading'
 import ErrorFallback from '@components/common/ErrorFallback'
 import ServiceListTable from '@features/services/components/ServiceListTable'
 import EmptyState from '@components/common/EmptyState'
+import { PageHeader } from '@components/common/PageHeader'
 import { useState, useMemo } from 'react'
 
 export default function ServiceListPage() {
-  const { data, isLoading, error, refetch } = useListServicesQuery()
+  const { data: servicesResponse, isLoading, error, refetch } = useGetServiceRegistryService('services')
   const navigate = useNavigate()
   const [searchTerm, setSearchTerm] = useState('')
+  const [showHealthyOnly, setShowHealthyOnly] = useState(false)
+
+  const servicesData = servicesResponse
+  const services = servicesData || {}
 
   const filteredServices = useMemo(() => {
-    if (!data) return {}
+    if (!services) return {}
     
-    if (!searchTerm) return data
+    let filtered = services
     
-    const filtered = Object.keys(data).reduce((acc, key) => {
-      if (key.toLowerCase().includes(searchTerm.toLowerCase())) {
-        acc[key] = data[key]
-      }
-      return acc
-    }, {} as typeof data)
+    if (searchTerm) {
+      filtered = Object.keys(services).reduce((acc, key) => {
+        if (key.toLowerCase().includes(searchTerm.toLowerCase())) {
+          acc[key] = services[key]
+        }
+        return acc
+      }, {} as typeof services)
+    }
+
+    if (showHealthyOnly) {
+      filtered = Object.keys(filtered).reduce((acc, key) => {
+        const service = filtered[key]
+        if (service && Array.isArray(service)) {
+          const hasHealthyInstance = service.some((instance: any) => 
+            instance.status === 'HEALTHY' || instance.status === 'UP'
+          )
+          if (hasHealthyInstance) {
+            acc[key] = service
+          }
+        }
+        return acc
+      }, {} as typeof filtered)
+    }
     
     return filtered
-  }, [data, searchTerm])
+  }, [services, searchTerm, showHealthyOnly])
+
+  // Calculate statistics
+  const stats = useMemo(() => {
+    const totalServices = Object.keys(services).length
+    const totalInstances = Object.values(services).reduce((sum, service) => {
+      return sum + (Array.isArray(service) ? service.length : 0)
+    }, 0)
+    
+    const healthyInstances = Object.values(services).reduce((sum, service) => {
+      if (Array.isArray(service)) {
+        return sum + service.filter((instance: any) => 
+          instance.status === 'HEALTHY' || instance.status === 'UP'
+        ).length
+      }
+      return sum
+    }, 0)
+
+    const unhealthyInstances = totalInstances - healthyInstances
+
+    return {
+      totalServices,
+      totalInstances,
+      healthyInstances,
+      unhealthyInstances,
+    }
+  }, [services])
 
   if (isLoading) return <Loading />
   if (error) return <ErrorFallback message={(error as any)?.error || 'Failed to load services'} onRetry={refetch} />
@@ -35,6 +83,83 @@ export default function ServiceListPage() {
 
   return (
     <Box sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
+      <PageHeader
+        title="Service Registry"
+        subtitle="Monitor and manage registered services"
+        actions={
+          <Button
+            variant="outlined"
+            startIcon={<Refresh />}
+            onClick={() => refetch()}
+            disabled={isLoading}
+          >
+            Refresh
+          </Button>
+        }
+      />
+
+      {/* Statistics Cards */}
+      <Box sx={{ mb: 3 }}>
+        <Grid container spacing={2}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Card>
+              <CardContent sx={{ textAlign: 'center' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mb: 1 }}>
+                  <Storage color="primary" />
+                  <Typography variant="h6">{stats.totalServices}</Typography>
+                </Box>
+                <Typography variant="body2" color="text.secondary">
+                  Total Services
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Card>
+              <CardContent sx={{ textAlign: 'center' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mb: 1 }}>
+                  <CheckCircleIcon color="success" />
+                  <Typography variant="h6">{stats.healthyInstances}</Typography>
+                </Box>
+                <Typography variant="body2" color="text.secondary">
+                  Healthy Instances
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Card>
+              <CardContent sx={{ textAlign: 'center' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mb: 1 }}>
+                  <WarningIcon color="warning" />
+                  <Typography variant="h6">{stats.unhealthyInstances}</Typography>
+                </Box>
+                <Typography variant="body2" color="text.secondary">
+                  Unhealthy Instances
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Card>
+              <CardContent sx={{ textAlign: 'center' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mb: 1 }}>
+                  <HealthIcon color="info" />
+                  <Typography variant="h6">{stats.totalInstances}</Typography>
+                </Box>
+                <Typography variant="body2" color="text.secondary">
+                  Total Instances
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+      </Box>
+
+      {/* Search and Filters */}
       <Box sx={{ 
         display: 'flex', 
         flexDirection: { xs: 'column', sm: 'row' },
@@ -43,10 +168,6 @@ export default function ServiceListPage() {
         mb: { xs: 3, sm: 4 },
         gap: 2
       }}>
-        <Typography variant="h4" sx={{ fontWeight: 700 }}>
-          Services
-        </Typography>
-        
         <Box sx={{ 
           display: 'flex', 
           flexDirection: { xs: 'column', sm: 'row' },
@@ -68,14 +189,13 @@ export default function ServiceListPage() {
             sx={{ minWidth: { xs: '100%', sm: 300 } }}
           />
           
-          <Button
-            variant="outlined"
-            startIcon={<Refresh />}
-            onClick={() => refetch()}
-            className="btn-secondary"
-          >
-            Refresh
-          </Button>
+          <Chip
+            label={showHealthyOnly ? "Show Healthy Only" : "Show All"}
+            onClick={() => setShowHealthyOnly(!showHealthyOnly)}
+            color={showHealthyOnly ? "success" : "default"}
+            variant={showHealthyOnly ? "filled" : "outlined"}
+            sx={{ cursor: 'pointer' }}
+          />
         </Box>
       </Box>
 

@@ -1,12 +1,14 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { useAuth } from '@lib/keycloak/useAuth';
-import { CircularProgress, Box } from '@mui/material';
+import { useAuth } from '@features/auth/authContext';
+import { CircularProgress, Box, Alert } from '@mui/material';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requiredRoles?: string[];
   requiredTeams?: string[];
+  requiredPermissions?: string[];
+  requiredRoute?: string; // Check against allowedUiRoutes from backend
 }
 
 const LoadingComponent: React.FC = () => (
@@ -24,11 +26,20 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
   requiredRoles = [],
   requiredTeams = [],
+  requiredPermissions = [],
+  requiredRoute,
 }) => {
-  const { initialized, isAuthenticated, userInfo, hasRole } = useAuth();
+  const { 
+    initialized, 
+    isAuthenticated, 
+    permissions, 
+    permissionsLoading,
+    userInfo,
+    isSysAdmin 
+  } = useAuth();
 
-  // Show loading while Keycloak is initializing
-  if (!initialized) {
+  // Show loading while initializing or fetching permissions
+  if (!initialized || permissionsLoading) {
     return <LoadingComponent />;
   }
 
@@ -37,9 +48,29 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to="/login" replace />;
   }
 
+  // Wait for permissions to load
+  if (!permissions && !isSysAdmin) {
+    return <LoadingComponent />;
+  }
+
+  // SysAdmin bypasses all permission checks
+  if (isSysAdmin) {
+    return <>{children}</>;
+  }
+
+  // Check route permission against backend-provided allowedUiRoutes
+  if (requiredRoute && permissions) {
+    const hasRouteAccess = permissions.allowedUiRoutes.includes(requiredRoute);
+    if (!hasRouteAccess) {
+      return <Navigate to="/unauthorized" replace />;
+    }
+  }
+
   // Check role requirements
-  if (requiredRoles.length > 0) {
-    const hasRequiredRole = requiredRoles.some(role => hasRole(role));
+  if (requiredRoles.length > 0 && userInfo) {
+    const hasRequiredRole = requiredRoles.some(role => 
+      userInfo.roles.includes(role)
+    );
     if (!hasRequiredRole) {
       return <Navigate to="/unauthorized" replace />;
     }
@@ -48,9 +79,20 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   // Check team requirements
   if (requiredTeams.length > 0 && userInfo) {
     const hasRequiredTeam = requiredTeams.some(team => 
-      userInfo.teamIds.some(userTeam => userTeam.includes(team))
+      userInfo.teamIds.includes(team)
     );
     if (!hasRequiredTeam) {
+      return <Navigate to="/unauthorized" replace />;
+    }
+  }
+
+  // Check granular permissions (actions)
+  if (requiredPermissions.length > 0 && permissions) {
+    const allActions = Object.values(permissions.actions).flat();
+    const hasAllPermissions = requiredPermissions.every(perm =>
+      allActions.includes(perm)
+    );
+    if (!hasAllPermissions) {
       return <Navigate to="/unauthorized" replace />;
     }
   }

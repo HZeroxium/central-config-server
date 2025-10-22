@@ -44,12 +44,12 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
-  CreateRequest,
+  ApplicationServiceCreateRequest,
+  ApplicationServiceResponse,
+  ApplicationServiceUpdateRequest,
   ErrorResponse,
   FindAllApplicationServicesParams,
-  Page,
-  Response,
-  UpdateRequest
+  Page
 } from '../../models';
 
 import { customInstance } from '../../mutator';
@@ -74,7 +74,7 @@ export const findApplicationServiceById = (
 ) => {
       
       
-      return customInstance<Response>(
+      return customInstance<ApplicationServiceResponse>(
       {url: `/api/application-services/${id}`, method: 'GET', signal
     },
       options);
@@ -240,14 +240,14 @@ export function useFindApplicationServiceById<TData = Awaited<ReturnType<typeof 
  */
 export const updateApplicationService = (
     id: string,
-    updateRequest: UpdateRequest,
+    applicationServiceUpdateRequest: ApplicationServiceUpdateRequest,
  options?: SecondParameter<typeof customInstance>,) => {
       
       
-      return customInstance<Response>(
+      return customInstance<ApplicationServiceResponse>(
       {url: `/api/application-services/${id}`, method: 'PUT',
       headers: {'Content-Type': 'application/json', },
-      data: updateRequest
+      data: applicationServiceUpdateRequest
     },
       options);
     }
@@ -255,8 +255,8 @@ export const updateApplicationService = (
 
 
 export const getUpdateApplicationServiceMutationOptions = <TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateApplicationService>>, TError,{id: string;data: UpdateRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof updateApplicationService>>, TError,{id: string;data: UpdateRequest}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateApplicationService>>, TError,{id: string;data: ApplicationServiceUpdateRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateApplicationService>>, TError,{id: string;data: ApplicationServiceUpdateRequest}, TContext> => {
 
 const mutationKey = ['updateApplicationService'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -268,7 +268,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateApplicationService>>, {id: string;data: UpdateRequest}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateApplicationService>>, {id: string;data: ApplicationServiceUpdateRequest}> = (props) => {
           const {id,data} = props ?? {};
 
           return  updateApplicationService(id,data,requestOptions)
@@ -280,18 +280,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type UpdateApplicationServiceMutationResult = NonNullable<Awaited<ReturnType<typeof updateApplicationService>>>
-    export type UpdateApplicationServiceMutationBody = UpdateRequest
+    export type UpdateApplicationServiceMutationBody = ApplicationServiceUpdateRequest
     export type UpdateApplicationServiceMutationError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse
 
     /**
  * @summary Update application service
  */
 export const useUpdateApplicationService = <TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateApplicationService>>, TError,{id: string;data: UpdateRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateApplicationService>>, TError,{id: string;data: ApplicationServiceUpdateRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof updateApplicationService>>,
         TError,
-        {id: string;data: UpdateRequest},
+        {id: string;data: ApplicationServiceUpdateRequest},
         TContext
       > => {
 
@@ -548,15 +548,15 @@ export function useFindAllApplicationServices<TData = Awaited<ReturnType<typeof 
  * @summary Create a new application service
  */
 export const createApplicationService = (
-    createRequest: CreateRequest,
+    applicationServiceCreateRequest: ApplicationServiceCreateRequest,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
       
       
-      return customInstance<Response>(
+      return customInstance<ApplicationServiceResponse>(
       {url: `/api/application-services`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
-      data: createRequest, signal
+      data: applicationServiceCreateRequest, signal
     },
       options);
     }
@@ -564,8 +564,8 @@ export const createApplicationService = (
 
 
 export const getCreateApplicationServiceMutationOptions = <TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createApplicationService>>, TError,{data: CreateRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof createApplicationService>>, TError,{data: CreateRequest}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createApplicationService>>, TError,{data: ApplicationServiceCreateRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof createApplicationService>>, TError,{data: ApplicationServiceCreateRequest}, TContext> => {
 
 const mutationKey = ['createApplicationService'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -577,7 +577,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createApplicationService>>, {data: CreateRequest}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createApplicationService>>, {data: ApplicationServiceCreateRequest}> = (props) => {
           const {data} = props ?? {};
 
           return  createApplicationService(data,requestOptions)
@@ -589,18 +589,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type CreateApplicationServiceMutationResult = NonNullable<Awaited<ReturnType<typeof createApplicationService>>>
-    export type CreateApplicationServiceMutationBody = CreateRequest
+    export type CreateApplicationServiceMutationBody = ApplicationServiceCreateRequest
     export type CreateApplicationServiceMutationError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse
 
     /**
  * @summary Create a new application service
  */
 export const useCreateApplicationService = <TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createApplicationService>>, TError,{data: CreateRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createApplicationService>>, TError,{data: ApplicationServiceCreateRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof createApplicationService>>,
         TError,
-        {data: CreateRequest},
+        {data: ApplicationServiceCreateRequest},
         TContext
       > => {
 

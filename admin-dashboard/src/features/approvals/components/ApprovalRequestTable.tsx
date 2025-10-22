@@ -1,165 +1,240 @@
 import React from 'react';
-import { type GridColDef, GridActionsCellItem } from '@mui/x-data-grid';
 import {
-  Visibility as ViewIcon,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Chip,
+  IconButton,
+  Box,
+  Typography,
+  Tooltip,
+  LinearProgress,
+} from '@mui/material';
+import {
   CheckCircle as ApproveIcon,
-  Cancel as RejectIcon,
   Close as CancelIcon,
+  Visibility as ViewIcon,
 } from '@mui/icons-material';
-import { DataTable } from '@components/common/DataTable';
-import { ApprovalBadge } from './ApprovalBadge';
+import { format } from 'date-fns';
 import type { ApprovalRequest } from '../types';
-import { usePermissions } from '@features/auth/hooks/usePermissions';
+import { 
+  REQUEST_TYPE_LABELS, 
+  STATUS_LABELS, 
+  PRIORITY_LABELS, 
+  STATUS_COLORS, 
+  PRIORITY_COLORS 
+} from '../types';
 
 interface ApprovalRequestTableProps {
   requests: ApprovalRequest[];
-  loading?: boolean;
-  onView: (id: string) => void;
-  onApprove: (request: ApprovalRequest) => void;
-  onReject: (request: ApprovalRequest) => void;
-  onCancel: (id: string) => void;
+  loading: boolean;
+  onDecision?: (request: ApprovalRequest) => void;
+  onCancel?: (request: ApprovalRequest) => void;
+  onView?: (request: ApprovalRequest) => void;
 }
 
 export const ApprovalRequestTable: React.FC<ApprovalRequestTableProps> = ({
   requests,
   loading,
-  onView,
-  onApprove,
-  onReject,
+  onDecision,
   onCancel,
+  onView,
 }) => {
-  const { canApproveRequests } = usePermissions();
+  const getStatusColor = (status: string) => {
+    return STATUS_COLORS[status as keyof typeof STATUS_COLORS] || 'default';
+  };
 
-  const columns: GridColDef[] = [
-    { 
-      field: 'id', 
-      headerName: 'Request ID', 
-      width: 150,
-      renderCell: (params) => (
-        <span style={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>
-          {params.value.substring(0, 8)}...
-        </span>
-      ),
-    },
-    { 
-      field: 'requestType', 
-      headerName: 'Type', 
-      width: 150,
-      renderCell: (params) => (
-        <span style={{ textTransform: 'capitalize' }}>
-          {params.value.replace(/_/g, ' ')}
-        </span>
-      ),
-    },
-    { 
-      field: 'target', 
-      headerName: 'Target', 
-      width: 200,
-      renderCell: (params) => {
-        const target = params.value;
-        if (target.serviceName) {
-          return <strong>{target.serviceName}</strong>;
-        }
-        if (target.serviceId) {
-          return <span style={{ fontFamily: 'monospace' }}>{target.serviceId}</span>;
-        }
-        if (target.configKey) {
-          return <span style={{ fontFamily: 'monospace' }}>{target.configKey}</span>;
-        }
-        return 'N/A';
-      },
-    },
-    { 
-      field: 'environment', 
-      headerName: 'Environment', 
-      width: 120,
-      renderCell: (params) => {
-        const env = params.row.target?.environment;
-        return env ? (
-          <span style={{ textTransform: 'uppercase', fontWeight: 500 }}>
-            {env}
-          </span>
-        ) : 'N/A';
-      },
-    },
-    {
-      field: 'status',
-      headerName: 'Status',
-      width: 130,
-      renderCell: (params) => <ApprovalBadge status={params.value} />,
-    },
-    { 
-      field: 'requesterUsername', 
-      headerName: 'Requester', 
-      width: 150,
-    },
-    {
-      field: 'createdAt',
-      headerName: 'Created',
-      width: 150,
-      type: 'dateTime',
-      valueFormatter: (value: any) => {
-        if (!value) return '';
-        return new Date(value).toLocaleDateString();
-      },
-    },
-    {
-      field: 'actions',
-      type: 'actions',
-      headerName: 'Actions',
-      width: 150,
-      getActions: (params) => {
-        const request = params.row as ApprovalRequest;
-        const isPending = request.status === 'PENDING';
-        const isOwnRequest = request.requesterUserId === 'current-user-id'; // This should come from auth context
-        
-        const actions = [
-          <GridActionsCellItem
-            key="view"
-            icon={<ViewIcon />}
-            label="View"
-            onClick={() => onView(params.id as string)}
-            showInMenu
-          />,
-        ];
+  const getPriorityColor = (priority: string) => {
+    return PRIORITY_COLORS[priority as keyof typeof PRIORITY_COLORS] || 'default';
+  };
 
-        if (canApproveRequests && isPending && !isOwnRequest) {
-          actions.push(
-            <GridActionsCellItem
-              key="approve"
-              icon={<ApproveIcon />}
-              label="Approve"
-              onClick={() => onApprove(request)}
-              showInMenu
-            />
-          );
-          actions.push(
-            <GridActionsCellItem
-              key="reject"
-              icon={<RejectIcon />}
-              label="Reject"
-              onClick={() => onReject(request)}
-              showInMenu
-            />
-          );
-        }
+  const formatDate = (dateString: string) => {
+    return format(new Date(dateString), 'MMM dd, yyyy HH:mm');
+  };
 
-        if (isPending && isOwnRequest) {
-          actions.push(
-            <GridActionsCellItem
-              key="cancel"
-              icon={<CancelIcon />}
-              label="Cancel"
-              onClick={() => onCancel(params.id as string)}
-              showInMenu
-            />
-          );
-        }
+  const isExpired = (expiresAt?: string) => {
+    if (!expiresAt) return false;
+    return new Date(expiresAt) < new Date();
+  };
 
-        return actions;
-      },
-    },
-  ];
+  const getApprovalProgress = (request: ApprovalRequest) => {
+    const totalRequired = request.requiredGates.reduce((sum, gate) => sum + gate.minApprovals, 0);
+    const currentApprovals = request.currentApprovals.length;
+    return { current: currentApprovals, total: totalRequired };
+  };
 
-  return <DataTable rows={requests} columns={columns} loading={loading} getRowId={(row) => row.id} />;
+  if (loading) {
+    return <LinearProgress />;
+  }
+
+  return (
+    <TableContainer component={Paper}>
+      <Table>
+        <TableHead>
+          <TableRow>
+            <TableCell>Service</TableCell>
+            <TableCell>Type</TableCell>
+            <TableCell>Requester</TableCell>
+            <TableCell>Priority</TableCell>
+            <TableCell>Status</TableCell>
+            <TableCell>Progress</TableCell>
+            <TableCell>Created</TableCell>
+            <TableCell>Expires</TableCell>
+            <TableCell align="right">Actions</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {requests.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={9} align="center">
+                <Typography variant="body2" color="text.secondary">
+                  No approval requests found
+                </Typography>
+              </TableCell>
+            </TableRow>
+          ) : (
+            requests.map((request) => {
+              const progress = getApprovalProgress(request);
+              const isExpiredRequest = isExpired(request.expiresAt);
+              
+              return (
+                <TableRow key={request.id} hover>
+                  <TableCell>
+                    <Typography variant="body2" fontWeight="medium">
+                      {request.serviceName}
+                    </Typography>
+                  </TableCell>
+                  
+                  <TableCell>
+                    <Chip
+                      label={REQUEST_TYPE_LABELS[request.requestType as keyof typeof REQUEST_TYPE_LABELS] || request.requestType}
+                      size="small"
+                      variant="outlined"
+                    />
+                  </TableCell>
+
+                  <TableCell>
+                    <Box>
+                      <Typography variant="body2" fontWeight="medium">
+                        {request.requestedBy}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {request.requestedByEmail}
+                      </Typography>
+                    </Box>
+                  </TableCell>
+
+                  <TableCell>
+                    <Chip
+                      label={PRIORITY_LABELS[request.priority as keyof typeof PRIORITY_LABELS] || request.priority}
+                      color={getPriorityColor(request.priority) as any}
+                      size="small"
+                    />
+                  </TableCell>
+
+                  <TableCell>
+                    <Chip
+                      label={STATUS_LABELS[request.status as keyof typeof STATUS_LABELS] || request.status}
+                      color={getStatusColor(request.status) as any}
+                      size="small"
+                    />
+                  </TableCell>
+
+                  <TableCell>
+                    <Box sx={{ minWidth: 100 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        {progress.current}/{progress.total}
+                      </Typography>
+                      <Box sx={{ 
+                        width: '100%', 
+                        height: 4, 
+                        bgcolor: 'grey.200', 
+                        borderRadius: 2,
+                        overflow: 'hidden'
+                      }}>
+                        <Box
+                          sx={{
+                            width: `${(progress.current / progress.total) * 100}%`,
+                            height: '100%',
+                            bgcolor: progress.current >= progress.total ? 'success.main' : 'primary.main',
+                            transition: 'width 0.3s ease',
+                          }}
+                        />
+                      </Box>
+                    </Box>
+                  </TableCell>
+
+                  <TableCell>
+                    <Typography variant="body2" color="text.secondary">
+                      {formatDate(request.createdAt)}
+                    </Typography>
+                  </TableCell>
+
+                  <TableCell>
+                    {request.expiresAt ? (
+                      <Typography
+                        variant="body2"
+                        color={isExpiredRequest ? 'error' : 'text.secondary'}
+                        fontWeight={isExpiredRequest ? 'medium' : 'normal'}
+                      >
+                        {formatDate(request.expiresAt)}
+                        {isExpiredRequest && ' (Expired)'}
+                      </Typography>
+                    ) : (
+                      <Typography variant="body2" color="text.secondary">
+                        Never
+                      </Typography>
+                    )}
+                  </TableCell>
+
+                  <TableCell align="right">
+                    <Box sx={{ display: 'flex', gap: 0.5 }}>
+                      {onView && (
+                        <Tooltip title="View Details">
+                          <IconButton
+                            size="small"
+                            onClick={() => onView(request)}
+                          >
+                            <ViewIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                      
+                      {onDecision && request.status === 'PENDING' && (
+                        <Tooltip title="Make Decision">
+                          <IconButton
+                            size="small"
+                            onClick={() => onDecision(request)}
+                            color="primary"
+                          >
+                            <ApproveIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                      
+                      {onCancel && request.status === 'PENDING' && (
+                        <Tooltip title="Cancel Request">
+                          <IconButton
+                            size="small"
+                            onClick={() => onCancel(request)}
+                            color="error"
+                          >
+                            <CancelIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                    </Box>
+                  </TableCell>
+                </TableRow>
+              );
+            })
+          )}
+        </TableBody>
+      </Table>
+    </TableContainer>
+  );
 };

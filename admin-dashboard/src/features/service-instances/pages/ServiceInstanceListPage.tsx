@@ -1,42 +1,57 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Box, TextField, InputAdornment, FormControl, InputLabel, Select, MenuItem, Button } from '@mui/material';
 import { Search as SearchIcon, Refresh as RefreshIcon } from '@mui/icons-material';
 import { PageHeader } from '@components/common/PageHeader';
 import { ConfirmDialog } from '@components/common/ConfirmDialog';
 import {
-  useGetServiceInstancesQuery,
-  useDeleteServiceInstanceMutation,
-} from '../api';
+  useFindAllServiceInstances,
+  useDeleteServiceInstance,
+} from '@lib/api/hooks';
 import type { ServiceInstance } from '../types';
 import { ServiceInstanceTable } from '../components/ServiceInstanceTable';
+import type { FindAllServiceInstancesStatus } from '@lib/api/models';
 
 const ServiceInstanceListPage: React.FC = () => {
-  const [page] = useState(0);
-  const [pageSize] = useState(10);
+  const navigate = useNavigate();
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState('');
   const [environmentFilter, setEnvironmentFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState<FindAllServiceInstancesStatus | ''>('');
   const [driftFilter, setDriftFilter] = useState('');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedInstance, setSelectedInstance] = useState<ServiceInstance | null>(null);
 
+  const { data: instancesResponse, isLoading, refetch } = useFindAllServiceInstances(
+    {
+      serviceName: search || undefined,
+      status: (statusFilter as FindAllServiceInstancesStatus) || undefined,
+      environment: environmentFilter || undefined,
+      hasDrift: driftFilter ? driftFilter === 'true' : undefined,
+      pageable: { page, size: pageSize },
+    },
+    {
+      query: {
+        staleTime: 30000,
+      },
+    }
+  );
 
-  const { data, isLoading, refetch } = useGetServiceInstancesQuery({
-    page,
-    size: pageSize,
-    serviceName: search || undefined,
-    environment: environmentFilter || undefined,
-    status: statusFilter || undefined,
-    hasDrift: driftFilter === 'true' ? true : driftFilter === 'false' ? false : undefined,
-  });
+  const deleteInstanceMutation = useDeleteServiceInstance();
 
-  const [deleteInstance, { isLoading: deleteLoading }] = useDeleteServiceInstanceMutation();
+  // Get the page data from API response
+  const pageData = instancesResponse;
+  const instances = (pageData?.content || []) as ServiceInstance[];
 
   const handleDeleteInstance = async () => {
     if (!selectedInstance) return;
     
     try {
-      await deleteInstance(selectedInstance.id).unwrap();
+      await deleteInstanceMutation.mutateAsync({ 
+        serviceName: selectedInstance.serviceName, 
+        instanceId: selectedInstance.instanceId 
+      });
       setDeleteDialogOpen(false);
       setSelectedInstance(null);
     } catch (error) {
@@ -45,7 +60,7 @@ const ServiceInstanceListPage: React.FC = () => {
   };
 
   const handleDeleteClick = (instanceId: string) => {
-    const instanceToDelete = data?.content.find(i => i.id === instanceId);
+    const instanceToDelete = instances.find(i => i.instanceId === instanceId);
     if (instanceToDelete) {
       setSelectedInstance(instanceToDelete);
       setDeleteDialogOpen(true);
@@ -53,8 +68,11 @@ const ServiceInstanceListPage: React.FC = () => {
   };
 
   const handleViewClick = (instanceId: string) => {
-    // Navigate to instance detail page
-    console.log('Navigate to instance:', instanceId);
+    // Find the instance to get serviceName
+    const instance = instances.find(inst => inst.instanceId === instanceId);
+    if (instance) {
+      navigate(`/service-instances/${encodeURIComponent(instance.serviceName)}/${encodeURIComponent(instanceId)}`);
+    }
   };
 
   const handleEditClick = (instance: ServiceInstance) => {
@@ -141,7 +159,7 @@ const ServiceInstanceListPage: React.FC = () => {
       </Box>
 
       <ServiceInstanceTable
-        instances={data?.content || []}
+        instances={instances}
         loading={isLoading}
         onView={handleViewClick}
         onEdit={handleEditClick}
@@ -156,7 +174,7 @@ const ServiceInstanceListPage: React.FC = () => {
         onCancel={() => setDeleteDialogOpen(false)}
         confirmText="Delete"
         cancelText="Cancel"
-        loading={deleteLoading}
+        loading={deleteInstanceMutation.isPending}
       />
     </Box>
   );

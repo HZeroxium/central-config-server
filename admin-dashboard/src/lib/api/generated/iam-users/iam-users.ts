@@ -46,9 +46,9 @@ import type {
   FindByManagerIamUserParams,
   FindByTeamIamUserParams,
   GetStatsIamUserParams,
-  Page,
-  Response,
-  StatsResponse
+  IamUserResponse,
+  IamUserStatsResponse,
+  Page
 } from '../../models';
 
 import { customInstance } from '../../mutator';
@@ -238,7 +238,7 @@ export const findByIdIamUser = (
 ) => {
       
       
-      return customInstance<Response>(
+      return customInstance<IamUserResponse>(
       {url: `/api/iam/users/${userId}`, method: 'GET',
         params, signal
     },
@@ -417,7 +417,7 @@ export const getStatsIamUser = (
 ) => {
       
       
-      return customInstance<StatsResponse>(
+      return customInstance<IamUserStatsResponse>(
       {url: `/api/iam/users/stats`, method: 'GET',
         params, signal
     },

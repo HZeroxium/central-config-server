@@ -1,259 +1,383 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Drawer,
   Box,
   Typography,
   TextField,
-  Button,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
   FormControlLabel,
   Checkbox,
+  Button,
+  Chip,
   Autocomplete,
   Divider,
-  Stack,
 } from '@mui/material';
-import Grid from '@mui/material/Grid';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { CreateServiceShareSchema } from '../types';
-import type { CreateServiceShareRequest } from '../types';
+import { Person as PersonIcon, Group as GroupIcon } from '@mui/icons-material';
+import { useFindAllApplicationServices } from '@lib/api/hooks';
+import { useErrorHandler } from '../../../hooks/useErrorHandler';
+import type { ServiceShare, CreateServiceShareRequest, Permission, Environment } from '../types';
+import { PERMISSIONS, ENVIRONMENTS, PERMISSION_LABELS, ENVIRONMENT_LABELS } from '../types';
 
 interface ShareFormDrawerProps {
   open: boolean;
   onClose: () => void;
-  serviceId: string;
-  initialData?: CreateServiceShareRequest;
   onSubmit: (data: CreateServiceShareRequest) => void;
-  loading?: boolean;
+  share?: ServiceShare | null;
 }
-
-const GRANT_TO_TYPE_OPTIONS = [
-  { value: 'TEAM', label: 'Team' },
-  { value: 'USER', label: 'User' },
-];
-
-const PERMISSION_OPTIONS = [
-  { value: 'VIEW', label: 'View' },
-  { value: 'EDIT', label: 'Edit' },
-  { value: 'DELETE', label: 'Delete' },
-];
-
-const ENVIRONMENT_OPTIONS = ['dev', 'staging', 'prod', 'test'];
-
-// Mock data - in real app, this would come from API
-const TEAM_OPTIONS = ['team-alpha', 'team-beta', 'team-gamma', 'team-delta'];
-const USER_OPTIONS = ['user1', 'user2', 'user3', 'user4'];
 
 export const ShareFormDrawer: React.FC<ShareFormDrawerProps> = ({
   open,
   onClose,
-  serviceId,
-  initialData,
   onSubmit,
-  loading = false,
+  share,
 }) => {
-  const {
-    control,
-    handleSubmit,
-    reset,
-    watch,
-    formState: { errors },
-  } = useForm<CreateServiceShareRequest>({
-    resolver: zodResolver(CreateServiceShareSchema),
-    defaultValues: initialData || {
-      serviceId,
-      grantToType: 'TEAM',
-      grantToId: '',
-      permissions: [],
-      environments: [],
-      expiresAt: undefined,
-    },
+  const [formData, setFormData] = useState<CreateServiceShareRequest>({
+    serviceId: '',
+    grantedTo: 'USER',
+    grantedToId: '',
+    permissions: [],
+    environments: [],
+    expiresAt: undefined,
+    note: '',
   });
 
-  const grantToType = watch('grantToType');
+  const [selectedPermissions, setSelectedPermissions] = useState<Permission[]>([]);
+  const [selectedEnvironments, setSelectedEnvironments] = useState<Environment[]>([]);
+  const [expiryDate, setExpiryDate] = useState<Date | null>(null);
 
+  const { handleError } = useErrorHandler();
+
+  // Fetch services for autocomplete
+  const { data: servicesResponse } = useFindAllApplicationServices(
+    { filter: undefined, pageable: { page: 0, size: 1000 } },
+    { query: { enabled: open } }
+  );
+
+  const services = servicesResponse?.content || [];
+  
+  // Mock data for teams and users - in real implementation, these would come from API
+  const teams = [
+    { id: 'team1', name: 'Development Team', type: 'TEAM' as const },
+    { id: 'team2', name: 'QA Team', type: 'TEAM' as const },
+    { id: 'team3', name: 'DevOps Team', type: 'TEAM' as const },
+  ];
+  
+  const users = [
+    { id: 'user1', name: 'John Doe', type: 'USER' as const },
+    { id: 'user2', name: 'Jane Smith', type: 'USER' as const },
+    { id: 'user3', name: 'Bob Johnson', type: 'USER' as const },
+  ];
+
+  // Initialize form data when editing
   useEffect(() => {
-    if (open) {
-      reset(initialData || {
-        serviceId,
-        grantToType: 'TEAM',
-        grantToId: '',
+    if (share) {
+      setFormData({
+        serviceId: share.serviceId,
+        grantedTo: share.grantedTo,
+        grantedToId: share.grantedToId,
+        permissions: share.permissions as Permission[],
+        environments: share.environments as Environment[],
+        expiresAt: share.expiresAt,
+        note: '',
+      });
+      setSelectedPermissions(share.permissions as Permission[]);
+      setSelectedEnvironments(share.environments as Environment[]);
+      setExpiryDate(share.expiresAt ? new Date(share.expiresAt) : null);
+    } else {
+      // Reset form for new share
+      setFormData({
+        serviceId: '',
+        grantedTo: 'USER',
+        grantedToId: '',
         permissions: [],
         environments: [],
         expiresAt: undefined,
+        note: '',
       });
+      setSelectedPermissions([]);
+      setSelectedEnvironments([]);
+      setExpiryDate(null);
     }
-  }, [open, initialData, serviceId, reset]);
+  }, [share, open]);
 
-  const handleFormSubmit = (data: CreateServiceShareRequest) => {
-    onSubmit(data);
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.serviceId || !formData.grantedToId || selectedPermissions.length === 0 || selectedEnvironments.length === 0) {
+      handleError(new Error('Please fill in all required fields'));
+      return;
+    }
+
+    onSubmit({
+      ...formData,
+      permissions: selectedPermissions,
+      environments: selectedEnvironments,
+      expiresAt: expiryDate?.toISOString(),
+    });
   };
 
-  const getGrantToOptions = () => {
-    return grantToType === 'TEAM' ? TEAM_OPTIONS : USER_OPTIONS;
+  const handleGrantedToChange = (value: 'TEAM' | 'USER') => {
+    setFormData(prev => ({
+      ...prev,
+      grantedTo: value,
+      grantedToId: '', // Reset selection when changing type
+    }));
+  };
+
+  const getGrantedToOptions = () => {
+    if (formData.grantedTo === 'TEAM') {
+      return teams.map(team => ({
+        id: team.id,
+        name: team.name,
+        type: 'TEAM' as const,
+      }));
+    } else {
+      return users.map(user => ({
+        id: user.id,
+        name: `${user.firstName} ${user.lastName}`,
+        type: 'USER' as const,
+      }));
+    }
+  };
+
+  const getGrantedToName = () => {
+    const options = getGrantedToOptions();
+    const selected = options.find(option => option.id === formData.grantedToId);
+    return selected?.name || '';
   };
 
   return (
-    <Drawer anchor="right" open={open} onClose={onClose} PaperProps={{ sx: { width: { xs: '100%', sm: 600 } } }}>
-      <Box sx={{ p: 3 }}>
-        <Typography variant="h5" gutterBottom>
-          Share Service: {serviceId}
-        </Typography>
-        <Divider sx={{ my: 2 }} />
-        
-        <Box component="form" onSubmit={handleSubmit(handleFormSubmit)} noValidate>
-          <Grid container spacing={3}>
-            <Grid size={{ xs: 12 }}>
-              <Controller
-                name="grantToType"
-                control={control}
-                render={({ field }) => (
-                  <FormControl fullWidth error={!!errors.grantToType}>
-                    <InputLabel>Grant To Type</InputLabel>
-                    <Select
-                      {...field}
-                      label="Grant To Type"
-                    >
-                      {GRANT_TO_TYPE_OPTIONS.map((option) => (
-                        <MenuItem key={option.value} value={option.value}>
-                          {option.label}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                )}
-              />
-            </Grid>
+    <LocalizationProvider dateAdapter={AdapterDateFns}>
+      <Drawer
+        anchor="right"
+        open={open}
+        onClose={onClose}
+        PaperProps={{
+          sx: { width: 600, p: 3 }
+        }}
+      >
+        <Box>
+          <Typography variant="h6" gutterBottom>
+            {share ? 'Edit Service Share' : 'Grant Service Access'}
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Configure access permissions for a service
+          </Typography>
 
-            <Grid size={{ xs: 12 }}>
-              <Controller
-                name="grantToId"
-                control={control}
-                render={({ field }) => (
-                  <Autocomplete
-                    {...field}
-                    options={getGrantToOptions()}
-                    onChange={(_, value) => field.onChange(value)}
-                    renderInput={(params) => (
-                      <TextField
-                        {...params}
-                        label={`Grant To ${grantToType}`}
-                        fullWidth
-                        required
-                        error={!!errors.grantToId}
-                        helperText={errors.grantToId?.message}
-                        placeholder={`Select ${grantToType.toLowerCase()}`}
-                      />
-                    )}
-                  />
-                )}
-              />
-            </Grid>
+          <form onSubmit={handleSubmit}>
+            {/* Service Selection */}
+            <FormControl fullWidth sx={{ mb: 3 }}>
+              <InputLabel>Service *</InputLabel>
+              <Select
+                value={formData.serviceId}
+                onChange={(e) => setFormData(prev => ({ ...prev, serviceId: e.target.value }))}
+                label="Service *"
+                required
+              >
+                {services.map((service: any) => (
+                  <MenuItem key={service.id} value={service.id}>
+                    {service.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
 
-            <Grid size={{ xs: 12 }}>
-              <Typography variant="subtitle1" gutterBottom>
-                Permissions
-              </Typography>
-              <Controller
-                name="permissions"
-                control={control}
-                render={({ field }) => (
-                  <Box>
-                    {PERMISSION_OPTIONS.map((option) => (
-                      <FormControlLabel
-                        key={option.value}
-                        control={
-                          <Checkbox
-                            checked={field.value.includes(option.value as any)}
-                            onChange={(e) => {
-                              const newPermissions = e.target.checked
-                                ? [...field.value, option.value]
-                                : field.value.filter((p: string) => p !== option.value);
-                              field.onChange(newPermissions);
-                            }}
-                          />
-                        }
-                        label={option.label}
-                      />
-                    ))}
-                    {errors.permissions && (
-                      <Typography color="error" variant="caption" display="block">
-                        {errors.permissions.message}
-                      </Typography>
-                    )}
+            {/* Grant Type */}
+            <FormControl fullWidth sx={{ mb: 3 }}>
+              <InputLabel>Grant To *</InputLabel>
+              <Select
+                value={formData.grantedTo}
+                onChange={(e) => handleGrantedToChange(e.target.value as 'TEAM' | 'USER')}
+                label="Grant To *"
+                required
+              >
+                <MenuItem value="USER">
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <PersonIcon fontSize="small" />
+                    User
                   </Box>
-                )}
-              />
-            </Grid>
+                </MenuItem>
+                <MenuItem value="TEAM">
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <GroupIcon fontSize="small" />
+                    Team
+                  </Box>
+                </MenuItem>
+              </Select>
+            </FormControl>
 
-            <Grid size={{ xs: 12 }}>
-              <Controller
-                name="environments"
-                control={control}
-                render={({ field }) => (
-                  <Autocomplete
-                    {...field}
-                    multiple
-                    options={ENVIRONMENT_OPTIONS}
-                    freeSolo
-                    onChange={(_, value) => field.onChange(value)}
-                    renderInput={(params) => (
-                      <TextField
-                        {...params}
-                        label="Environments (Optional)"
-                        fullWidth
-                        error={!!errors.environments}
-                        helperText={errors.environments?.message || "Leave empty to grant access to all environments"}
-                        placeholder="Select environments"
-                      />
+            {/* User/Team Selection */}
+            <Autocomplete
+              options={getGrantedToOptions()}
+              getOptionLabel={(option) => option.name}
+              value={getGrantedToOptions().find(option => option.id === formData.grantedToId) || null}
+              onChange={(_, value) => setFormData(prev => ({ ...prev, grantedToId: value?.id || '' }))}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label={`Select ${formData.grantedTo.toLowerCase()}`}
+                  required
+                  sx={{ mb: 3 }}
+                />
+              )}
+              renderOption={(props, option) => (
+                <li {...props}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    {option.type === 'TEAM' ? (
+                      <GroupIcon fontSize="small" color="primary" />
+                    ) : (
+                      <PersonIcon fontSize="small" color="action" />
                     )}
-                  />
-                )}
-              />
-            </Grid>
+                    {option.name}
+                  </Box>
+                </li>
+              )}
+            />
 
-            <Grid size={{ xs: 12 }}>
-              <Controller
-                name="expiresAt"
-                control={control}
-                render={({ field }) => (
-                  <LocalizationProvider dateAdapter={AdapterDateFns}>
-                    <DatePicker
-                      label="Expires At (Optional)"
-                      value={field.value ? new Date(field.value) : null}
-                      onChange={(date) => field.onChange(date)}
-                      slotProps={{
-                        textField: {
-                          fullWidth: true,
-                          error: !!errors.expiresAt,
-                          helperText: errors.expiresAt?.message || "Leave empty for no expiration"
+            <Divider sx={{ my: 3 }} />
+
+            {/* Permissions */}
+            <Typography variant="subtitle1" gutterBottom>
+              Permissions *
+            </Typography>
+            <Box sx={{ mb: 3 }}>
+              {Object.entries(PERMISSIONS).map(([key, permission]) => (
+                <FormControlLabel
+                  key={key}
+                  control={
+                    <Checkbox
+                      checked={selectedPermissions.includes(permission)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedPermissions(prev => [...prev, permission]);
+                        } else {
+                          setSelectedPermissions(prev => prev.filter(p => p !== permission));
                         }
                       }}
                     />
-                  </LocalizationProvider>
-                )}
-              />
-            </Grid>
+                  }
+                  label={PERMISSION_LABELS[permission]}
+                />
+              ))}
+            </Box>
 
-            <Grid size={{ xs: 12 }}>
-              <Stack direction="row" spacing={2} sx={{ mt: 3 }}>
-                <Button onClick={onClose} disabled={loading} variant="outlined">
-                  Cancel
-                </Button>
-                <Button type="submit" variant="contained" color="primary" disabled={loading}>
-                  Grant Share
-                </Button>
-              </Stack>
-            </Grid>
-          </Grid>
+            {/* Selected Permissions Display */}
+            {selectedPermissions.length > 0 && (
+              <Box sx={{ mb: 3 }}>
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  Selected permissions:
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                  {selectedPermissions.map((permission) => (
+                    <Chip
+                      key={permission}
+                      label={PERMISSION_LABELS[permission]}
+                      size="small"
+                      onDelete={() => setSelectedPermissions(prev => prev.filter(p => p !== permission))}
+                    />
+                  ))}
+                </Box>
+              </Box>
+            )}
+
+            <Divider sx={{ my: 3 }} />
+
+            {/* Environments */}
+            <Typography variant="subtitle1" gutterBottom>
+              Environments *
+            </Typography>
+            <Box sx={{ mb: 3 }}>
+              {Object.entries(ENVIRONMENTS).map(([key, environment]) => (
+                <FormControlLabel
+                  key={key}
+                  control={
+                    <Checkbox
+                      checked={selectedEnvironments.includes(environment)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedEnvironments(prev => [...prev, environment]);
+                        } else {
+                          setSelectedEnvironments(prev => prev.filter(e => e !== environment));
+                        }
+                      }}
+                    />
+                  }
+                  label={ENVIRONMENT_LABELS[environment]}
+                />
+              ))}
+            </Box>
+
+            {/* Selected Environments Display */}
+            {selectedEnvironments.length > 0 && (
+              <Box sx={{ mb: 3 }}>
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  Selected environments:
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                  {selectedEnvironments.map((environment) => (
+                    <Chip
+                      key={environment}
+                      label={ENVIRONMENT_LABELS[environment]}
+                      size="small"
+                      onDelete={() => setSelectedEnvironments(prev => prev.filter(e => e !== environment))}
+                    />
+                  ))}
+                </Box>
+              </Box>
+            )}
+
+            <Divider sx={{ my: 3 }} />
+
+            {/* Expiry Date */}
+            <Typography variant="subtitle1" gutterBottom>
+              Expiry Date (Optional)
+            </Typography>
+            <DatePicker
+              value={expiryDate}
+              onChange={setExpiryDate}
+              slotProps={{
+                textField: {
+                  fullWidth: true,
+                  sx: { mb: 3 },
+                  helperText: "Leave empty for no expiration"
+                }
+              }}
+            />
+
+            {/* Note */}
+            <TextField
+              label="Note (Optional)"
+              multiline
+              rows={3}
+              value={formData.note}
+              onChange={(e) => setFormData(prev => ({ ...prev, note: e.target.value }))}
+              fullWidth
+              sx={{ mb: 3 }}
+              helperText="Add a note about why this access is being granted"
+            />
+
+            {/* Action Buttons */}
+            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+              <Button onClick={onClose} variant="outlined">
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="contained"
+                disabled={!formData.serviceId || !formData.grantedToId || selectedPermissions.length === 0 || selectedEnvironments.length === 0}
+              >
+                {share ? 'Update Share' : 'Grant Access'}
+              </Button>
+            </Box>
+          </form>
         </Box>
-      </Box>
-    </Drawer>
+      </Drawer>
+    </LocalizationProvider>
   );
 };

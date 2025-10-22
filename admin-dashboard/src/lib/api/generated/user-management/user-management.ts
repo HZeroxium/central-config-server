@@ -40,9 +40,9 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
-  ApiResponse,
   ErrorResponse,
-  MeResponse
+  MeResponse,
+  PermissionsResponse
 } from '../../models';
 
 import { customInstance } from '../../mutator';
@@ -402,7 +402,7 @@ export const findCurrentUserPermissions = (
 ) => {
       
       
-      return customInstance<ApiResponse>(
+      return customInstance<PermissionsResponse>(
       {url: `/api/user/me/permissions`, method: 'GET', signal
     },
       options);

@@ -1,59 +1,125 @@
-import { z } from 'zod';
-
-// ApprovalTarget schema matching backend
-export const ApprovalTargetSchema = z.object({
-  serviceId: z.string(),
-  teamId: z.string(),
-});
-
-// ApprovalGate schema matching backend
-export const ApprovalGateSchema = z.object({
-  gate: z.string(),
-  minApprovals: z.number(),
-});
-
-// RequesterSnapshot schema matching backend
-export const RequesterSnapshotSchema = z.object({
-  teamIds: z.array(z.string()),
-  managerId: z.string().optional(),
-  roles: z.array(z.string()),
-});
-
-export const ApprovalRequestSchema = z.object({
-  id: z.string(),
-  requesterUserId: z.string(),
-  requestType: z.enum(['ASSIGN_SERVICE_TO_TEAM', 'SERVICE_OWNERSHIP_TRANSFER']),
-  target: ApprovalTargetSchema,
-  required: z.array(ApprovalGateSchema),
-  status: z.enum(['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED']),
-  snapshot: RequesterSnapshotSchema,
-  counts: z.record(z.string(), z.number()),
-  createdAt: z.string(),
-  updatedAt: z.string(),
-  note: z.string().optional(),
-  cancelReason: z.string().optional(),
-});
-
-export const CreateApprovalRequestSchema = z.object({
-  serviceId: z.string().min(1, 'Service ID is required'),
-  targetTeamId: z.string().min(1, 'Target team ID is required'),
-  note: z.string().optional(),
-});
-
-export const DecisionRequestSchema = z.object({
-  decision: z.enum(['APPROVE', 'REJECT']),
-  note: z.string().optional(),
-});
-
-export type ApprovalRequest = z.infer<typeof ApprovalRequestSchema>;
-export type CreateApprovalRequestRequest = z.infer<typeof CreateApprovalRequestSchema>;
-export type DecisionRequest = z.infer<typeof DecisionRequestSchema>;
-
-export interface ApprovalRequestQueryFilter {
-  page?: number;
-  size?: number;
-  sort?: string;
-  status?: string;
-  requestType?: string;
-  requesterUserId?: string;
+export interface ApprovalRequest {
+  id: string;
+  serviceId: string;
+  serviceName: string;
+  requestedBy: string;
+  requestedByEmail: string;
+  requestType: 'SERVICE_SHARE' | 'CONFIG_CHANGE' | 'DRIFT_RESOLUTION' | 'SERVICE_DELETION';
+  description: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  createdAt: string;
+  updatedAt: string;
+  expiresAt?: string;
+  requiredGates: ApprovalGate[];
+  currentApprovals: Approval[];
+  metadata: Record<string, any>;
 }
+
+export interface ApprovalGate {
+  gate: 'SYS_ADMIN' | 'LINE_MANAGER' | 'TEAM_LEAD' | 'SERVICE_OWNER';
+  minApprovals: number;
+  description: string;
+}
+
+export interface Approval {
+  id: string;
+  requestId: string;
+  gate: string;
+  approverId: string;
+  approverName: string;
+  approverEmail: string;
+  decision: 'APPROVED' | 'REJECTED';
+  note?: string;
+  createdAt: string;
+}
+
+export interface ApprovalDecision {
+  requestId: string;
+  gate: string;
+  decision: 'APPROVED' | 'REJECTED';
+  note?: string;
+}
+
+export interface ApprovalRequestFilter {
+  status?: 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
+  requestType?: 'SERVICE_SHARE' | 'CONFIG_CHANGE' | 'DRIFT_RESOLUTION' | 'SERVICE_DELETION';
+  priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  requestedBy?: string;
+  serviceId?: string;
+}
+
+export const REQUEST_TYPES = {
+  SERVICE_SHARE: 'SERVICE_SHARE',
+  CONFIG_CHANGE: 'CONFIG_CHANGE',
+  DRIFT_RESOLUTION: 'DRIFT_RESOLUTION',
+  SERVICE_DELETION: 'SERVICE_DELETION',
+} as const;
+
+export const REQUEST_STATUSES = {
+  PENDING: 'PENDING',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
+  CANCELLED: 'CANCELLED',
+} as const;
+
+export const PRIORITIES = {
+  LOW: 'LOW',
+  MEDIUM: 'MEDIUM',
+  HIGH: 'HIGH',
+  CRITICAL: 'CRITICAL',
+} as const;
+
+export const APPROVAL_GATES = {
+  SYS_ADMIN: 'SYS_ADMIN',
+  LINE_MANAGER: 'LINE_MANAGER',
+  TEAM_LEAD: 'TEAM_LEAD',
+  SERVICE_OWNER: 'SERVICE_OWNER',
+} as const;
+
+export type RequestType = typeof REQUEST_TYPES[keyof typeof REQUEST_TYPES];
+export type RequestStatus = typeof REQUEST_STATUSES[keyof typeof REQUEST_STATUSES];
+export type Priority = typeof PRIORITIES[keyof typeof PRIORITIES];
+export type ApprovalGateType = typeof APPROVAL_GATES[keyof typeof APPROVAL_GATES];
+
+export const REQUEST_TYPE_LABELS: Record<RequestType, string> = {
+  [REQUEST_TYPES.SERVICE_SHARE]: 'Service Share',
+  [REQUEST_TYPES.CONFIG_CHANGE]: 'Configuration Change',
+  [REQUEST_TYPES.DRIFT_RESOLUTION]: 'Drift Resolution',
+  [REQUEST_TYPES.SERVICE_DELETION]: 'Service Deletion',
+};
+
+export const STATUS_LABELS: Record<RequestStatus, string> = {
+  [REQUEST_STATUSES.PENDING]: 'Pending',
+  [REQUEST_STATUSES.APPROVED]: 'Approved',
+  [REQUEST_STATUSES.REJECTED]: 'Rejected',
+  [REQUEST_STATUSES.CANCELLED]: 'Cancelled',
+};
+
+export const PRIORITY_LABELS: Record<Priority, string> = {
+  [PRIORITIES.LOW]: 'Low',
+  [PRIORITIES.MEDIUM]: 'Medium',
+  [PRIORITIES.HIGH]: 'High',
+  [PRIORITIES.CRITICAL]: 'Critical',
+};
+
+export const GATE_LABELS: Record<ApprovalGateType, string> = {
+  [APPROVAL_GATES.SYS_ADMIN]: 'System Administrator',
+  [APPROVAL_GATES.LINE_MANAGER]: 'Line Manager',
+  [APPROVAL_GATES.TEAM_LEAD]: 'Team Lead',
+  [APPROVAL_GATES.SERVICE_OWNER]: 'Service Owner',
+};
+
+export const STATUS_COLORS: Record<RequestStatus, string> = {
+  [REQUEST_STATUSES.PENDING]: 'warning',
+  [REQUEST_STATUSES.APPROVED]: 'success',
+  [REQUEST_STATUSES.REJECTED]: 'error',
+  [REQUEST_STATUSES.CANCELLED]: 'default',
+};
+
+export const PRIORITY_COLORS: Record<Priority, string> = {
+  [PRIORITIES.LOW]: 'info',
+  [PRIORITIES.MEDIUM]: 'warning',
+  [PRIORITIES.HIGH]: 'error',
+  [PRIORITIES.CRITICAL]: 'error',
+};

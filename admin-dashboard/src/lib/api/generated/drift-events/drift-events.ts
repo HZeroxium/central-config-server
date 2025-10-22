@@ -44,11 +44,12 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
-  ApiResponse,
-  CreateRequest,
+  DriftEventCreateRequest,
+  DriftEventResponse,
+  DriftEventUpdateRequest,
   ErrorResponse,
   FindAllDriftEventsParams,
-  UpdateRequest
+  Page
 } from '../../models';
 
 import { customInstance } from '../../mutator';
@@ -75,7 +76,7 @@ export const findAllDriftEvents = (
 ) => {
       
       
-      return customInstance<ApiResponse>(
+      return customInstance<Page>(
       {url: `/api/drift-events`, method: 'GET',
         params, signal
     },
@@ -241,15 +242,15 @@ export function useFindAllDriftEvents<TData = Awaited<ReturnType<typeof findAllD
  * @summary Create drift event
  */
 export const createDriftEvent = (
-    createRequest: CreateRequest,
+    driftEventCreateRequest: DriftEventCreateRequest,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
       
       
-      return customInstance<ApiResponse>(
+      return customInstance<DriftEventResponse>(
       {url: `/api/drift-events`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
-      data: createRequest, signal
+      data: driftEventCreateRequest, signal
     },
       options);
     }
@@ -257,8 +258,8 @@ export const createDriftEvent = (
 
 
 export const getCreateDriftEventMutationOptions = <TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createDriftEvent>>, TError,{data: CreateRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof createDriftEvent>>, TError,{data: CreateRequest}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createDriftEvent>>, TError,{data: DriftEventCreateRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof createDriftEvent>>, TError,{data: DriftEventCreateRequest}, TContext> => {
 
 const mutationKey = ['createDriftEvent'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -270,7 +271,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createDriftEvent>>, {data: CreateRequest}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createDriftEvent>>, {data: DriftEventCreateRequest}> = (props) => {
           const {data} = props ?? {};
 
           return  createDriftEvent(data,requestOptions)
@@ -282,18 +283,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type CreateDriftEventMutationResult = NonNullable<Awaited<ReturnType<typeof createDriftEvent>>>
-    export type CreateDriftEventMutationBody = CreateRequest
+    export type CreateDriftEventMutationBody = DriftEventCreateRequest
     export type CreateDriftEventMutationError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse
 
     /**
  * @summary Create drift event
  */
 export const useCreateDriftEvent = <TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createDriftEvent>>, TError,{data: CreateRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createDriftEvent>>, TError,{data: DriftEventCreateRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof createDriftEvent>>,
         TError,
-        {data: CreateRequest},
+        {data: DriftEventCreateRequest},
         TContext
       > => {
 
@@ -317,7 +318,7 @@ export const findDriftEventById = (
 ) => {
       
       
-      return customInstance<ApiResponse>(
+      return customInstance<DriftEventResponse>(
       {url: `/api/drift-events/${id}`, method: 'GET', signal
     },
       options);
@@ -483,14 +484,14 @@ export function useFindDriftEventById<TData = Awaited<ReturnType<typeof findDrif
  */
 export const updateDriftEvent = (
     id: string,
-    updateRequest: UpdateRequest,
+    driftEventUpdateRequest: DriftEventUpdateRequest,
  options?: SecondParameter<typeof customInstance>,) => {
       
       
-      return customInstance<ApiResponse>(
+      return customInstance<DriftEventResponse>(
       {url: `/api/drift-events/${id}`, method: 'PATCH',
       headers: {'Content-Type': 'application/json', },
-      data: updateRequest
+      data: driftEventUpdateRequest
     },
       options);
     }
@@ -498,8 +499,8 @@ export const updateDriftEvent = (
 
 
 export const getUpdateDriftEventMutationOptions = <TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateDriftEvent>>, TError,{id: string;data: UpdateRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof updateDriftEvent>>, TError,{id: string;data: UpdateRequest}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateDriftEvent>>, TError,{id: string;data: DriftEventUpdateRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateDriftEvent>>, TError,{id: string;data: DriftEventUpdateRequest}, TContext> => {
 
 const mutationKey = ['updateDriftEvent'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -511,7 +512,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateDriftEvent>>, {id: string;data: UpdateRequest}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateDriftEvent>>, {id: string;data: DriftEventUpdateRequest}> = (props) => {
           const {id,data} = props ?? {};
 
           return  updateDriftEvent(id,data,requestOptions)
@@ -523,18 +524,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type UpdateDriftEventMutationResult = NonNullable<Awaited<ReturnType<typeof updateDriftEvent>>>
-    export type UpdateDriftEventMutationBody = UpdateRequest
+    export type UpdateDriftEventMutationBody = DriftEventUpdateRequest
     export type UpdateDriftEventMutationError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse
 
     /**
  * @summary Update drift event
  */
 export const useUpdateDriftEvent = <TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateDriftEvent>>, TError,{id: string;data: UpdateRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateDriftEvent>>, TError,{id: string;data: DriftEventUpdateRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof updateDriftEvent>>,
         TError,
-        {id: string;data: UpdateRequest},
+        {id: string;data: DriftEventUpdateRequest},
         TContext
       > => {
 

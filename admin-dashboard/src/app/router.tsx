@@ -35,7 +35,7 @@ export const router = createBrowserRouter([
       { 
         index: true, 
         element: (
-          <ProtectedRoute>
+          <ProtectedRoute requiredRoute="/dashboard">
             <Suspense fallback={<Loading />}> 
               <DashboardPage />
             </Suspense>
@@ -45,7 +45,7 @@ export const router = createBrowserRouter([
       {
         path: 'dashboard',
         element: (
-          <ProtectedRoute>
+          <ProtectedRoute requiredRoute="/dashboard">
             <Suspense fallback={<Loading />}> 
               <DashboardPage />
             </Suspense>
@@ -58,7 +58,7 @@ export const router = createBrowserRouter([
           {
             index: true,
             element: (
-              <ProtectedRoute>
+              <ProtectedRoute requiredRoute="/application-services">
                 <Suspense fallback={<Loading />}> 
                   <ApplicationServiceListPage />
                 </Suspense>
@@ -68,7 +68,7 @@ export const router = createBrowserRouter([
           {
             path: ':id',
             element: (
-              <ProtectedRoute>
+              <ProtectedRoute requiredRoute="/application-services">
                 <Suspense fallback={<Loading />}> 
                   <ApplicationServiceDetailPage />
                 </Suspense>
@@ -133,7 +133,7 @@ export const router = createBrowserRouter([
           {
             index: true,
             element: (
-              <ProtectedRoute>
+              <ProtectedRoute requiredRoute="/service-instances">
                 <Suspense fallback={<Loading />}> 
                   <ServiceInstanceListPage />
                 </Suspense>
@@ -141,7 +141,7 @@ export const router = createBrowserRouter([
             ),
           },
           {
-            path: ':id',
+            path: ':serviceName/:instanceId',
             element: (
               <ProtectedRoute>
                 <Suspense fallback={<Loading />}> 
@@ -180,7 +180,7 @@ export const router = createBrowserRouter([
       {
         path: 'drift-events',
         element: (
-          <ProtectedRoute>
+          <ProtectedRoute requiredRoute="/drift-events">
             <Suspense fallback={<Loading />}> 
               <DriftEventListPage />
             </Suspense>
@@ -218,7 +218,7 @@ export const router = createBrowserRouter([
           {
             path: 'users',
             element: (
-              <ProtectedRoute>
+              <ProtectedRoute requiredRoute="/iam/users" requiredRoles={['SYS_ADMIN']}>
                 <Suspense fallback={<Loading />}> 
                   <IamUserListPage />
                 </Suspense>
@@ -228,7 +228,7 @@ export const router = createBrowserRouter([
           {
             path: 'teams',
             element: (
-              <ProtectedRoute>
+              <ProtectedRoute requiredRoute="/iam/teams" requiredRoles={['SYS_ADMIN']}>
                 <Suspense fallback={<Loading />}> 
                   <IamTeamListPage />
                 </Suspense>

@@ -6,40 +6,54 @@ import { ApplicationServiceTable } from '../components/ApplicationServiceTable';
 import { ApplicationServiceForm } from '../components/ApplicationServiceForm';
 import { ConfirmDialog } from '@components/common/ConfirmDialog';
 import {
-  useGetApplicationServicesQuery,
-  useCreateApplicationServiceMutation,
-  useDeleteApplicationServiceMutation,
-} from '../api';
+  useFindAllApplicationServices,
+  useCreateApplicationService,
+  useDeleteApplicationService,
+} from '@lib/api/hooks';
 import type { ApplicationService, CreateApplicationServiceFormData } from '../types';
 import { usePermissions } from '@features/auth/hooks/usePermissions';
 
 export const ApplicationServiceListPage: React.FC = () => {
-  const [page] = useState(0);
-  const [pageSize] = useState(10);
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState('');
   const [formOpen, setFormOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedService, setSelectedService] = useState<ApplicationService | null>(null);
 
-  const { canEditService } = usePermissions();
+  const { isSysAdmin } = usePermissions();
 
   const {
-    data: servicesData,
+    data: servicesResponse,
     isLoading,
     error,
-  } = useGetApplicationServicesQuery({
-    filter: { search },
-    page,
-    size: pageSize,
-  });
+    refetch,
+  } = useFindAllApplicationServices(
+    {
+      filter: search ? { search } : undefined,
+      pageable: { page, size: pageSize },
+    },
+    {
+      query: {
+        staleTime: 30000, // 30 seconds
+      },
+    }
+  );
 
-  const [createService, { isLoading: createLoading }] = useCreateApplicationServiceMutation();
-  const [deleteService, { isLoading: deleteLoading }] = useDeleteApplicationServiceMutation();
+  const createServiceMutation = useCreateApplicationService();
+  const deleteServiceMutation = useDeleteApplicationService();
+
+  // Get the page data from the API response
+  const pageData = servicesResponse;
+  const services = (pageData?.content || []) as ApplicationService[];
+  const totalElements = pageData?.totalElements || 0;
+  const totalPages = pageData?.totalPages || 0;
 
   const handleCreateService = async (data: CreateApplicationServiceFormData) => {
     try {
-      await createService(data as any).unwrap();
+      await createServiceMutation.mutateAsync({ data: data });
       setFormOpen(false);
+      refetch();
     } catch (error) {
       console.error('Failed to create service:', error);
     }
@@ -49,9 +63,10 @@ export const ApplicationServiceListPage: React.FC = () => {
     if (!selectedService) return;
     
     try {
-      await deleteService(selectedService.id).unwrap();
+      await deleteServiceMutation.mutateAsync({ id: selectedService.id });
       setDeleteDialogOpen(false);
       setSelectedService(null);
+      refetch();
     } catch (error) {
       console.error('Failed to delete service:', error);
     }
@@ -77,7 +92,6 @@ export const ApplicationServiceListPage: React.FC = () => {
     console.log('Share service:', service.id);
   };
 
-  const services = servicesData?.content || [];
 
   return (
     <Box>
@@ -85,7 +99,7 @@ export const ApplicationServiceListPage: React.FC = () => {
         title="Application Services"
         subtitle="Manage your application services and their configurations"
         actions={
-          canEditService && (
+          isSysAdmin && (
             <Button
               variant="contained"
               startIcon={<AddIcon />}
@@ -97,7 +111,7 @@ export const ApplicationServiceListPage: React.FC = () => {
         }
       />
 
-      {error && (
+      {(error as any) && (
         <Alert severity="error" sx={{ mb: 3 }}>
           Failed to load application services. Please try again.
         </Alert>
@@ -117,8 +131,8 @@ export const ApplicationServiceListPage: React.FC = () => {
         services={services}
         loading={isLoading}
         onView={handleViewService}
-        onEdit={canEditService ? handleEditService : undefined}
-        onDelete={canEditService ? handleDeleteClick : undefined}
+        onEdit={handleEditService}
+        onDelete={handleDeleteClick}
         onShare={handleShareService}
       />
 
@@ -132,7 +146,7 @@ export const ApplicationServiceListPage: React.FC = () => {
           setFormOpen(false);
           setSelectedService(null);
         }}
-        loading={createLoading}
+        loading={createServiceMutation.isPending}
       />
 
       {/* Delete Confirmation Dialog */}
@@ -147,7 +161,7 @@ export const ApplicationServiceListPage: React.FC = () => {
           setDeleteDialogOpen(false);
           setSelectedService(null);
         }}
-        loading={deleteLoading}
+        loading={deleteServiceMutation.isPending}
       />
     </Box>
   );

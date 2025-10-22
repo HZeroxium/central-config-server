@@ -19,14 +19,14 @@
 
  * OpenAPI spec version: 1.0.0
  */
-import type { QueryFilter } from './queryFilter';
+import type { ServiceShareQueryFilter } from './serviceShareQueryFilter';
 import type { Pageable } from './pageable';
 
 export type FindAllServiceSharesForService1Params = {
 /**
  * Optional query filter for searching shares
  */
-filter?: QueryFilter;
+filter?: ServiceShareQueryFilter;
 /**
  * Pagination parameters (page, size, sort)
  */

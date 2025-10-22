@@ -44,12 +44,12 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
-  CreateRequest,
-  DecisionRequest,
+  ApprovalRequestCreateRequest,
+  ApprovalRequestDecisionRequest,
+  ApprovalRequestResponse,
   ErrorResponse,
   FindAllApprovalRequestsParams,
-  Page,
-  Response
+  Page
 } from '../../models';
 
 import { customInstance } from '../../mutator';
@@ -75,15 +75,15 @@ type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
  */
 export const submitApprovalDecision = (
     id: string,
-    decisionRequest: DecisionRequest,
+    approvalRequestDecisionRequest: ApprovalRequestDecisionRequest,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
       
       
-      return customInstance<Response>(
+      return customInstance<ApprovalRequestResponse>(
       {url: `/api/approval-requests/${id}/decisions`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
-      data: decisionRequest, signal
+      data: approvalRequestDecisionRequest, signal
     },
       options);
     }
@@ -91,8 +91,8 @@ export const submitApprovalDecision = (
 
 
 export const getSubmitApprovalDecisionMutationOptions = <TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitApprovalDecision>>, TError,{id: string;data: DecisionRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof submitApprovalDecision>>, TError,{id: string;data: DecisionRequest}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitApprovalDecision>>, TError,{id: string;data: ApprovalRequestDecisionRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof submitApprovalDecision>>, TError,{id: string;data: ApprovalRequestDecisionRequest}, TContext> => {
 
 const mutationKey = ['submitApprovalDecision'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -104,7 +104,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof submitApprovalDecision>>, {id: string;data: DecisionRequest}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof submitApprovalDecision>>, {id: string;data: ApprovalRequestDecisionRequest}> = (props) => {
           const {id,data} = props ?? {};
 
           return  submitApprovalDecision(id,data,requestOptions)
@@ -116,18 +116,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type SubmitApprovalDecisionMutationResult = NonNullable<Awaited<ReturnType<typeof submitApprovalDecision>>>
-    export type SubmitApprovalDecisionMutationBody = DecisionRequest
+    export type SubmitApprovalDecisionMutationBody = ApprovalRequestDecisionRequest
     export type SubmitApprovalDecisionMutationError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse
 
     /**
  * @summary Submit approval decision
  */
 export const useSubmitApprovalDecision = <TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitApprovalDecision>>, TError,{id: string;data: DecisionRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitApprovalDecision>>, TError,{id: string;data: ApprovalRequestDecisionRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof submitApprovalDecision>>,
         TError,
-        {id: string;data: DecisionRequest},
+        {id: string;data: ApprovalRequestDecisionRequest},
         TContext
       > => {
 
@@ -151,15 +151,15 @@ export const useSubmitApprovalDecision = <TError = ErrorResponse | ErrorResponse
  */
 export const createApprovalRequest = (
     serviceId: string,
-    createRequest: CreateRequest,
+    approvalRequestCreateRequest: ApprovalRequestCreateRequest,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
       
       
-      return customInstance<Response>(
+      return customInstance<ApprovalRequestResponse>(
       {url: `/api/approval-requests/application-services/${serviceId}/approval-requests`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
-      data: createRequest, signal
+      data: approvalRequestCreateRequest, signal
     },
       options);
     }
@@ -167,8 +167,8 @@ export const createApprovalRequest = (
 
 
 export const getCreateApprovalRequestMutationOptions = <TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createApprovalRequest>>, TError,{serviceId: string;data: CreateRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof createApprovalRequest>>, TError,{serviceId: string;data: CreateRequest}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createApprovalRequest>>, TError,{serviceId: string;data: ApprovalRequestCreateRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof createApprovalRequest>>, TError,{serviceId: string;data: ApprovalRequestCreateRequest}, TContext> => {
 
 const mutationKey = ['createApprovalRequest'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -180,7 +180,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createApprovalRequest>>, {serviceId: string;data: CreateRequest}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createApprovalRequest>>, {serviceId: string;data: ApprovalRequestCreateRequest}> = (props) => {
           const {serviceId,data} = props ?? {};
 
           return  createApprovalRequest(serviceId,data,requestOptions)
@@ -192,18 +192,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type CreateApprovalRequestMutationResult = NonNullable<Awaited<ReturnType<typeof createApprovalRequest>>>
-    export type CreateApprovalRequestMutationBody = CreateRequest
+    export type CreateApprovalRequestMutationBody = ApprovalRequestCreateRequest
     export type CreateApprovalRequestMutationError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse
 
     /**
  * @summary Create approval request
  */
 export const useCreateApprovalRequest = <TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createApprovalRequest>>, TError,{serviceId: string;data: CreateRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createApprovalRequest>>, TError,{serviceId: string;data: ApprovalRequestCreateRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof createApprovalRequest>>,
         TError,
-        {serviceId: string;data: CreateRequest},
+        {serviceId: string;data: ApprovalRequestCreateRequest},
         TContext
       > => {
 
@@ -399,7 +399,7 @@ export const findApprovalRequestById = (
 ) => {
       
       
-      return customInstance<Response>(
+      return customInstance<ApprovalRequestResponse>(
       {url: `/api/approval-requests/${id}`, method: 'GET', signal
     },
       options);

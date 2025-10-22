@@ -22,10 +22,10 @@
 import type { SortObject } from './sortObject';
 
 export interface PageableObject {
-  unpaged?: boolean;
   paged?: boolean;
   pageSize?: number;
   pageNumber?: number;
+  unpaged?: boolean;
   offset?: number;
   sort?: SortObject[];
 }

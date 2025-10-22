@@ -4,16 +4,24 @@ import { Box, Button, Alert } from '@mui/material';
 import { ArrowBack as BackIcon } from '@mui/icons-material';
 import { PageHeader } from '@components/common/PageHeader';
 import { SkeletonLoader } from '@components/common/SkeletonLoader';
-import { useGetServiceInstanceByIdQuery } from '../api';
+import { useFindByIdServiceInstance } from '@lib/api/hooks';
 import { InstanceDetailCard } from '../components/InstanceDetailCard';
 
 const ServiceInstanceDetailPage: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+  const { serviceName, instanceId } = useParams<{ serviceName: string; instanceId: string }>();
   const navigate = useNavigate();
   
-  const { data: instance, isLoading, error } = useGetServiceInstanceByIdQuery(id!, {
-    skip: !id,
-  });
+  const { data: instanceResponse, isLoading, error } = useFindByIdServiceInstance(
+    serviceName!,
+    instanceId!,
+    {
+      query: {
+        enabled: !!serviceName && !!instanceId,
+      },
+    }
+  );
+
+  const instance = instanceResponse as any; // TODO: Fix API type generation
 
   const handleBack = () => {
     navigate('/instances');

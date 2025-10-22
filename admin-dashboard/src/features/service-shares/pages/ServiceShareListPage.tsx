@@ -1,85 +1,121 @@
 import React, { useState } from 'react';
-import { Box, TextField, InputAdornment, FormControl, InputLabel, Select, MenuItem, Button } from '@mui/material';
-import { Search as SearchIcon, Add as AddIcon } from '@mui/icons-material';
+import { Box, Button, TextField, InputAdornment, FormControl, InputLabel, Select, MenuItem, Chip } from '@mui/material';
+import { Search as SearchIcon, Add as AddIcon, FilterList as FilterIcon } from '@mui/icons-material';
 import { PageHeader } from '@components/common/PageHeader';
-import { ConfirmDialog } from '@components/common/ConfirmDialog';
-import {
-  useGetServiceSharesQuery,
-  useRevokeServiceShareMutation,
-} from '../api';
-import type { ServiceShare, CreateServiceShareRequest } from '../types';
 import { ServiceShareTable } from '../components/ServiceShareTable';
 import { ShareFormDrawer } from '../components/ShareFormDrawer';
+import { ConfirmDialog } from '@components/common/ConfirmDialog';
+import {
+  useFindAllServiceShares,
+  useGrantServiceShare,
+  useRevokeServiceShare,
+} from '@lib/api/hooks';
+import { useErrorHandler } from '../../../hooks/useErrorHandler';
+import type { ServiceShare, ServiceShareFilter } from '../types';
+import { usePermissions } from '@features/auth/hooks/usePermissions';
 
-const ServiceShareListPage: React.FC = () => {
+export const ServiceShareListPage: React.FC = () => {
   const [page] = useState(0);
   const [pageSize] = useState(10);
   const [search, setSearch] = useState('');
-  const [grantToTypeFilter, setGrantToTypeFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [filter, setFilter] = useState<ServiceShareFilter>({});
+  const [formOpen, setFormOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [shareDrawerOpen, setShareDrawerOpen] = useState(false);
   const [selectedShare, setSelectedShare] = useState<ServiceShare | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
 
-  const { data, isLoading, refetch } = useGetServiceSharesQuery({
-    page,
-    size: pageSize,
-    serviceId: search || undefined,
-    grantToType: grantToTypeFilter || undefined,
-    isActive: statusFilter === 'active' ? true : statusFilter === 'inactive' ? false : undefined,
-  });
+  const { isSysAdmin } = usePermissions();
+  const { handleError, showSuccess } = useErrorHandler();
 
-  const [revokeShare, { isLoading: revokeLoading }] = useRevokeServiceShareMutation();
+  const {
+    data: sharesResponse,
+    isLoading,
+    refetch,
+  } = useFindAllServiceShares(
+    {
+      filter: {
+        ...filter,
+      },
+      pageable: { page, size: pageSize },
+    },
+    {
+      query: {
+        staleTime: 30000,
+      },
+    }
+  );
+
+  const grantShareMutation = useGrantServiceShare();
+  const revokeShareMutation = useRevokeServiceShare();
+
+  // Get the page data from API response
+  const pageData = sharesResponse;
+  const shares = (pageData?.content || []) as ServiceShare[];
+
+  const handleCreateShare = async (data: any) => {
+    try {
+      await grantShareMutation.mutateAsync({ data });
+      setFormOpen(false);
+      showSuccess('Service share created successfully');
+      refetch();
+    } catch (error) {
+      handleError(error, 'Failed to create service share');
+    }
+  };
 
   const handleRevokeShare = async () => {
     if (!selectedShare) return;
     
     try {
-      await revokeShare(selectedShare.id).unwrap();
+      await revokeShareMutation.mutateAsync({ id: selectedShare.id });
       setDeleteDialogOpen(false);
       setSelectedShare(null);
+      showSuccess('Service share revoked successfully');
+      refetch();
     } catch (error) {
-      console.error('Failed to revoke share:', error);
+      handleError(error, 'Failed to revoke service share');
     }
   };
 
-  const handleRevokeClick = (shareId: string) => {
-    const shareToRevoke = data?.content.find(s => s.id === shareId);
-    if (shareToRevoke) {
-      setSelectedShare(shareToRevoke);
-      setDeleteDialogOpen(true);
-    }
+  const handleRevokeClick = (share: ServiceShare) => {
+    setSelectedShare(share);
+    setDeleteDialogOpen(true);
   };
 
-  const handleViewClick = (shareId: string) => {
-    // Navigate to share detail page
-    console.log('Navigate to share:', shareId);
+  const handleEditClick = (share: ServiceShare) => {
+    setSelectedShare(share);
+    setFormOpen(true);
   };
 
-  const handleCreateShare = (shareData: CreateServiceShareRequest) => {
-    console.log('Creating share:', shareData);
-    setShareDrawerOpen(false);
-    refetch();
+  const handleClearFilters = () => {
+    setFilter({});
+    setSearch('');
   };
+
+  const canManageShares = isSysAdmin;
 
   return (
     <Box>
       <PageHeader
         title="Service Shares"
+        subtitle="Manage service access permissions for teams and users"
         actions={
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => setShareDrawerOpen(true)}
-          >
-            Grant Share
-          </Button>
+          canManageShares && (
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => setFormOpen(true)}
+            >
+              Grant Access
+            </Button>
+          )
         }
       />
-      
-      <Box sx={{ mb: 3, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+
+      {/* Search and Filters */}
+      <Box sx={{ mb: 3, display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
         <TextField
-          placeholder="Search by service ID..."
+          placeholder="Search by service name..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           InputProps={{
@@ -89,60 +125,110 @@ const ServiceShareListPage: React.FC = () => {
               </InputAdornment>
             ),
           }}
-          sx={{ minWidth: 250 }}
+          sx={{ minWidth: 300 }}
         />
-        
-        <FormControl sx={{ minWidth: 120 }}>
-          <InputLabel>Grant To Type</InputLabel>
-          <Select
-            value={grantToTypeFilter}
-            onChange={(e) => setGrantToTypeFilter(e.target.value)}
-            label="Grant To Type"
-          >
-            <MenuItem value="">All</MenuItem>
-            <MenuItem value="TEAM">Team</MenuItem>
-            <MenuItem value="USER">User</MenuItem>
-          </Select>
-        </FormControl>
 
-        <FormControl sx={{ minWidth: 120 }}>
-          <InputLabel>Status</InputLabel>
-          <Select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            label="Status"
-          >
-            <MenuItem value="">All</MenuItem>
-            <MenuItem value="active">Active</MenuItem>
-            <MenuItem value="inactive">Inactive</MenuItem>
-          </Select>
-        </FormControl>
+        <Button
+          variant="outlined"
+          startIcon={<FilterIcon />}
+          onClick={() => setShowFilters(!showFilters)}
+        >
+          Filters
+        </Button>
+
+        {Object.keys(filter).length > 0 && (
+          <Button variant="text" onClick={handleClearFilters}>
+            Clear Filters
+          </Button>
+        )}
       </Box>
 
+      {/* Filter Controls */}
+      {showFilters && (
+        <Box sx={{ mb: 3, p: 2, bgcolor: 'grey.50', borderRadius: 1, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+          <FormControl sx={{ minWidth: 120 }}>
+            <InputLabel>Type</InputLabel>
+            <Select
+              value={filter.grantedTo || ''}
+              onChange={(e) => setFilter(prev => ({ ...prev, grantedTo: e.target.value as any }))}
+              label="Type"
+            >
+              <MenuItem value="">All</MenuItem>
+              <MenuItem value="TEAM">Team</MenuItem>
+              <MenuItem value="USER">User</MenuItem>
+            </Select>
+          </FormControl>
+
+          <FormControl sx={{ minWidth: 120 }}>
+            <InputLabel>Status</InputLabel>
+            <Select
+              value={filter.status || ''}
+              onChange={(e) => setFilter(prev => ({ ...prev, status: e.target.value as any }))}
+              label="Status"
+            >
+              <MenuItem value="">All</MenuItem>
+              <MenuItem value="ACTIVE">Active</MenuItem>
+              <MenuItem value="EXPIRED">Expired</MenuItem>
+              <MenuItem value="REVOKED">Revoked</MenuItem>
+            </Select>
+          </FormControl>
+
+          <FormControl sx={{ minWidth: 120 }}>
+            <InputLabel>Environment</InputLabel>
+            <Select
+              value={filter.environment || ''}
+              onChange={(e) => setFilter(prev => ({ ...prev, environment: e.target.value }))}
+              label="Environment"
+            >
+              <MenuItem value="">All</MenuItem>
+              <MenuItem value="dev">Development</MenuItem>
+              <MenuItem value="staging">Staging</MenuItem>
+              <MenuItem value="prod">Production</MenuItem>
+              <MenuItem value="test">Test</MenuItem>
+            </Select>
+          </FormControl>
+        </Box>
+      )}
+
+      {/* Active Filters Display */}
+      {Object.keys(filter).length > 0 && (
+        <Box sx={{ mb: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+          {Object.entries(filter).map(([key, value]) => (
+            value && (
+              <Chip
+                key={key}
+                label={`${key}: ${value}`}
+                onDelete={() => setFilter(prev => ({ ...prev, [key]: undefined }))}
+                size="small"
+              />
+            )
+          ))}
+        </Box>
+      )}
+
       <ServiceShareTable
-        shares={data?.content || []}
+        shares={shares}
         loading={isLoading}
-        onView={handleViewClick}
-        onRevoke={handleRevokeClick}
+        onEdit={canManageShares ? handleEditClick : undefined}
+        onRevoke={canManageShares ? handleRevokeClick : undefined}
       />
 
       <ShareFormDrawer
-        open={shareDrawerOpen}
-        onClose={() => setShareDrawerOpen(false)}
-        serviceId=""
+        open={formOpen}
+        onClose={() => setFormOpen(false)}
         onSubmit={handleCreateShare}
-        loading={false}
+        share={selectedShare}
       />
 
       <ConfirmDialog
         open={deleteDialogOpen}
         title="Revoke Service Share"
-        message={`Are you sure you want to revoke this share for ${selectedShare?.grantToId}? This action cannot be undone.`}
+        message={`Are you sure you want to revoke access for "${selectedShare?.grantedToName}"? This action cannot be undone.`}
         onConfirm={handleRevokeShare}
         onCancel={() => setDeleteDialogOpen(false)}
-        confirmText="Revoke Share"
+        confirmText="Revoke"
         cancelText="Cancel"
-        loading={revokeLoading}
+        loading={revokeShareMutation.isPending}
       />
     </Box>
   );

@@ -44,11 +44,11 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
-  CreateRequest,
   ErrorResponse,
   FindAllServiceSharesForService1200,
   FindAllServiceSharesForService1Params,
-  Response
+  ServiceShareCreateRequest,
+  ServiceShareResponse
 } from '../../models';
 
 import { customInstance } from '../../mutator';
@@ -245,15 +245,15 @@ export function useFindAllServiceSharesForService1<TData = Awaited<ReturnType<ty
  * @summary Grant service share
  */
 export const grantServiceShare = (
-    createRequest: CreateRequest,
+    serviceShareCreateRequest: ServiceShareCreateRequest,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
       
       
-      return customInstance<Response>(
+      return customInstance<ServiceShareResponse>(
       {url: `/api/service-shares`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
-      data: createRequest, signal
+      data: serviceShareCreateRequest, signal
     },
       options);
     }
@@ -261,8 +261,8 @@ export const grantServiceShare = (
 
 
 export const getGrantServiceShareMutationOptions = <TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof grantServiceShare>>, TError,{data: CreateRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof grantServiceShare>>, TError,{data: CreateRequest}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof grantServiceShare>>, TError,{data: ServiceShareCreateRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof grantServiceShare>>, TError,{data: ServiceShareCreateRequest}, TContext> => {
 
 const mutationKey = ['grantServiceShare'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -274,7 +274,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof grantServiceShare>>, {data: CreateRequest}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof grantServiceShare>>, {data: ServiceShareCreateRequest}> = (props) => {
           const {data} = props ?? {};
 
           return  grantServiceShare(data,requestOptions)
@@ -286,18 +286,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type GrantServiceShareMutationResult = NonNullable<Awaited<ReturnType<typeof grantServiceShare>>>
-    export type GrantServiceShareMutationBody = CreateRequest
+    export type GrantServiceShareMutationBody = ServiceShareCreateRequest
     export type GrantServiceShareMutationError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse
 
     /**
  * @summary Grant service share
  */
 export const useGrantServiceShare = <TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof grantServiceShare>>, TError,{data: CreateRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof grantServiceShare>>, TError,{data: ServiceShareCreateRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof grantServiceShare>>,
         TError,
-        {data: CreateRequest},
+        {data: ServiceShareCreateRequest},
         TContext
       > => {
 
@@ -321,7 +321,7 @@ export const findByIdServiceShare = (
 ) => {
       
       
-      return customInstance<Response>(
+      return customInstance<ServiceShareResponse>(
       {url: `/api/service-shares/${id}`, method: 'GET', signal
     },
       options);
