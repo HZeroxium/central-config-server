@@ -41,7 +41,7 @@ public class ServiceInstanceService {
    * @param instance the instance to save or update
    * @return persisted {@link ServiceInstance}
    */
-  @CacheEvict(value = "service-instances", key = "#instance.serviceName + ':' + #instance.instanceId")
+  @CacheEvict(value = "service-instances", key = "#instance.instanceId")
   public ServiceInstance save(ServiceInstance instance) {
     if (instance.getCreatedAt() == null) {
       instance.setCreatedAt(Instant.now());
@@ -53,14 +53,13 @@ public class ServiceInstanceService {
   /**
    * Retrieves all instances belonging to a service.
    *
-   * @param serviceName the service name
+   * @param serviceId the service ID
    * @return list of instances
    */
-  @Cacheable(value = "service-instances", key = "#serviceName")
-  public List<ServiceInstance> findByServiceName(String serviceName) {
-    // Backward-compatible convenience: use criteria via port
+  @Cacheable(value = "service-instances", key = "#serviceId")
+  public List<ServiceInstance> findByServiceId(String serviceId) {
     ServiceInstanceCriteria criteria = ServiceInstanceCriteria.builder()
-        .serviceName(serviceName)
+        .serviceId(serviceId)
         .build();
         Page<ServiceInstance> page = repository.findAll(criteria, Pageable.unpaged());
     return page.getContent();
@@ -93,12 +92,12 @@ public class ServiceInstanceService {
   /**
    * Returns drifted instances for a specific service.
    *
-   * @param serviceName service name
+   * @param serviceId service ID
    * @return list of drifted instances
    */
-  public List<ServiceInstance> findByServiceWithDrift(String serviceName) {
+  public List<ServiceInstance> findByServiceWithDrift(String serviceId) {
     ServiceInstanceCriteria criteria = ServiceInstanceCriteria.builder()
-        .serviceName(serviceName)
+        .serviceId(serviceId)
         .status(ServiceInstance.InstanceStatus.DRIFT)
         .hasDrift(true)
         .build();
@@ -182,11 +181,14 @@ public class ServiceInstanceService {
   /**
    * Counts instances for a given service.
    *
-   * @param serviceName service name
+   * @param serviceId the service ID
    * @return count of instances
    */
-  public long countByServiceName(String serviceName) {
-    return repository.countByServiceName(serviceName);
+  public long countByServiceId(String serviceId) {
+    ServiceInstanceCriteria criteria = ServiceInstanceCriteria.builder()
+        .serviceId(serviceId)
+        .build();
+    return repository.count(criteria);
   }
   
   /**
@@ -213,15 +215,14 @@ public class ServiceInstanceService {
    * @return updated {@link ServiceInstance}
    */
   @CacheEvict(value = "service-instances", allEntries = true)
-  public ServiceInstance updateStatusAndDrift(String serviceName,
-                                              String instanceId,
+  public ServiceInstance updateStatusAndDrift(String instanceId,
                                               ServiceInstance.InstanceStatus status,
                                               boolean hasDrift,
                                               String expectedHash,
                                               String lastAppliedHash) {
-    ServiceInstance instance = repository.findById(ServiceInstanceId.of(serviceName, instanceId)).orElse(
+    ServiceInstance instance = repository.findById(ServiceInstanceId.of(instanceId)).orElse(
         ServiceInstance.builder()
-            .id(ServiceInstanceId.of(serviceName, instanceId))
+            .id(ServiceInstanceId.of(instanceId))
             .createdAt(Instant.now())
             .build()
     );

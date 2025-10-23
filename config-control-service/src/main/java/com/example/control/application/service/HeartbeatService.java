@@ -90,9 +90,9 @@ public class HeartbeatService {
 
     // 2️⃣ Load or initialize ServiceInstance domain object
            ServiceInstance instance = serviceInstanceService
-               .findById(ServiceInstanceId.of(payload.getServiceName(), payload.getInstanceId()))
+                .findById(ServiceInstanceId.of(payload.getInstanceId()))
                .orElse(ServiceInstance.builder()
-                   .id(ServiceInstanceId.of(payload.getServiceName(), payload.getInstanceId()))
+                   .id(ServiceInstanceId.of(payload.getInstanceId()))
                    .status(ServiceInstance.InstanceStatus.HEALTHY)
                    .build());
 

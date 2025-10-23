@@ -6,10 +6,17 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import org.bson.types.ObjectId;
+import org.springframework.data.annotation.CreatedBy;
+import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.LastModifiedBy;
+import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
 
 import java.time.Instant;
 
@@ -31,33 +38,43 @@ import java.time.Instant;
 public class DriftEventDocument {
 
   @Id
-  private String id;
+  private ObjectId id;
 
   @Indexed
+  @Field("serviceName")
   private String serviceName;
 
   @Indexed
+  @Field("instanceId")
   private String instanceId;
 
   /** Service ID from ApplicationService (for team-based access control). */
   @Indexed
+  @Field("serviceId")
   private String serviceId;
 
   /** Team ID that owns this service (from ApplicationService.ownerTeamId). */
   @Indexed
+  @Field("teamId")
   private String teamId;
 
   /** Environment where the drift occurred (from ServiceInstance.environment). */
   @Indexed
+  @Field("environment")
   private String environment;
 
+  @Field("expectedHash")
   private String expectedHash;
+
+  @Field("appliedHash")
   private String appliedHash;
 
   @Indexed
+  @Field("severity")
   private String severity;
 
   @Indexed
+  @Field("status")
   private String status;
 
   /**
@@ -66,13 +83,23 @@ public class DriftEventDocument {
    * TTL index ensures automatic deletion after 30 days.
    */
   @Indexed(expireAfter = "30d")
+  @Field("detectedAt")
+  @CreatedDate
   private Instant detectedAt;
 
+  @Field("resolvedAt")
+  @LastModifiedDate
   private Instant resolvedAt;
 
+  @Field("detectedBy")
+  @CreatedBy
   private String detectedBy;
+
+  @Field("resolvedBy")
+  @LastModifiedBy
   private String resolvedBy;
 
+  @Field("notes")
   private String notes;
 
   /**
@@ -82,8 +109,7 @@ public class DriftEventDocument {
    * @return a new {@link DriftEventDocument}
    */
   public static DriftEventDocument fromDomain(DriftEvent domain) {
-    return DriftEventDocument.builder()
-        .id(domain.getId().id())
+    DriftEventDocumentBuilder builder = DriftEventDocument.builder()
         .serviceName(domain.getServiceName())
         .instanceId(domain.getInstanceId())
         .serviceId(domain.getServiceId())
@@ -97,8 +123,18 @@ public class DriftEventDocument {
         .resolvedAt(domain.getResolvedAt())
         .detectedBy(domain.getDetectedBy())
         .resolvedBy(domain.getResolvedBy())
-        .notes(domain.getNotes())
-        .build();
+        .notes(domain.getNotes());
+    
+    // Set ID if it exists (for updates), otherwise let MongoDB generate it
+    if (domain.getId() != null && domain.getId().id() != null) {
+      try {
+        builder.id(new ObjectId(domain.getId().id()));
+      } catch (Exception e) {
+        // If ID is not a valid ObjectId, let MongoDB generate a new one
+      }
+    }
+    
+    return builder.build();
   }
 
   /**
@@ -108,7 +144,7 @@ public class DriftEventDocument {
    */
   public DriftEvent toDomain() {
     return DriftEvent.builder()
-        .id(DriftEventId.of(id))
+        .id(DriftEventId.of(id != null ? id.toString() : null))
         .serviceName(serviceName)
         .instanceId(instanceId)
         .serviceId(serviceId)

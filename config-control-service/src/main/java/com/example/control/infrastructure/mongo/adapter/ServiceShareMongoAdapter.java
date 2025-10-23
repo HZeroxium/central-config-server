@@ -24,14 +24,11 @@ import java.util.List;
 @Slf4j
 @Component
 public class ServiceShareMongoAdapter 
-    extends AbstractMongoAdapter<ServiceShare, ServiceShareDocument, ServiceShareId, ServiceShareCriteria>
+    extends AbstractMongoAdapter<ServiceShare, ServiceShareDocument, ServiceShareId, ServiceShareCriteria, ServiceShareMongoRepository>
     implements ServiceShareRepositoryPort {
 
-    private final ServiceShareMongoRepository repository;
-
     public ServiceShareMongoAdapter(ServiceShareMongoRepository repository, MongoTemplate mongoTemplate) {
-        super(repository, mongoTemplate);
-        this.repository = repository;
+        super(repository, mongoTemplate, ServiceShareId::id);
     }
 
     @Override

@@ -10,8 +10,8 @@ import com.example.control.domain.id.ServiceInstanceId;
  */
 public interface ServiceInstanceRepositoryPort extends RepositoryPort<ServiceInstance, ServiceInstanceId, ServiceInstanceCriteria> {
 
-  /** Count instances by service name. */
-  long countByServiceName(String serviceName);
+  /** Count instances by service ID. */
+  long countByServiceId(String serviceId);
 
   /**
    * Bulk update teamId for all service instances with the given serviceId.

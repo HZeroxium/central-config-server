@@ -7,6 +7,9 @@ import com.example.control.domain.port.ApplicationServiceRepositoryPort;
 import com.example.control.infrastructure.mongo.repository.ApplicationServiceMongoRepository;
 import com.example.control.infrastructure.mongo.documents.ApplicationServiceDocument;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.Optional;
+
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -23,14 +26,12 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 public class ApplicationServiceMongoAdapter 
-    extends AbstractMongoAdapter<ApplicationService, ApplicationServiceDocument, ApplicationServiceId, ApplicationServiceCriteria>
+    extends AbstractMongoAdapter<ApplicationService, ApplicationServiceDocument, ApplicationServiceId, ApplicationServiceCriteria, ApplicationServiceMongoRepository>
     implements ApplicationServiceRepositoryPort {
 
-    private final ApplicationServiceMongoRepository applicationServiceRepository;
 
     public ApplicationServiceMongoAdapter(ApplicationServiceMongoRepository repository, MongoTemplate mongoTemplate) {
-        super(repository, mongoTemplate);
-        this.applicationServiceRepository = repository;
+        super(repository, mongoTemplate, ApplicationServiceId::id);
     }
 
     @Override
@@ -82,11 +83,11 @@ public class ApplicationServiceMongoAdapter
     }
 
     @Override
-    public java.util.Optional<ApplicationService> findByDisplayName(String displayName) {
+    public Optional<ApplicationService> findByDisplayName(String displayName) {
         log.debug("Finding application service by display name: {}", displayName);
         
-        java.util.Optional<ApplicationServiceDocument> document = applicationServiceRepository.findByDisplayName(displayName);
-        java.util.Optional<ApplicationService> result = document.map(this::toDomain);
+        Optional<ApplicationServiceDocument> document = repository.findByDisplayName(displayName);
+        Optional<ApplicationService> result = document.map(this::toDomain);
         
         log.debug("Found application service by display name: {}", result.isPresent());
         return result;

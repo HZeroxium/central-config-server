@@ -24,14 +24,11 @@ import java.util.List;
 @Slf4j
 @Component
 public class IamUserMongoAdapter 
-    extends AbstractMongoAdapter<IamUser, IamUserDocument, IamUserId, IamUserCriteria>
+    extends AbstractMongoAdapter<IamUser, IamUserDocument, IamUserId, IamUserCriteria, IamUserMongoRepository>
     implements IamUserRepositoryPort {
 
-    private final IamUserMongoRepository repository;
-
     public IamUserMongoAdapter(IamUserMongoRepository repository, MongoTemplate mongoTemplate) {
-        super(repository, mongoTemplate);
-        this.repository = repository;
+        super(repository, mongoTemplate, IamUserId::userId);
     }
 
     @Override

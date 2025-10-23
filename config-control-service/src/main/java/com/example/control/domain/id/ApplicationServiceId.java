@@ -36,4 +36,5 @@ public record ApplicationServiceId(String id) implements Serializable {
     public static ApplicationServiceId of(String id) {
         return new ApplicationServiceId(id);
     }
+
 }

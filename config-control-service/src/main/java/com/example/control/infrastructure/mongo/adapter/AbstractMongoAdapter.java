@@ -1,16 +1,22 @@
 package com.example.control.infrastructure.mongo.adapter;
 
 import com.example.control.domain.port.RepositoryPort;
+import com.mongodb.client.result.UpdateResult;
+
 import lombok.extern.slf4j.Slf4j;
+import org.bson.types.ObjectId;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 
 /**
  * Abstract base adapter providing common MongoDB operations with type safety.
@@ -24,22 +30,27 @@ import java.util.Optional;
  * @param <D> the MongoDB document type
  * @param <ID> the entity identifier type
  * @param <F> the filter criteria type
+ * @param <R> the MongoDB repository type that extends MongoRepository<D, String>
  */
 @Slf4j
-public abstract class AbstractMongoAdapter<T, D, ID, F> implements RepositoryPort<T, ID, F> {
+public abstract class AbstractMongoAdapter<T, D, ID, F, R extends MongoRepository<D, String>> 
+    implements RepositoryPort<T, ID, F> {
 
-    protected final MongoRepository<D, String> repository;
+    protected final R repository;
     protected final MongoTemplate mongoTemplate;
+    private final Function<ID,String> idMapper;
 
     /**
      * Constructor for the abstract adapter.
      *
      * @param repository the MongoDB repository
      * @param mongoTemplate the MongoDB template for complex queries
+     * @param idMapper the function to convert the domain ID to a MongoDB document ID
      */
-    protected AbstractMongoAdapter(MongoRepository<D, String> repository, MongoTemplate mongoTemplate) {
+    protected AbstractMongoAdapter(R repository, MongoTemplate mongoTemplate, Function<ID,String> idMapper) {
         this.repository = repository;
         this.mongoTemplate = mongoTemplate;
+        this.idMapper = idMapper;
     }
 
     /**
@@ -76,19 +87,34 @@ public abstract class AbstractMongoAdapter<T, D, ID, F> implements RepositoryPor
     @Override
     public T save(T entity) {
         log.debug("Saving entity: {}", entity);
+
+        // Convert domain entity to MongoDB document
         D document = toDocument(entity);
+
+        // Save MongoDB document
         D savedDocument = repository.save(document);
+
+        // Convert MongoDB document to domain entity
         T result = toDomain(savedDocument);
+
         log.debug("Saved entity: {}", result);
+
         return result;
     }
 
     @Override
     public Optional<T> findById(ID id) {
         log.debug("Finding entity by ID: {}", id);
+
+        // Convert domain entity ID to MongoDB document ID
         String documentId = convertIdToDocumentId(id);
+
+        // Find MongoDB document by ID
         Optional<D> document = repository.findById(documentId);
+
+        // Convert MongoDB document to domain entity
         Optional<T> result = document.map(this::toDomain);
+
         log.debug("Found entity: {}", result.isPresent());
         return result;
     }
@@ -96,8 +122,13 @@ public abstract class AbstractMongoAdapter<T, D, ID, F> implements RepositoryPor
     @Override
     public boolean existsById(ID id) {
         log.debug("Checking existence of entity with ID: {}", id);
+
+        // Convert domain entity ID to MongoDB document ID
         String documentId = convertIdToDocumentId(id);
+
+        // Check if MongoDB document exists by ID
         boolean exists = repository.existsById(documentId);
+        
         log.debug("Entity exists: {}", exists);
         return exists;
     }
@@ -105,8 +136,13 @@ public abstract class AbstractMongoAdapter<T, D, ID, F> implements RepositoryPor
     @Override
     public void deleteById(ID id) {
         log.debug("Deleting entity with ID: {}", id);
+
+        // Convert domain entity ID to MongoDB document ID
         String documentId = convertIdToDocumentId(id);
+
+        // Delete MongoDB document by ID
         repository.deleteById(documentId);
+
         log.debug("Deleted entity with ID: {}", id);
     }
 
@@ -114,6 +150,7 @@ public abstract class AbstractMongoAdapter<T, D, ID, F> implements RepositoryPor
     public Page<T> findAll(F filter, Pageable pageable) {
         log.debug("Finding entities with filter: {}, pageable: {}", filter, pageable);
         
+        // Build MongoDB query from filter criteria
         Query query = buildQuery(filter);
         
         // Apply pagination
@@ -124,6 +161,8 @@ public abstract class AbstractMongoAdapter<T, D, ID, F> implements RepositoryPor
         
         // Count total for pagination
         Query countQuery = buildQuery(filter);
+
+        // Count total for pagination
         long total = mongoTemplate.count(countQuery, getDocumentClass(), getCollectionName());
         
         // Convert to domain entities
@@ -131,7 +170,9 @@ public abstract class AbstractMongoAdapter<T, D, ID, F> implements RepositoryPor
                 .map(this::toDomain)
                 .toList();
         
+        // Build page from documents and pagination info
         Page<T> result = new PageImpl<>(entities, pageable, total);
+
         log.debug("Found {} entities out of {} total", entities.size(), total);
         return result;
     }
@@ -140,7 +181,10 @@ public abstract class AbstractMongoAdapter<T, D, ID, F> implements RepositoryPor
     public long count(F filter) {
         log.debug("Counting entities with filter: {}", filter);
         
+        // Build MongoDB query from filter criteria
         Query query = buildQuery(filter);
+
+        // Count total for pagination
         long count = mongoTemplate.count(query, getDocumentClass(), getCollectionName());
         
         log.debug("Counted {} entities", count);
@@ -151,23 +195,24 @@ public abstract class AbstractMongoAdapter<T, D, ID, F> implements RepositoryPor
      * Convert entity ID to MongoDB document ID.
      * <p>
      * This method handles the conversion from domain ID value objects to
-     * the String format used by MongoDB. Subclasses can override this
-     * for custom ID conversion logic.
+     * the String format used by MongoDB. Supports both ObjectId and String IDs.
+     * Subclasses can override this for custom ID conversion logic.
      *
      * @param id the domain entity ID
      * @return the MongoDB document ID
      */
     protected String convertIdToDocumentId(ID id) {
         if (id == null) {
-            throw new IllegalArgumentException("ID cannot be null");
+            return null;
         }
         
-        // Special handling for ServiceInstanceId composite key
-        if (id instanceof com.example.control.domain.id.ServiceInstanceId) {
-            return ((com.example.control.domain.id.ServiceInstanceId) id).toDocumentId();
+        // Handle ObjectId directly
+        if (id instanceof ObjectId objectId) {
+            return objectId.toString();
         }
         
-        return id.toString();
+        // Use the provided mapper for other types
+        return idMapper.apply(id);
     }
 
     /**
@@ -211,11 +256,11 @@ public abstract class AbstractMongoAdapter<T, D, ID, F> implements RepositoryPor
         log.debug("Bulk updating teamId to {} for serviceId: {}", newTeamId, serviceId);
         
         Query query = new Query(org.springframework.data.mongodb.core.query.Criteria.where("serviceId").is(serviceId));
-        org.springframework.data.mongodb.core.query.Update update = new org.springframework.data.mongodb.core.query.Update()
+        Update update = new Update()
                 .set("teamId", newTeamId)
-                .set("updatedAt", java.time.Instant.now());
+                .set("updatedAt", Instant.now());
         
-        com.mongodb.client.result.UpdateResult result = mongoTemplate.updateMulti(
+        UpdateResult result = mongoTemplate.updateMulti(
                 query, update, getDocumentClass());
         
         log.debug("Bulk updated {} documents for serviceId: {}", result.getModifiedCount(), serviceId);

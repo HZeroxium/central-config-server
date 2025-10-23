@@ -24,14 +24,11 @@ import java.util.List;
 @Slf4j
 @Component
 public class IamTeamMongoAdapter 
-    extends AbstractMongoAdapter<IamTeam, IamTeamDocument, IamTeamId, IamTeamCriteria>
+    extends AbstractMongoAdapter<IamTeam, IamTeamDocument, IamTeamId, IamTeamCriteria, IamTeamMongoRepository>
     implements IamTeamRepositoryPort {
 
-    private final IamTeamMongoRepository repository;
-
     public IamTeamMongoAdapter(IamTeamMongoRepository repository, MongoTemplate mongoTemplate) {
-        super(repository, mongoTemplate);
-        this.repository = repository;
+        super(repository, mongoTemplate, IamTeamId::teamId);
     }
 
     @Override

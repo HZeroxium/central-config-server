@@ -17,14 +17,11 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class ServiceInstanceMongoAdapter 
-    extends AbstractMongoAdapter<ServiceInstance, ServiceInstanceDocument, ServiceInstanceId, ServiceInstanceCriteria>
+    extends AbstractMongoAdapter<ServiceInstance, ServiceInstanceDocument, ServiceInstanceId, ServiceInstanceCriteria, ServiceInstanceMongoRepository>
     implements ServiceInstanceRepositoryPort {
 
-  private final ServiceInstanceMongoRepository repository;
-
   public ServiceInstanceMongoAdapter(ServiceInstanceMongoRepository repository, MongoTemplate mongoTemplate) {
-    super(repository, mongoTemplate);
-    this.repository = repository;
+    super(repository, mongoTemplate, ServiceInstanceId::instanceId);
   }
 
   @Override
@@ -44,11 +41,11 @@ public class ServiceInstanceMongoAdapter
     if (criteria == null) return query;
     
     // Apply filters
-    if (criteria.serviceName() != null && !criteria.serviceName().isBlank()) {
-      query.addCriteria(Criteria.where("serviceName").is(criteria.serviceName()));
+    if (criteria.serviceId() != null && !criteria.serviceId().isBlank()) {
+      query.addCriteria(Criteria.where("serviceId").is(criteria.serviceId()));
     }
     if (criteria.instanceId() != null && !criteria.instanceId().isBlank()) {
-      query.addCriteria(Criteria.where("instanceId").is(criteria.instanceId()));
+      query.addCriteria(Criteria.where("_id").is(criteria.instanceId()));
     }
     if (criteria.status() != null) query.addCriteria(Criteria.where("status").is(criteria.status().name()));
     if (criteria.hasDrift() != null) {
@@ -81,8 +78,8 @@ public class ServiceInstanceMongoAdapter
   }
 
   @Override
-  public long countByServiceName(String serviceName) {
-    return repository.countByServiceName(serviceName);
+  public long countByServiceId(String serviceId) {
+    return repository.countByServiceId(serviceId);
   }
 
   @Override

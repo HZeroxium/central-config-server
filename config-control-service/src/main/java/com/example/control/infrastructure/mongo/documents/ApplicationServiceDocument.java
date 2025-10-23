@@ -6,10 +6,17 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import org.bson.types.ObjectId;
+import org.springframework.data.annotation.CreatedBy;
+import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.LastModifiedBy;
+import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
 
 import java.time.Instant;
 import java.util.List;
@@ -31,41 +38,59 @@ import java.util.Map;
 @CompoundIndex(def = "{'ownerTeamId': 1, 'createdAt': -1}")
 public class ApplicationServiceDocument {
 
-    /** Document identifier: service slug. */
+    /** Document identifier: MongoDB auto-generated ObjectId. */
     @Id
-    private String id;
+    private ObjectId id;
 
     /** Human-readable display name. */
     @Indexed(unique = true)
+    @Field("displayName")
     private String displayName;
 
     /** Team that owns this service (Keycloak group ID). Null for orphaned services. */
     @Indexed
+    @Field("ownerTeamId")
     private String ownerTeamId;
 
     /** List of environments where this service is deployed. */
+    @Field("environments")
     private List<String> environments;
 
     /** Tags for categorization and filtering. */
+    @Field("tags")
     private List<String> tags;
 
     /** Repository URL for source code. */
+    @Field("repoUrl")
     private String repoUrl;
 
     /** Service lifecycle status (stored as string value). */
     @Indexed
+    @Field("lifecycle")
     private String lifecycle;
 
     /** Timestamp when the service was first created. */
+    @Field("createdAt")
+    @CreatedDate
     private Instant createdAt;
 
     /** Timestamp when the service was last updated. */
+    @Field("updatedAt")
+    @LastModifiedDate
     private Instant updatedAt;
 
     /** User who created this service (Keycloak user ID). */
+    @Field("createdBy")
+    @CreatedBy
     private String createdBy;
 
+    /** User who last modified this service (Keycloak user ID). */
+    @Field("updatedBy")
+    @LastModifiedBy
+    private String updatedBy;
+
     /** Additional attributes as key-value pairs. */
+    @Field("attributes")
     private Map<String, String> attributes;
 
     /**
@@ -75,8 +100,7 @@ public class ApplicationServiceDocument {
      * @return new {@link ApplicationServiceDocument} populated from domain
      */
     public static ApplicationServiceDocument fromDomain(ApplicationService domain) {
-        return ApplicationServiceDocument.builder()
-                .id(domain.getId().id())
+        ApplicationServiceDocumentBuilder builder = ApplicationServiceDocument.builder()
                 .displayName(domain.getDisplayName())
                 .ownerTeamId(domain.getOwnerTeamId())
                 .environments(domain.getEnvironments())
@@ -86,8 +110,18 @@ public class ApplicationServiceDocument {
                 .createdAt(domain.getCreatedAt())
                 .updatedAt(domain.getUpdatedAt())
                 .createdBy(domain.getCreatedBy())
-                .attributes(domain.getAttributes())
-                .build();
+                .attributes(domain.getAttributes());
+        
+        // Set ID if it exists (for updates), otherwise let MongoDB generate it
+        if (domain.getId() != null && domain.getId().id() != null) {
+            try {
+                builder.id(new ObjectId(domain.getId().id()));
+            } catch (Exception e) {
+                // If ID is not a valid ObjectId, let MongoDB generate a new one
+            }
+        }
+        
+        return builder.build();
     }
 
     /**
@@ -97,7 +131,7 @@ public class ApplicationServiceDocument {
      */
     public ApplicationService toDomain() {
         return ApplicationService.builder()
-                .id(ApplicationServiceId.of(id))
+                .id(ApplicationServiceId.of(id != null ? id.toString() : null))
                 .displayName(displayName)
                 .ownerTeamId(ownerTeamId)
                 .environments(environments)

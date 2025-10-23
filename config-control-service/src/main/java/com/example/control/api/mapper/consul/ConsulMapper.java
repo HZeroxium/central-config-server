@@ -29,7 +29,7 @@ public final class ConsulMapper {
     if (svc.getMeta() != null) meta.putAll(svc.getMeta());
 
     return ServiceInstance.builder()
-        .id(ServiceInstanceId.of(svc.getService(), svc.getId()))
+        .id(ServiceInstanceId.of(svc.getId()))
         .host(svc.getAddress())
         .port(svc.getPort())
         .status(ServiceInstance.InstanceStatus.HEALTHY)

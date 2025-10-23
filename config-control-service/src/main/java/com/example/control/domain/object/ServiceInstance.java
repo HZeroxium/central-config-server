@@ -73,16 +73,7 @@ public class ServiceInstance {
   private Instant driftDetectedAt;
 
   /**
-   * Gets the service name from the composite ID.
-   *
-   * @return the service name
-   */
-  public String getServiceName() {
-    return id != null ? id.serviceName() : null;
-  }
-
-  /**
-   * Gets the instance ID from the composite ID.
+   * Gets the instance ID from the ID.
    *
    * @return the instance ID
    */

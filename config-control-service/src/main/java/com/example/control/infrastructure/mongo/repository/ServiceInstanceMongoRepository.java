@@ -16,8 +16,8 @@ public interface ServiceInstanceMongoRepository extends MongoRepository<ServiceI
     /**
    * Counts the total number of instances for a specific service.
    *
-   * @param serviceName service name to count
+   * @param serviceId service ID to count
    * @return number of instances belonging to the service
    */
-  long countByServiceName(String serviceName);
+  long countByServiceId(String serviceId);
 }

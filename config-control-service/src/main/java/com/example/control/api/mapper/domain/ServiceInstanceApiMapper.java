@@ -12,7 +12,8 @@ public final class ServiceInstanceApiMapper {
 
   public static ServiceInstance toDomain(ServiceInstanceDtos.CreateRequest req) {
     return ServiceInstance.builder()
-        .id(ServiceInstanceId.of(req.getServiceName(), req.getInstanceId()))
+        .id(ServiceInstanceId.of(req.getInstanceId()))
+        .serviceId(req.getServiceId())
         .host(req.getHost())
         .port(req.getPort())
         .environment(req.getEnvironment())
@@ -39,7 +40,7 @@ public final class ServiceInstanceApiMapper {
 
   public static ServiceInstanceDtos.Response toResponse(ServiceInstance si) {
     return ServiceInstanceDtos.Response.builder()
-        .serviceName(si.getServiceName())
+        .serviceName(si.getServiceId())
         .instanceId(si.getInstanceId())
         .host(si.getHost())
         .port(si.getPort())
@@ -67,7 +68,7 @@ public final class ServiceInstanceApiMapper {
    */
   public static ServiceInstanceCriteria toCriteria(ServiceInstanceDtos.QueryFilter filter, UserContext userContext) {
     return ServiceInstanceCriteria.builder()
-        .serviceName(filter != null ? filter.getServiceName() : null)
+        .serviceId(filter != null ? filter.getServiceId() : null)
         .instanceId(filter != null ? filter.getInstanceId() : null)
         .status(filter != null ? filter.getStatus() : null)
         .hasDrift(filter != null ? filter.getHasDrift() : null)

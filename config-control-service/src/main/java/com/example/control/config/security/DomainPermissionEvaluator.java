@@ -73,7 +73,7 @@ public class DomainPermissionEvaluator {
      */
     public boolean canViewInstance(UserContext userContext, ServiceInstance instance) {
         log.debug("Checking if user {} can view instance {} of service {}", 
-                userContext.getUserId(), instance.getInstanceId(), instance.getServiceName());
+                userContext.getUserId(), instance.getInstanceId());
         
         // System admins can view all instances
         if (userContext.isSysAdmin()) {
@@ -111,7 +111,7 @@ public class DomainPermissionEvaluator {
      */
     public boolean canEditInstance(UserContext userContext, ServiceInstance instance) {
         log.debug("Checking if user {} can edit instance {} of service {}", 
-                userContext.getUserId(), instance.getInstanceId(), instance.getServiceName());
+                userContext.getUserId(), instance.getInstanceId());
         
         // System admins can edit all instances
         if (userContext.isSysAdmin()) {
@@ -373,7 +373,7 @@ public class DomainPermissionEvaluator {
      */
     public boolean canRestartInstance(UserContext userContext, ServiceInstance instance) {
         log.debug("Checking if user {} can restart instance {} of service {}", 
-                userContext.getUserId(), instance.getInstanceId(), instance.getServiceName());
+                userContext.getUserId(), instance.getInstanceId());
         
         // System admins can restart all instances
         if (userContext.isSysAdmin()) {

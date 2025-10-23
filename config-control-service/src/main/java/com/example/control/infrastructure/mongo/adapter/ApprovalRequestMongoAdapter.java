@@ -24,14 +24,11 @@ import java.time.Instant;
 @Slf4j
 @Component
 public class ApprovalRequestMongoAdapter 
-    extends AbstractMongoAdapter<ApprovalRequest, ApprovalRequestDocument, ApprovalRequestId, ApprovalRequestCriteria>
+    extends AbstractMongoAdapter<ApprovalRequest, ApprovalRequestDocument, ApprovalRequestId, ApprovalRequestCriteria, ApprovalRequestMongoRepository>
     implements ApprovalRequestRepositoryPort {
 
-    private final ApprovalRequestMongoRepository repository;
-
     public ApprovalRequestMongoAdapter(ApprovalRequestMongoRepository repository, MongoTemplate mongoTemplate) {
-        super(repository, mongoTemplate);
-        this.repository = repository;
+        super(repository, mongoTemplate, ApprovalRequestId::id);
     }
 
     @Override

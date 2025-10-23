@@ -49,11 +49,11 @@ public class ServiceInstanceController {
   //       ServiceInstanceApiMapper.toResponse(saved)));
   // }
 
-  @GetMapping("/{serviceName}/{instanceId}")
+  @GetMapping("/{instanceId}")
   @Operation(
       summary = "Get service instance by ID",
       description = """
-          Retrieve a specific service instance by service name and instance ID.
+          Retrieve a specific service instance by instance ID.
           
           **Access Control:**
           - Team members: Can view instances of services owned by their team
@@ -79,18 +79,16 @@ public class ServiceInstanceController {
           content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   })
   public ResponseEntity<ServiceInstanceDtos.Response> findById(
-      @Parameter(description = "Service name", example = "payment-service")
-      @PathVariable String serviceName,
       @Parameter(description = "Instance ID", example = "payment-dev-1")
       @PathVariable String instanceId,
       @AuthenticationPrincipal Jwt jwt) {
     UserContext userContext = UserContext.fromJwt(jwt);
-    Optional<ServiceInstance> opt = service.findById(ServiceInstanceId.of(serviceName, instanceId), userContext);
+    Optional<ServiceInstance> opt = service.findById(ServiceInstanceId.of(instanceId), userContext);
     return opt.map(si -> ResponseEntity.ok(ServiceInstanceApiMapper.toResponse(si)))
         .orElse(ResponseEntity.notFound().build());
   }
 
-  @PutMapping("/{serviceName}/{instanceId}")
+  @PutMapping("/{instanceId}")
   @Operation(
       summary = "Update service instance",
       description = """
@@ -122,8 +120,6 @@ public class ServiceInstanceController {
           content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   })
   public ResponseEntity<ServiceInstanceDtos.Response> update(
-      @Parameter(description = "Service name", example = "payment-service")
-      @PathVariable String serviceName,
       @Parameter(description = "Instance ID", example = "payment-dev-1")
       @PathVariable String instanceId,
       @Parameter(description = "Service instance update request", 
@@ -131,14 +127,14 @@ public class ServiceInstanceController {
       @Valid @RequestBody ServiceInstanceDtos.UpdateRequest request,
       @AuthenticationPrincipal Jwt jwt) {
     UserContext userContext = UserContext.fromJwt(jwt);
-    ServiceInstanceId id = ServiceInstanceId.of(serviceName, instanceId);
+    ServiceInstanceId id = ServiceInstanceId.of(instanceId);
     ServiceInstance updates = ServiceInstance.builder().id(id).build();
     ServiceInstanceApiMapper.apply(updates, request);
     ServiceInstance saved = service.update(id, updates, userContext);
     return ResponseEntity.ok(ServiceInstanceApiMapper.toResponse(saved));
   }
 
-  @DeleteMapping("/{serviceName}/{instanceId}")
+  @DeleteMapping("/{instanceId}")
   @Operation(
       summary = "Delete service instance",
       description = """
@@ -168,13 +164,11 @@ public class ServiceInstanceController {
           content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   })
   public ResponseEntity<Void> delete(
-      @Parameter(description = "Service name", example = "payment-service")
-      @PathVariable String serviceName,
       @Parameter(description = "Instance ID", example = "payment-dev-1")
       @PathVariable String instanceId,
       @AuthenticationPrincipal Jwt jwt) {
     UserContext userContext = UserContext.fromJwt(jwt);
-    service.delete(ServiceInstanceId.of(serviceName, instanceId), userContext);
+    service.delete(ServiceInstanceId.of(instanceId), userContext);
     return ResponseEntity.ok().build();
   }
 
@@ -208,8 +202,8 @@ public class ServiceInstanceController {
   })
   @Timed("api.service-instances.list")
   public ResponseEntity<Page<ServiceInstanceDtos.Response>> findAll(
-      @Parameter(description = "Filter by service name", example = "payment-service") 
-      @RequestParam(required = false) String serviceName,
+      @Parameter(description = "Filter by service ID", example = "payment-service") 
+      @RequestParam(required = false) String serviceId,
       @Parameter(description = "Filter by instance ID", example = "payment-dev-1") 
       @RequestParam(required = false) String instanceId,
       @Parameter(description = "Filter by instance status", example = "HEALTHY") 
@@ -227,7 +221,7 @@ public class ServiceInstanceController {
     UserContext userContext = UserContext.fromJwt(jwt);
     
     ServiceInstanceDtos.QueryFilter queryFilter = ServiceInstanceDtos.QueryFilter.builder()
-        .serviceName(serviceName)
+        .serviceId(serviceId)
         .instanceId(instanceId)
         .status(status)
         .hasDrift(hasDrift)

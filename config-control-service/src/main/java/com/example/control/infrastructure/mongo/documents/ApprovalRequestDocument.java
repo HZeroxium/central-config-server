@@ -6,10 +6,17 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import org.bson.types.ObjectId;
+import org.springframework.data.annotation.CreatedBy;
+import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.LastModifiedBy;
+import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.annotation.Version;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
 
 import java.time.Instant;
 import java.util.List;
@@ -30,46 +37,69 @@ import java.util.Map;
 @Document(collection = "approval_requests")
 public class ApprovalRequestDocument {
 
-    /** Document identifier. */
+    /** Document identifier: MongoDB auto-generated ObjectId. */
     @Id
-    private String id;
+    private ObjectId id;
 
     /** User who created this request (Keycloak user ID). */
     @Indexed
+    @Field("requesterUserId")
     private String requesterUserId;
 
     /** Type of request being made (stored as string value). */
+    @Field("requestType")
     private String requestType;
 
     /** Target service ID for the request. */
+    @Field("targetServiceId")
     private String targetServiceId;
 
     /** Target team ID for assignment. */
+    @Field("targetTeamId")
     private String targetTeamId;
 
     /** Required approval gates as JSON (stored as string for flexibility). */
+    @Field("requiredGatesJson")
     private String requiredGatesJson;
 
     /** Current status of the request (stored as string value). */
     @Indexed
+    @Field("status")
     private String status;
 
     /** Requester snapshot as JSON (stored as string for flexibility). */
+    @Field("requesterSnapshotJson")
     private String requesterSnapshotJson;
 
     /** Current approval counts per gate as JSON. */
+    @Field("approvalCountsJson")
     private String approvalCountsJson;
 
     /** Timestamp when the request was created. */
     @Indexed
+    @Field("createdAt")
+    @CreatedDate
     private Instant createdAt;
 
     /** Timestamp when the request was last updated. */
+    @Field("updatedAt")
+    @LastModifiedDate
     private Instant updatedAt;
 
     /** Version for optimistic locking. */
     @Version
+    @Field("version")
     private Integer version;
+
+    /** User who created this request (Keycloak user ID). */
+    @Field("createdBy")
+    @CreatedBy
+    private String createdBy;
+
+    /** User who last modified this request (Keycloak user ID). */
+    @Field("updatedBy")
+    @LastModifiedBy
+    private String updatedBy;
 
     /**
      * Maps a {@link ApprovalRequest} domain object to a MongoDB document representation.
@@ -78,8 +108,7 @@ public class ApprovalRequestDocument {
      * @return new {@link ApprovalRequestDocument} populated from domain
      */
     public static ApprovalRequestDocument fromDomain(ApprovalRequest domain) {
-        return ApprovalRequestDocument.builder()
-                .id(domain.getId().id())
+        ApprovalRequestDocumentBuilder builder = ApprovalRequestDocument.builder()
                 .requesterUserId(domain.getRequesterUserId())
                 .requestType(domain.getRequestType() != null ? domain.getRequestType().name() : null)
                 .targetServiceId(domain.getTarget() != null ? domain.getTarget().getServiceId() : null)
@@ -90,8 +119,18 @@ public class ApprovalRequestDocument {
                 .approvalCountsJson(serializeApprovalCounts(domain.getCounts()))
                 .createdAt(domain.getCreatedAt())
                 .updatedAt(domain.getUpdatedAt())
-                .version(domain.getVersion())
-                .build();
+                .version(domain.getVersion());
+        
+        // Set ID if it exists (for updates), otherwise let MongoDB generate it
+        if (domain.getId() != null && domain.getId().id() != null) {
+            try {
+                builder.id(new ObjectId(domain.getId().id()));
+            } catch (Exception e) {
+                // If ID is not a valid ObjectId, let MongoDB generate a new one
+            }
+        }
+        
+        return builder.build();
     }
 
     /**
@@ -101,7 +140,7 @@ public class ApprovalRequestDocument {
      */
     public ApprovalRequest toDomain() {
         return ApprovalRequest.builder()
-                .id(ApprovalRequestId.of(id))
+                .id(ApprovalRequestId.of(id != null ? id.toString() : null))
                 .requesterUserId(requesterUserId)
                 .requestType(requestType != null 
                     ? ApprovalRequest.RequestType.valueOf(requestType) 

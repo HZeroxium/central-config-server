@@ -62,7 +62,10 @@ public class HeartbeatController {
           **Drift Detection:** Compares current config hash with last applied hash
           **Auto-Refresh:** Can trigger config refresh if drift is detected
           """,
-      security = @SecurityRequirement(name = "oauth2_auth_code"),
+      security = {
+        @SecurityRequirement(name = "oauth2_auth_code"),
+        @SecurityRequirement(name = "oauth2_password")
+      },
       operationId = "processHeartbeat"
   )
   @ApiResponses(value = {
@@ -104,7 +107,7 @@ public class HeartbeatController {
         "status", "ok",
         "message", "Heartbeat processed",
         "instance", Map.of(
-            "serviceName", instance.getServiceName(),
+            "serviceName", instance.getServiceId(),
             "instanceId", instance.getInstanceId(),
             "status", instance.getStatus().name(),
             "hasDrift", instance.isDrifted(),
@@ -124,7 +127,10 @@ public class HeartbeatController {
           Simple health check to verify that the heartbeat controller is operational.
           This endpoint is used for monitoring and load balancer health checks.
           """,
-      security = @SecurityRequirement(name = "oauth2_auth_code"),
+      security = {
+        @SecurityRequirement(name = "oauth2_auth_code"),
+        @SecurityRequirement(name = "oauth2_password")
+      },
       operationId = "heartbeatHealth"
   )
   @ApiResponses(value = {

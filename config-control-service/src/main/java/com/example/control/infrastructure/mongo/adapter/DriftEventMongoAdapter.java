@@ -5,11 +5,13 @@ import com.example.control.domain.criteria.DriftEventCriteria;
 import com.example.control.domain.id.DriftEventId;
 import com.example.control.domain.port.DriftEventRepositoryPort;
 import com.example.control.infrastructure.mongo.repository.DriftEventMongoRepository;
+import com.mongodb.client.result.UpdateResult;
 import com.example.control.infrastructure.mongo.documents.DriftEventDocument;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -20,14 +22,11 @@ import java.time.Instant;
 @Slf4j
 @Component
 public class DriftEventMongoAdapter 
-    extends AbstractMongoAdapter<DriftEvent, DriftEventDocument, DriftEventId, DriftEventCriteria>
+    extends AbstractMongoAdapter<DriftEvent, DriftEventDocument, DriftEventId, DriftEventCriteria, DriftEventMongoRepository>
     implements DriftEventRepositoryPort {
 
-  private final DriftEventMongoRepository repository;
-
   public DriftEventMongoAdapter(DriftEventMongoRepository repository, MongoTemplate mongoTemplate) {
-    super(repository, mongoTemplate);
-    this.repository = repository;
+    super(repository, mongoTemplate, DriftEventId::id);
   }
 
   @Override
@@ -91,13 +90,13 @@ public class DriftEventMongoAdapter
             .and("status").in("DETECTED", "ACKNOWLEDGED", "RESOLVING") // Only unresolved events
     );
     
-    org.springframework.data.mongodb.core.query.Update update = 
-        new org.springframework.data.mongodb.core.query.Update()
+    Update update = 
+        new Update()
             .set("status", DriftEvent.DriftStatus.RESOLVED.name())
             .set("resolvedAt", Instant.now())
             .set("resolvedBy", resolvedBy);
     
-    com.mongodb.client.result.UpdateResult result = mongoTemplate.updateMulti(
+    UpdateResult result = mongoTemplate.updateMulti(
         query, update, DriftEventDocument.class, getCollectionName()
     );
     

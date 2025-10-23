@@ -6,10 +6,14 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
 
 import java.time.Instant;
 import java.util.Map;
@@ -31,37 +35,44 @@ import java.util.Map;
 @CompoundIndex(def = "{'teamId': 1, 'hasDrift': 1}")
 public class ServiceInstanceDocument {
 
-  /** Document identifier: concatenation of serviceName and instanceId. */
+  /** Document identifier: instanceId (globally unique). */
   @Id
   private String id;
 
-  /** Service name for indexing and query grouping. */
-  @Indexed
-  private String serviceName;
-
-  /** Instance identifier for unique lookup. */
-  @Indexed
-  private String instanceId;
-
   /** Service ID from ApplicationService (for team-based access control). */
   @Indexed
+  @Field("serviceId")
   private String serviceId;
 
   /** Team ID that owns this service instance (from ApplicationService.ownerTeamId). */
   @Indexed
+  @Field("teamId")
   private String teamId;
 
+  @Field("host")
   private String host;
+
+  @Field("port")
   private Integer port;
+
+  @Field("environment")
   private String environment;
+
+  @Field("version")
   private String version;
 
+  @Field("configHash")
   private String configHash;
+
+  @Field("lastAppliedHash")
   private String lastAppliedHash;
+
+  @Field("expectedHash")
   private String expectedHash;
 
   /** Current status of the instance (stored as string value). */
   @Indexed
+  @Field("status")
   private String status;
 
   /**
@@ -70,14 +81,25 @@ public class ServiceInstanceDocument {
    * Indexed with TTL = 1 hour to automatically expire inactive instances.
    */
   @Indexed(expireAfter = "1h", name = "lastSeenAt_ttl")
+  @Field("lastSeenAt")
   private Instant lastSeenAt;
 
+  @Field("createdAt")
+  @CreatedDate
   private Instant createdAt;
+
+  @Field("updatedAt")
+  @LastModifiedDate
   private Instant updatedAt;
 
+  @Field("metadata")
   private Map<String, String> metadata;
 
+  @Field("hasDrift")
   private Boolean hasDrift;
+
+  @Field("driftDetectedAt")
+  @CreatedDate
   private Instant driftDetectedAt;
 
   /**
@@ -89,8 +111,6 @@ public class ServiceInstanceDocument {
   public static ServiceInstanceDocument fromDomain(ServiceInstance domain) {
     return ServiceInstanceDocument.builder()
         .id(domain.getId().toDocumentId())
-        .serviceName(domain.getId().serviceName())
-        .instanceId(domain.getId().instanceId())
         .serviceId(domain.getServiceId())
         .teamId(domain.getTeamId())
         .host(domain.getHost())

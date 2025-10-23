@@ -10,7 +10,7 @@ public final class ServiceInstanceMapper {
   public static ApiResponseDto.ServiceInstanceSummary toSummary(ServiceInstance instance) {
     if (instance == null) return null;
     return ApiResponseDto.ServiceInstanceSummary.builder()
-        .serviceName(instance.getServiceName())
+        .serviceName(instance.getServiceId())
         .instanceId(instance.getInstanceId())
         .host(instance.getHost())
         .port(instance.getPort())

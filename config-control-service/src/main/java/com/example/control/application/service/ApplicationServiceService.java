@@ -49,15 +49,8 @@ public class ApplicationServiceService {
     public ApplicationService save(ApplicationService service, UserContext userContext) {
         log.info("Saving application service: {} by user: {}", service.getId(), userContext.getUserId());
 
-        // Set audit fields
-        if (service.getCreatedAt() == null) {
-            service.setCreatedAt(Instant.now());
-            service.setCreatedBy(userContext.getUserId());
-        }
-        service.setUpdatedAt(Instant.now());
-
         // Validate ownership for updates
-        if (service.getId() != null) {
+        if (service.getId() != null && !service.getId().id().isBlank()) {
             Optional<ApplicationService> existing = repository.findById(service.getId());
             if (existing.isPresent() && !canEditService(userContext, existing.get())) {
                 throw new IllegalStateException("User does not have permission to edit this service");
@@ -116,9 +109,8 @@ public class ApplicationServiceService {
             return existing.get();
         }
         
-        // Create orphaned service (no owner team)
+        // Create orphaned service (no owner team) - let MongoDB generate ID
         ApplicationService orphanedService = ApplicationService.builder()
-            .id(ApplicationServiceId.of(displayName.toLowerCase().replaceAll("[^a-z0-9-]", "-")))
             .displayName(displayName)
             .ownerTeamId(null) // Orphaned - requires approval workflow
             .environments(List.of("dev", "staging", "prod")) // Default environments

@@ -2,6 +2,7 @@ package com.example.control.api.dto.domain;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -12,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 
 /**
@@ -163,8 +165,12 @@ public class ApplicationServiceDtos {
         extends PageImpl<ApplicationServiceDtos.Response> {
         public ApplicationServicePageResponse(List<ApplicationServiceDtos.Response> content,
             Pageable pageable,
-            int total) {
-            super(content, pageable, total);
+            long totalElements) {
+            super(content, pageable, totalElements);
+        }
+
+        public static ApplicationServicePageResponse from(Page<ApplicationServiceDtos.Response> page) {
+            return new ApplicationServicePageResponse(page.getContent(), page.getPageable(), page.getTotalElements());
         }
     }
 

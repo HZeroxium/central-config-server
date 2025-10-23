@@ -1,6 +1,9 @@
 package com.example.control.infrastructure.mongo.repository;
 
 import com.example.control.infrastructure.mongo.documents.ApprovalRequestDocument;
+
+import java.time.Instant;
+
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 import org.springframework.data.mongodb.repository.Update;
@@ -36,5 +39,5 @@ public interface ApprovalRequestMongoRepository extends MongoRepository<Approval
      */
     @Query("{'_id': ?0, 'version': ?2}")
     @Update("{'$set': {'status': ?1, 'updatedAt': ?3, 'version': ?4}}")
-    long updateStatusAndVersion(String id, String status, Integer version, java.time.Instant updatedAt, Integer newVersion);
+    long updateStatusAndVersion(String id, String status, Integer version, Instant updatedAt, Integer newVersion);
 }

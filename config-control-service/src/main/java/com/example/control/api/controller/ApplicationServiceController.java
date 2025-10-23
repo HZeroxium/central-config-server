@@ -6,6 +6,7 @@ import com.example.control.api.mapper.domain.ApplicationServiceApiMapper;
 import com.example.control.application.service.ApplicationServiceService;
 import com.example.control.config.security.UserContext;
 import com.example.control.domain.object.ApplicationService;
+import com.example.control.domain.criteria.ApplicationServiceCriteria;
 import com.example.control.domain.id.ApplicationServiceId;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -18,9 +19,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -29,6 +32,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * REST controller for ApplicationService operations.
@@ -45,7 +49,6 @@ import java.util.Optional;
 public class ApplicationServiceController {
 
     private final ApplicationServiceService applicationServiceService;
-    private final ApplicationServiceApiMapper mapper;
 
     /**
      * List all application services (authenticated endpoint).
@@ -65,12 +68,15 @@ public class ApplicationServiceController {
             - Services are public to authenticated users for discovery
             - Filtering by team ownership is applied automatically
             """,
-        security = @SecurityRequirement(name = "oauth2_auth_code"),
+        security = {
+            @SecurityRequirement(name = "oauth2_auth_code"),
+            @SecurityRequirement(name = "oauth2_password")
+        },
         operationId = "findAllApplicationServices"
     )
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Successfully retrieved application services",
-            content = @Content(schema = @Schema(implementation = Page.class))),
+            content = @Content(schema = @Schema(implementation = ApplicationServiceDtos.ApplicationServicePageResponse.class))),
         @ApiResponse(responseCode = "400", description = "Invalid request parameters",
             content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
         @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
@@ -79,24 +85,26 @@ public class ApplicationServiceController {
             content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
     @GetMapping
-    public ResponseEntity<Page<ApplicationServiceDtos.Response>> findAll(
-            @Parameter(description = "Optional query filter for searching services", 
-                      schema = @Schema(implementation = ApplicationServiceDtos.QueryFilter.class))
-            @RequestParam(required = false) ApplicationServiceDtos.QueryFilter filter,
-            @Parameter(description = "Pagination parameters (page, size, sort)")
+    public ResponseEntity<ApplicationServiceDtos.ApplicationServicePageResponse> findAll(
+            @ParameterObject @Valid ApplicationServiceDtos.QueryFilter filter,
+            @ParameterObject
+            @PageableDefault(size = 20, page = 0, sort = "createdAt,desc")
             Pageable pageable,
             @AuthenticationPrincipal Jwt jwt) {
         log.debug("Listing application services with filter: {}", filter);
         
         UserContext userContext = UserContext.fromJwt(jwt);
-        
+        ApplicationServiceCriteria criteria = ApplicationServiceApiMapper.toCriteria(filter, userContext);
         // Application services are public to authenticated users
-        List<ApplicationService> services = applicationServiceService.findAll();
-        // Convert to Page manually for now
-        Page<ApplicationService> page = new PageImpl<>(services, pageable, services.size());
-        Page<ApplicationServiceDtos.Response> responses = page.map(mapper::toResponse);
+        Page<ApplicationService> services = applicationServiceService.findAll(criteria, pageable, userContext);
+        List<ApplicationServiceDtos.Response> responses = services.stream().map(ApplicationServiceApiMapper::toResponse).collect(Collectors.toList());
         
-        return ResponseEntity.ok(responses);
+        // Page<ApplicationServiceDtos.Response> responses = services.map(ApplicationServiceApiMapper::toResponse);
+        // Convert to Page manually for now
+        ApplicationServiceDtos.ApplicationServicePageResponse page =
+                new ApplicationServiceDtos.ApplicationServicePageResponse(responses, pageable, responses.size());
+        
+        return ResponseEntity.ok(page);
     }
 
     /**
@@ -116,7 +124,10 @@ public class ApplicationServiceController {
             - Team members: Can create services for their own team
             - Service ID must be unique across the system
             """,
-        security = @SecurityRequirement(name = "oauth2_auth_code"),
+        security = {
+            @SecurityRequirement(name = "oauth2_auth_code"),
+            @SecurityRequirement(name = "oauth2_password")
+        },
         operationId = "createApplicationService"
     )
     @ApiResponses(value = {
@@ -142,11 +153,11 @@ public class ApplicationServiceController {
         log.info("Creating application service: {}", request.id());
         
         UserContext userContext = UserContext.fromJwt(jwt);
-        ApplicationService service = mapper.toDomain(request);
+        ApplicationService service = ApplicationServiceApiMapper.toDomain(request);
         service.setCreatedBy(userContext.getUserId());
         
         ApplicationService saved = applicationServiceService.save(service, userContext);
-        ApplicationServiceDtos.Response response = mapper.toResponse(saved);
+        ApplicationServiceDtos.Response response = ApplicationServiceApiMapper.toResponse(saved);
         
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -166,7 +177,10 @@ public class ApplicationServiceController {
             - Public endpoint - no authentication required
             - Returns service metadata for discovery purposes
             """,
-        security = @SecurityRequirement(name = "oauth2_auth_code"),
+        security = {
+            @SecurityRequirement(name = "oauth2_auth_code"),
+            @SecurityRequirement(name = "oauth2_password")
+        },
         operationId = "findApplicationServiceById"
     )
     @ApiResponses(value = {
@@ -188,7 +202,7 @@ public class ApplicationServiceController {
             return ResponseEntity.notFound().build();
         }
         
-        ApplicationServiceDtos.Response response = mapper.toResponse(service.get());
+        ApplicationServiceDtos.Response response = ApplicationServiceApiMapper.toResponse(service.get());
         return ResponseEntity.ok(response);
     }
 
@@ -210,7 +224,10 @@ public class ApplicationServiceController {
             - Team members: Can update services owned by their team
             - Partial updates are supported (only provided fields are updated)
             """,
-        security = @SecurityRequirement(name = "oauth2_auth_code"),
+        security = {
+            @SecurityRequirement(name = "oauth2_auth_code"),
+            @SecurityRequirement(name = "oauth2_password")
+        },
         operationId = "updateApplicationService"
     )
     @ApiResponses(value = {
@@ -244,9 +261,9 @@ public class ApplicationServiceController {
         }
         
         ApplicationService service = serviceOpt.get();
-        ApplicationService updated = mapper.apply(service, request);
+        ApplicationService updated = ApplicationServiceApiMapper.apply(service, request);
         ApplicationService saved = applicationServiceService.save(updated, userContext);
-        ApplicationServiceDtos.Response response = mapper.toResponse(saved);
+        ApplicationServiceDtos.Response response = ApplicationServiceApiMapper.toResponse(saved);
         
         return ResponseEntity.ok(response);
     }
@@ -267,7 +284,10 @@ public class ApplicationServiceController {
             - SYS_ADMIN: Only system administrators can delete services
             - This action is irreversible and will remove all associated data
             """,
-        security = @SecurityRequirement(name = "oauth2_auth_code"),
+        security = {
+            @SecurityRequirement(name = "oauth2_auth_code"),
+            @SecurityRequirement(name = "oauth2_password")
+        },
         operationId = "deleteApplicationService"
     )
     @ApiResponses(value = {

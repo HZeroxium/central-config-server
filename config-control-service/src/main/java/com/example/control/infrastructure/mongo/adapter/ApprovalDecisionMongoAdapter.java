@@ -24,14 +24,11 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 public class ApprovalDecisionMongoAdapter 
-    extends AbstractMongoAdapter<ApprovalDecision, ApprovalDecisionDocument, ApprovalDecisionId, ApprovalDecisionCriteria>
+    extends AbstractMongoAdapter<ApprovalDecision, ApprovalDecisionDocument, ApprovalDecisionId, ApprovalDecisionCriteria, ApprovalDecisionMongoRepository>
     implements ApprovalDecisionRepositoryPort {
 
-    private final ApprovalDecisionMongoRepository repository;
-
     public ApprovalDecisionMongoAdapter(ApprovalDecisionMongoRepository repository, MongoTemplate mongoTemplate) {
-        super(repository, mongoTemplate);
-        this.repository = repository;
+        super(repository, mongoTemplate, ApprovalDecisionId::id);
     }
 
     @Override

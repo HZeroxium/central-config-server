@@ -15,7 +15,7 @@ import java.util.List;
  * All queries are automatically filtered by userTeamIds when provided.
  * </p>
  *
- * @param serviceName filter by service name
+ * @param serviceId filter by service ID
  * @param instanceId filter by instance ID
  * @param status filter by instance status
  * @param hasDrift filter by drift status
@@ -28,7 +28,7 @@ import java.util.List;
 @Builder(toBuilder = true)
 @With
 public record ServiceInstanceCriteria(
-        String serviceName,
+        String serviceId,
         String instanceId,
         ServiceInstance.InstanceStatus status,
         Boolean hasDrift,
@@ -75,13 +75,13 @@ public record ServiceInstanceCriteria(
     /**
      * Creates criteria for a specific service.
      *
-     * @param serviceName the service name
+     * @param serviceId the service ID
      * @param teamIds the team IDs to filter by
      * @return criteria for the service
      */
-    public static ServiceInstanceCriteria forService(String serviceName, List<String> teamIds) {
+    public static ServiceInstanceCriteria forService(String serviceId, List<String> teamIds) {
         return ServiceInstanceCriteria.builder()
-                .serviceName(serviceName)
+                .serviceId(serviceId)
                 .userTeamIds(teamIds)
                 .build();
     }

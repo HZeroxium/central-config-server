@@ -12,6 +12,7 @@ import lombok.NoArgsConstructor;
 import java.time.Instant;
 import java.util.Map;
 
+
 /**
  * DTOs for ServiceInstance API operations.
  * <p>
@@ -30,8 +31,8 @@ public class ServiceInstanceDtos {
   @Schema(name = "ServiceInstanceCreateRequest", description = "Request to create a new service instance")
   public static class CreateRequest {
     @NotBlank
-    @Schema(description = "Name of the service", example = "payment-service")
-    private String serviceName;
+    @Schema(description = "ID of the service", example = "payment-service")
+    private String serviceId;
     
     @NotBlank
     @Schema(description = "Unique instance identifier", example = "payment-dev-1")
@@ -107,8 +108,8 @@ public class ServiceInstanceDtos {
   @AllArgsConstructor
   @Schema(name = "ServiceInstanceQueryFilter", description = "Query filter for searching service instances")
   public static class QueryFilter {
-    @Schema(description = "Filter by service name", example = "payment-service")
-    private String serviceName;
+    @Schema(description = "Filter by service ID", example = "payment-service")
+    private String serviceId;
     
     @Schema(description = "Filter by instance ID", example = "payment-dev-1")
     private String instanceId;
