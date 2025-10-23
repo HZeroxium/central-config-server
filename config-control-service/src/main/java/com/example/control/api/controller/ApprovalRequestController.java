@@ -131,7 +131,7 @@ public class ApprovalRequestController {
     )
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Approval requests retrieved successfully",
-            content = @Content(schema = @Schema(implementation = ApprovalRequestDtos.Response.class))),
+            content = @Content(schema = @Schema(implementation = ApprovalRequestDtos.ApprovalRequestPageResponse.class))),
         @ApiResponse(responseCode = "400", description = "Invalid request parameters",
             content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
         @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
@@ -139,7 +139,7 @@ public class ApprovalRequestController {
         @ApiResponse(responseCode = "500", description = "Internal server error",
             content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
-    public ResponseEntity<Page<ApprovalRequestDtos.Response>> findAll(
+    public ResponseEntity<ApprovalRequestDtos.ApprovalRequestPageResponse> findAll(
             @Parameter(description = "Optional query filter for searching requests",
                       schema = @Schema(implementation = ApprovalRequestDtos.QueryFilter.class))
             @RequestParam(required = false) ApprovalRequestDtos.QueryFilter filter,
@@ -151,9 +151,9 @@ public class ApprovalRequestController {
         UserContext userContext = UserContext.fromJwt(jwt);
         Page<ApprovalRequest> requests = approvalService.findAll(
                 ApprovalRequestApiMapper.toCriteria(filter, userContext), pageable, userContext);
-        Page<ApprovalRequestDtos.Response> responses = requests.map(ApprovalRequestApiMapper::toResponse);
+        ApprovalRequestDtos.ApprovalRequestPageResponse response = ApprovalRequestApiMapper.toPageResponse(requests);
         
-        return ResponseEntity.ok(responses);
+        return ResponseEntity.ok(response);
     }
 
     /**

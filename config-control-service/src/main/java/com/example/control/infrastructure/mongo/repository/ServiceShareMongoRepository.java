@@ -1,6 +1,7 @@
 package com.example.control.infrastructure.mongo.repository;
 
 import com.example.control.infrastructure.mongo.documents.ServiceShareDocument;
+
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;

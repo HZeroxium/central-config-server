@@ -141,7 +141,7 @@ public class ServiceShareController {
     )
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Service shares retrieved successfully",
-            content = @Content(schema = @Schema(implementation = Page.class))),
+            content = @Content(schema = @Schema(implementation = ServiceShareDtos.ServiceSharePageResponse.class))),
         @ApiResponse(responseCode = "400", description = "Invalid request parameters",
             content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
         @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
@@ -149,7 +149,7 @@ public class ServiceShareController {
         @ApiResponse(responseCode = "500", description = "Internal server error",
             content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
-    public ResponseEntity<Page<ServiceShareDtos.Response>> findAll(
+    public ResponseEntity<ServiceShareDtos.ServiceSharePageResponse> findAll(
             @Parameter(description = "Optional query filter for searching shares",
                       schema = @Schema(implementation = ServiceShareDtos.QueryFilter.class))
             @RequestParam(required = false) ServiceShareDtos.QueryFilter filter,
@@ -161,9 +161,9 @@ public class ServiceShareController {
         UserContext userContext = UserContext.fromJwt(jwt);
         Page<ServiceShare> shares = serviceShareService.findAll(
                 ServiceShareApiMapper.toCriteria(filter, userContext), pageable, userContext);
-        Page<ServiceShareDtos.Response> responses = shares.map(ServiceShareApiMapper::toResponse);
+        ServiceShareDtos.ServiceSharePageResponse response = ServiceShareApiMapper.toPageResponse(shares);
         
-        return ResponseEntity.ok(responses);
+        return ResponseEntity.ok(response);
     }
 
     /**

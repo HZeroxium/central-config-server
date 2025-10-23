@@ -192,7 +192,7 @@ public class ServiceInstanceController {
   )
   @ApiResponses(value = {
       @ApiResponse(responseCode = "200", description = "Service instances retrieved successfully",
-          content = @Content(schema = @Schema(implementation = Page.class))),
+          content = @Content(schema = @Schema(implementation = ServiceInstanceDtos.ServiceInstancePageResponse.class))),
       @ApiResponse(responseCode = "400", description = "Invalid request parameters",
           content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
       @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
@@ -201,7 +201,7 @@ public class ServiceInstanceController {
           content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   })
   @Timed("api.service-instances.list")
-  public ResponseEntity<Page<ServiceInstanceDtos.Response>> findAll(
+  public ResponseEntity<ServiceInstanceDtos.ServiceInstancePageResponse> findAll(
       @Parameter(description = "Filter by service ID", example = "payment-service") 
       @RequestParam(required = false) String serviceId,
       @Parameter(description = "Filter by instance ID", example = "payment-dev-1") 
@@ -231,8 +231,8 @@ public class ServiceInstanceController {
     
     ServiceInstanceCriteria criteria = ServiceInstanceApiMapper.toCriteria(queryFilter, userContext);
     Page<ServiceInstance> page = service.findAll(criteria, pageable, userContext);
-    Page<ServiceInstanceDtos.Response> mapped = page.map(ServiceInstanceApiMapper::toResponse);
-    return ResponseEntity.ok(mapped);
+    ServiceInstanceDtos.ServiceInstancePageResponse response = ServiceInstanceApiMapper.toPageResponse(page);
+    return ResponseEntity.ok(response);
   }
 }
 

@@ -4,7 +4,6 @@ import com.example.control.domain.port.RepositoryPort;
 import com.mongodb.client.result.UpdateResult;
 
 import lombok.extern.slf4j.Slf4j;
-import org.bson.types.ObjectId;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -195,7 +194,7 @@ public abstract class AbstractMongoAdapter<T, D, ID, F, R extends MongoRepositor
      * Convert entity ID to MongoDB document ID.
      * <p>
      * This method handles the conversion from domain ID value objects to
-     * the String format used by MongoDB. Supports both ObjectId and String IDs.
+     * the String format used by MongoDB. All IDs are now String type for consistency.
      * Subclasses can override this for custom ID conversion logic.
      *
      * @param id the domain entity ID
@@ -206,12 +205,7 @@ public abstract class AbstractMongoAdapter<T, D, ID, F, R extends MongoRepositor
             return null;
         }
         
-        // Handle ObjectId directly
-        if (id instanceof ObjectId objectId) {
-            return objectId.toString();
-        }
-        
-        // Use the provided mapper for other types
+        // Use the provided mapper to convert domain ID to String
         return idMapper.apply(id);
     }
 

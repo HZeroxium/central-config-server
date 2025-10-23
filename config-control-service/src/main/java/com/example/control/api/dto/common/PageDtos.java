@@ -7,7 +7,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.domain.Page;
 
-import java.util.List;
 
 /**
  * Generic page response DTO to wrap paginated results.
@@ -22,11 +21,8 @@ public final class PageDtos {
   @Builder
   @NoArgsConstructor
   @AllArgsConstructor
-  @Schema(description = "Paginated response with Spring Data Page metadata")
-  public static class PageResponse<T> {
-    @Schema(description = "List of items in current page")
-    private List<T> items;
-    
+  @Schema(description = "Pagination metadata from Spring Data Page")
+  public static class PageMetadata {
     @Schema(description = "Total number of elements across all pages", example = "150")
     private long totalElements;
     
@@ -44,16 +40,31 @@ public final class PageDtos {
     
     @Schema(description = "Whether there are previous pages available", example = "false")
     private boolean hasPrevious;
+    
+    @Schema(description = "Whether this is the first page", example = "true")
+    private boolean isFirst;
+    
+    @Schema(description = "Whether this is the last page", example = "false")
+    private boolean isLast;
+    
+    @Schema(description = "Number of elements in current page", example = "20")
+    private int numberOfElements;
+    
+    @Schema(description = "Whether the page is empty", example = "false")
+    private boolean empty;
 
-    public static <T> PageResponse<T> from(Page<T> page) {
-      return PageResponse.<T>builder()
-          .items(page.getContent())
+    public static PageMetadata from(Page<?> page) {
+      return PageMetadata.builder()
           .totalElements(page.getTotalElements())
           .totalPages(page.getTotalPages())
           .page(page.getNumber())
           .size(page.getSize())
           .hasNext(page.hasNext())
           .hasPrevious(page.hasPrevious())
+          .isFirst(page.isFirst())
+          .isLast(page.isLast())
+          .numberOfElements(page.getNumberOfElements())
+          .empty(page.isEmpty())
           .build();
     }
   }

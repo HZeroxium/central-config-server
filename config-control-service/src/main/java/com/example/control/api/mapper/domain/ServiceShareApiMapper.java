@@ -1,10 +1,12 @@
 package com.example.control.api.mapper.domain;
 
+import com.example.control.api.dto.common.PageDtos;
 import com.example.control.api.dto.domain.ServiceShareDtos;
 import com.example.control.config.security.UserContext;
 import com.example.control.domain.object.ServiceShare;
 import com.example.control.domain.criteria.ServiceShareCriteria;
 import com.example.control.domain.id.ServiceShareId;
+import org.springframework.data.domain.Page;
 
 import java.time.Instant;
 import java.util.List;
@@ -81,6 +83,23 @@ public final class ServiceShareApiMapper {
                 .grantToId(filter != null ? filter.grantToId() : null)
                 .environments(filter != null ? filter.environments() : null)
                 .userTeamIds(userContext.getTeamIds())
+                .build();
+    }
+
+    /**
+     * Convert Page<ServiceShare> to ServiceSharePageResponse.
+     *
+     * @param page the Spring Page containing ServiceShare entities
+     * @return the domain-specific page response
+     */
+    public static ServiceShareDtos.ServiceSharePageResponse toPageResponse(Page<ServiceShare> page) {
+        List<ServiceShareDtos.Response> items = page.getContent().stream()
+                .map(ServiceShareApiMapper::toResponse)
+                .toList();
+        
+        return ServiceShareDtos.ServiceSharePageResponse.builder()
+                .items(items)
+                .metadata(PageDtos.PageMetadata.from(page))
                 .build();
     }
 }

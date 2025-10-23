@@ -1,5 +1,6 @@
 package com.example.control.api.dto.domain;
 
+import com.example.control.api.dto.common.PageDtos;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -7,14 +8,16 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
+
 
 /**
  * DTOs for ApplicationService API operations.
@@ -160,18 +163,17 @@ public class ApplicationServiceDtos {
             String search
     ) {}
 
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     @Schema(name = "ApplicationServicePageResponse", description = "Page response for application services")
-    public static class ApplicationServicePageResponse
-        extends PageImpl<ApplicationServiceDtos.Response> {
-        public ApplicationServicePageResponse(List<ApplicationServiceDtos.Response> content,
-            Pageable pageable,
-            long totalElements) {
-            super(content, pageable, totalElements);
-        }
-
-        public static ApplicationServicePageResponse from(Page<ApplicationServiceDtos.Response> page) {
-            return new ApplicationServicePageResponse(page.getContent(), page.getPageable(), page.getTotalElements());
-        }
+    public static class ApplicationServicePageResponse {
+        @Schema(description = "List of application services in current page")
+        private List<ApplicationServiceDtos.Response> items;
+        
+        @Schema(description = "Pagination metadata")
+        private PageDtos.PageMetadata metadata;
     }
 
 }

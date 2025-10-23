@@ -1,10 +1,15 @@
 package com.example.control.api.dto.domain;
 
+import com.example.control.api.dto.common.PageDtos;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 import java.util.List;
@@ -158,4 +163,17 @@ public class ApprovalRequestDtos {
             @JsonProperty("roles")
             List<String> roles
     ) {}
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(name = "ApprovalRequestPageResponse", description = "Page response for approval requests")
+    public static class ApprovalRequestPageResponse {
+        @Schema(description = "List of approval requests in current page")
+        private List<ApprovalRequestDtos.Response> items;
+        
+        @Schema(description = "Pagination metadata")
+        private PageDtos.PageMetadata metadata;
+    }
 }

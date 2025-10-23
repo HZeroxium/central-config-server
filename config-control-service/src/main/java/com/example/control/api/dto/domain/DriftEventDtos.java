@@ -1,5 +1,6 @@
 package com.example.control.api.dto.domain;
 
+import com.example.control.api.dto.common.PageDtos;
 import com.example.control.domain.object.DriftEvent;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
@@ -7,6 +8,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.util.List;
 
 import java.time.Instant;
 
@@ -139,6 +142,19 @@ public class DriftEventDtos {
     
     @Schema(description = "Event notes", example = "Configuration mismatch in database connection settings")
     private String notes;
+  }
+
+  @Data
+  @Builder
+  @NoArgsConstructor
+  @AllArgsConstructor
+  @Schema(name = "DriftEventPageResponse", description = "Page response for drift events")
+  public static class DriftEventPageResponse {
+    @Schema(description = "List of drift events in current page")
+    private List<DriftEventDtos.Response> items;
+    
+    @Schema(description = "Pagination metadata")
+    private PageDtos.PageMetadata metadata;
   }
 }
 

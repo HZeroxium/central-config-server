@@ -30,9 +30,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * REST controller for ApplicationService operations.
@@ -97,12 +95,7 @@ public class ApplicationServiceController {
         ApplicationServiceCriteria criteria = ApplicationServiceApiMapper.toCriteria(filter, userContext);
         // Application services are public to authenticated users
         Page<ApplicationService> services = applicationServiceService.findAll(criteria, pageable, userContext);
-        List<ApplicationServiceDtos.Response> responses = services.stream().map(ApplicationServiceApiMapper::toResponse).collect(Collectors.toList());
-        
-        // Page<ApplicationServiceDtos.Response> responses = services.map(ApplicationServiceApiMapper::toResponse);
-        // Convert to Page manually for now
-        ApplicationServiceDtos.ApplicationServicePageResponse page =
-                new ApplicationServiceDtos.ApplicationServicePageResponse(responses, pageable, responses.size());
+        ApplicationServiceDtos.ApplicationServicePageResponse page = ApplicationServiceApiMapper.toPageResponse(services);
         
         return ResponseEntity.ok(page);
     }

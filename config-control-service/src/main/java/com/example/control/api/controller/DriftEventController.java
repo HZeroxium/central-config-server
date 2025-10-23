@@ -181,7 +181,7 @@ public class DriftEventController {
   )
   @ApiResponses(value = {
       @ApiResponse(responseCode = "200", description = "Drift events retrieved successfully",
-          content = @Content(schema = @Schema(implementation = Page.class))),
+          content = @Content(schema = @Schema(implementation = DriftEventDtos.DriftEventPageResponse.class))),
       @ApiResponse(responseCode = "400", description = "Invalid request parameters",
           content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
       @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
@@ -190,7 +190,7 @@ public class DriftEventController {
           content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   })
   @Timed("api.drift-events.list")
-  public ResponseEntity<Page<DriftEventDtos.Response>> findAll(
+  public ResponseEntity<DriftEventDtos.DriftEventPageResponse> findAll(
       @Parameter(description = "Filter by service name", example = "payment-service") 
       @RequestParam(required = false) String serviceName,
       @Parameter(description = "Filter by instance ID", example = "payment-dev-1") 
@@ -217,8 +217,8 @@ public class DriftEventController {
     
     DriftEventCriteria criteria = DriftEventApiMapper.toCriteria(queryFilter, userContext);
     Page<DriftEvent> page = service.findAll(criteria, pageable, userContext);
-    Page<DriftEventDtos.Response> mapped = page.map(DriftEventApiMapper::toResponse);
-    return ResponseEntity.ok(mapped);
+    DriftEventDtos.DriftEventPageResponse response = DriftEventApiMapper.toPageResponse(page);
+    return ResponseEntity.ok(response);
   }
 }
 

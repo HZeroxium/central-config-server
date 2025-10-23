@@ -1,9 +1,13 @@
 package com.example.control.api.mapper.domain;
 
+import com.example.control.api.dto.common.PageDtos;
 import com.example.control.api.dto.domain.ApprovalRequestDtos;
 import com.example.control.config.security.UserContext;
 import com.example.control.domain.object.ApprovalRequest;
 import com.example.control.domain.criteria.ApprovalRequestCriteria;
+import org.springframework.data.domain.Page;
+
+import java.util.List;
 
 
 /**
@@ -67,6 +71,23 @@ public final class ApprovalRequestApiMapper {
                 .fromDate(filter != null ? filter.fromDate() : null)
                 .toDate(filter != null ? filter.toDate() : null)
                 .userTeamIds(userContext.getTeamIds())
+                .build();
+    }
+
+    /**
+     * Convert Page<ApprovalRequest> to ApprovalRequestPageResponse.
+     *
+     * @param page the Spring Page containing ApprovalRequest entities
+     * @return the domain-specific page response
+     */
+    public static ApprovalRequestDtos.ApprovalRequestPageResponse toPageResponse(Page<ApprovalRequest> page) {
+        List<ApprovalRequestDtos.Response> items = page.getContent().stream()
+                .map(ApprovalRequestApiMapper::toResponse)
+                .toList();
+        
+        return ApprovalRequestDtos.ApprovalRequestPageResponse.builder()
+                .items(items)
+                .metadata(PageDtos.PageMetadata.from(page))
                 .build();
     }
 }

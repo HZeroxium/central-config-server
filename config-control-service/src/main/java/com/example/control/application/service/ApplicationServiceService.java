@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Application service for managing application services.
@@ -48,6 +49,11 @@ public class ApplicationServiceService {
     @CacheEvict(value = "application-services", allEntries = true)
     public ApplicationService save(ApplicationService service, UserContext userContext) {
         log.info("Saving application service: {} by user: {}", service.getId(), userContext.getUserId());
+
+        // Generate UUID if ID is null (new service)
+        if (service.getId() == null) {
+            service.setId(ApplicationServiceId.of(java.util.UUID.randomUUID().toString()));
+        }
 
         // Validate ownership for updates
         if (service.getId() != null && !service.getId().id().isBlank()) {
@@ -109,8 +115,9 @@ public class ApplicationServiceService {
             return existing.get();
         }
         
-        // Create orphaned service (no owner team) - let MongoDB generate ID
+        // Create orphaned service (no owner team) - generate UUID
         ApplicationService orphanedService = ApplicationService.builder()
+            .id(ApplicationServiceId.of(UUID.randomUUID().toString()))
             .displayName(displayName)
             .ownerTeamId(null) // Orphaned - requires approval workflow
             .environments(List.of("dev", "staging", "prod")) // Default environments

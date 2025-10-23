@@ -1,8 +1,11 @@
 package com.example.control.api.dto.domain;
 
+import com.example.control.api.dto.common.PageDtos;
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 import java.util.List;
@@ -66,5 +69,18 @@ public class IamTeamDtos {
     public static class StatsResponse {
         @Schema(description = "Total number of teams", example = "5")
         private long totalTeams;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(name = "IamTeamPageResponse", description = "Page response for IAM teams")
+    public static class IamTeamPageResponse {
+        @Schema(description = "List of IAM teams in current page")
+        private List<IamTeamDtos.Response> items;
+        
+        @Schema(description = "Pagination metadata")
+        private PageDtos.PageMetadata metadata;
     }
 }

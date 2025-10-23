@@ -1,10 +1,14 @@
 package com.example.control.api.mapper.domain;
 
+import com.example.control.api.dto.common.PageDtos;
 import com.example.control.api.dto.domain.ServiceInstanceDtos;
 import com.example.control.config.security.UserContext;
 import com.example.control.domain.object.ServiceInstance;
 import com.example.control.domain.criteria.ServiceInstanceCriteria;
 import com.example.control.domain.id.ServiceInstanceId;
+import org.springframework.data.domain.Page;
+
+import java.util.List;
 
 public final class ServiceInstanceApiMapper {
 
@@ -77,6 +81,23 @@ public final class ServiceInstanceApiMapper {
         .lastSeenAtFrom(filter != null ? filter.getLastSeenAtFrom() : null)
         .lastSeenAtTo(filter != null ? filter.getLastSeenAtTo() : null)
         .userTeamIds(userContext.getTeamIds())
+        .build();
+  }
+
+  /**
+   * Convert Page<ServiceInstance> to ServiceInstancePageResponse.
+   *
+   * @param page the Spring Page containing ServiceInstance entities
+   * @return the domain-specific page response
+   */
+  public static ServiceInstanceDtos.ServiceInstancePageResponse toPageResponse(Page<ServiceInstance> page) {
+    List<ServiceInstanceDtos.Response> items = page.getContent().stream()
+        .map(ServiceInstanceApiMapper::toResponse)
+        .toList();
+    
+    return ServiceInstanceDtos.ServiceInstancePageResponse.builder()
+        .items(items)
+        .metadata(PageDtos.PageMetadata.from(page))
         .build();
   }
 }

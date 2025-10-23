@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Application service for managing {@link DriftEvent} lifecycle operations.
@@ -39,6 +40,10 @@ public class DriftEventService {
    */
   @CacheEvict(value = "drift-events", allEntries = true)
   public DriftEvent save(DriftEvent event) {
+    // Generate UUID if ID is null (new event)
+    if (event.getId() == null) {
+      event.setId(DriftEventId.of(UUID.randomUUID().toString()));
+    }
     return repository.save(event);
   }
 
@@ -64,6 +69,10 @@ public class DriftEventService {
       throw new SecurityException("Insufficient permissions to create drift event for service: " + event.getServiceName());
     }
     
+    // Generate UUID if ID is null (new event)
+    if (event.getId() == null) {
+      event.setId(DriftEventId.of(java.util.UUID.randomUUID().toString()));
+    }
     return repository.save(event);
   }
 

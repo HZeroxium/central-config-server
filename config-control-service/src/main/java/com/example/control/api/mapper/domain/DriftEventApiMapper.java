@@ -1,11 +1,14 @@
 package com.example.control.api.mapper.domain;
 
+import com.example.control.api.dto.common.PageDtos;
 import com.example.control.api.dto.domain.DriftEventDtos;
 import com.example.control.config.security.UserContext;
 import com.example.control.domain.object.DriftEvent;
 import com.example.control.domain.criteria.DriftEventCriteria;
+import org.springframework.data.domain.Page;
 
 import java.time.Instant;
+import java.util.List;
 
 public final class DriftEventApiMapper {
 
@@ -69,6 +72,23 @@ public final class DriftEventApiMapper {
         .detectedAtFrom(filter != null ? filter.getDetectedAtFrom() : null)
         .detectedAtTo(filter != null ? filter.getDetectedAtTo() : null)
         .userTeamIds(userContext.getTeamIds())
+        .build();
+  }
+
+  /**
+   * Convert Page<DriftEvent> to DriftEventPageResponse.
+   *
+   * @param page the Spring Page containing DriftEvent entities
+   * @return the domain-specific page response
+   */
+  public static DriftEventDtos.DriftEventPageResponse toPageResponse(Page<DriftEvent> page) {
+    List<DriftEventDtos.Response> items = page.getContent().stream()
+        .map(DriftEventApiMapper::toResponse)
+        .toList();
+    
+    return DriftEventDtos.DriftEventPageResponse.builder()
+        .items(items)
+        .metadata(PageDtos.PageMetadata.from(page))
         .build();
   }
 }

@@ -6,6 +6,7 @@ import com.example.control.application.service.IamUserService;
 import com.example.control.config.security.UserContext;
 import com.example.control.domain.criteria.IamUserCriteria;
 import com.example.control.domain.id.IamUserId;
+import com.example.control.domain.object.IamUser;
 import com.example.control.api.exception.ErrorResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -66,7 +67,7 @@ public class IamUserController {
     )
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Successfully retrieved IAM users",
-            content = @Content(schema = @Schema(implementation = Page.class))),
+            content = @Content(schema = @Schema(implementation = IamUserDtos.IamUserPageResponse.class))),
         @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
             content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
         @ApiResponse(responseCode = "403", description = "Forbidden - SYS_ADMIN role required",
@@ -75,7 +76,7 @@ public class IamUserController {
             content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
     @PreAuthorize("hasRole('SYS_ADMIN')")
-    public ResponseEntity<Page<IamUserDtos.Response>> findAll(
+    public ResponseEntity<IamUserDtos.IamUserPageResponse> findAll(
             @Parameter(description = "Filter criteria for searching users",
                       schema = @Schema(implementation = IamUserCriteria.class))
             IamUserCriteria criteria,
@@ -85,8 +86,8 @@ public class IamUserController {
         
         log.debug("Listing IAM users with criteria: {} for user: {}", criteria, userContext.getUserId());
         
-        Page<IamUserDtos.Response> response = iamUserService.findAll(criteria, pageable)
-                .map(apiMapper::toResponse);
+        Page<IamUser> page = iamUserService.findAll(criteria, pageable);
+        IamUserDtos.IamUserPageResponse response = apiMapper.toPageResponse(page);
         
         return ResponseEntity.ok(response);
     }

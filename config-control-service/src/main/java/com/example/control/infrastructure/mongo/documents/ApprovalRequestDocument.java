@@ -7,7 +7,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import org.bson.types.ObjectId;
 import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
@@ -21,6 +20,7 @@ import org.springframework.data.mongodb.core.mapping.Field;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * MongoDB document representation of {@link ApprovalRequest}.
@@ -37,9 +37,9 @@ import java.util.Map;
 @Document(collection = "approval_requests")
 public class ApprovalRequestDocument {
 
-    /** Document identifier: MongoDB auto-generated ObjectId. */
+    /** Document identifier: UUID string. */
     @Id
-    private ObjectId id;
+    private String id;
 
     /** User who created this request (Keycloak user ID). */
     @Indexed
@@ -121,13 +121,11 @@ public class ApprovalRequestDocument {
                 .updatedAt(domain.getUpdatedAt())
                 .version(domain.getVersion());
         
-        // Set ID if it exists (for updates), otherwise let MongoDB generate it
+        // Set ID if it exists (for updates), otherwise generate UUID
         if (domain.getId() != null && domain.getId().id() != null) {
-            try {
-                builder.id(new ObjectId(domain.getId().id()));
-            } catch (Exception e) {
-                // If ID is not a valid ObjectId, let MongoDB generate a new one
-            }
+            builder.id(domain.getId().id());
+        } else {
+            builder.id(UUID.randomUUID().toString());
         }
         
         return builder.build();
@@ -140,7 +138,7 @@ public class ApprovalRequestDocument {
      */
     public ApprovalRequest toDomain() {
         return ApprovalRequest.builder()
-                .id(ApprovalRequestId.of(id != null ? id.toString() : null))
+                .id(ApprovalRequestId.of(id != null ? id : null))
                 .requesterUserId(requesterUserId)
                 .requestType(requestType != null 
                     ? ApprovalRequest.RequestType.valueOf(requestType) 

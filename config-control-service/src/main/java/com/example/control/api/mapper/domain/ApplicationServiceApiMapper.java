@@ -1,10 +1,12 @@
 package com.example.control.api.mapper.domain;
 
+import com.example.control.api.dto.common.PageDtos;
 import com.example.control.api.dto.domain.ApplicationServiceDtos;
 import com.example.control.config.security.UserContext;
 import com.example.control.domain.object.ApplicationService;
 import com.example.control.domain.criteria.ApplicationServiceCriteria;
 import com.example.control.domain.id.ApplicationServiceId;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -97,6 +99,23 @@ public final class ApplicationServiceApiMapper {
                 .tags(filter != null ? filter.tags() : null)
                 .search(filter != null ? filter.search() : null)
                 .userTeamIds(userContext.getTeamIds())
+                .build();
+    }
+
+    /**
+     * Convert Page<ApplicationService> to ApplicationServicePageResponse.
+     *
+     * @param page the Spring Page containing ApplicationService entities
+     * @return the domain-specific page response
+     */
+    public static ApplicationServiceDtos.ApplicationServicePageResponse toPageResponse(Page<ApplicationService> page) {
+        List<ApplicationServiceDtos.Response> items = page.getContent().stream()
+                .map(ApplicationServiceApiMapper::toResponse)
+                .toList();
+        
+        return ApplicationServiceDtos.ApplicationServicePageResponse.builder()
+                .items(items)
+                .metadata(PageDtos.PageMetadata.from(page))
                 .build();
     }
 }

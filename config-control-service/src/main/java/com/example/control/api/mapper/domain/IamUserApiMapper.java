@@ -1,8 +1,12 @@
 package com.example.control.api.mapper.domain;
 
+import com.example.control.api.dto.common.PageDtos;
 import com.example.control.api.dto.domain.IamUserDtos;
 import com.example.control.domain.object.IamUser;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 /**
  * API mapper for IAM user operations.
@@ -33,6 +37,23 @@ public class IamUserApiMapper {
                 .createdAt(domain.getCreatedAt())
                 .updatedAt(domain.getUpdatedAt())
                 .syncedAt(domain.getSyncedAt())
+                .build();
+    }
+
+    /**
+     * Convert Page<IamUser> to IamUserPageResponse.
+     *
+     * @param page the Spring Page containing IamUser entities
+     * @return the domain-specific page response
+     */
+    public IamUserDtos.IamUserPageResponse toPageResponse(Page<IamUser> page) {
+        List<IamUserDtos.Response> items = page.getContent().stream()
+                .map(this::toResponse)
+                .toList();
+        
+        return IamUserDtos.IamUserPageResponse.builder()
+                .items(items)
+                .metadata(PageDtos.PageMetadata.from(page))
                 .build();
     }
 }

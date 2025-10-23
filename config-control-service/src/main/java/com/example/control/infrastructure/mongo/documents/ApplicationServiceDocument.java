@@ -7,7 +7,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import org.bson.types.ObjectId;
 import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
@@ -21,6 +20,7 @@ import org.springframework.data.mongodb.core.mapping.Field;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * MongoDB document representation of {@link ApplicationService}.
@@ -38,9 +38,9 @@ import java.util.Map;
 @CompoundIndex(def = "{'ownerTeamId': 1, 'createdAt': -1}")
 public class ApplicationServiceDocument {
 
-    /** Document identifier: MongoDB auto-generated ObjectId. */
+    /** Document identifier: UUID string. */
     @Id
-    private ObjectId id;
+    private String id;
 
     /** Human-readable display name. */
     @Indexed(unique = true)
@@ -112,13 +112,12 @@ public class ApplicationServiceDocument {
                 .createdBy(domain.getCreatedBy())
                 .attributes(domain.getAttributes());
         
-        // Set ID if it exists (for updates), otherwise let MongoDB generate it
+        // Set ID if it exists (for updates), otherwise generate UUID
         if (domain.getId() != null && domain.getId().id() != null) {
-            try {
-                builder.id(new ObjectId(domain.getId().id()));
-            } catch (Exception e) {
-                // If ID is not a valid ObjectId, let MongoDB generate a new one
-            }
+            builder.id(domain.getId().id());
+        } else {
+            // Generate UUID for new application services
+            builder.id(UUID.randomUUID().toString());
         }
         
         return builder.build();
@@ -131,7 +130,7 @@ public class ApplicationServiceDocument {
      */
     public ApplicationService toDomain() {
         return ApplicationService.builder()
-                .id(ApplicationServiceId.of(id != null ? id.toString() : null))
+                .id(ApplicationServiceId.of(id != null ? id : null))
                 .displayName(displayName)
                 .ownerTeamId(ownerTeamId)
                 .environments(environments)

@@ -7,7 +7,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import org.bson.types.ObjectId;
 import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
@@ -41,9 +40,9 @@ import java.util.List;
 })
 public class ServiceShareDocument {
 
-    /** Document identifier: MongoDB auto-generated ObjectId. */
+    /** Document identifier: UUID string. */
     @Id
-    private ObjectId id;
+    private String id;
 
     /** Level of resource being shared (stored as string value). */
     @Field("resourceLevel")
@@ -111,7 +110,7 @@ public class ServiceShareDocument {
      */
     public static ServiceShareDocument fromDomain(ServiceShare domain) {
         return ServiceShareDocument.builder()
-                .id(domain.getId() != null && domain.getId().id() != null ? new ObjectId(domain.getId().id()) : null)
+                .id(domain.getId() != null ? domain.getId().id() : null)
                 .resourceLevel(domain.getResourceLevel() != null ? domain.getResourceLevel().name() : null)
                 .serviceId(domain.getServiceId())
                 .instanceId(domain.getInstanceId())
@@ -136,7 +135,7 @@ public class ServiceShareDocument {
      */
     public ServiceShare toDomain() {
         return ServiceShare.builder()
-                .id(ServiceShareId.of(id != null ? id.toString() : null))
+                .id(ServiceShareId.of(id != null ? id : null))
                 .resourceLevel(resourceLevel != null 
                     ? ServiceShare.ResourceLevel.valueOf(resourceLevel) 
                     : null)

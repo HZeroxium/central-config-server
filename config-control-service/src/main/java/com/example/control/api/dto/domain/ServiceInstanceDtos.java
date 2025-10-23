@@ -1,5 +1,6 @@
 package com.example.control.api.dto.domain;
 
+import com.example.control.api.dto.common.PageDtos;
 import com.example.control.domain.object.ServiceInstance;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
@@ -10,6 +11,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 
 
@@ -186,6 +188,19 @@ public class ServiceInstanceDtos {
     
     @Schema(description = "Timestamp when drift was first detected", example = "2024-01-15T14:30:45.123Z")
     private Instant driftDetectedAt;
+  }
+
+  @Data
+  @Builder
+  @NoArgsConstructor
+  @AllArgsConstructor
+  @Schema(name = "ServiceInstancePageResponse", description = "Page response for service instances")
+  public static class ServiceInstancePageResponse {
+    @Schema(description = "List of service instances in current page")
+    private List<ServiceInstanceDtos.Response> items;
+    
+    @Schema(description = "Pagination metadata")
+    private PageDtos.PageMetadata metadata;
   }
 }
 

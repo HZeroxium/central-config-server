@@ -8,7 +8,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import org.bson.types.ObjectId;
 import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
@@ -37,9 +36,9 @@ import java.time.Instant;
 @CompoundIndex(def = "{'requestId': 1, 'approverUserId': 1, 'gate': 1}", unique = true)
 public class ApprovalDecisionDocument {
 
-    /** Document identifier: MongoDB auto-generated ObjectId. */
+    /** Document identifier: UUID string. */
     @Id
-    private ObjectId id;
+    private String id;
 
     /** ID of the approval request this decision belongs to. */
     @Indexed
@@ -99,13 +98,9 @@ public class ApprovalDecisionDocument {
                 .decidedAt(domain.getDecidedAt())
                 .note(domain.getNote());
         
-        // Set ID if it exists (for updates), otherwise let MongoDB generate it
+        // Set ID if it exists (for updates), otherwise use the provided ID
         if (domain.getId() != null && domain.getId().id() != null) {
-            try {
-                builder.id(new ObjectId(domain.getId().id()));
-            } catch (Exception e) {
-                // If ID is not a valid ObjectId, let MongoDB generate a new one
-            }
+            builder.id(domain.getId().id());
         }
         
         return builder.build();
@@ -118,7 +113,7 @@ public class ApprovalDecisionDocument {
      */
     public ApprovalDecision toDomain() {
         return ApprovalDecision.builder()
-                .id(ApprovalDecisionId.of(id != null ? id.toString() : null))
+                .id(ApprovalDecisionId.of(id != null ? id : null))
                 .requestId(ApprovalRequestId.of(requestId))
                 .approverUserId(approverUserId)
                 .gate(gate)
