@@ -14,14 +14,20 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -77,12 +83,11 @@ public class IamUserController {
     })
     @PreAuthorize("hasRole('SYS_ADMIN')")
     public ResponseEntity<IamUserDtos.IamUserPageResponse> findAll(
-            @Parameter(description = "Filter criteria for searching users",
-                      schema = @Schema(implementation = IamUserCriteria.class))
-            IamUserCriteria criteria,
-            @Parameter(description = "Pagination parameters (page, size, sort)")
-            Pageable pageable,
-            UserContext userContext) {
+            @ParameterObject @Valid IamUserCriteria criteria,
+            @ParameterObject @PageableDefault(size = 20, page = 0) Pageable pageable,
+            @AuthenticationPrincipal Jwt jwt) {
+
+        UserContext userContext = UserContext.fromJwt(jwt);
         
         log.debug("Listing IAM users with criteria: {} for user: {}", criteria, userContext.getUserId());
         
@@ -128,7 +133,9 @@ public class IamUserController {
     public ResponseEntity<IamUserDtos.Response> findById(
             @Parameter(description = "User ID", example = "user1")
             @PathVariable String userId,
-            UserContext userContext) {
+            @AuthenticationPrincipal Jwt jwt) {
+
+        UserContext userContext = UserContext.fromJwt(jwt);
         
         log.debug("Getting IAM user by ID: {} for user: {}", userId, userContext.getUserId());
         
@@ -172,7 +179,9 @@ public class IamUserController {
     public ResponseEntity<List<IamUserDtos.Response>> findByTeam(
             @Parameter(description = "Team ID to find users for", example = "team_core")
             @PathVariable String teamId,
-            UserContext userContext) {
+            @AuthenticationPrincipal Jwt jwt) {
+
+        UserContext userContext = UserContext.fromJwt(jwt);
         
         log.debug("Getting IAM users by team: {} for user: {}", teamId, userContext.getUserId());
         
@@ -218,7 +227,9 @@ public class IamUserController {
     public ResponseEntity<List<IamUserDtos.Response>> findByManager(
             @Parameter(description = "Manager's user ID", example = "manager1")
             @PathVariable String managerId,
-            UserContext userContext) {
+            @AuthenticationPrincipal Jwt jwt) {
+
+        UserContext userContext = UserContext.fromJwt(jwt);
         
         log.debug("Getting IAM users by manager: {} for user: {}", managerId, userContext.getUserId());
         
@@ -260,7 +271,9 @@ public class IamUserController {
             content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
     @PreAuthorize("hasRole('SYS_ADMIN')")
-    public ResponseEntity<IamUserDtos.StatsResponse> getStats(UserContext userContext) {
+    public ResponseEntity<IamUserDtos.StatsResponse> getStats(@AuthenticationPrincipal Jwt jwt) {
+
+        UserContext userContext = UserContext.fromJwt(jwt);
         log.debug("Getting IAM user statistics for user: {}", userContext.getUserId());
         
         long totalUsers = iamUserService.countAll();

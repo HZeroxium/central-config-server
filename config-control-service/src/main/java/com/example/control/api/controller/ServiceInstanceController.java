@@ -18,6 +18,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springdoc.core.annotations.ParameterObject;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -202,34 +203,13 @@ public class ServiceInstanceController {
   })
   @Timed("api.service-instances.list")
   public ResponseEntity<ServiceInstanceDtos.ServiceInstancePageResponse> findAll(
-      @Parameter(description = "Filter by service ID", example = "payment-service") 
-      @RequestParam(required = false) String serviceId,
-      @Parameter(description = "Filter by instance ID", example = "payment-dev-1") 
-      @RequestParam(required = false) String instanceId,
-      @Parameter(description = "Filter by instance status", example = "HEALTHY") 
-      @RequestParam(required = false) ServiceInstance.InstanceStatus status,
-      @Parameter(description = "Filter by drift status", example = "true") 
-      @RequestParam(required = false) Boolean hasDrift,
-      @Parameter(description = "Filter by environment", example = "dev") 
-      @RequestParam(required = false) String environment,
-      @Parameter(description = "Filter by service version", example = "1.2.0") 
-      @RequestParam(required = false) String version,
-      @Parameter(description = "Pagination parameters (page, size, sort)") 
-      @PageableDefault Pageable pageable,
+      @ParameterObject @Valid ServiceInstanceDtos.QueryFilter filter,
+      @ParameterObject @PageableDefault(size = 20, page = 0) Pageable pageable,
       @AuthenticationPrincipal Jwt jwt) {
 
     UserContext userContext = UserContext.fromJwt(jwt);
     
-    ServiceInstanceDtos.QueryFilter queryFilter = ServiceInstanceDtos.QueryFilter.builder()
-        .serviceId(serviceId)
-        .instanceId(instanceId)
-        .status(status)
-        .hasDrift(hasDrift)
-        .environment(environment)
-        .version(version)
-        .build();
-    
-    ServiceInstanceCriteria criteria = ServiceInstanceApiMapper.toCriteria(queryFilter, userContext);
+    ServiceInstanceCriteria criteria = ServiceInstanceApiMapper.toCriteria(filter, userContext);
     Page<ServiceInstance> page = service.findAll(criteria, pageable, userContext);
     ServiceInstanceDtos.ServiceInstancePageResponse response = ServiceInstanceApiMapper.toPageResponse(page);
     return ResponseEntity.ok(response);

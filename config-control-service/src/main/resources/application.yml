@@ -299,6 +299,17 @@ keycloak:
     client-id: ${KEYCLOAK_CLIENT_ID:config-control-service}
     client-secret: ${KEYCLOAK_CLIENT_SECRET:}
 
+# Springdoc OAuth2 configuration for Swagger UI
+springdoc:
+  default-consumes-media-type: application/json
+  default-produces-media-type: application/json
+  # use-fqn: true
+  swagger-ui:
+    oauth:
+      client-id: admin-dashboard
+      use-pkce-with-authorization-code-grant: true
+    oauth2-redirect-url: http://localhost:8081/swagger-ui/oauth2-redirect.html
+
 logging:
   level:
     root: ${LOGGING_LEVEL_ROOT:INFO}

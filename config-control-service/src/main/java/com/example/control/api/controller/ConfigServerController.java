@@ -1,6 +1,5 @@
 package com.example.control.api.controller;
 
-import com.example.control.api.dto.common.ApiResponseDto;
 import com.example.control.api.dto.configserver.ConfigServerDto;
 import com.example.control.application.ConfigServerClient;
 import com.example.control.config.ConfigServerProperties;
@@ -48,7 +47,7 @@ public class ConfigServerController {
   )
   @ApiResponses(value = {
       @ApiResponse(responseCode = "200", description = "Successfully retrieved configuration environment",
-          content = @Content(schema = @Schema(implementation = ApiResponseDto.ApiResponse.class))),
+          content = @Content(schema = @Schema(implementation = ConfigServerDto.ConfigEnvironmentResponse.class))),
       @ApiResponse(responseCode = "400", description = "Invalid application or profile name",
           content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
       @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
@@ -61,7 +60,7 @@ public class ConfigServerController {
           content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   })
   @Timed(value = "api.config-server.environment")
-  public ResponseEntity<ApiResponseDto.ApiResponse<ConfigServerDto.ConfigEnvironmentResponse>> getEnvironment(
+  public ResponseEntity<ConfigServerDto.ConfigEnvironmentResponse> getEnvironment(
       @Parameter(description = "Name of the application", example = "payment-service") 
       @PathVariable String application,
       @Parameter(description = "Profile of the application (e.g., dev, prod)", example = "dev") 
@@ -78,8 +77,7 @@ public class ConfigServerController {
     // Parse JSON response to DTO
     ConfigServerDto.ConfigEnvironmentResponse envResponse = parseEnvironmentResponse(response);
 
-    return ResponseEntity.ok(ApiResponseDto.ApiResponse.success(
-        "Configuration retrieved successfully", envResponse));
+    return ResponseEntity.ok(envResponse);
   }
 
   @GetMapping("/health")
@@ -97,21 +95,20 @@ public class ConfigServerController {
   )
   @ApiResponses(value = {
       @ApiResponse(responseCode = "200", description = "Config Server health status retrieved successfully",
-          content = @Content(schema = @Schema(implementation = ApiResponseDto.ApiResponse.class))),
+          content = @Content(schema = @Schema(implementation = ConfigServerDto.ActuatorHealthResponse.class))),
       @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
           content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
       @ApiResponse(responseCode = "500", description = "Internal server error or Config Server unreachable",
           content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   })
   @Timed(value = "api.config-server.health")
-  public ResponseEntity<ApiResponseDto.ApiResponse<ConfigServerDto.ActuatorHealthResponse>> getHealth() {
+  public ResponseEntity<ConfigServerDto.ActuatorHealthResponse> getHealth() {
     log.debug("Getting Config Server health status");
 
     String response = client.getActuatorPath("health");
     ConfigServerDto.ActuatorHealthResponse healthResponse = parseHealthResponse(response);
 
-    return ResponseEntity.ok(ApiResponseDto.ApiResponse.success(
-        "Health status retrieved successfully", healthResponse));
+    return ResponseEntity.ok(healthResponse);
   }
 
   @GetMapping("/actuator/{path}")
@@ -129,7 +126,7 @@ public class ConfigServerController {
   )
   @ApiResponses(value = {
       @ApiResponse(responseCode = "200", description = "Actuator endpoint response retrieved successfully",
-          content = @Content(schema = @Schema(implementation = ApiResponseDto.ApiResponse.class))),
+          content = @Content(schema = @Schema(implementation = Object.class))),
       @ApiResponse(responseCode = "400", description = "Invalid actuator path",
           content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
       @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
@@ -140,7 +137,7 @@ public class ConfigServerController {
           content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   })
   @Timed(value = "api.config-server.actuator")
-  public ResponseEntity<ApiResponseDto.ApiResponse<Object>> getActuatorEndpoint(
+  public ResponseEntity<Object> getActuatorEndpoint(
       @Parameter(description = "Actuator endpoint path", example = "env") 
       @PathVariable String path) {
 
@@ -149,8 +146,7 @@ public class ConfigServerController {
     String response = client.getActuatorPath(path);
     Object parsedResponse = parseJsonResponse(response);
 
-    return ResponseEntity.ok(ApiResponseDto.ApiResponse.success(
-        "Actuator endpoint retrieved successfully", parsedResponse));
+    return ResponseEntity.ok(parsedResponse);
   }
 
   @GetMapping("/info")
@@ -168,14 +164,14 @@ public class ConfigServerController {
   )
   @ApiResponses(value = {
       @ApiResponse(responseCode = "200", description = "Config Server information retrieved successfully",
-          content = @Content(schema = @Schema(implementation = ApiResponseDto.ApiResponse.class))),
+          content = @Content(schema = @Schema(implementation = ConfigServerDto.ConfigServerInfo.class))),
       @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
           content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
       @ApiResponse(responseCode = "500", description = "Internal server error",
           content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   })
   @Timed(value = "api.config-server.info")
-  public ResponseEntity<ApiResponseDto.ApiResponse<ConfigServerDto.ConfigServerInfo>> getInfo() {
+  public ResponseEntity<ConfigServerDto.ConfigServerInfo> getInfo() {
     log.debug("Getting Config Server info");
 
     ConfigServerDto.ConfigServerInfo info = ConfigServerDto.ConfigServerInfo.builder()
@@ -184,8 +180,7 @@ public class ConfigServerController {
         .version("1.0.0")
         .build();
 
-    return ResponseEntity.ok(ApiResponseDto.ApiResponse.success(
-        "Config Server info retrieved successfully", info));
+    return ResponseEntity.ok(info);
   }
 
   // Helper methods for JSON parsing

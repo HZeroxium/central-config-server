@@ -15,22 +15,23 @@ import java.util.stream.Collectors;
  * Represents the authenticated user context derived from a JWT or a set of Spring Security {@link GrantedAuthority} entries.
  *
  * <p><strong>Purpose</strong>:
- * This class centralizes user-identifying attributes (e.g., {@code userId}, {@code username}, {@code email})
+ * Centralizes user-identifying attributes (e.g., {@code userId}, {@code username}, {@code email})
  * and authorization artifacts (e.g., {@code roles}, {@code teamIds}) for application-layer checks.
- * It is intended to be used by service/controller layers to perform simple, readable authorization checks
+ * It is intended for service/controller layers to perform simple, readable authorization checks
  * such as {@link #hasRole(String)} or {@link #isMemberOfTeam(String)}.</p>
  *
  * <p><strong>Key mappings</strong> (typical with Keycloak + Spring Security Resource Server):
  * <ul>
- *   <li><b>User ID</b>: {@code sub} claim (JWT Subject)</li>
- *   <li><b>Username</b>: {@code preferred_username}</li>
- *   <li><b>Email</b>: {@code email}</li>
- *   <li><b>First/Last name</b>: {@code given_name}, {@code family_name}</li>
- *   <li><b>Teams</b>: {@code groups} claim; entries commonly look like {@code /teams/<teamSlug>}. This class strips the {@code /teams/} prefix.</li>
- *   <li><b>Roles</b>: realm roles from {@code realm_access.roles}</li>
+ *   <li><b>User ID</b>: {@code sub} (JWT Subject, OIDC Standard Claim)</li>
+ *   <li><b>Username</b>: {@code preferred_username} (OIDC Standard Claim)</li>
+ *   <li><b>Email</b>: {@code email} (OIDC Standard Claim)</li>
+ *   <li><b>First/Last name</b>: {@code given_name}, {@code family_name} (OIDC Standard Claims)</li>
+ *   <li><b>Teams</b>: {@code groups} claim; entries commonly look like {@code /teams/<teamSlug>}.
+ *       This class strips the leading slash and optional {@code teams/} prefix for normalization.</li>
+ *   <li><b>Roles</b>: Keycloak realm roles from {@code realm_access.roles}</li>
  *   <li><b>Manager ID</b>: custom claim {@code manager_id} (if present)</li>
  * </ul>
- * </p>
+ * Missing claims are treated as empty/absent rather than errors.</p>
  *
  * <p><strong>Usage example</strong>:
  * <pre>{@code
@@ -49,6 +50,20 @@ import java.util.stream.Collectors;
  * Instances are <em>mutable</em> due to Lombok {@code @Data} (setters). Do not share a mutable instance across threads
  * without external synchronization. Prefer constructing new instances per request via {@link #fromJwt(Jwt)} or
  * {@link #fromAuthorities(List)}.</p>
+ *
+ * <p><strong>Role name convention</strong>:
+ * The {@link #roles} stored in this context are expected to be <em>bare</em> names (e.g., {@code SYS_ADMIN}) without the {@code ROLE_} prefix.
+ * This is a common convenience for application-level checks. In Spring Security expressions, {@code hasRole('X')}
+ * implicitly applies the {@code ROLE_} prefix; here we avoid that prefix at the data level to keep comparisons explicit.</p>
+ *
+ * @apiNote This class targets common Keycloak conventions. Claims {@code realm_access} / {@code resource_access}
+ * are Keycloak-specific and not part of the OIDC core specification. When running against other IdPs, adjust
+ * the extraction logic accordingly.
+ *
+ * @implNote Calls like {@code jwt.getClaimAsMap(...)} and {@code jwt.getClaimAsStringList(...)} rely on the claim type.
+ * If a claim exists but has an unexpected type, the underlying implementation may throw an {@link IllegalArgumentException}.
+ * The current code guards most cases by checking {@code jwt.hasClaim(...)} before reading, but type mismatch at runtime
+ * can still surface if tokens are misconfigured.
  *
  * @since 1.0
  * @see Jwt
@@ -89,14 +104,19 @@ public class UserContext {
 
     /**
      * Logical team identifiers derived from the {@code groups} claim.
-     * <p>Implementation note: For group entries that start with {@code /teams/}, the {@code /teams/} prefix is removed.
+     *
+     * <p><strong>Normalization</strong>:
+     * <ul>
+     *   <li>Leading slashes are removed (e.g., {@code "/teams/alpha"} → {@code "teams/alpha"}).</li>
+     *   <li>If the path starts with {@code "teams/"}, that prefix is also removed (e.g., {@code "teams/alpha"} → {@code "alpha"}).</li>
+     * </ul>
      * If the {@code groups} claim is absent, this list is empty.</p>
      */
     private List<String> teamIds;
 
     /**
      * Realm-level role names derived from {@code realm_access.roles}.
-     * <p>If {@code realm_access.roles} is absent, this list is empty.</p>
+     * <p>Stored as bare names (no {@code ROLE_} prefix). If {@code realm_access.roles} is absent, this list is empty.</p>
      */
     private List<String> roles;
 
@@ -106,17 +126,18 @@ public class UserContext {
     private String managerId;
 
     /**
-     * Timestamp when the user was created.
+     * Timestamp when the user was created (domain-specific; not populated by {@link #fromJwt(Jwt)}).
+     * <p>Presence depends on external persistence/updater components.</p>
      */
     private Instant createdAt;
 
     /**
-     * Timestamp when the user last logged in.
+     * Timestamp when the user last logged in (domain-specific; not populated by {@link #fromJwt(Jwt)}).
      */
     private Instant lastLoginAt;
 
     /**
-     * Timestamp when the user context was last updated.
+     * Timestamp when the user context was last updated (domain-specific; not populated by {@link #fromJwt(Jwt)}).
      */
     private Instant updatedAt;
 
@@ -130,7 +151,7 @@ public class UserContext {
      *     <li>{@code email} → {@link #email}</li>
      *     <li>{@code given_name} → {@link #firstName}</li>
      *     <li>{@code family_name} → {@link #lastName}</li>
-     *     <li>{@code groups} (list) → {@link #teamIds} (with {@code /teams/} prefix stripped if present)</li>
+     *     <li>{@code groups} (list) → {@link #teamIds} (with normalization described above)</li>
      *     <li>{@code realm_access.roles} (list) → {@link #roles}</li>
      *     <li>{@code manager_id} (custom) → {@link #managerId}</li>
      * </ul>
@@ -140,11 +161,12 @@ public class UserContext {
      * {@code jwt} must be non-null. Behavior on a null input is undefined (may throw {@link NullPointerException}).</p>
      *
      * @param jwt the validated JWT representing the current principal; must not be {@code null}
-     * @return an immutable-by-convention (but technically mutable) {@link UserContext} built from claims
+     * @return a {@link UserContext} built from claims (mutable due to Lombok, but treated as immutable-by-convention)
      * @see Jwt#getSubject()
      * @see Jwt#getClaimAsString(String)
      * @see Jwt#getClaimAsStringList(String)
      * @see Jwt#getClaimAsMap(String)
+     * @see Jwt#hasClaim(String)
      */
     public static UserContext fromJwt(Jwt jwt) {
         // Extract groups (teams) from groups claim
@@ -152,8 +174,8 @@ public class UserContext {
         List<String> teamIds = groups != null
             ? groups.stream()
                 .map(group -> group
-                    .replaceFirst("^/+", "")  // strip leading slashes
-                    .replaceFirst("^teams/", "")) // normalize "/teams/<x>" -> "<x>"
+                    .replaceFirst("^/+", "")   // strip leading slashes
+                    .replaceFirst("^teams/", "")) // normalize "/teams/<x>" or "teams/<x>" -> "<x>"
                 .collect(Collectors.toList())
             : List.of();
 

@@ -18,8 +18,11 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -140,11 +143,8 @@ public class ApprovalRequestController {
             content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
     public ResponseEntity<ApprovalRequestDtos.ApprovalRequestPageResponse> findAll(
-            @Parameter(description = "Optional query filter for searching requests",
-                      schema = @Schema(implementation = ApprovalRequestDtos.QueryFilter.class))
-            @RequestParam(required = false) ApprovalRequestDtos.QueryFilter filter,
-            @Parameter(description = "Pagination parameters (page, size, sort)")
-            Pageable pageable,
+            @ParameterObject @Valid ApprovalRequestDtos.QueryFilter filter,
+            @ParameterObject @PageableDefault(size = 20, page = 0) Pageable pageable,
             @AuthenticationPrincipal Jwt jwt) {
         log.debug("Listing approval requests with filter: {}", filter);
         

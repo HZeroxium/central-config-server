@@ -30,11 +30,30 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Spring Security configuration for OAuth2 Resource Server with Keycloak.
- * <p>
- * Configures JWT token validation, CORS, and security filter chain for the
- * config-control-service with team-based access control support.
- * </p>
+ * Central Spring Security configuration for an OAuth2 Resource Server secured by Keycloak.
+ *
+ * <p><strong>Overview</strong>:
+ * <ul>
+ *   <li>Defines multiple {@link SecurityFilterChain}s (ordered) to separate API concerns from public endpoints.</li>
+ *   <li>Configures JWT validation using {@link JwtDecoder} with issuer discovery and an additional audience check.</li>
+ *   <li>Maps Keycloak realm/client roles and group memberships into {@link GrantedAuthority} for method/URL security.</li>
+ *   <li>Enables CORS to support a browser-based client during development.</li>
+ * </ul>
+ * This configuration follows Spring Security's multi-chain pattern where each chain is selected via
+ * {@link HttpSecurity#securityMatcher} and priority is governed by {@link Order}.</p>
+ *
+ * <p><strong>Keycloak conventions</strong>:
+ * <ul>
+ *   <li>Realm roles are read from {@code realm_access.roles} and converted to {@code ROLE_*} authorities.</li>
+ *   <li>Client roles are read from {@code resource_access[clientId].roles} and also converted to {@code ROLE_*}.</li>
+ *   <li>Group memberships are read from {@code groups} and converted to {@code GROUP_*} authorities.</li>
+ * </ul>
+ * Adjust claim processing as needed for your realm/client configuration.</p>
+ *
+ * <p><strong>Threading</strong>:
+ * All beans declared here are thread-safe singletons under normal Spring usage.</p>
+ *
+ * @since 1.0
  */
 @Slf4j
 @Configuration
@@ -46,7 +65,29 @@ public class SecurityConfig {
     private final SecurityProperties securityProperties;
 
     /**
-     * API security chain: applies to /api/**, stateless, JWT auth, deny-by-default within matcher.
+     * Primary API security chain.
+     *
+     * <p><strong>Scope</strong>: Applies to requests matching {@code /api/**}.</p>
+     *
+     * <p><strong>Behavior</strong>:
+     * <ul>
+     *   <li>Disables CSRF since the API is stateless and authenticated via bearer tokens.</li>
+     *   <li>Enables CORS using {@link #corsConfigurationSource()}.</li>
+     *   <li>Sets session creation policy to {@link SessionCreationPolicy#STATELESS}.</li>
+     *   <li>Authorizes {@code /api/heartbeat/**} as public; all other API endpoints require authentication.</li>
+     *   <li>Customizes 401/403 responses to return minimal JSON bodies.</li>
+     *   <li>Enables the OAuth 2.0 Resource Server with JWT:
+     *     <ul>
+     *       <li>{@link #jwtAuthenticationConverter()} maps JWT claims to authorities.</li>
+     *       <li>{@link #jwtDecoder()} performs signature/issuer/time validation + audience validation.</li>
+     *     </ul>
+     *   </li>
+     * </ul>
+     * </p>
+     *
+     * @param http the {@link HttpSecurity} builder
+     * @return the built {@link SecurityFilterChain} for API requests
+     * @throws Exception if security configuration fails
      */
     @Bean
     @Order(1)
@@ -85,7 +126,18 @@ public class SecurityConfig {
     }
 
     /**
-     * Public chain: expose docs and health/info; otherwise permitAll here and leave protection to API chain.
+     * Secondary "public" chain.
+     *
+     * <p><strong>Scope</strong>: Applies to Swagger UI, OpenAPI docs, health/info and a broad catch-all pattern.</p>
+     *
+     * <p><strong>Important</strong>:
+     * This chain includes {@code "/**"} with {@code permitAll()}, which makes <em>all</em> non-{@code /api/**}
+     * endpoints publicly accessible. This is appropriate only if your design intentionally exposes everything
+     * outside {@code /api/}. Otherwise, restrict patterns explicitly to avoid unintended exposure.</p>
+     *
+     * @param http the {@link HttpSecurity} builder
+     * @return the built {@link SecurityFilterChain} for public endpoints
+     * @throws Exception if security configuration fails
      */
     @Bean
     @Order(2)
@@ -97,9 +149,20 @@ public class SecurityConfig {
     }
 
     /**
-     * Configure JWT decoder with Keycloak issuer validation.
+     * Creates a {@link JwtDecoder} using the Keycloak issuer metadata and composes default and custom validators.
      *
-     * @return configured JwtDecoder
+     * <p><strong>Issuer discovery</strong>:
+     * Uses {@link JwtDecoders#fromIssuerLocation(String)} to fetch OpenID Provider metadata and build a decoder
+     * with the provider's JWK Set URI and defaults.</p>
+     *
+     * <p><strong>Validation</strong>:
+     * <ul>
+     *   <li>Default validators include issuer and timestamp checks.</li>
+     *   <li>An additional audience validator requires {@code aud} to contain {@code securityProperties.jwt.audience}.</li>
+     * </ul>
+     * On failure, an {@code invalid_token} {@link OAuth2Error} is returned by the validator.</p>
+     *
+     * @return configured {@link JwtDecoder}
      */
     @Bean
     public JwtDecoder jwtDecoder() {
@@ -124,9 +187,18 @@ public class SecurityConfig {
     }
 
     /**
-     * Configure JWT authentication converter to extract authorities from JWT claims.
+     * Configures a {@link JwtAuthenticationConverter} that maps JWT claims to Spring Security authorities.
      *
-     * @return configured JwtAuthenticationConverter
+     * <p><strong>Sources</strong>:
+     * <ul>
+     *   <li>Standard scopes via {@link JwtGrantedAuthoritiesConverter} (e.g., {@code scope}/{@code scp} → {@code SCOPE_*}).</li>
+     *   <li>Keycloak {@code realm_access.roles} → {@code ROLE_*}.</li>
+     *   <li>Keycloak {@code resource_access[clientId].roles} → {@code ROLE_*} (clientId hard-coded here).</li>
+     *   <li>Keycloak {@code groups} → {@code GROUP_*} (normalized path).</li>
+     * </ul>
+     * The principal claim is set to {@code sub}.</p>
+     *
+     * @return the configured {@link JwtAuthenticationConverter}
      */
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
@@ -137,9 +209,18 @@ public class SecurityConfig {
     }
 
     /**
-     * Configure CORS for React client.
+     * Global CORS configuration for browser clients.
      *
-     * @return CORS configuration source
+     * <p><strong>Development defaults</strong>:
+     * <ul>
+     *   <li>{@code allowedOriginPatterns("*")} enables all origins for convenience.</li>
+     *   <li>{@code allowCredentials(true)} allows cookies/credentials across origins.</li>
+     * </ul>
+     * <strong>Note</strong>: The CORS specification disallows {@code "*"} when credentials are used.
+     * Spring's {@code allowedOriginPatterns} can echo the request origin to satisfy this case,
+     * but production deployments should restrict origins explicitly.</p>
+     *
+     * @return a {@link CorsConfigurationSource} registered for all paths
      */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
@@ -158,30 +239,55 @@ public class SecurityConfig {
     }
 
     /**
-     * Custom granted authorities converter for Keycloak JWT tokens.
-     * <p>
-     * Extracts authorities from both realm roles and group membership claims.
-     * </p>
+     * Converter that extracts authorities from a Keycloak JWT.
+     *
+     * <p><strong>Mapping rules</strong>:
+     * <ul>
+     *   <li>Scopes via {@link JwtGrantedAuthoritiesConverter} (defaults to {@code SCOPE_*}).</li>
+     *   <li>Realm roles from {@code realm_access.roles} → {@code ROLE_*} (upper-cased).</li>
+     *   <li>Client roles from {@code resource_access[clientId].roles} → {@code ROLE_*} (upper-cased).</li>
+     *   <li>Groups from {@code groups} → {@code GROUP_*}, with leading slashes removed and optional {@code teams/} prefix stripped.</li>
+     * </ul>
+     *
+     * <p><strong>Note</strong>: The clientId used for {@code resource_access} is hard-coded as
+     * {@code "config-control-service"} in this example and may be externalized to configuration.</p>
      */
     public static class KeycloakGrantedAuthoritiesConverter implements Converter<Jwt, Collection<GrantedAuthority>> {
+        /**
+         * Converts the given {@link Jwt} into a collection of {@link GrantedAuthority} according to Keycloak conventions.
+         *
+         * @param jwt the JSON Web Token issued by Keycloak
+         * @return an immutable {@link Collection} of {@link GrantedAuthority}
+         */
         @Override
         public Collection<GrantedAuthority> convert(Jwt jwt) {
             return java.util.List.copyOf(keycloakAuthoritiesStatic().convert(jwt));
         }
 
+        /**
+         * Internal composition of the default scope converter with Keycloak-specific role/group mapping.
+         *
+         * @return a {@link Converter} combining scopes, roles, and groups
+         */
         private static Converter<Jwt, Collection<GrantedAuthority>> keycloakAuthoritiesStatic() {
             JwtGrantedAuthoritiesConverter scopeConv = new JwtGrantedAuthoritiesConverter();
             return (Jwt jwt) -> {
                 Collection<GrantedAuthority> out = new java.util.LinkedHashSet<>(scopeConv.convert(jwt));
+
+                // Realm roles -> ROLE_*
                 Map<String, Object> realm = jwt.getClaimAsMap("realm_access");
                 if (realm != null && realm.get("roles") instanceof List<?> rr) {
                     for (Object r : rr) out.add(new SimpleGrantedAuthority("ROLE_" + r.toString().toUpperCase()));
                 }
+
+                // Client roles -> ROLE_* for a specific client
                 Map<String, Object> ra = jwt.getClaimAsMap("resource_access");
                 String clientId = "config-control-service";
                 if (ra != null && ra.get(clientId) instanceof Map<?,?> m && m.get("roles") instanceof List<?> cr) {
                     for (Object r : cr) out.add(new SimpleGrantedAuthority("ROLE_" + r.toString().toUpperCase()));
                 }
+
+                // Groups -> GROUP_*
                 List<String> groups = jwt.getClaimAsStringList("groups");
                 if (groups != null) {
                     for (String g : groups) {

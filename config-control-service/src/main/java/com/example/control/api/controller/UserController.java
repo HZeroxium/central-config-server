@@ -80,42 +80,6 @@ public class UserController {
     }
 
     /**
-     * Get current user information (legacy /me endpoint).
-     *
-     * @param jwt the JWT token
-     * @return the user information
-     */
-    @GetMapping("/me")
-    @Operation(
-        summary = "Get current user information (legacy)",
-        description = """
-            Legacy endpoint for retrieving current user information.
-            This is an alias for the /whoami endpoint for backward compatibility.
-            """,
-        security = {
-            @SecurityRequirement(name = "oauth2_auth_code"),
-            @SecurityRequirement(name = "oauth2_password")
-        },
-        operationId = "findCurrentUserInformationLegacy"
-    )
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "User information retrieved successfully",
-            content = @Content(schema = @Schema(implementation = UserDtos.MeResponse.class))),
-        @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
-        @ApiResponse(responseCode = "500", description = "Internal server error",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
-    })
-    public ResponseEntity<UserDtos.MeResponse> getMe(@AuthenticationPrincipal Jwt jwt) {
-        log.debug("Getting current user information (legacy /me)");
-        
-        UserContext userContext = UserContext.fromJwt(jwt);
-        UserDtos.MeResponse response = mapper.toMeResponse(userContext);
-        
-        return ResponseEntity.ok(response);
-    }
-
-    /**
      * Get current user permissions and allowed routes.
      *
      * @param jwt the JWT token

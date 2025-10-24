@@ -18,6 +18,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import com.example.control.api.exception.ErrorResponse;
 import jakarta.validation.Valid;
+import org.springdoc.core.annotations.ParameterObject;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -191,31 +192,13 @@ public class DriftEventController {
   })
   @Timed("api.drift-events.list")
   public ResponseEntity<DriftEventDtos.DriftEventPageResponse> findAll(
-      @Parameter(description = "Filter by service name", example = "payment-service") 
-      @RequestParam(required = false) String serviceName,
-      @Parameter(description = "Filter by instance ID", example = "payment-dev-1") 
-      @RequestParam(required = false) String instanceId,
-      @Parameter(description = "Filter by drift status", example = "DETECTED") 
-      @RequestParam(required = false) DriftEvent.DriftStatus status,
-      @Parameter(description = "Filter by severity level", example = "HIGH") 
-      @RequestParam(required = false) DriftEvent.DriftSeverity severity,
-      @Parameter(description = "Show only unresolved events", example = "true") 
-      @RequestParam(required = false) Boolean unresolvedOnly,
-      @Parameter(description = "Pagination parameters (page, size, sort)") 
-      @PageableDefault Pageable pageable,
+      @ParameterObject @Valid DriftEventDtos.QueryFilter filter,
+      @ParameterObject @PageableDefault(size = 20, page = 0) Pageable pageable,
       @AuthenticationPrincipal Jwt jwt) {
 
     UserContext userContext = UserContext.fromJwt(jwt);
     
-    DriftEventDtos.QueryFilter queryFilter = DriftEventDtos.QueryFilter.builder()
-        .serviceName(serviceName)
-        .instanceId(instanceId)
-        .status(status)
-        .severity(severity)
-        .unresolvedOnly(unresolvedOnly)
-        .build();
-    
-    DriftEventCriteria criteria = DriftEventApiMapper.toCriteria(queryFilter, userContext);
+    DriftEventCriteria criteria = DriftEventApiMapper.toCriteria(filter, userContext);
     Page<DriftEvent> page = service.findAll(criteria, pageable, userContext);
     DriftEventDtos.DriftEventPageResponse response = DriftEventApiMapper.toPageResponse(page);
     return ResponseEntity.ok(response);

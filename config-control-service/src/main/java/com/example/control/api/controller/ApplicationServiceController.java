@@ -82,11 +82,11 @@ public class ApplicationServiceController {
         @ApiResponse(responseCode = "500", description = "Internal server error",
             content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
-    @GetMapping
+    @GetMapping 
     public ResponseEntity<ApplicationServiceDtos.ApplicationServicePageResponse> findAll(
             @ParameterObject @Valid ApplicationServiceDtos.QueryFilter filter,
             @ParameterObject
-            @PageableDefault(size = 20, page = 0, sort = "createdAt,desc")
+            @PageableDefault(size = 20, page = 0)
             Pageable pageable,
             @AuthenticationPrincipal Jwt jwt) {
         log.debug("Listing application services with filter: {}", filter);
@@ -186,7 +186,7 @@ public class ApplicationServiceController {
     })
     @GetMapping("/{id}")
     public ResponseEntity<ApplicationServiceDtos.Response> findById(
-            @Parameter(description = "Application service ID", example = "payment-service")
+            @Parameter(description = "Application service ID", example = "sample-service")
             @PathVariable String id) {
         log.debug("Getting application service by ID: {}", id);
         
@@ -239,7 +239,7 @@ public class ApplicationServiceController {
     })
     @PutMapping("/{id}")
     public ResponseEntity<ApplicationServiceDtos.Response> update(
-            @Parameter(description = "Application service ID", example = "payment-service")
+            @Parameter(description = "Application service ID", example = "sample-service")
             @PathVariable String id,
             @Parameter(description = "Application service update request", 
                       schema = @Schema(implementation = ApplicationServiceDtos.UpdateRequest.class))
