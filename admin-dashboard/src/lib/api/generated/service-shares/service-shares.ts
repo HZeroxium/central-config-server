@@ -68,7 +68,7 @@ type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
  * @summary List shares for service
  */
 export const findAllServiceSharesForService1 = (
-    params: FindAllServiceSharesForService1Params,
+    params?: FindAllServiceSharesForService1Params,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
       
@@ -96,7 +96,7 @@ export const getFindAllServiceSharesForService1QueryKey = (params?: FindAllServi
     }
 
     
-export const getFindAllServiceSharesForService1InfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof findAllServiceSharesForService1>>, FindAllServiceSharesForService1Params['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(params: FindAllServiceSharesForService1Params, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllServiceSharesForService1>>, TError, TData, QueryKey, FindAllServiceSharesForService1Params['page']>>, request?: SecondParameter<typeof customInstance>}
+export const getFindAllServiceSharesForService1InfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof findAllServiceSharesForService1>>, FindAllServiceSharesForService1Params['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(params?: FindAllServiceSharesForService1Params, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllServiceSharesForService1>>, TError, TData, QueryKey, FindAllServiceSharesForService1Params['page']>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -119,7 +119,7 @@ export type FindAllServiceSharesForService1InfiniteQueryError = ErrorResponse | 
 
 
 export function useFindAllServiceSharesForService1Infinite<TData = InfiniteData<Awaited<ReturnType<typeof findAllServiceSharesForService1>>, FindAllServiceSharesForService1Params['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- params: FindAllServiceSharesForService1Params, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllServiceSharesForService1>>, TError, TData, QueryKey, FindAllServiceSharesForService1Params['page']>> & Pick<
+ params: undefined |  FindAllServiceSharesForService1Params, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllServiceSharesForService1>>, TError, TData, QueryKey, FindAllServiceSharesForService1Params['page']>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof findAllServiceSharesForService1>>,
           TError,
@@ -129,7 +129,7 @@ export function useFindAllServiceSharesForService1Infinite<TData = InfiniteData<
  , queryClient?: QueryClient
   ):  DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useFindAllServiceSharesForService1Infinite<TData = InfiniteData<Awaited<ReturnType<typeof findAllServiceSharesForService1>>, FindAllServiceSharesForService1Params['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- params: FindAllServiceSharesForService1Params, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllServiceSharesForService1>>, TError, TData, QueryKey, FindAllServiceSharesForService1Params['page']>> & Pick<
+ params?: FindAllServiceSharesForService1Params, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllServiceSharesForService1>>, TError, TData, QueryKey, FindAllServiceSharesForService1Params['page']>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof findAllServiceSharesForService1>>,
           TError,
@@ -139,7 +139,7 @@ export function useFindAllServiceSharesForService1Infinite<TData = InfiniteData<
  , queryClient?: QueryClient
   ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useFindAllServiceSharesForService1Infinite<TData = InfiniteData<Awaited<ReturnType<typeof findAllServiceSharesForService1>>, FindAllServiceSharesForService1Params['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- params: FindAllServiceSharesForService1Params, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllServiceSharesForService1>>, TError, TData, QueryKey, FindAllServiceSharesForService1Params['page']>>, request?: SecondParameter<typeof customInstance>}
+ params?: FindAllServiceSharesForService1Params, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllServiceSharesForService1>>, TError, TData, QueryKey, FindAllServiceSharesForService1Params['page']>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -147,7 +147,7 @@ export function useFindAllServiceSharesForService1Infinite<TData = InfiniteData<
  */
 
 export function useFindAllServiceSharesForService1Infinite<TData = InfiniteData<Awaited<ReturnType<typeof findAllServiceSharesForService1>>, FindAllServiceSharesForService1Params['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- params: FindAllServiceSharesForService1Params, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllServiceSharesForService1>>, TError, TData, QueryKey, FindAllServiceSharesForService1Params['page']>>, request?: SecondParameter<typeof customInstance>}
+ params?: FindAllServiceSharesForService1Params, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllServiceSharesForService1>>, TError, TData, QueryKey, FindAllServiceSharesForService1Params['page']>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient 
  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
@@ -162,7 +162,7 @@ export function useFindAllServiceSharesForService1Infinite<TData = InfiniteData<
 
 
 
-export const getFindAllServiceSharesForService1QueryOptions = <TData = Awaited<ReturnType<typeof findAllServiceSharesForService1>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(params: FindAllServiceSharesForService1Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findAllServiceSharesForService1>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getFindAllServiceSharesForService1QueryOptions = <TData = Awaited<ReturnType<typeof findAllServiceSharesForService1>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(params?: FindAllServiceSharesForService1Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findAllServiceSharesForService1>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -185,7 +185,7 @@ export type FindAllServiceSharesForService1QueryError = ErrorResponse | ErrorRes
 
 
 export function useFindAllServiceSharesForService1<TData = Awaited<ReturnType<typeof findAllServiceSharesForService1>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- params: FindAllServiceSharesForService1Params, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof findAllServiceSharesForService1>>, TError, TData>> & Pick<
+ params: undefined |  FindAllServiceSharesForService1Params, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof findAllServiceSharesForService1>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof findAllServiceSharesForService1>>,
           TError,
@@ -195,7 +195,7 @@ export function useFindAllServiceSharesForService1<TData = Awaited<ReturnType<ty
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useFindAllServiceSharesForService1<TData = Awaited<ReturnType<typeof findAllServiceSharesForService1>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- params: FindAllServiceSharesForService1Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findAllServiceSharesForService1>>, TError, TData>> & Pick<
+ params?: FindAllServiceSharesForService1Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findAllServiceSharesForService1>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof findAllServiceSharesForService1>>,
           TError,
@@ -205,7 +205,7 @@ export function useFindAllServiceSharesForService1<TData = Awaited<ReturnType<ty
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useFindAllServiceSharesForService1<TData = Awaited<ReturnType<typeof findAllServiceSharesForService1>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- params: FindAllServiceSharesForService1Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findAllServiceSharesForService1>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ params?: FindAllServiceSharesForService1Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findAllServiceSharesForService1>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -213,7 +213,7 @@ export function useFindAllServiceSharesForService1<TData = Awaited<ReturnType<ty
  */
 
 export function useFindAllServiceSharesForService1<TData = Awaited<ReturnType<typeof findAllServiceSharesForService1>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- params: FindAllServiceSharesForService1Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findAllServiceSharesForService1>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ params?: FindAllServiceSharesForService1Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findAllServiceSharesForService1>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 

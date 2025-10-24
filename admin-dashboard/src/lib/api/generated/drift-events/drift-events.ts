@@ -45,11 +45,11 @@ import type {
 
 import type {
   DriftEventCreateRequest,
+  DriftEventPageResponse,
   DriftEventResponse,
   DriftEventUpdateRequest,
   ErrorResponse,
-  FindAllDriftEventsParams,
-  Page
+  FindAllDriftEventsParams
 } from '../../models';
 
 import { customInstance } from '../../mutator';
@@ -71,12 +71,12 @@ type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
  * @summary List drift events with filters and pagination
  */
 export const findAllDriftEvents = (
-    params: FindAllDriftEventsParams,
+    params?: FindAllDriftEventsParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
       
       
-      return customInstance<Page>(
+      return customInstance<DriftEventPageResponse>(
       {url: `/api/drift-events`, method: 'GET',
         params, signal
     },
@@ -99,7 +99,7 @@ export const getFindAllDriftEventsQueryKey = (params?: FindAllDriftEventsParams,
     }
 
     
-export const getFindAllDriftEventsInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof findAllDriftEvents>>, FindAllDriftEventsParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(params: FindAllDriftEventsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllDriftEvents>>, TError, TData, QueryKey, FindAllDriftEventsParams['page']>>, request?: SecondParameter<typeof customInstance>}
+export const getFindAllDriftEventsInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof findAllDriftEvents>>, FindAllDriftEventsParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(params?: FindAllDriftEventsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllDriftEvents>>, TError, TData, QueryKey, FindAllDriftEventsParams['page']>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -122,7 +122,7 @@ export type FindAllDriftEventsInfiniteQueryError = ErrorResponse | ErrorResponse
 
 
 export function useFindAllDriftEventsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findAllDriftEvents>>, FindAllDriftEventsParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- params: FindAllDriftEventsParams, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllDriftEvents>>, TError, TData, QueryKey, FindAllDriftEventsParams['page']>> & Pick<
+ params: undefined |  FindAllDriftEventsParams, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllDriftEvents>>, TError, TData, QueryKey, FindAllDriftEventsParams['page']>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof findAllDriftEvents>>,
           TError,
@@ -132,7 +132,7 @@ export function useFindAllDriftEventsInfinite<TData = InfiniteData<Awaited<Retur
  , queryClient?: QueryClient
   ):  DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useFindAllDriftEventsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findAllDriftEvents>>, FindAllDriftEventsParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- params: FindAllDriftEventsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllDriftEvents>>, TError, TData, QueryKey, FindAllDriftEventsParams['page']>> & Pick<
+ params?: FindAllDriftEventsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllDriftEvents>>, TError, TData, QueryKey, FindAllDriftEventsParams['page']>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof findAllDriftEvents>>,
           TError,
@@ -142,7 +142,7 @@ export function useFindAllDriftEventsInfinite<TData = InfiniteData<Awaited<Retur
  , queryClient?: QueryClient
   ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useFindAllDriftEventsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findAllDriftEvents>>, FindAllDriftEventsParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- params: FindAllDriftEventsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllDriftEvents>>, TError, TData, QueryKey, FindAllDriftEventsParams['page']>>, request?: SecondParameter<typeof customInstance>}
+ params?: FindAllDriftEventsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllDriftEvents>>, TError, TData, QueryKey, FindAllDriftEventsParams['page']>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -150,7 +150,7 @@ export function useFindAllDriftEventsInfinite<TData = InfiniteData<Awaited<Retur
  */
 
 export function useFindAllDriftEventsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findAllDriftEvents>>, FindAllDriftEventsParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- params: FindAllDriftEventsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllDriftEvents>>, TError, TData, QueryKey, FindAllDriftEventsParams['page']>>, request?: SecondParameter<typeof customInstance>}
+ params?: FindAllDriftEventsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllDriftEvents>>, TError, TData, QueryKey, FindAllDriftEventsParams['page']>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient 
  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
@@ -165,7 +165,7 @@ export function useFindAllDriftEventsInfinite<TData = InfiniteData<Awaited<Retur
 
 
 
-export const getFindAllDriftEventsQueryOptions = <TData = Awaited<ReturnType<typeof findAllDriftEvents>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(params: FindAllDriftEventsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findAllDriftEvents>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getFindAllDriftEventsQueryOptions = <TData = Awaited<ReturnType<typeof findAllDriftEvents>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(params?: FindAllDriftEventsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findAllDriftEvents>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -188,7 +188,7 @@ export type FindAllDriftEventsQueryError = ErrorResponse | ErrorResponse | Error
 
 
 export function useFindAllDriftEvents<TData = Awaited<ReturnType<typeof findAllDriftEvents>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- params: FindAllDriftEventsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof findAllDriftEvents>>, TError, TData>> & Pick<
+ params: undefined |  FindAllDriftEventsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof findAllDriftEvents>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof findAllDriftEvents>>,
           TError,
@@ -198,7 +198,7 @@ export function useFindAllDriftEvents<TData = Awaited<ReturnType<typeof findAllD
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useFindAllDriftEvents<TData = Awaited<ReturnType<typeof findAllDriftEvents>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- params: FindAllDriftEventsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findAllDriftEvents>>, TError, TData>> & Pick<
+ params?: FindAllDriftEventsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findAllDriftEvents>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof findAllDriftEvents>>,
           TError,
@@ -208,7 +208,7 @@ export function useFindAllDriftEvents<TData = Awaited<ReturnType<typeof findAllD
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useFindAllDriftEvents<TData = Awaited<ReturnType<typeof findAllDriftEvents>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- params: FindAllDriftEventsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findAllDriftEvents>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ params?: FindAllDriftEventsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findAllDriftEvents>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -216,7 +216,7 @@ export function useFindAllDriftEvents<TData = Awaited<ReturnType<typeof findAllD
  */
 
 export function useFindAllDriftEvents<TData = Awaited<ReturnType<typeof findAllDriftEvents>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- params: FindAllDriftEventsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findAllDriftEvents>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ params?: FindAllDriftEventsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findAllDriftEvents>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 

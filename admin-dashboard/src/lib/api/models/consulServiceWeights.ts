@@ -20,4 +20,12 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export type PageContentItem = { [key: string]: unknown };
+/**
+ * Service weights for health-based load balancing
+ */
+export interface ConsulServiceWeights {
+  /** Weight when all health checks are passing */
+  Passing?: number;
+  /** Weight when health checks are in warning state */
+  Warning?: number;
+}

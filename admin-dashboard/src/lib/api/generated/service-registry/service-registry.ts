@@ -40,9 +40,12 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  ConsulHealthResponse,
+  ConsulServiceResponse,
   ConsulServicesMap,
   ErrorResponse,
-  GetServiceRegistryServiceInstancesParams
+  GetServiceRegistryServiceInstancesParams,
+  ServiceInstanceSummary
 } from '../../models';
 
 import { customInstance } from '../../mutator';
@@ -230,7 +233,7 @@ export const getServiceRegistryService = (
 ) => {
       
       
-      return customInstance<string>(
+      return customInstance<ConsulServiceResponse>(
       {url: `/api/registry/services/${serviceName}`, method: 'GET', signal
     },
       options);
@@ -397,7 +400,7 @@ export const getServiceRegistryServiceInstances = (
 ) => {
       
       
-      return customInstance<string>(
+      return customInstance<ServiceInstanceSummary>(
       {url: `/api/registry/services/${serviceName}/instances`, method: 'GET',
         params, signal
     },
@@ -576,7 +579,7 @@ export const getServiceRegistryServiceHealth = (
 ) => {
       
       
-      return customInstance<string>(
+      return customInstance<ConsulHealthResponse>(
       {url: `/api/registry/health/${serviceName}`, method: 'GET', signal
     },
       options);

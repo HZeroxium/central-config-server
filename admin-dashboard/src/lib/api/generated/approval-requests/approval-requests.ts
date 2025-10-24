@@ -46,10 +46,10 @@ import type {
 import type {
   ApprovalRequestCreateRequest,
   ApprovalRequestDecisionRequest,
+  ApprovalRequestPageResponse,
   ApprovalRequestResponse,
   ErrorResponse,
-  FindAllApprovalRequestsParams,
-  Page
+  FindAllApprovalRequestsParams
 } from '../../models';
 
 import { customInstance } from '../../mutator';
@@ -223,12 +223,12 @@ export const useCreateApprovalRequest = <TError = ErrorResponse | ErrorResponse 
  * @summary List approval requests
  */
 export const findAllApprovalRequests = (
-    params: FindAllApprovalRequestsParams,
+    params?: FindAllApprovalRequestsParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
       
       
-      return customInstance<Page>(
+      return customInstance<ApprovalRequestPageResponse>(
       {url: `/api/approval-requests`, method: 'GET',
         params, signal
     },
@@ -251,7 +251,7 @@ export const getFindAllApprovalRequestsQueryKey = (params?: FindAllApprovalReque
     }
 
     
-export const getFindAllApprovalRequestsInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof findAllApprovalRequests>>, FindAllApprovalRequestsParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(params: FindAllApprovalRequestsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllApprovalRequests>>, TError, TData, QueryKey, FindAllApprovalRequestsParams['page']>>, request?: SecondParameter<typeof customInstance>}
+export const getFindAllApprovalRequestsInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof findAllApprovalRequests>>, FindAllApprovalRequestsParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(params?: FindAllApprovalRequestsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllApprovalRequests>>, TError, TData, QueryKey, FindAllApprovalRequestsParams['page']>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -274,7 +274,7 @@ export type FindAllApprovalRequestsInfiniteQueryError = ErrorResponse | ErrorRes
 
 
 export function useFindAllApprovalRequestsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findAllApprovalRequests>>, FindAllApprovalRequestsParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- params: FindAllApprovalRequestsParams, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllApprovalRequests>>, TError, TData, QueryKey, FindAllApprovalRequestsParams['page']>> & Pick<
+ params: undefined |  FindAllApprovalRequestsParams, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllApprovalRequests>>, TError, TData, QueryKey, FindAllApprovalRequestsParams['page']>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof findAllApprovalRequests>>,
           TError,
@@ -284,7 +284,7 @@ export function useFindAllApprovalRequestsInfinite<TData = InfiniteData<Awaited<
  , queryClient?: QueryClient
   ):  DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useFindAllApprovalRequestsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findAllApprovalRequests>>, FindAllApprovalRequestsParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- params: FindAllApprovalRequestsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllApprovalRequests>>, TError, TData, QueryKey, FindAllApprovalRequestsParams['page']>> & Pick<
+ params?: FindAllApprovalRequestsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllApprovalRequests>>, TError, TData, QueryKey, FindAllApprovalRequestsParams['page']>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof findAllApprovalRequests>>,
           TError,
@@ -294,7 +294,7 @@ export function useFindAllApprovalRequestsInfinite<TData = InfiniteData<Awaited<
  , queryClient?: QueryClient
   ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useFindAllApprovalRequestsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findAllApprovalRequests>>, FindAllApprovalRequestsParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- params: FindAllApprovalRequestsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllApprovalRequests>>, TError, TData, QueryKey, FindAllApprovalRequestsParams['page']>>, request?: SecondParameter<typeof customInstance>}
+ params?: FindAllApprovalRequestsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllApprovalRequests>>, TError, TData, QueryKey, FindAllApprovalRequestsParams['page']>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -302,7 +302,7 @@ export function useFindAllApprovalRequestsInfinite<TData = InfiniteData<Awaited<
  */
 
 export function useFindAllApprovalRequestsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findAllApprovalRequests>>, FindAllApprovalRequestsParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- params: FindAllApprovalRequestsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllApprovalRequests>>, TError, TData, QueryKey, FindAllApprovalRequestsParams['page']>>, request?: SecondParameter<typeof customInstance>}
+ params?: FindAllApprovalRequestsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllApprovalRequests>>, TError, TData, QueryKey, FindAllApprovalRequestsParams['page']>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient 
  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
@@ -317,7 +317,7 @@ export function useFindAllApprovalRequestsInfinite<TData = InfiniteData<Awaited<
 
 
 
-export const getFindAllApprovalRequestsQueryOptions = <TData = Awaited<ReturnType<typeof findAllApprovalRequests>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(params: FindAllApprovalRequestsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findAllApprovalRequests>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getFindAllApprovalRequestsQueryOptions = <TData = Awaited<ReturnType<typeof findAllApprovalRequests>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(params?: FindAllApprovalRequestsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findAllApprovalRequests>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -340,7 +340,7 @@ export type FindAllApprovalRequestsQueryError = ErrorResponse | ErrorResponse | 
 
 
 export function useFindAllApprovalRequests<TData = Awaited<ReturnType<typeof findAllApprovalRequests>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- params: FindAllApprovalRequestsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof findAllApprovalRequests>>, TError, TData>> & Pick<
+ params: undefined |  FindAllApprovalRequestsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof findAllApprovalRequests>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof findAllApprovalRequests>>,
           TError,
@@ -350,7 +350,7 @@ export function useFindAllApprovalRequests<TData = Awaited<ReturnType<typeof fin
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useFindAllApprovalRequests<TData = Awaited<ReturnType<typeof findAllApprovalRequests>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- params: FindAllApprovalRequestsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findAllApprovalRequests>>, TError, TData>> & Pick<
+ params?: FindAllApprovalRequestsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findAllApprovalRequests>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof findAllApprovalRequests>>,
           TError,
@@ -360,7 +360,7 @@ export function useFindAllApprovalRequests<TData = Awaited<ReturnType<typeof fin
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useFindAllApprovalRequests<TData = Awaited<ReturnType<typeof findAllApprovalRequests>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- params: FindAllApprovalRequestsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findAllApprovalRequests>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ params?: FindAllApprovalRequestsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findAllApprovalRequests>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -368,7 +368,7 @@ export function useFindAllApprovalRequests<TData = Awaited<ReturnType<typeof fin
  */
 
 export function useFindAllApprovalRequests<TData = Awaited<ReturnType<typeof findAllApprovalRequests>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- params: FindAllApprovalRequestsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findAllApprovalRequests>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ params?: FindAllApprovalRequestsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findAllApprovalRequests>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 

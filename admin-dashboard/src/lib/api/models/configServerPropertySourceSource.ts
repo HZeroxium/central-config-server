@@ -19,13 +19,8 @@
 
  * OpenAPI spec version: 1.0.0
  */
-import type { SortObject } from './sortObject';
 
-export interface PageableObject {
-  paged?: boolean;
-  pageSize?: number;
-  pageNumber?: number;
-  unpaged?: boolean;
-  offset?: number;
-  sort?: SortObject[];
-}
+/**
+ * Map of configuration properties with their values
+ */
+export type ConfigServerPropertySourceSource = {[key: string]: { [key: string]: unknown }};

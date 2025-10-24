@@ -19,23 +19,8 @@
 
  * OpenAPI spec version: 1.0.0
  */
-import type { ApiResponseStatus } from './apiResponseStatus';
-import type { ApiResponseData } from './apiResponseData';
 
 /**
- * Standard API response wrapper with status, message, and data
+ * Health status breakdown by individual components (database, disk space, etc.)
  */
-export interface ApiResponse {
-  /** Response status */
-  status?: ApiResponseStatus;
-  /** Human-readable message */
-  message?: string;
-  /** Response data payload */
-  data?: ApiResponseData;
-  /** Timestamp in milliseconds since epoch */
-  timestamp?: number;
-  /** Trace ID for correlation */
-  traceId?: string;
-  /** List of error messages (for error responses) */
-  errors?: string[];
-}
+export type ConfigServerActuatorHealthResponseComponents = {[key: string]: { [key: string]: unknown }};

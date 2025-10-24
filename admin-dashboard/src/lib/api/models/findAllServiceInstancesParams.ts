@@ -20,13 +20,13 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { FindAllServiceInstancesStatus } from './findAllServiceInstancesStatus';
-import type { Pageable } from './pageable';
+import type { FindAllServiceInstancesEnvironment } from './findAllServiceInstancesEnvironment';
 
 export type FindAllServiceInstancesParams = {
 /**
- * Filter by service name
+ * Filter by service ID
  */
-serviceName?: string;
+serviceId?: string;
 /**
  * Filter by instance ID
  */
@@ -38,17 +38,35 @@ status?: FindAllServiceInstancesStatus;
 /**
  * Filter by drift status
  */
-hasDrift?: boolean;
+hasDrift?: string;
 /**
  * Filter by environment
  */
-environment?: string;
+environment?: FindAllServiceInstancesEnvironment;
 /**
  * Filter by service version
  */
 version?: string;
 /**
- * Pagination parameters (page, size, sort)
+ * Filter instances seen after this timestamp
  */
-pageable: Pageable;
+lastSeenAtFrom?: string;
+/**
+ * Filter instances seen before this timestamp
+ */
+lastSeenAtTo?: string;
+/**
+ * Zero-based page index (0..N)
+ * @minimum 0
+ */
+page?: number;
+/**
+ * The size of the page to be returned
+ * @minimum 1
+ */
+size?: number;
+/**
+ * Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.
+ */
+sort?: string[];
 };

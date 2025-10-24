@@ -19,30 +19,8 @@
 
  * OpenAPI spec version: 1.0.0
  */
-import type { ApplicationServiceQueryFilterLifecycle } from './applicationServiceQueryFilterLifecycle';
 
 /**
- * Query filter for searching application services
+ * Mesh gateway configuration
  */
-export interface ApplicationServiceQueryFilter {
-  /**
-   * Filter by owner team ID
-   * @minLength 0
-   * @maxLength 100
-   */
-  ownerTeamId?: string;
-  /**
-   * Filter by lifecycle stage
-   * @minLength 0
-   * @maxLength 50
-   */
-  lifecycle?: ApplicationServiceQueryFilterLifecycle;
-  /** Filter by tags */
-  tags?: string[];
-  /**
-   * Search term for service name or description
-   * @minLength 0
-   * @maxLength 200
-   */
-  search?: string;
-}
+export type ConsulServiceProxyMeshGateway = {[key: string]: { [key: string]: unknown }};

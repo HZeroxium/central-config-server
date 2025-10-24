@@ -20,12 +20,18 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export type FindAllDriftEventsStatus = typeof FindAllDriftEventsStatus[keyof typeof FindAllDriftEventsStatus];
+/**
+ * Check type
+ */
+export type ConsulHealthCheckType = typeof ConsulHealthCheckType[keyof typeof ConsulHealthCheckType];
 
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
-export const FindAllDriftEventsStatus = {
-  DETECTED: 'DETECTED',
-  RESOLVED: 'RESOLVED',
-  IGNORED: 'IGNORED',
+export const ConsulHealthCheckType = {
+  http: 'http',
+  tcp: 'tcp',
+  ttl: 'ttl',
+  docker: 'docker',
+  grpc: 'grpc',
+  script: 'script',
 } as const;

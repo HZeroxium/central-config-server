@@ -19,13 +19,14 @@
 
  * OpenAPI spec version: 1.0.0
  */
+import type { ServiceInstanceResponse } from './serviceInstanceResponse';
+import type { PageMetadata } from './pageMetadata';
 
-export type FindAllDriftEventsStatus = typeof FindAllDriftEventsStatus[keyof typeof FindAllDriftEventsStatus];
-
-
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-export const FindAllDriftEventsStatus = {
-  DETECTED: 'DETECTED',
-  RESOLVED: 'RESOLVED',
-  IGNORED: 'IGNORED',
-} as const;
+/**
+ * Page response for service instances
+ */
+export interface ServiceInstancePageResponse {
+  /** List of service instances in current page */
+  items?: ServiceInstanceResponse[];
+  metadata?: PageMetadata;
+}

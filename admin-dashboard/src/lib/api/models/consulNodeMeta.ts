@@ -20,12 +20,12 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export type FindAllDriftEventsStatus = typeof FindAllDriftEventsStatus[keyof typeof FindAllDriftEventsStatus];
-
-
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-export const FindAllDriftEventsStatus = {
-  DETECTED: 'DETECTED',
-  RESOLVED: 'RESOLVED',
-  IGNORED: 'IGNORED',
-} as const;
+/**
+ * Metadata information about the Consul node
+ */
+export interface ConsulNodeMeta {
+  /** Network segment of the Consul node */
+  'consul-network-segment'?: string;
+  /** Version of Consul running on the node */
+  'consul-version'?: string;
+}

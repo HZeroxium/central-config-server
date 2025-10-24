@@ -72,25 +72,15 @@
     }
   ],
   "paths": {
-    "/api/service-instances/{serviceName}/{instanceId}": {
+    "/api/service-instances/{instanceId}": {
       "get": {
         "tags": [
           "Service Instances"
         ],
         "summary": "Get service instance by ID",
-        "description": "Retrieve a specific service instance by service name and instance ID.\n\n**Access Control:**\n- Team members: Can view instances of services owned by their team\n- Shared access: Can view instances of services shared with their team\n- SYS_ADMIN: Can view all instances\n",
+        "description": "Retrieve a specific service instance by instance ID.\n\n**Access Control:**\n- Team members: Can view instances of services owned by their team\n- Shared access: Can view instances of services shared with their team\n- SYS_ADMIN: Can view all instances\n",
         "operationId": "findByIdServiceInstance",
         "parameters": [
-          {
-            "name": "serviceName",
-            "in": "path",
-            "description": "Service name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "example": "payment-service"
-          },
           {
             "name": "instanceId",
             "in": "path",
@@ -103,8 +93,8 @@
           }
         ],
         "responses": {
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -123,18 +113,8 @@
               }
             }
           },
-          "404": {
-            "description": "Service instance not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -149,6 +129,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ServiceInstanceResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Service instance not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -172,16 +162,6 @@
         "operationId": "updateServiceInstance",
         "parameters": [
           {
-            "name": "serviceName",
-            "in": "path",
-            "description": "Service name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "example": "payment-service"
-          },
-          {
             "name": "instanceId",
             "in": "path",
             "description": "Instance ID",
@@ -203,28 +183,8 @@
           "required": true
         },
         "responses": {
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Service instance not found",
+          "400": {
+            "description": "Invalid request data",
             "content": {
               "application/json": {
                 "schema": {
@@ -253,8 +213,28 @@
               }
             }
           },
-          "400": {
-            "description": "Invalid request data",
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Service instance not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -282,16 +262,6 @@
         "operationId": "deleteServiceInstance",
         "parameters": [
           {
-            "name": "serviceName",
-            "in": "path",
-            "description": "Service name",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "example": "payment-service"
-          },
-          {
             "name": "instanceId",
             "in": "path",
             "description": "Instance ID",
@@ -303,8 +273,11 @@
           }
         ],
         "responses": {
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "200": {
+            "description": "Service instance deleted successfully"
+          },
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -323,8 +296,8 @@
               }
             }
           },
-          "404": {
-            "description": "Service instance not found",
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -333,11 +306,8 @@
               }
             }
           },
-          "200": {
-            "description": "Service instance deleted successfully"
-          },
-          "500": {
-            "description": "Internal server error",
+          "404": {
+            "description": "Service instance not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -374,7 +344,7 @@
             "schema": {
               "type": "string"
             },
-            "example": "payment-service"
+            "example": "sample-service"
           }
         ],
         "responses": {
@@ -434,7 +404,7 @@
             "schema": {
               "type": "string"
             },
-            "example": "payment-service"
+            "example": "sample-service"
           }
         ],
         "requestBody": {
@@ -448,28 +418,8 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "Application service updated successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApplicationServiceResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
+          "400": {
+            "description": "Invalid request data",
             "content": {
               "application/json": {
                 "schema": {
@@ -488,8 +438,18 @@
               }
             }
           },
-          "400": {
-            "description": "Invalid request data",
+          "200": {
+            "description": "Application service updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationServiceResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
             "content": {
               "application/json": {
                 "schema": {
@@ -500,6 +460,16 @@
           },
           "404": {
             "description": "Application service not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -538,8 +508,18 @@
           }
         ],
         "responses": {
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - SYS_ADMIN role required",
             "content": {
               "application/json": {
                 "schema": {
@@ -551,16 +531,6 @@
           "204": {
             "description": "Application service deleted successfully"
           },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "404": {
             "description": "Application service not found",
             "content": {
@@ -571,8 +541,8 @@
               }
             }
           },
-          "403": {
-            "description": "Forbidden - SYS_ADMIN role required",
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -602,45 +572,105 @@
         "operationId": "findAllServiceSharesForService_1",
         "parameters": [
           {
-            "name": "filter",
-            "in": "query",
-            "description": "Optional query filter for searching shares",
-            "required": false,
-            "schema": {
-              "$ref": "#/components/schemas/ServiceShareQueryFilter"
-            }
-          },
-          {
-            "name": "pageable",
-            "in": "query",
-            "description": "Pagination parameters (page, size, sort)",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/Pageable"
-            }
-          },
-          {
             "name": "serviceId",
             "in": "query",
-            "description": "Service ID to get shares for",
-            "required": true,
+            "description": "Filter by service ID",
+            "required": false,
             "schema": {
-              "type": "string"
+              "maxLength": 100,
+              "minLength": 0,
+              "type": "string",
+              "description": "Filter by service ID",
+              "example": "payment-service"
             },
             "example": "payment-service"
+          },
+          {
+            "name": "grantToType",
+            "in": "query",
+            "description": "Filter by grantee type",
+            "required": false,
+            "schema": {
+              "maxLength": 20,
+              "minLength": 0,
+              "type": "string",
+              "description": "Filter by grantee type",
+              "example": "TEAM",
+              "enum": [
+                "TEAM",
+                "USER"
+              ]
+            },
+            "example": "TEAM"
+          },
+          {
+            "name": "grantToId",
+            "in": "query",
+            "description": "Filter by grantee ID",
+            "required": false,
+            "schema": {
+              "maxLength": 100,
+              "minLength": 0,
+              "type": "string",
+              "description": "Filter by grantee ID",
+              "example": "team_analytics"
+            },
+            "example": "team_analytics"
+          },
+          {
+            "name": "environments",
+            "in": "query",
+            "description": "Filter by environments",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "Filter by environments",
+              "example": [
+                "dev",
+                "staging"
+              ]
+            },
+            "example": [
+              "dev",
+              "staging"
+            ]
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Zero-based page index (0..N)",
+            "required": false,
+            "schema": {
+              "minimum": 0,
+              "type": "integer",
+              "default": 0
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "The size of the page to be returned",
+            "required": false,
+            "schema": {
+              "minimum": 1,
+              "type": "integer",
+              "default": 20
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
           }
         ],
         "responses": {
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "400": {
             "description": "Invalid request parameters",
             "content": {
@@ -661,7 +691,7 @@
                       "type": "string"
                     },
                     {
-                      "$ref": "#/components/schemas/Page"
+                      "$ref": "#/components/schemas/ServiceSharePageResponse"
                     }
                   ]
                 }
@@ -670,6 +700,16 @@
           },
           "500": {
             "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -716,28 +756,8 @@
           "required": true
         },
         "responses": {
-          "201": {
-            "description": "Service share created successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ServiceShareResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
+          "400": {
+            "description": "Invalid request data",
             "content": {
               "application/json": {
                 "schema": {
@@ -756,8 +776,18 @@
               }
             }
           },
-          "400": {
-            "description": "Invalid request data",
+          "201": {
+            "description": "Service share created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceShareResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Service not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -766,8 +796,18 @@
               }
             }
           },
-          "404": {
-            "description": "Service not found",
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -806,26 +846,6 @@
           "required": true
         },
         "responses": {
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid heartbeat payload",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "500": {
             "description": "Internal server error during heartbeat processing",
             "content": {
@@ -859,11 +879,34 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid heartbeat payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
           {
             "oauth2_auth_code": []
+          },
+          {
+            "oauth2_password": []
           }
         ]
       }
@@ -883,7 +926,9 @@
             "description": "Filter by service name",
             "required": false,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "description": "Filter by service name",
+              "example": "payment-service"
             },
             "example": "payment-service"
           },
@@ -893,7 +938,9 @@
             "description": "Filter by instance ID",
             "required": false,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "description": "Filter by instance ID",
+              "example": "payment-dev-1"
             },
             "example": "payment-dev-1"
           },
@@ -904,10 +951,10 @@
             "required": false,
             "schema": {
               "type": "string",
+              "description": "Filter by drift status",
+              "example": "DETECTED",
               "enum": [
                 "DETECTED",
-                "ACKNOWLEDGED",
-                "RESOLVING",
                 "RESOLVED",
                 "IGNORED"
               ]
@@ -921,6 +968,8 @@
             "required": false,
             "schema": {
               "type": "string",
+              "description": "Filter by severity level",
+              "example": "HIGH",
               "enum": [
                 "LOW",
                 "MEDIUM",
@@ -931,22 +980,73 @@
             "example": "HIGH"
           },
           {
+            "name": "detectedAtFrom",
+            "in": "query",
+            "description": "Filter events detected after this timestamp",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "Filter events detected after this timestamp",
+              "example": "2024-01-15T00:00:00Z"
+            },
+            "example": "2024-01-15T00:00:00Z"
+          },
+          {
+            "name": "detectedAtTo",
+            "in": "query",
+            "description": "Filter events detected before this timestamp",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "Filter events detected before this timestamp",
+              "example": "2024-01-15T23:59:59Z"
+            },
+            "example": "2024-01-15T23:59:59Z"
+          },
+          {
             "name": "unresolvedOnly",
             "in": "query",
             "description": "Show only unresolved events",
             "required": false,
             "schema": {
-              "type": "boolean"
+              "type": "string",
+              "description": "Show only unresolved events",
+              "example": true
             },
             "example": true
           },
           {
-            "name": "pageable",
+            "name": "page",
             "in": "query",
-            "description": "Pagination parameters (page, size, sort)",
-            "required": true,
+            "description": "Zero-based page index (0..N)",
+            "required": false,
             "schema": {
-              "$ref": "#/components/schemas/Pageable"
+              "minimum": 0,
+              "type": "integer",
+              "default": 0
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "The size of the page to be returned",
+            "required": false,
+            "schema": {
+              "minimum": 1,
+              "type": "integer",
+              "default": 20
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
             }
           }
         ],
@@ -956,17 +1056,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Page"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "$ref": "#/components/schemas/DriftEventPageResponse"
                 }
               }
             }
@@ -983,6 +1073,16 @@
           },
           "500": {
             "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -1029,18 +1129,8 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
+          "400": {
+            "description": "Invalid request data",
             "content": {
               "application/json": {
                 "schema": {
@@ -1059,8 +1149,18 @@
               }
             }
           },
-          "400": {
-            "description": "Invalid request data",
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -1111,28 +1211,8 @@
           "required": true
         },
         "responses": {
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "403": {
             "description": "Forbidden - Not authorized to approve this request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid decision data",
             "content": {
               "application/json": {
                 "schema": {
@@ -1151,22 +1231,42 @@
               }
             }
           },
-          "200": {
-            "description": "Decision submitted successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApprovalRequestResponse"
-                }
-              }
-            }
-          },
           "404": {
             "description": "Approval request not found",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid decision data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Decision submitted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalRequestResponse"
                 }
               }
             }
@@ -1213,8 +1313,38 @@
           "required": true
         },
         "responses": {
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "201": {
+            "description": "Approval request created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalRequestResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict - Request already exists",
             "content": {
               "application/json": {
                 "schema": {
@@ -1233,38 +1363,8 @@
               }
             }
           },
-          "201": {
-            "description": "Approval request created successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApprovalRequestResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid request data",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Conflict - Request already exists",
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -1294,28 +1394,77 @@
         "operationId": "findAllApplicationServices",
         "parameters": [
           {
-            "name": "filter",
+            "name": "ownerTeamId",
             "in": "query",
-            "description": "Optional query filter for searching services",
+            "description": "Filter by owner team ID",
             "required": false,
             "schema": {
-              "$ref": "#/components/schemas/ApplicationServiceQueryFilter"
-            }
+              "maxLength": 100,
+              "minLength": 0,
+              "type": "string",
+              "description": "Filter by owner team ID",
+              "example": "team_core"
+            },
+            "example": "team_core"
           },
           {
-            "name": "pageable",
+            "name": "lifecycle",
             "in": "query",
-            "description": "Pagination parameters (page, size, sort)",
-            "required": true,
+            "description": "Filter by lifecycle stage",
+            "required": false,
             "schema": {
-              "$ref": "#/components/schemas/Pageable"
-            }
+              "maxLength": 50,
+              "minLength": 0,
+              "type": "string",
+              "description": "Filter by lifecycle stage",
+              "example": "ACTIVE",
+              "enum": [
+                "ACTIVE",
+                "DEPRECATED",
+                "RETIRED"
+              ]
+            },
+            "example": "ACTIVE"
+          },
+          {
+            "name": "tags",
+            "in": "query",
+            "description": "Filter by tags",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "Filter by tags",
+              "example": [
+                "microservice",
+                "payment"
+              ]
+            },
+            "example": [
+              "microservice",
+              "payment"
+            ]
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Search term for service name or description",
+            "required": false,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 0,
+              "type": "string",
+              "description": "Search term for service name or description",
+              "example": "payment"
+            },
+            "example": "payment"
           },
           {
             "name": "page",
             "in": "query",
             "description": "Zero-based page index (0..N)",
+            "required": false,
             "schema": {
+              "minimum": 0,
               "type": "integer",
               "default": 0
             }
@@ -1324,7 +1473,9 @@
             "name": "size",
             "in": "query",
             "description": "The size of the page to be returned",
+            "required": false,
             "schema": {
+              "minimum": 1,
               "type": "integer",
               "default": 20
             }
@@ -1333,6 +1484,7 @@
             "name": "sort",
             "in": "query",
             "description": "Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.",
+            "required": false,
             "schema": {
               "type": "array",
               "items": {
@@ -1342,16 +1494,6 @@
           }
         ],
         "responses": {
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "200": {
             "description": "Successfully retrieved application services",
             "content": {
@@ -1374,6 +1516,16 @@
           },
           "500": {
             "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -1410,28 +1562,18 @@
           "required": true
         },
         "responses": {
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "201": {
+            "description": "Application service created successfully",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "$ref": "#/components/schemas/ApplicationServiceResponse"
                 }
               }
             }
           },
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
+          "409": {
+            "description": "Conflict - Service ID already exists",
             "content": {
               "application/json": {
                 "schema": {
@@ -1450,8 +1592,8 @@
               }
             }
           },
-          "409": {
-            "description": "Conflict - Service ID already exists",
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -1460,12 +1602,22 @@
               }
             }
           },
-          "201": {
-            "description": "Application service created successfully",
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApplicationServiceResponse"
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -1502,8 +1654,28 @@
           }
         ],
         "responses": {
-          "404": {
-            "description": "Drift event not found",
+          "200": {
+            "description": "Drift event found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DriftEventResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
             "content": {
               "application/json": {
                 "schema": {
@@ -1522,28 +1694,8 @@
               }
             }
           },
-          "200": {
-            "description": "Drift event found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DriftEventResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
+          "404": {
+            "description": "Drift event not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -1592,28 +1744,8 @@
           "required": true
         },
         "responses": {
-          "404": {
-            "description": "Drift event not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
+          "400": {
+            "description": "Invalid request data",
             "content": {
               "application/json": {
                 "schema": {
@@ -1632,8 +1764,18 @@
               }
             }
           },
-          "400": {
-            "description": "Invalid request data",
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -1648,6 +1790,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/DriftEventResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Drift event not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -1682,16 +1834,6 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "500": {
             "description": "Internal server error",
             "content": {
@@ -1701,49 +1843,9 @@
                 }
               }
             }
-          }
-        },
-        "security": [
-          {
-            "oauth2_auth_code": []
-          },
-          {
-            "oauth2_password": []
-          }
-        ]
-      }
-    },
-    "/api/user/me": {
-      "get": {
-        "tags": [
-          "User Management"
-        ],
-        "summary": "Get current user information (legacy)",
-        "description": "Legacy endpoint for retrieving current user information.\nThis is an alias for the /whoami endpoint for backward compatibility.\n",
-        "operationId": "findCurrentUserInformationLegacy",
-        "responses": {
-          "200": {
-            "description": "User information retrieved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MeResponse"
-                }
-              }
-            }
           },
           "401": {
             "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -1772,8 +1874,8 @@
         "description": "Retrieve comprehensive permission information for the current user.\nThis includes allowed API routes, UI routes, roles, teams, actions, and service access.\n\n**Permission Matrix:**\n- API routes: Endpoints the user can access\n- UI routes: Frontend pages the user can navigate to\n- Actions: Specific operations the user can perform\n- Services: Owned and shared services the user can access\n",
         "operationId": "findCurrentUserPermissions",
         "responses": {
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -1792,8 +1894,8 @@
               }
             }
           },
-          "500": {
-            "description": "Internal server error",
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -1834,6 +1936,36 @@
           }
         ],
         "responses": {
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Service share not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "401": {
             "description": "Unauthorized - Authentication required",
             "content": {
@@ -1850,36 +1982,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ServiceShareResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Service share not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -1914,8 +2016,8 @@
           }
         ],
         "responses": {
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -1934,8 +2036,18 @@
               }
             }
           },
-          "500": {
-            "description": "Internal server error",
+          "404": {
+            "description": "Service share not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -1946,16 +2058,6 @@
           },
           "204": {
             "description": "Service share revoked successfully"
-          },
-          "404": {
-            "description": "Service share not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
           }
         },
         "security": [
@@ -1978,12 +2080,14 @@
         "operationId": "findAllServiceInstances",
         "parameters": [
           {
-            "name": "serviceName",
+            "name": "serviceId",
             "in": "query",
-            "description": "Filter by service name",
+            "description": "Filter by service ID",
             "required": false,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "description": "Filter by service ID",
+              "example": "payment-service"
             },
             "example": "payment-service"
           },
@@ -1993,7 +2097,9 @@
             "description": "Filter by instance ID",
             "required": false,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "description": "Filter by instance ID",
+              "example": "payment-dev-1"
             },
             "example": "payment-dev-1"
           },
@@ -2004,6 +2110,8 @@
             "required": false,
             "schema": {
               "type": "string",
+              "description": "Filter by instance status",
+              "example": "HEALTHY",
               "enum": [
                 "HEALTHY",
                 "UNHEALTHY",
@@ -2019,7 +2127,9 @@
             "description": "Filter by drift status",
             "required": false,
             "schema": {
-              "type": "boolean"
+              "type": "string",
+              "description": "Filter by drift status",
+              "example": true
             },
             "example": true
           },
@@ -2029,7 +2139,14 @@
             "description": "Filter by environment",
             "required": false,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "description": "Filter by environment",
+              "example": "dev",
+              "enum": [
+                "dev",
+                "staging",
+                "prod"
+              ]
             },
             "example": "dev"
           },
@@ -2039,41 +2156,72 @@
             "description": "Filter by service version",
             "required": false,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "description": "Filter by service version",
+              "example": "1.2.0"
             },
             "example": "1.2.0"
           },
           {
-            "name": "pageable",
+            "name": "lastSeenAtFrom",
             "in": "query",
-            "description": "Pagination parameters (page, size, sort)",
-            "required": true,
+            "description": "Filter instances seen after this timestamp",
+            "required": false,
             "schema": {
-              "$ref": "#/components/schemas/Pageable"
+              "type": "string",
+              "description": "Filter instances seen after this timestamp",
+              "example": "2024-01-15T00:00:00Z"
+            },
+            "example": "2024-01-15T00:00:00Z"
+          },
+          {
+            "name": "lastSeenAtTo",
+            "in": "query",
+            "description": "Filter instances seen before this timestamp",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "Filter instances seen before this timestamp",
+              "example": "2024-01-15T23:59:59Z"
+            },
+            "example": "2024-01-15T23:59:59Z"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Zero-based page index (0..N)",
+            "required": false,
+            "schema": {
+              "minimum": 0,
+              "type": "integer",
+              "default": 0
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "The size of the page to be returned",
+            "required": false,
+            "schema": {
+              "minimum": 1,
+              "type": "integer",
+              "default": 20
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
             }
           }
         ],
         "responses": {
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "200": {
-            "description": "Service instances retrieved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Page"
-                }
-              }
-            }
-          },
           "400": {
             "description": "Invalid request parameters",
             "content": {
@@ -2090,6 +2238,26 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Service instances retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceInstancePageResponse"
                 }
               }
             }
@@ -2114,12 +2282,12 @@
         "description": "Retrieves a list of all services registered with Consul.\nThis provides an overview of available services in the ecosystem.\n",
         "operationId": "listServiceRegistryServices",
         "responses": {
-          "200": {
-            "description": "Successfully retrieved service list",
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ConsulServicesMap"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -2144,12 +2312,12 @@
               }
             }
           },
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
+          "200": {
+            "description": "Successfully retrieved service list",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "$ref": "#/components/schemas/ConsulServicesMap"
                 }
               }
             }
@@ -2186,6 +2354,26 @@
           }
         ],
         "responses": {
+          "404": {
+            "description": "Service not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "401": {
             "description": "Unauthorized - Authentication required",
             "content": {
@@ -2206,32 +2394,12 @@
               }
             }
           },
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Service not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "200": {
             "description": "Service details retrieved successfully",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "string"
+                  "$ref": "#/components/schemas/ConsulServiceResponse"
                 }
               }
             }
@@ -2279,28 +2447,8 @@
           }
         ],
         "responses": {
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "200": {
-            "description": "Service instances retrieved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error or Consul unreachable",
+          "404": {
+            "description": "Service not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -2319,8 +2467,28 @@
               }
             }
           },
-          "404": {
-            "description": "Service not found",
+          "200": {
+            "description": "Service instances retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceInstanceSummary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error or Consul unreachable",
             "content": {
               "application/json": {
                 "schema": {
@@ -2361,18 +2529,18 @@
           }
         ],
         "responses": {
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "200": {
+            "description": "Service health status retrieved successfully",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "$ref": "#/components/schemas/ConsulHealthResponse"
                 }
               }
             }
           },
-          "500": {
-            "description": "Internal server error or Consul unreachable",
+          "404": {
+            "description": "Service not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -2391,18 +2559,18 @@
               }
             }
           },
-          "200": {
-            "description": "Service health status retrieved successfully",
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "string"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
           },
-          "404": {
-            "description": "Service not found",
+          "500": {
+            "description": "Internal server error or Consul unreachable",
             "content": {
               "application/json": {
                 "schema": {
@@ -2432,35 +2600,126 @@
         "operationId": "findAllIamUsers",
         "parameters": [
           {
-            "name": "criteria",
+            "name": "username",
             "in": "query",
-            "description": "Filter criteria for searching users",
-            "required": true,
+            "required": false,
             "schema": {
-              "$ref": "#/components/schemas/IamUserCriteria"
+              "type": "string"
             }
           },
           {
-            "name": "pageable",
+            "name": "email",
             "in": "query",
-            "description": "Pagination parameters (page, size, sort)",
-            "required": true,
+            "required": false,
             "schema": {
-              "$ref": "#/components/schemas/Pageable"
+              "type": "string"
             }
           },
           {
-            "name": "userContext",
+            "name": "firstName",
             "in": "query",
-            "required": true,
+            "required": false,
             "schema": {
-              "$ref": "#/components/schemas/UserContext"
+              "type": "string"
+            }
+          },
+          {
+            "name": "lastName",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "teamIds",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "managerId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "roles",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "userTeamIds",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Zero-based page index (0..N)",
+            "required": false,
+            "schema": {
+              "minimum": 0,
+              "type": "integer",
+              "default": 0
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "The size of the page to be returned",
+            "required": false,
+            "schema": {
+              "minimum": 1,
+              "type": "integer",
+              "default": 20
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
             }
           }
         ],
         "responses": {
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - SYS_ADMIN role required",
             "content": {
               "application/json": {
                 "schema": {
@@ -2474,23 +2733,13 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Page"
+                  "$ref": "#/components/schemas/IamUserPageResponse"
                 }
               }
             }
           },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden - SYS_ADMIN role required",
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -2531,29 +2780,11 @@
               "type": "string"
             },
             "example": "user1"
-          },
-          {
-            "name": "userContext",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/UserContext"
-            }
           }
         ],
         "responses": {
           "404": {
             "description": "IAM user not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -2572,6 +2803,16 @@
               }
             }
           },
+          "403": {
+            "description": "Forbidden - SYS_ADMIN role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "200": {
             "description": "IAM user found",
             "content": {
@@ -2582,8 +2823,8 @@
               }
             }
           },
-          "403": {
-            "description": "Forbidden - SYS_ADMIN role required",
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -2614,37 +2855,7 @@
         "summary": "Get user statistics",
         "description": "Retrieve user count statistics from cached IAM data.\nThis endpoint is restricted to system administrators.\n",
         "operationId": "getStatsIamUser",
-        "parameters": [
-          {
-            "name": "userContext",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/UserContext"
-            }
-          }
-        ],
         "responses": {
-          "200": {
-            "description": "User statistics retrieved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IamUserStatsResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "500": {
             "description": "Internal server error",
             "content": {
@@ -2661,6 +2872,26 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "User statistics retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IamUserStatsResponse"
                 }
               }
             }
@@ -2697,23 +2928,15 @@
               "type": "string"
             },
             "example": "team_core"
-          },
-          {
-            "name": "userContext",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/UserContext"
-            }
           }
         ],
         "responses": {
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "200": {
+            "description": "Users in team found",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "type": "string"
                 }
               }
             }
@@ -2728,18 +2951,18 @@
               }
             }
           },
-          "200": {
-            "description": "Users in team found",
+          "403": {
+            "description": "Forbidden - SYS_ADMIN role required",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "string"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
           },
-          "403": {
-            "description": "Forbidden - SYS_ADMIN role required",
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -2780,37 +3003,9 @@
               "type": "string"
             },
             "example": "manager1"
-          },
-          {
-            "name": "userContext",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/UserContext"
-            }
           }
         ],
         "responses": {
-          "200": {
-            "description": "Users reporting to manager found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "500": {
             "description": "Internal server error",
             "content": {
@@ -2827,6 +3022,26 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Users reporting to manager found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
                 }
               }
             }
@@ -2855,39 +3070,77 @@
         "operationId": "findAllIamTeams",
         "parameters": [
           {
-            "name": "criteria",
+            "name": "displayName",
             "in": "query",
-            "description": "Filter criteria for searching teams",
-            "required": true,
+            "required": false,
             "schema": {
-              "$ref": "#/components/schemas/IamTeamCriteria"
+              "type": "string"
             }
           },
           {
-            "name": "pageable",
+            "name": "members",
             "in": "query",
-            "description": "Pagination parameters (page, size, sort)",
-            "required": true,
+            "required": false,
             "schema": {
-              "$ref": "#/components/schemas/Pageable"
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
             }
           },
           {
-            "name": "userContext",
+            "name": "userTeamIds",
             "in": "query",
-            "required": true,
+            "required": false,
             "schema": {
-              "$ref": "#/components/schemas/UserContext"
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Zero-based page index (0..N)",
+            "required": false,
+            "schema": {
+              "minimum": 0,
+              "type": "integer",
+              "default": 0
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "The size of the page to be returned",
+            "required": false,
+            "schema": {
+              "minimum": 1,
+              "type": "integer",
+              "default": 20
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
             }
           }
         ],
         "responses": {
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "200": {
+            "description": "Successfully retrieved IAM teams",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "$ref": "#/components/schemas/IamTeamPageResponse"
                 }
               }
             }
@@ -2902,18 +3155,18 @@
               }
             }
           },
-          "200": {
-            "description": "Successfully retrieved IAM teams",
+          "403": {
+            "description": "Forbidden - SYS_ADMIN role required",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Page"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
           },
-          "403": {
-            "description": "Forbidden - SYS_ADMIN role required",
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -2954,33 +3207,15 @@
               "type": "string"
             },
             "example": "team_core"
-          },
-          {
-            "name": "userContext",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/UserContext"
-            }
           }
         ],
         "responses": {
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "200": {
+            "description": "IAM team found",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "IAM team not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "$ref": "#/components/schemas/IamTeamResponse"
                 }
               }
             }
@@ -2995,18 +3230,28 @@
               }
             }
           },
-          "200": {
-            "description": "IAM team found",
+          "403": {
+            "description": "Forbidden - SYS_ADMIN role required",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/IamTeamResponse"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
           },
-          "403": {
-            "description": "Forbidden - SYS_ADMIN role required",
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "IAM team not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -3037,19 +3282,9 @@
         "summary": "Get team statistics",
         "description": "Retrieve team count statistics from cached IAM data.\nThis endpoint is restricted to system administrators.\n",
         "operationId": "getStatsIamTeam",
-        "parameters": [
-          {
-            "name": "userContext",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/UserContext"
-            }
-          }
-        ],
         "responses": {
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -3058,8 +3293,8 @@
               }
             }
           },
-          "500": {
-            "description": "Internal server error",
+          "403": {
+            "description": "Forbidden - SYS_ADMIN role required",
             "content": {
               "application/json": {
                 "schema": {
@@ -3078,8 +3313,8 @@
               }
             }
           },
-          "403": {
-            "description": "Forbidden - SYS_ADMIN role required",
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -3120,23 +3355,15 @@
               "type": "string"
             },
             "example": "user1"
-          },
-          {
-            "name": "userContext",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/UserContext"
-            }
           }
         ],
         "responses": {
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "200": {
+            "description": "Teams containing the user found",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "type": "string"
                 }
               }
             }
@@ -3151,18 +3378,18 @@
               }
             }
           },
-          "200": {
-            "description": "Teams containing the user found",
+          "403": {
+            "description": "Forbidden - SYS_ADMIN role required",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "string"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
           },
-          "403": {
-            "description": "Forbidden - SYS_ADMIN role required",
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -3194,6 +3421,16 @@
         "description": "Simple health check to verify that the heartbeat controller is operational.\nThis endpoint is used for monitoring and load balancer health checks.\n",
         "operationId": "heartbeatHealth",
         "responses": {
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "200": {
             "description": "Heartbeat controller is healthy",
             "content": {
@@ -3209,21 +3446,14 @@
                 }
               }
             }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
           }
         },
         "security": [
           {
             "oauth2_auth_code": []
+          },
+          {
+            "oauth2_password": []
           }
         ]
       }
@@ -3237,16 +3467,6 @@
         "description": "Retrieves basic information about the Config Server instance.\nThis includes URL, status, and version information.\n",
         "operationId": "getInfoConfigServer",
         "responses": {
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "500": {
             "description": "Internal server error",
             "content": {
@@ -3262,7 +3482,17 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponse"
+                  "$ref": "#/components/schemas/ConfigServerInfo"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -3287,12 +3517,12 @@
         "description": "Retrieves the health status of the underlying Spring Cloud Config Server.\nThis provides information about the Config Server's operational state.\n",
         "operationId": "getHealthConfigServer",
         "responses": {
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "200": {
+            "description": "Config Server health status retrieved successfully",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "$ref": "#/components/schemas/ConfigServerActuatorHealthResponse"
                 }
               }
             }
@@ -3307,12 +3537,12 @@
               }
             }
           },
-          "200": {
-            "description": "Config Server health status retrieved successfully",
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponse"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -3379,8 +3609,8 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "500": {
+            "description": "Internal server error or Config Server unreachable",
             "content": {
               "application/json": {
                 "schema": {
@@ -3399,32 +3629,32 @@
               }
             }
           },
-          "200": {
-            "description": "Successfully retrieved configuration environment",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error or Config Server unreachable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "404": {
             "description": "Configuration not found for the specified application/profile",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Successfully retrieved configuration environment",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigServerEnvironmentResponse"
                 }
               }
             }
@@ -3461,22 +3691,12 @@
           }
         ],
         "responses": {
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "200": {
             "description": "Actuator endpoint response retrieved successfully",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponse"
+                  "type": "object"
                 }
               }
             }
@@ -3491,8 +3711,8 @@
               }
             }
           },
-          "400": {
-            "description": "Invalid actuator path",
+          "500": {
+            "description": "Internal server error or Config Server unreachable",
             "content": {
               "application/json": {
                 "schema": {
@@ -3501,8 +3721,18 @@
               }
             }
           },
-          "500": {
-            "description": "Internal server error or Config Server unreachable",
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid actuator path",
             "content": {
               "application/json": {
                 "schema": {
@@ -3532,31 +3762,95 @@
         "operationId": "findAllApprovalRequests",
         "parameters": [
           {
-            "name": "filter",
+            "name": "requesterUserId",
             "in": "query",
-            "description": "Optional query filter for searching requests",
             "required": false,
             "schema": {
-              "$ref": "#/components/schemas/ApprovalRequestQueryFilter"
+              "maxLength": 100,
+              "minLength": 0,
+              "type": "string"
             }
           },
           {
-            "name": "pageable",
+            "name": "status",
             "in": "query",
-            "description": "Pagination parameters (page, size, sort)",
-            "required": true,
+            "required": false,
             "schema": {
-              "$ref": "#/components/schemas/Pageable"
+              "maxLength": 20,
+              "minLength": 0,
+              "type": "string"
+            }
+          },
+          {
+            "name": "requestType",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "maxLength": 50,
+              "minLength": 0,
+              "type": "string"
+            }
+          },
+          {
+            "name": "fromDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "toDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Zero-based page index (0..N)",
+            "required": false,
+            "schema": {
+              "minimum": 0,
+              "type": "integer",
+              "default": 0
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "The size of the page to be returned",
+            "required": false,
+            "schema": {
+              "minimum": 1,
+              "type": "integer",
+              "default": 20
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
             }
           }
         ],
         "responses": {
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "200": {
+            "description": "Approval requests retrieved successfully",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "$ref": "#/components/schemas/ApprovalRequestPageResponse"
                 }
               }
             }
@@ -3581,12 +3875,12 @@
               }
             }
           },
-          "200": {
-            "description": "Approval requests retrieved successfully",
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApprovalRequestResponse"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -3623,8 +3917,8 @@
           }
         ],
         "responses": {
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -3643,6 +3937,16 @@
               }
             }
           },
+          "404": {
+            "description": "Approval request not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "403": {
             "description": "Forbidden - Insufficient permissions",
             "content": {
@@ -3653,18 +3957,8 @@
               }
             }
           },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Approval request not found",
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -3713,16 +4007,6 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "409": {
             "description": "Conflict - Request cannot be cancelled in current status",
             "content": {
@@ -3732,9 +4016,6 @@
                 }
               }
             }
-          },
-          "204": {
-            "description": "Approval request cancelled successfully"
           },
           "500": {
             "description": "Internal server error",
@@ -3748,6 +4029,19 @@
           },
           "404": {
             "description": "Approval request not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "Approval request cancelled successfully"
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -5003,168 +5297,94 @@
         },
         "description": "User permissions and allowed routes response"
       },
-      "ServiceShareQueryFilter": {
+      "PageMetadata": {
         "type": "object",
         "properties": {
-          "serviceId": {
-            "maxLength": 100,
-            "minLength": 0,
-            "type": "string",
-            "description": "Filter by service ID",
-            "example": "payment-service"
-          },
-          "grantToType": {
-            "maxLength": 20,
-            "minLength": 0,
-            "type": "string",
-            "description": "Filter by grantee type",
-            "example": "TEAM",
-            "enum": [
-              "TEAM",
-              "USER"
-            ]
-          },
-          "grantToId": {
-            "maxLength": 100,
-            "minLength": 0,
-            "type": "string",
-            "description": "Filter by grantee ID",
-            "example": "team_analytics"
-          },
-          "environments": {
-            "type": "array",
-            "description": "Filter by environments",
-            "example": [
-              "dev",
-              "staging"
-            ],
-            "items": {
-              "type": "string",
-              "description": "Filter by environments",
-              "example": "[\"dev\",\"staging\"]"
-            }
-          }
-        },
-        "description": "Query filter for searching service shares"
-      },
-      "Pageable": {
-        "type": "object",
-        "properties": {
-          "page": {
-            "minimum": 0,
-            "type": "integer",
-            "format": "int32"
-          },
-          "size": {
-            "minimum": 1,
-            "type": "integer",
-            "format": "int32"
-          },
-          "sort": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
-        }
-      },
-      "Page": {
-        "type": "object",
-        "properties": {
-          "totalPages": {
-            "type": "integer",
-            "format": "int32"
-          },
           "totalElements": {
             "type": "integer",
-            "format": "int64"
+            "description": "Total number of elements across all pages",
+            "format": "int64",
+            "example": 150
           },
-          "pageable": {
-            "$ref": "#/components/schemas/PageableObject"
+          "totalPages": {
+            "type": "integer",
+            "description": "Total number of pages",
+            "format": "int32",
+            "example": 8
+          },
+          "page": {
+            "type": "integer",
+            "description": "Current page number (0-based)",
+            "format": "int32",
+            "example": 0
           },
           "size": {
             "type": "integer",
-            "format": "int32"
+            "description": "Number of items per page",
+            "format": "int32",
+            "example": 20
           },
-          "content": {
-            "type": "array",
-            "items": {
-              "type": "object"
-            }
+          "hasNext": {
+            "type": "boolean",
+            "description": "Whether there are more pages available",
+            "example": true
           },
-          "number": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "sort": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/SortObject"
-            }
+          "hasPrevious": {
+            "type": "boolean",
+            "description": "Whether there are previous pages available",
+            "example": false
           },
           "numberOfElements": {
             "type": "integer",
-            "format": "int32"
+            "description": "Number of elements in current page",
+            "format": "int32",
+            "example": 20
           },
-          "first": {
-            "type": "boolean"
+          "empty": {
+            "type": "boolean",
+            "description": "Whether the page is empty",
+            "example": false
           },
           "last": {
             "type": "boolean"
           },
-          "empty": {
+          "first": {
             "type": "boolean"
           }
-        }
+        },
+        "description": "Pagination metadata from Spring Data Page"
       },
-      "PageableObject": {
+      "ServiceSharePageResponse": {
         "type": "object",
         "properties": {
-          "unpaged": {
-            "type": "boolean"
-          },
-          "pageNumber": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "paged": {
-            "type": "boolean"
-          },
-          "pageSize": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "offset": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "sort": {
+          "items": {
             "type": "array",
+            "description": "List of service shares in current page",
             "items": {
-              "$ref": "#/components/schemas/SortObject"
+              "$ref": "#/components/schemas/ServiceShareResponse"
             }
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/PageMetadata"
           }
-        }
+        },
+        "description": "Page response for service shares"
       },
-      "SortObject": {
+      "ServiceInstancePageResponse": {
         "type": "object",
         "properties": {
-          "direction": {
-            "type": "string"
+          "items": {
+            "type": "array",
+            "description": "List of service instances in current page",
+            "items": {
+              "$ref": "#/components/schemas/ServiceInstanceResponse"
+            }
           },
-          "nullHandling": {
-            "type": "string"
-          },
-          "ascending": {
-            "type": "boolean"
-          },
-          "property": {
-            "type": "string"
-          },
-          "ignoreCase": {
-            "type": "boolean"
+          "metadata": {
+            "$ref": "#/components/schemas/PageMetadata"
           }
-        }
+        },
+        "description": "Page response for service instances"
       },
       "ConsulServicesMap": {
         "type": "object",
@@ -5173,104 +5393,562 @@
             "type": "object",
             "additionalProperties": {
               "type": "array",
+              "description": "Map of service names to their tags",
+              "example": {
+                "payment-service": [
+                  "v1",
+                  "production"
+                ],
+                "order-service": [
+                  "v2",
+                  "staging"
+                ]
+              },
               "items": {
-                "type": "string"
+                "type": "string",
+                "description": "Map of service names to their tags",
+                "example": "{\"payment-service\":[\"v1\",\"production\"],\"order-service\":[\"v2\",\"staging\"]}"
               }
+            },
+            "description": "Map of service names to their tags",
+            "example": {
+              "payment-service": [
+                "v1",
+                "production"
+              ],
+              "order-service": [
+                "v2",
+                "staging"
+              ]
             }
           }
         },
-        "description": "Map of all registered services in Consul"
+        "description": "Map of all registered services in Consul with their tags"
       },
-      "IamUserCriteria": {
+      "ConsulNodeMeta": {
         "type": "object",
         "properties": {
-          "username": {
-            "type": "string"
+          "consul-network-segment": {
+            "type": "string",
+            "description": "Network segment of the Consul node"
           },
-          "email": {
-            "type": "string"
-          },
-          "firstName": {
-            "type": "string"
-          },
-          "lastName": {
-            "type": "string"
-          },
-          "teamIds": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "managerId": {
-            "type": "string"
-          },
-          "roles": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "userTeamIds": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
+          "consul-version": {
+            "type": "string",
+            "description": "Version of Consul running on the node",
+            "example": "1.15.0"
           }
-        }
+        },
+        "description": "Metadata information about the Consul node"
       },
-      "UserContext": {
+      "ConsulServiceConnect": {
+        "type": "object",
+        "description": "Connect service mesh configuration (empty placeholder for extension)"
+      },
+      "ConsulServiceProxy": {
         "type": "object",
         "properties": {
-          "userId": {
-            "type": "string"
+          "Mode": {
+            "type": "string",
+            "description": "Proxy mode (e.g., transparent, direct)",
+            "example": "transparent"
           },
-          "username": {
-            "type": "string"
+          "MeshGateway": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "description": "Mesh gateway configuration"
+            },
+            "description": "Mesh gateway configuration"
           },
-          "email": {
-            "type": "string"
+          "Expose": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "description": "Exposed paths configuration for the proxy"
+            },
+            "description": "Exposed paths configuration for the proxy"
+          }
+        },
+        "description": "Proxy configuration for Connect service mesh"
+      },
+      "ConsulServiceResponse": {
+        "type": "object",
+        "properties": {
+          "ID": {
+            "type": "string",
+            "description": "Unique identifier for this service instance",
+            "example": "payment-service-node1-8080"
           },
-          "firstName": {
-            "type": "string"
+          "Node": {
+            "type": "string",
+            "description": "Name of the Consul node hosting this service",
+            "example": "node1"
           },
-          "lastName": {
-            "type": "string"
+          "Address": {
+            "type": "string",
+            "description": "IP address of the node",
+            "example": "192.168.1.10"
           },
-          "teamIds": {
+          "Datacenter": {
+            "type": "string",
+            "description": "Datacenter where the service is registered",
+            "example": "dc1"
+          },
+          "TaggedAddresses": {
+            "$ref": "#/components/schemas/ConsulTaggedAddresses"
+          },
+          "NodeMeta": {
+            "$ref": "#/components/schemas/ConsulNodeMeta"
+          },
+          "ServiceKind": {
+            "type": "string",
+            "description": "Kind of service (e.g., typical, connect-proxy, mesh-gateway)",
+            "example": "typical"
+          },
+          "ServiceID": {
+            "type": "string",
+            "description": "Unique service instance identifier",
+            "example": "payment-service-1"
+          },
+          "ServiceName": {
+            "type": "string",
+            "description": "Name of the service",
+            "example": "payment-service"
+          },
+          "ServiceTags": {
             "type": "array",
+            "description": "Tags associated with the service for filtering and routing",
+            "example": [
+              "v1",
+              "production",
+              "payment"
+            ],
             "items": {
-              "type": "string"
+              "type": "string",
+              "description": "Tags associated with the service for filtering and routing",
+              "example": "[\"v1\",\"production\",\"payment\"]"
             }
           },
-          "roles": {
-            "type": "array",
-            "items": {
-              "type": "string"
+          "ServiceAddress": {
+            "type": "string",
+            "description": "IP address where the service is accessible",
+            "example": "192.168.1.10"
+          },
+          "ServiceWeights": {
+            "$ref": "#/components/schemas/ConsulServiceWeights"
+          },
+          "ServiceMeta": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "Custom metadata key-value pairs for the service",
+              "example": "{\"version\":\"1.2.0\",\"region\":\"us-east-1\"}"
+            },
+            "description": "Custom metadata key-value pairs for the service",
+            "example": {
+              "version": "1.2.0",
+              "region": "us-east-1"
             }
           },
-          "managerId": {
+          "ServicePort": {
+            "type": "integer",
+            "description": "Port number where the service is listening",
+            "format": "int32",
+            "example": 8080
+          },
+          "ServiceSocketPath": {
+            "type": "string",
+            "description": "Unix socket path if using Unix sockets instead of TCP"
+          },
+          "ServiceEnableTagOverride": {
+            "type": "boolean",
+            "description": "Whether tags can be modified via the API",
+            "example": false
+          },
+          "ServiceProxy": {
+            "$ref": "#/components/schemas/ConsulServiceProxy"
+          },
+          "ServiceConnect": {
+            "$ref": "#/components/schemas/ConsulServiceConnect"
+          },
+          "ServiceLocality": {
+            "type": "object",
+            "description": "Locality information for the service"
+          },
+          "CreateIndex": {
+            "type": "integer",
+            "description": "Raft index when the service was created",
+            "format": "int64",
+            "example": 100
+          },
+          "ModifyIndex": {
+            "type": "integer",
+            "description": "Raft index when the service was last modified",
+            "format": "int64",
+            "example": 150
+          }
+        },
+        "description": "Consul service details with full metadata and registration information"
+      },
+      "ConsulServiceWeights": {
+        "type": "object",
+        "properties": {
+          "Passing": {
+            "type": "integer",
+            "description": "Weight when all health checks are passing",
+            "format": "int32",
+            "example": 1
+          },
+          "Warning": {
+            "type": "integer",
+            "description": "Weight when health checks are in warning state",
+            "format": "int32",
+            "example": 1
+          }
+        },
+        "description": "Service weights for health-based load balancing"
+      },
+      "ConsulTaggedAddresses": {
+        "type": "object",
+        "properties": {
+          "lan": {
+            "type": "string",
+            "description": "LAN address",
+            "example": "192.168.1.10"
+          },
+          "lan_ipv4": {
+            "type": "string",
+            "description": "LAN IPv4 address",
+            "example": "192.168.1.10"
+          },
+          "wan": {
+            "type": "string",
+            "description": "WAN address",
+            "example": "203.0.113.10"
+          },
+          "wan_ipv4": {
+            "type": "string",
+            "description": "WAN IPv4 address",
+            "example": "203.0.113.10"
+          }
+        },
+        "description": "Tagged network addresses for different network types (LAN/WAN)"
+      },
+      "ServiceInstanceSummary": {
+        "type": "object",
+        "properties": {
+          "serviceName": {
             "type": "string"
           },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
+          "instanceId": {
+            "type": "string"
           },
-          "lastLoginAt": {
-            "type": "string",
-            "format": "date-time"
+          "host": {
+            "type": "string"
           },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
+          "port": {
+            "type": "integer",
+            "format": "int32"
           },
-          "sysAdmin": {
+          "status": {
+            "type": "string"
+          },
+          "scheme": {
+            "type": "string"
+          },
+          "uri": {
+            "type": "string"
+          },
+          "healthy": {
             "type": "boolean"
           },
-          "fullName": {
-            "type": "string"
+          "lastSeenAt": {
+            "type": "integer",
+            "format": "int64"
           }
         }
+      },
+      "ConsulHealthCheck": {
+        "type": "object",
+        "properties": {
+          "Node": {
+            "type": "string",
+            "description": "Node name where check runs",
+            "example": "consul-server-1"
+          },
+          "CheckID": {
+            "type": "string",
+            "description": "Unique check identifier",
+            "example": "service:payment-service-1"
+          },
+          "Name": {
+            "type": "string",
+            "description": "Human-readable check name",
+            "example": "Service 'payment-service' check"
+          },
+          "Status": {
+            "type": "string",
+            "description": "Check status",
+            "example": "passing",
+            "enum": [
+              "passing",
+              "warning",
+              "critical"
+            ]
+          },
+          "Notes": {
+            "type": "string",
+            "description": "Optional notes about the check"
+          },
+          "Output": {
+            "type": "string",
+            "description": "Check output message",
+            "example": "HTTP GET http://192.168.1.10:8080/health: 200 OK"
+          },
+          "ServiceID": {
+            "type": "string",
+            "description": "Associated service ID",
+            "example": "payment-service-1"
+          },
+          "ServiceName": {
+            "type": "string",
+            "description": "Associated service name",
+            "example": "payment-service"
+          },
+          "ServiceTags": {
+            "type": "array",
+            "description": "Tags of the associated service",
+            "example": [
+              "v1",
+              "production"
+            ],
+            "items": {
+              "type": "string",
+              "description": "Tags of the associated service",
+              "example": "[\"v1\",\"production\"]"
+            }
+          },
+          "Type": {
+            "type": "string",
+            "description": "Check type",
+            "example": "http",
+            "enum": [
+              "http",
+              "tcp",
+              "ttl",
+              "docker",
+              "grpc",
+              "script"
+            ]
+          },
+          "Interval": {
+            "type": "string",
+            "description": "Check interval",
+            "example": "10s"
+          },
+          "Timeout": {
+            "type": "string",
+            "description": "Check timeout",
+            "example": "5s"
+          },
+          "ExposedPort": {
+            "type": "integer",
+            "description": "Exposed port for check",
+            "format": "int32",
+            "example": 8080
+          },
+          "Definition": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "description": "Check definition details"
+            },
+            "description": "Check definition details"
+          },
+          "CreateIndex": {
+            "type": "integer",
+            "description": "Raft index when check was created",
+            "format": "int64",
+            "example": 60
+          },
+          "ModifyIndex": {
+            "type": "integer",
+            "description": "Raft index when check was last modified",
+            "format": "int64",
+            "example": 80
+          }
+        },
+        "description": "Health check information with status and timing details"
+      },
+      "ConsulHealthResponse": {
+        "type": "object",
+        "properties": {
+          "Node": {
+            "$ref": "#/components/schemas/ConsulNodeInfo"
+          },
+          "Service": {
+            "$ref": "#/components/schemas/ConsulServiceInfo"
+          },
+          "Checks": {
+            "type": "array",
+            "description": "List of health checks for this service instance",
+            "items": {
+              "$ref": "#/components/schemas/ConsulHealthCheck"
+            }
+          }
+        },
+        "description": "Consul health check response with node, service, and check details"
+      },
+      "ConsulNodeInfo": {
+        "type": "object",
+        "properties": {
+          "ID": {
+            "type": "string",
+            "description": "Unique node identifier",
+            "example": "8f246b77-f3e1-ff88-5b48-8ec93abf3e05"
+          },
+          "Node": {
+            "type": "string",
+            "description": "Node name",
+            "example": "consul-server-1"
+          },
+          "Address": {
+            "type": "string",
+            "description": "Node IP address",
+            "example": "192.168.1.10"
+          },
+          "Datacenter": {
+            "type": "string",
+            "description": "Datacenter name",
+            "example": "dc1"
+          },
+          "TaggedAddresses": {
+            "$ref": "#/components/schemas/ConsulTaggedAddresses"
+          },
+          "Meta": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "Node metadata",
+              "example": "{\"consul-version\":\"1.15.0\"}"
+            },
+            "description": "Node metadata",
+            "example": {
+              "consul-version": "1.15.0"
+            }
+          },
+          "CreateIndex": {
+            "type": "integer",
+            "description": "Raft index when the node was created",
+            "format": "int64",
+            "example": 10
+          },
+          "ModifyIndex": {
+            "type": "integer",
+            "description": "Raft index when the node was last modified",
+            "format": "int64",
+            "example": 20
+          }
+        },
+        "description": "Node information in health check response"
+      },
+      "ConsulServiceInfo": {
+        "type": "object",
+        "properties": {
+          "ID": {
+            "type": "string",
+            "description": "Service instance ID",
+            "example": "payment-service-1"
+          },
+          "Service": {
+            "type": "string",
+            "description": "Service name",
+            "example": "payment-service"
+          },
+          "Tags": {
+            "type": "array",
+            "description": "Service tags",
+            "example": [
+              "v1",
+              "production"
+            ],
+            "items": {
+              "type": "string",
+              "description": "Service tags",
+              "example": "[\"v1\",\"production\"]"
+            }
+          },
+          "Address": {
+            "type": "string",
+            "description": "Service address",
+            "example": "192.168.1.10"
+          },
+          "Meta": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "Service metadata",
+              "example": "{\"version\":\"1.2.0\"}"
+            },
+            "description": "Service metadata",
+            "example": {
+              "version": "1.2.0"
+            }
+          },
+          "Port": {
+            "type": "integer",
+            "description": "Service port",
+            "format": "int32",
+            "example": 8080
+          },
+          "Weights": {
+            "$ref": "#/components/schemas/ConsulServiceWeights"
+          },
+          "EnableTagOverride": {
+            "type": "boolean",
+            "description": "Whether tags can be overridden",
+            "example": false
+          },
+          "Proxy": {
+            "$ref": "#/components/schemas/ConsulServiceProxy"
+          },
+          "Connect": {
+            "$ref": "#/components/schemas/ConsulServiceConnect"
+          },
+          "PeerName": {
+            "type": "string",
+            "description": "Peer name for federated setups"
+          },
+          "CreateIndex": {
+            "type": "integer",
+            "description": "Raft index when service was created",
+            "format": "int64",
+            "example": 50
+          },
+          "ModifyIndex": {
+            "type": "integer",
+            "description": "Raft index when service was last modified",
+            "format": "int64",
+            "example": 75
+          }
+        },
+        "description": "Service information from Consul health check"
+      },
+      "IamUserPageResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "description": "List of IAM users in current page",
+            "items": {
+              "$ref": "#/components/schemas/IamUserResponse"
+            }
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/PageMetadata"
+          }
+        },
+        "description": "Page response for IAM users"
       },
       "IamUserResponse": {
         "type": "object",
@@ -5368,25 +6046,21 @@
         },
         "description": "IAM statistics response"
       },
-      "IamTeamCriteria": {
+      "IamTeamPageResponse": {
         "type": "object",
         "properties": {
-          "displayName": {
-            "type": "string"
-          },
-          "members": {
+          "items": {
             "type": "array",
+            "description": "List of IAM teams in current page",
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/IamTeamResponse"
             }
           },
-          "userTeamIds": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
+          "metadata": {
+            "$ref": "#/components/schemas/PageMetadata"
           }
-        }
+        },
+        "description": "Page response for IAM teams"
       },
       "IamTeamResponse": {
         "type": "object",
@@ -5448,169 +6122,190 @@
         },
         "description": "IAM team statistics response"
       },
-      "ApiResponse": {
+      "DriftEventPageResponse": {
         "type": "object",
         "properties": {
-          "status": {
-            "type": "string",
-            "description": "Response status",
-            "example": "success",
-            "enum": [
-              "success",
-              "error"
-            ]
-          },
-          "message": {
-            "type": "string",
-            "description": "Human-readable message",
-            "example": "Operation completed successfully"
-          },
-          "data": {
-            "type": "object",
-            "description": "Response data payload"
-          },
-          "timestamp": {
-            "type": "integer",
-            "description": "Timestamp in milliseconds since epoch",
-            "format": "int64",
-            "example": 1705312245123
-          },
-          "traceId": {
-            "type": "string",
-            "description": "Trace ID for correlation",
-            "example": "550e8400-e29b-41d4-a716-446655440000"
-          },
-          "errors": {
+          "items": {
             "type": "array",
-            "description": "List of error messages (for error responses)",
+            "description": "List of drift events in current page",
             "items": {
-              "type": "string",
-              "description": "List of error messages (for error responses)"
+              "$ref": "#/components/schemas/DriftEventResponse"
             }
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/PageMetadata"
           }
         },
-        "description": "Standard API response wrapper with status, message, and data"
+        "description": "Page response for drift events"
       },
-      "ApprovalRequestQueryFilter": {
+      "ConfigServerInfo": {
+        "required": [
+          "url"
+        ],
         "type": "object",
         "properties": {
-          "requesterUserId": {
-            "maxLength": 100,
-            "minLength": 0,
-            "type": "string"
+          "url": {
+            "type": "string",
+            "description": "Base URL of the Config Server",
+            "example": "http://config-server:8888"
           },
           "status": {
-            "maxLength": 20,
-            "minLength": 0,
-            "type": "string"
-          },
-          "requestType": {
-            "maxLength": 50,
-            "minLength": 0,
-            "type": "string"
-          },
-          "fromDate": {
             "type": "string",
-            "format": "date-time"
-          },
-          "toDate": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        "description": "Query filter for searching approval requests"
-      },
-      "ApplicationServiceQueryFilter": {
-        "type": "object",
-        "properties": {
-          "ownerTeamId": {
-            "maxLength": 100,
-            "minLength": 0,
-            "type": "string",
-            "description": "Filter by owner team ID",
-            "example": "team_core"
-          },
-          "lifecycle": {
-            "maxLength": 50,
-            "minLength": 0,
-            "type": "string",
-            "description": "Filter by lifecycle stage",
-            "example": "ACTIVE",
+            "description": "Current operational status of the Config Server",
+            "example": "UP",
             "enum": [
-              "ACTIVE",
-              "DEPRECATED",
-              "RETIRED"
+              "UP",
+              "DOWN",
+              "UNKNOWN"
             ]
           },
-          "tags": {
+          "version": {
+            "type": "string",
+            "description": "Version of the Config Server application",
+            "example": "1.0.0"
+          }
+        },
+        "description": "Basic information about the Config Server instance"
+      },
+      "ConfigServerActuatorHealthResponse": {
+        "required": [
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "Overall health status of the Config Server",
+            "example": "UP",
+            "enum": [
+              "UP",
+              "DOWN",
+              "OUT_OF_SERVICE",
+              "UNKNOWN"
+            ]
+          },
+          "components": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "description": "Health status breakdown by individual components (database, disk space, etc.)",
+              "example": "{\"diskSpace\": {\"status\": \"UP\", \"details\": {...}}, \"db\": {\"status\": \"UP\"}}"
+            },
+            "description": "Health status breakdown by individual components (database, disk space, etc.)",
+            "example": "{\"diskSpace\": {\"status\": \"UP\", \"details\": {...}}, \"db\": {\"status\": \"UP\"}}"
+          }
+        },
+        "description": "Health status response from Config Server actuator endpoint"
+      },
+      "ConfigServerEnvironmentResponse": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the application requesting configuration",
+            "example": "payment-service"
+          },
+          "profiles": {
             "type": "array",
-            "description": "Filter by tags",
+            "description": "List of active Spring profiles for this configuration",
             "example": [
-              "microservice",
-              "payment"
+              "dev",
+              "kafka",
+              "mysql"
             ],
             "items": {
               "type": "string",
-              "description": "Filter by tags",
-              "example": "[\"microservice\",\"payment\"]"
+              "description": "List of active Spring profiles for this configuration",
+              "example": "[\"dev\",\"kafka\",\"mysql\"]"
             }
           },
-          "search": {
-            "maxLength": 200,
-            "minLength": 0,
+          "label": {
             "type": "string",
-            "description": "Search term for service name or description",
-            "example": "payment"
+            "description": "Git label, branch, or tag used for this configuration",
+            "example": "main"
+          },
+          "version": {
+            "type": "string",
+            "description": "Git commit SHA or version identifier of the configuration",
+            "example": "abc123def456789"
+          },
+          "state": {
+            "type": "string",
+            "description": "Current state of the configuration",
+            "example": "ACTIVE",
+            "enum": [
+              "ACTIVE",
+              "INACTIVE"
+            ]
+          },
+          "propertySources": {
+            "type": "array",
+            "description": "Ordered list of property sources, with higher priority sources first",
+            "items": {
+              "$ref": "#/components/schemas/ConfigServerPropertySource"
+            }
           }
         },
-        "description": "Query filter for searching application services"
+        "description": "Response containing configuration environment details from Config Server"
+      },
+      "ConfigServerPropertySource": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name identifying this property source (typically filename)",
+            "example": "classpath:/config/payment-service-dev.yml"
+          },
+          "source": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "description": "Map of configuration properties with their values",
+              "example": {
+                "spring.datasource.url": "jdbc:mysql://localhost:3306/payment",
+                "server.port": "8080"
+              }
+            },
+            "description": "Map of configuration properties with their values",
+            "example": {
+              "spring.datasource.url": "jdbc:mysql://localhost:3306/payment",
+              "server.port": "8080"
+            }
+          }
+        },
+        "description": "A single property source containing configuration key-value pairs"
+      },
+      "ApprovalRequestPageResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "description": "List of approval requests in current page",
+            "items": {
+              "$ref": "#/components/schemas/ApprovalRequestResponse"
+            }
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/PageMetadata"
+          }
+        },
+        "description": "Page response for approval requests"
       },
       "ApplicationServicePageResponse": {
         "type": "object",
         "properties": {
-          "content": {
+          "items": {
             "type": "array",
+            "description": "List of application services in current page",
             "items": {
               "$ref": "#/components/schemas/ApplicationServiceResponse"
             }
           },
-          "pageable": {
-            "$ref": "#/components/schemas/PageableObject"
-          },
-          "totalPages": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "totalElements": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "last": {
-            "type": "boolean"
-          },
-          "size": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "number": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "sort": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/SortObject"
-            }
-          },
-          "numberOfElements": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "first": {
-            "type": "boolean"
-          },
-          "empty": {
-            "type": "boolean"
+          "metadata": {
+            "$ref": "#/components/schemas/PageMetadata"
           }
         },
         "description": "Page response for application services"

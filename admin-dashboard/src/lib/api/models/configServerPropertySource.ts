@@ -19,13 +19,14 @@
 
  * OpenAPI spec version: 1.0.0
  */
+import type { ConfigServerPropertySourceSource } from './configServerPropertySourceSource';
 
-export type FindAllDriftEventsStatus = typeof FindAllDriftEventsStatus[keyof typeof FindAllDriftEventsStatus];
-
-
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-export const FindAllDriftEventsStatus = {
-  DETECTED: 'DETECTED',
-  RESOLVED: 'RESOLVED',
-  IGNORED: 'IGNORED',
-} as const;
+/**
+ * A single property source containing configuration key-value pairs
+ */
+export interface ConfigServerPropertySource {
+  /** Name identifying this property source (typically filename) */
+  name?: string;
+  /** Map of configuration properties with their values */
+  source?: ConfigServerPropertySourceSource;
+}

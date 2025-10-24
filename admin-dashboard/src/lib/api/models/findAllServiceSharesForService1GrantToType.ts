@@ -20,17 +20,11 @@
  * OpenAPI spec version: 1.0.0
  */
 
-/**
- * Filter by lifecycle stage
- * @minLength 0
- * @maxLength 50
- */
-export type ApplicationServiceQueryFilterLifecycle = typeof ApplicationServiceQueryFilterLifecycle[keyof typeof ApplicationServiceQueryFilterLifecycle];
+export type FindAllServiceSharesForService1GrantToType = typeof FindAllServiceSharesForService1GrantToType[keyof typeof FindAllServiceSharesForService1GrantToType];
 
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
-export const ApplicationServiceQueryFilterLifecycle = {
-  ACTIVE: 'ACTIVE',
-  DEPRECATED: 'DEPRECATED',
-  RETIRED: 'RETIRED',
+export const FindAllServiceSharesForService1GrantToType = {
+  TEAM: 'TEAM',
+  USER: 'USER',
 } as const;

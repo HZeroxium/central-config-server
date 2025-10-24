@@ -19,16 +19,43 @@
 
  * OpenAPI spec version: 1.0.0
  */
-import type { ApplicationServiceQueryFilter } from './applicationServiceQueryFilter';
-import type { Pageable } from './pageable';
+import type { FindAllApplicationServicesLifecycle } from './findAllApplicationServicesLifecycle';
 
 export type FindAllApplicationServicesParams = {
 /**
- * Optional query filter for searching services
+ * Filter by owner team ID
+ * @minLength 0
+ * @maxLength 100
  */
-filter?: ApplicationServiceQueryFilter;
+ownerTeamId?: string;
 /**
- * Pagination parameters (page, size, sort)
+ * Filter by lifecycle stage
+ * @minLength 0
+ * @maxLength 50
  */
-pageable: Pageable;
+lifecycle?: FindAllApplicationServicesLifecycle;
+/**
+ * Filter by tags
+ */
+tags?: string;
+/**
+ * Search term for service name or description
+ * @minLength 0
+ * @maxLength 200
+ */
+search?: string;
+/**
+ * Zero-based page index (0..N)
+ * @minimum 0
+ */
+page?: number;
+/**
+ * The size of the page to be returned
+ * @minimum 1
+ */
+size?: number;
+/**
+ * Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.
+ */
+sort?: string[];
 };

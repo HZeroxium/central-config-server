@@ -19,16 +19,37 @@
 
  * OpenAPI spec version: 1.0.0
  */
-import type { ApprovalRequestQueryFilter } from './approvalRequestQueryFilter';
-import type { Pageable } from './pageable';
 
 export type FindAllApprovalRequestsParams = {
 /**
- * Optional query filter for searching requests
+ * @minLength 0
+ * @maxLength 100
  */
-filter?: ApprovalRequestQueryFilter;
+requesterUserId?: string;
 /**
- * Pagination parameters (page, size, sort)
+ * @minLength 0
+ * @maxLength 20
  */
-pageable: Pageable;
+status?: string;
+/**
+ * @minLength 0
+ * @maxLength 50
+ */
+requestType?: string;
+fromDate?: string;
+toDate?: string;
+/**
+ * Zero-based page index (0..N)
+ * @minimum 0
+ */
+page?: number;
+/**
+ * The size of the page to be returned
+ * @minimum 1
+ */
+size?: number;
+/**
+ * Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.
+ */
+sort?: string[];
 };

@@ -45,9 +45,9 @@ import type {
   FindByIdIamTeamParams,
   FindByMemberIamTeamParams,
   GetStatsIamTeamParams,
+  IamTeamPageResponse,
   IamTeamResponse,
-  IamTeamStatsResponse,
-  Page
+  IamTeamStatsResponse
 } from '../../models';
 
 import { customInstance } from '../../mutator';
@@ -69,7 +69,7 @@ export const findAllIamTeams = (
 ) => {
       
       
-      return customInstance<Page>(
+      return customInstance<IamTeamPageResponse>(
       {url: `/api/iam/teams`, method: 'GET',
         params, signal
     },

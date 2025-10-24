@@ -21,7 +21,6 @@
  */
 import type { FindAllDriftEventsStatus } from './findAllDriftEventsStatus';
 import type { FindAllDriftEventsSeverity } from './findAllDriftEventsSeverity';
-import type { Pageable } from './pageable';
 
 export type FindAllDriftEventsParams = {
 /**
@@ -41,11 +40,29 @@ status?: FindAllDriftEventsStatus;
  */
 severity?: FindAllDriftEventsSeverity;
 /**
+ * Filter events detected after this timestamp
+ */
+detectedAtFrom?: string;
+/**
+ * Filter events detected before this timestamp
+ */
+detectedAtTo?: string;
+/**
  * Show only unresolved events
  */
-unresolvedOnly?: boolean;
+unresolvedOnly?: string;
 /**
- * Pagination parameters (page, size, sort)
+ * Zero-based page index (0..N)
+ * @minimum 0
  */
-pageable: Pageable;
+page?: number;
+/**
+ * The size of the page to be returned
+ * @minimum 1
+ */
+size?: number;
+/**
+ * Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.
+ */
+sort?: string[];
 };

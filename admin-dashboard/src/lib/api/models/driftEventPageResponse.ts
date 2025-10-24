@@ -19,13 +19,14 @@
 
  * OpenAPI spec version: 1.0.0
  */
+import type { DriftEventResponse } from './driftEventResponse';
+import type { PageMetadata } from './pageMetadata';
 
-export type FindAllDriftEventsStatus = typeof FindAllDriftEventsStatus[keyof typeof FindAllDriftEventsStatus];
-
-
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-export const FindAllDriftEventsStatus = {
-  DETECTED: 'DETECTED',
-  RESOLVED: 'RESOLVED',
-  IGNORED: 'IGNORED',
-} as const;
+/**
+ * Page response for drift events
+ */
+export interface DriftEventPageResponse {
+  /** List of drift events in current page */
+  items?: DriftEventResponse[];
+  metadata?: PageMetadata;
+}

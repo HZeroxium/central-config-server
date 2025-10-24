@@ -19,30 +19,16 @@
 
  * OpenAPI spec version: 1.0.0
  */
-import type { ServiceShareQueryFilterGrantToType } from './serviceShareQueryFilterGrantToType';
 
 /**
- * Query filter for searching service shares
+ * Check status
  */
-export interface ServiceShareQueryFilter {
-  /**
-   * Filter by service ID
-   * @minLength 0
-   * @maxLength 100
-   */
-  serviceId?: string;
-  /**
-   * Filter by grantee type
-   * @minLength 0
-   * @maxLength 20
-   */
-  grantToType?: ServiceShareQueryFilterGrantToType;
-  /**
-   * Filter by grantee ID
-   * @minLength 0
-   * @maxLength 100
-   */
-  grantToId?: string;
-  /** Filter by environments */
-  environments?: string[];
-}
+export type ConsulHealthCheckStatus = typeof ConsulHealthCheckStatus[keyof typeof ConsulHealthCheckStatus];
+
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const ConsulHealthCheckStatus = {
+  passing: 'passing',
+  warning: 'warning',
+  critical: 'critical',
+} as const;

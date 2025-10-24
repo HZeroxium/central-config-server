@@ -19,13 +19,16 @@
 
  * OpenAPI spec version: 1.0.0
  */
+import type { ConsulNodeInfo } from './consulNodeInfo';
+import type { ConsulServiceInfo } from './consulServiceInfo';
+import type { ConsulHealthCheck } from './consulHealthCheck';
 
-export type FindAllDriftEventsStatus = typeof FindAllDriftEventsStatus[keyof typeof FindAllDriftEventsStatus];
-
-
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-export const FindAllDriftEventsStatus = {
-  DETECTED: 'DETECTED',
-  RESOLVED: 'RESOLVED',
-  IGNORED: 'IGNORED',
-} as const;
+/**
+ * Consul health check response with node, service, and check details
+ */
+export interface ConsulHealthResponse {
+  Node?: ConsulNodeInfo;
+  Service?: ConsulServiceInfo;
+  /** List of health checks for this service instance */
+  Checks?: ConsulHealthCheck[];
+}

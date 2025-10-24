@@ -19,14 +19,14 @@
 
  * OpenAPI spec version: 1.0.0
  */
+import type { ApprovalRequestResponse } from './approvalRequestResponse';
+import type { PageMetadata } from './pageMetadata';
 
-export interface IamUserCriteria {
-  username?: string;
-  email?: string;
-  firstName?: string;
-  lastName?: string;
-  teamIds?: string[];
-  managerId?: string;
-  roles?: string[];
-  userTeamIds?: string[];
+/**
+ * Page response for approval requests
+ */
+export interface ApprovalRequestPageResponse {
+  /** List of approval requests in current page */
+  items?: ApprovalRequestResponse[];
+  metadata?: PageMetadata;
 }

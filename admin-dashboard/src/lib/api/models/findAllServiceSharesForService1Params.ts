@@ -19,20 +19,43 @@
 
  * OpenAPI spec version: 1.0.0
  */
-import type { ServiceShareQueryFilter } from './serviceShareQueryFilter';
-import type { Pageable } from './pageable';
+import type { FindAllServiceSharesForService1GrantToType } from './findAllServiceSharesForService1GrantToType';
 
 export type FindAllServiceSharesForService1Params = {
 /**
- * Optional query filter for searching shares
+ * Filter by service ID
+ * @minLength 0
+ * @maxLength 100
  */
-filter?: ServiceShareQueryFilter;
+serviceId?: string;
 /**
- * Pagination parameters (page, size, sort)
+ * Filter by grantee type
+ * @minLength 0
+ * @maxLength 20
  */
-pageable: Pageable;
+grantToType?: FindAllServiceSharesForService1GrantToType;
 /**
- * Service ID to get shares for
+ * Filter by grantee ID
+ * @minLength 0
+ * @maxLength 100
  */
-serviceId: string;
+grantToId?: string;
+/**
+ * Filter by environments
+ */
+environments?: string;
+/**
+ * Zero-based page index (0..N)
+ * @minimum 0
+ */
+page?: number;
+/**
+ * The size of the page to be returned
+ * @minimum 1
+ */
+size?: number;
+/**
+ * Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.
+ */
+sort?: string[];
 };

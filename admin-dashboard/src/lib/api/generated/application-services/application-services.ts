@@ -45,11 +45,11 @@ import type {
 
 import type {
   ApplicationServiceCreateRequest,
+  ApplicationServicePageResponse,
   ApplicationServiceResponse,
   ApplicationServiceUpdateRequest,
   ErrorResponse,
-  FindAllApplicationServicesParams,
-  Page
+  FindAllApplicationServicesParams
 } from '../../models';
 
 import { customInstance } from '../../mutator';
@@ -377,12 +377,12 @@ export const useDeleteApplicationService = <TError = ErrorResponse | ErrorRespon
  * @summary List all application services
  */
 export const findAllApplicationServices = (
-    params: FindAllApplicationServicesParams,
+    params?: FindAllApplicationServicesParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
       
       
-      return customInstance<Page>(
+      return customInstance<ApplicationServicePageResponse>(
       {url: `/api/application-services`, method: 'GET',
         params, signal
     },
@@ -405,7 +405,7 @@ export const getFindAllApplicationServicesQueryKey = (params?: FindAllApplicatio
     }
 
     
-export const getFindAllApplicationServicesInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof findAllApplicationServices>>, FindAllApplicationServicesParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(params: FindAllApplicationServicesParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllApplicationServices>>, TError, TData, QueryKey, FindAllApplicationServicesParams['page']>>, request?: SecondParameter<typeof customInstance>}
+export const getFindAllApplicationServicesInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof findAllApplicationServices>>, FindAllApplicationServicesParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(params?: FindAllApplicationServicesParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllApplicationServices>>, TError, TData, QueryKey, FindAllApplicationServicesParams['page']>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -428,7 +428,7 @@ export type FindAllApplicationServicesInfiniteQueryError = ErrorResponse | Error
 
 
 export function useFindAllApplicationServicesInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findAllApplicationServices>>, FindAllApplicationServicesParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- params: FindAllApplicationServicesParams, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllApplicationServices>>, TError, TData, QueryKey, FindAllApplicationServicesParams['page']>> & Pick<
+ params: undefined |  FindAllApplicationServicesParams, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllApplicationServices>>, TError, TData, QueryKey, FindAllApplicationServicesParams['page']>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof findAllApplicationServices>>,
           TError,
@@ -438,7 +438,7 @@ export function useFindAllApplicationServicesInfinite<TData = InfiniteData<Await
  , queryClient?: QueryClient
   ):  DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useFindAllApplicationServicesInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findAllApplicationServices>>, FindAllApplicationServicesParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- params: FindAllApplicationServicesParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllApplicationServices>>, TError, TData, QueryKey, FindAllApplicationServicesParams['page']>> & Pick<
+ params?: FindAllApplicationServicesParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllApplicationServices>>, TError, TData, QueryKey, FindAllApplicationServicesParams['page']>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof findAllApplicationServices>>,
           TError,
@@ -448,7 +448,7 @@ export function useFindAllApplicationServicesInfinite<TData = InfiniteData<Await
  , queryClient?: QueryClient
   ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useFindAllApplicationServicesInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findAllApplicationServices>>, FindAllApplicationServicesParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- params: FindAllApplicationServicesParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllApplicationServices>>, TError, TData, QueryKey, FindAllApplicationServicesParams['page']>>, request?: SecondParameter<typeof customInstance>}
+ params?: FindAllApplicationServicesParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllApplicationServices>>, TError, TData, QueryKey, FindAllApplicationServicesParams['page']>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -456,7 +456,7 @@ export function useFindAllApplicationServicesInfinite<TData = InfiniteData<Await
  */
 
 export function useFindAllApplicationServicesInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findAllApplicationServices>>, FindAllApplicationServicesParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- params: FindAllApplicationServicesParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllApplicationServices>>, TError, TData, QueryKey, FindAllApplicationServicesParams['page']>>, request?: SecondParameter<typeof customInstance>}
+ params?: FindAllApplicationServicesParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllApplicationServices>>, TError, TData, QueryKey, FindAllApplicationServicesParams['page']>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient 
  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
@@ -471,7 +471,7 @@ export function useFindAllApplicationServicesInfinite<TData = InfiniteData<Await
 
 
 
-export const getFindAllApplicationServicesQueryOptions = <TData = Awaited<ReturnType<typeof findAllApplicationServices>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(params: FindAllApplicationServicesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findAllApplicationServices>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getFindAllApplicationServicesQueryOptions = <TData = Awaited<ReturnType<typeof findAllApplicationServices>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(params?: FindAllApplicationServicesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findAllApplicationServices>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -494,7 +494,7 @@ export type FindAllApplicationServicesQueryError = ErrorResponse | ErrorResponse
 
 
 export function useFindAllApplicationServices<TData = Awaited<ReturnType<typeof findAllApplicationServices>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- params: FindAllApplicationServicesParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof findAllApplicationServices>>, TError, TData>> & Pick<
+ params: undefined |  FindAllApplicationServicesParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof findAllApplicationServices>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof findAllApplicationServices>>,
           TError,
@@ -504,7 +504,7 @@ export function useFindAllApplicationServices<TData = Awaited<ReturnType<typeof 
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useFindAllApplicationServices<TData = Awaited<ReturnType<typeof findAllApplicationServices>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- params: FindAllApplicationServicesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findAllApplicationServices>>, TError, TData>> & Pick<
+ params?: FindAllApplicationServicesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findAllApplicationServices>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof findAllApplicationServices>>,
           TError,
@@ -514,7 +514,7 @@ export function useFindAllApplicationServices<TData = Awaited<ReturnType<typeof 
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useFindAllApplicationServices<TData = Awaited<ReturnType<typeof findAllApplicationServices>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- params: FindAllApplicationServicesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findAllApplicationServices>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ params?: FindAllApplicationServicesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findAllApplicationServices>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -522,7 +522,7 @@ export function useFindAllApplicationServices<TData = Awaited<ReturnType<typeof 
  */
 
 export function useFindAllApplicationServices<TData = Awaited<ReturnType<typeof findAllApplicationServices>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- params: FindAllApplicationServicesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findAllApplicationServices>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ params?: FindAllApplicationServicesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findAllApplicationServices>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 

@@ -19,13 +19,15 @@
 
  * OpenAPI spec version: 1.0.0
  */
+import type { ConfigServerActuatorHealthResponseStatus } from './configServerActuatorHealthResponseStatus';
+import type { ConfigServerActuatorHealthResponseComponents } from './configServerActuatorHealthResponseComponents';
 
-export type FindAllDriftEventsStatus = typeof FindAllDriftEventsStatus[keyof typeof FindAllDriftEventsStatus];
-
-
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-export const FindAllDriftEventsStatus = {
-  DETECTED: 'DETECTED',
-  RESOLVED: 'RESOLVED',
-  IGNORED: 'IGNORED',
-} as const;
+/**
+ * Health status response from Config Server actuator endpoint
+ */
+export interface ConfigServerActuatorHealthResponse {
+  /** Overall health status of the Config Server */
+  status: ConfigServerActuatorHealthResponseStatus;
+  /** Health status breakdown by individual components (database, disk space, etc.) */
+  components?: ConfigServerActuatorHealthResponseComponents;
+}

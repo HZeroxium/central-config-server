@@ -40,8 +40,11 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
-  ApiResponse,
+  ConfigServerActuatorHealthResponse,
+  ConfigServerEnvironmentResponse,
+  ConfigServerInfo,
   ErrorResponse,
+  GetActuatorEndpointConfigServer200,
   GetEnvironmentConfigServerParams
 } from '../../models';
 
@@ -64,7 +67,7 @@ export const getInfoConfigServer = (
 ) => {
       
       
-      return customInstance<ApiResponse>(
+      return customInstance<ConfigServerInfo>(
       {url: `/api/config-server/info`, method: 'GET', signal
     },
       options);
@@ -230,7 +233,7 @@ export const getHealthConfigServer = (
 ) => {
       
       
-      return customInstance<ApiResponse>(
+      return customInstance<ConfigServerActuatorHealthResponse>(
       {url: `/api/config-server/health`, method: 'GET', signal
     },
       options);
@@ -398,7 +401,7 @@ export const getEnvironmentConfigServer = (
 ) => {
       
       
-      return customInstance<ApiResponse>(
+      return customInstance<ConfigServerEnvironmentResponse>(
       {url: `/api/config-server/environment/${application}/${profile}`, method: 'GET',
         params, signal
     },
@@ -589,7 +592,7 @@ export const getActuatorEndpointConfigServer = (
 ) => {
       
       
-      return customInstance<ApiResponse>(
+      return customInstance<GetActuatorEndpointConfigServer200>(
       {url: `/api/config-server/actuator/${path}`, method: 'GET', signal
     },
       options);

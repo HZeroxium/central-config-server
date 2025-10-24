@@ -19,13 +19,16 @@
 
  * OpenAPI spec version: 1.0.0
  */
+import type { ConfigServerInfoStatus } from './configServerInfoStatus';
 
-export type FindAllDriftEventsStatus = typeof FindAllDriftEventsStatus[keyof typeof FindAllDriftEventsStatus];
-
-
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-export const FindAllDriftEventsStatus = {
-  DETECTED: 'DETECTED',
-  RESOLVED: 'RESOLVED',
-  IGNORED: 'IGNORED',
-} as const;
+/**
+ * Basic information about the Config Server instance
+ */
+export interface ConfigServerInfo {
+  /** Base URL of the Config Server */
+  url: string;
+  /** Current operational status of the Config Server */
+  status?: ConfigServerInfoStatus;
+  /** Version of the Config Server application */
+  version?: string;
+}

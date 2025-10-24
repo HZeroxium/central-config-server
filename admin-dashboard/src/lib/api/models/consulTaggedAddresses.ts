@@ -20,12 +20,16 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export type FindAllDriftEventsStatus = typeof FindAllDriftEventsStatus[keyof typeof FindAllDriftEventsStatus];
-
-
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-export const FindAllDriftEventsStatus = {
-  DETECTED: 'DETECTED',
-  RESOLVED: 'RESOLVED',
-  IGNORED: 'IGNORED',
-} as const;
+/**
+ * Tagged network addresses for different network types (LAN/WAN)
+ */
+export interface ConsulTaggedAddresses {
+  /** LAN address */
+  lan?: string;
+  /** LAN IPv4 address */
+  lan_ipv4?: string;
+  /** WAN address */
+  wan?: string;
+  /** WAN IPv4 address */
+  wan_ipv4?: string;
+}

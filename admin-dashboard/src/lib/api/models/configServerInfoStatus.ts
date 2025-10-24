@@ -21,24 +21,14 @@
  */
 
 /**
- * Query filter for searching approval requests
+ * Current operational status of the Config Server
  */
-export interface ApprovalRequestQueryFilter {
-  /**
-   * @minLength 0
-   * @maxLength 100
-   */
-  requesterUserId?: string;
-  /**
-   * @minLength 0
-   * @maxLength 20
-   */
-  status?: string;
-  /**
-   * @minLength 0
-   * @maxLength 50
-   */
-  requestType?: string;
-  fromDate?: string;
-  toDate?: string;
-}
+export type ConfigServerInfoStatus = typeof ConfigServerInfoStatus[keyof typeof ConfigServerInfoStatus];
+
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const ConfigServerInfoStatus = {
+  UP: 'UP',
+  DOWN: 'DOWN',
+  UNKNOWN: 'UNKNOWN',
+} as const;

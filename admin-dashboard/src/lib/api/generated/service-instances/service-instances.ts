@@ -46,7 +46,7 @@ import type {
 import type {
   ErrorResponse,
   FindAllServiceInstancesParams,
-  Page,
+  ServiceInstancePageResponse,
   ServiceInstanceResponse,
   ServiceInstanceUpdateRequest
 } from '../../models';
@@ -59,7 +59,7 @@ type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 
 /**
- * Retrieve a specific service instance by service name and instance ID.
+ * Retrieve a specific service instance by instance ID.
 
 **Access Control:**
 - Team members: Can view instances of services owned by their team
@@ -69,14 +69,13 @@ type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
  * @summary Get service instance by ID
  */
 export const findByIdServiceInstance = (
-    serviceName: string,
     instanceId: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
       
       
       return customInstance<ServiceInstanceResponse>(
-      {url: `/api/service-instances/${serviceName}/${instanceId}`, method: 'GET', signal
+      {url: `/api/service-instances/${instanceId}`, method: 'GET', signal
     },
       options);
     }
@@ -84,38 +83,35 @@ export const findByIdServiceInstance = (
 
 
 
-export const getFindByIdServiceInstanceInfiniteQueryKey = (serviceName?: string,
-    instanceId?: string,) => {
+export const getFindByIdServiceInstanceInfiniteQueryKey = (instanceId?: string,) => {
     return [
-    'infinite', `/api/service-instances/${serviceName}/${instanceId}`
+    'infinite', `/api/service-instances/${instanceId}`
     ] as const;
     }
 
-export const getFindByIdServiceInstanceQueryKey = (serviceName?: string,
-    instanceId?: string,) => {
+export const getFindByIdServiceInstanceQueryKey = (instanceId?: string,) => {
     return [
-    `/api/service-instances/${serviceName}/${instanceId}`
+    `/api/service-instances/${instanceId}`
     ] as const;
     }
 
     
-export const getFindByIdServiceInstanceInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof findByIdServiceInstance>>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(serviceName: string,
-    instanceId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findByIdServiceInstance>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getFindByIdServiceInstanceInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof findByIdServiceInstance>>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(instanceId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findByIdServiceInstance>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getFindByIdServiceInstanceInfiniteQueryKey(serviceName,instanceId);
+  const queryKey =  queryOptions?.queryKey ?? getFindByIdServiceInstanceInfiniteQueryKey(instanceId);
 
   
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof findByIdServiceInstance>>> = ({ signal }) => findByIdServiceInstance(serviceName,instanceId, requestOptions, signal);
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof findByIdServiceInstance>>> = ({ signal }) => findByIdServiceInstance(instanceId, requestOptions, signal);
 
       
 
       
 
-   return  { queryKey, queryFn, enabled: !!(serviceName && instanceId), ...queryOptions} as UseInfiniteQueryOptions<Awaited<ReturnType<typeof findByIdServiceInstance>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, enabled: !!(instanceId), ...queryOptions} as UseInfiniteQueryOptions<Awaited<ReturnType<typeof findByIdServiceInstance>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
 export type FindByIdServiceInstanceInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof findByIdServiceInstance>>>
@@ -123,8 +119,7 @@ export type FindByIdServiceInstanceInfiniteQueryError = ErrorResponse | ErrorRes
 
 
 export function useFindByIdServiceInstanceInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findByIdServiceInstance>>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- serviceName: string,
-    instanceId: string, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findByIdServiceInstance>>, TError, TData>> & Pick<
+ instanceId: string, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findByIdServiceInstance>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof findByIdServiceInstance>>,
           TError,
@@ -134,8 +129,7 @@ export function useFindByIdServiceInstanceInfinite<TData = InfiniteData<Awaited<
  , queryClient?: QueryClient
   ):  DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useFindByIdServiceInstanceInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findByIdServiceInstance>>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- serviceName: string,
-    instanceId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findByIdServiceInstance>>, TError, TData>> & Pick<
+ instanceId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findByIdServiceInstance>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof findByIdServiceInstance>>,
           TError,
@@ -145,8 +139,7 @@ export function useFindByIdServiceInstanceInfinite<TData = InfiniteData<Awaited<
  , queryClient?: QueryClient
   ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useFindByIdServiceInstanceInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findByIdServiceInstance>>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- serviceName: string,
-    instanceId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findByIdServiceInstance>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ instanceId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findByIdServiceInstance>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -154,12 +147,11 @@ export function useFindByIdServiceInstanceInfinite<TData = InfiniteData<Awaited<
  */
 
 export function useFindByIdServiceInstanceInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findByIdServiceInstance>>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- serviceName: string,
-    instanceId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findByIdServiceInstance>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ instanceId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findByIdServiceInstance>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient 
  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getFindByIdServiceInstanceInfiniteQueryOptions(serviceName,instanceId,options)
+  const queryOptions = getFindByIdServiceInstanceInfiniteQueryOptions(instanceId,options)
 
   const query = useInfiniteQuery(queryOptions, queryClient) as  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -170,23 +162,22 @@ export function useFindByIdServiceInstanceInfinite<TData = InfiniteData<Awaited<
 
 
 
-export const getFindByIdServiceInstanceQueryOptions = <TData = Awaited<ReturnType<typeof findByIdServiceInstance>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(serviceName: string,
-    instanceId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findByIdServiceInstance>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getFindByIdServiceInstanceQueryOptions = <TData = Awaited<ReturnType<typeof findByIdServiceInstance>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(instanceId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findByIdServiceInstance>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getFindByIdServiceInstanceQueryKey(serviceName,instanceId);
+  const queryKey =  queryOptions?.queryKey ?? getFindByIdServiceInstanceQueryKey(instanceId);
 
   
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof findByIdServiceInstance>>> = ({ signal }) => findByIdServiceInstance(serviceName,instanceId, requestOptions, signal);
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof findByIdServiceInstance>>> = ({ signal }) => findByIdServiceInstance(instanceId, requestOptions, signal);
 
       
 
       
 
-   return  { queryKey, queryFn, enabled: !!(serviceName && instanceId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof findByIdServiceInstance>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, enabled: !!(instanceId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof findByIdServiceInstance>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
 export type FindByIdServiceInstanceQueryResult = NonNullable<Awaited<ReturnType<typeof findByIdServiceInstance>>>
@@ -194,8 +185,7 @@ export type FindByIdServiceInstanceQueryError = ErrorResponse | ErrorResponse | 
 
 
 export function useFindByIdServiceInstance<TData = Awaited<ReturnType<typeof findByIdServiceInstance>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- serviceName: string,
-    instanceId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof findByIdServiceInstance>>, TError, TData>> & Pick<
+ instanceId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof findByIdServiceInstance>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof findByIdServiceInstance>>,
           TError,
@@ -205,8 +195,7 @@ export function useFindByIdServiceInstance<TData = Awaited<ReturnType<typeof fin
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useFindByIdServiceInstance<TData = Awaited<ReturnType<typeof findByIdServiceInstance>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- serviceName: string,
-    instanceId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findByIdServiceInstance>>, TError, TData>> & Pick<
+ instanceId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findByIdServiceInstance>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof findByIdServiceInstance>>,
           TError,
@@ -216,8 +205,7 @@ export function useFindByIdServiceInstance<TData = Awaited<ReturnType<typeof fin
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useFindByIdServiceInstance<TData = Awaited<ReturnType<typeof findByIdServiceInstance>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- serviceName: string,
-    instanceId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findByIdServiceInstance>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ instanceId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findByIdServiceInstance>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -225,12 +213,11 @@ export function useFindByIdServiceInstance<TData = Awaited<ReturnType<typeof fin
  */
 
 export function useFindByIdServiceInstance<TData = Awaited<ReturnType<typeof findByIdServiceInstance>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- serviceName: string,
-    instanceId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findByIdServiceInstance>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ instanceId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findByIdServiceInstance>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getFindByIdServiceInstanceQueryOptions(serviceName,instanceId,options)
+  const queryOptions = getFindByIdServiceInstanceQueryOptions(instanceId,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -252,14 +239,13 @@ export function useFindByIdServiceInstance<TData = Awaited<ReturnType<typeof fin
  * @summary Update service instance
  */
 export const updateServiceInstance = (
-    serviceName: string,
     instanceId: string,
     serviceInstanceUpdateRequest: ServiceInstanceUpdateRequest,
  options?: SecondParameter<typeof customInstance>,) => {
       
       
       return customInstance<ServiceInstanceResponse>(
-      {url: `/api/service-instances/${serviceName}/${instanceId}`, method: 'PUT',
+      {url: `/api/service-instances/${instanceId}`, method: 'PUT',
       headers: {'Content-Type': 'application/json', },
       data: serviceInstanceUpdateRequest
     },
@@ -269,8 +255,8 @@ export const updateServiceInstance = (
 
 
 export const getUpdateServiceInstanceMutationOptions = <TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateServiceInstance>>, TError,{serviceName: string;instanceId: string;data: ServiceInstanceUpdateRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof updateServiceInstance>>, TError,{serviceName: string;instanceId: string;data: ServiceInstanceUpdateRequest}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateServiceInstance>>, TError,{instanceId: string;data: ServiceInstanceUpdateRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateServiceInstance>>, TError,{instanceId: string;data: ServiceInstanceUpdateRequest}, TContext> => {
 
 const mutationKey = ['updateServiceInstance'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -282,10 +268,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateServiceInstance>>, {serviceName: string;instanceId: string;data: ServiceInstanceUpdateRequest}> = (props) => {
-          const {serviceName,instanceId,data} = props ?? {};
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateServiceInstance>>, {instanceId: string;data: ServiceInstanceUpdateRequest}> = (props) => {
+          const {instanceId,data} = props ?? {};
 
-          return  updateServiceInstance(serviceName,instanceId,data,requestOptions)
+          return  updateServiceInstance(instanceId,data,requestOptions)
         }
 
         
@@ -301,11 +287,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
  * @summary Update service instance
  */
 export const useUpdateServiceInstance = <TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateServiceInstance>>, TError,{serviceName: string;instanceId: string;data: ServiceInstanceUpdateRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateServiceInstance>>, TError,{instanceId: string;data: ServiceInstanceUpdateRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof updateServiceInstance>>,
         TError,
-        {serviceName: string;instanceId: string;data: ServiceInstanceUpdateRequest},
+        {instanceId: string;data: ServiceInstanceUpdateRequest},
         TContext
       > => {
 
@@ -324,13 +310,12 @@ export const useUpdateServiceInstance = <TError = ErrorResponse | ErrorResponse 
  * @summary Delete service instance
  */
 export const deleteServiceInstance = (
-    serviceName: string,
     instanceId: string,
  options?: SecondParameter<typeof customInstance>,) => {
       
       
       return customInstance<void>(
-      {url: `/api/service-instances/${serviceName}/${instanceId}`, method: 'DELETE'
+      {url: `/api/service-instances/${instanceId}`, method: 'DELETE'
     },
       options);
     }
@@ -338,8 +323,8 @@ export const deleteServiceInstance = (
 
 
 export const getDeleteServiceInstanceMutationOptions = <TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteServiceInstance>>, TError,{serviceName: string;instanceId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof deleteServiceInstance>>, TError,{serviceName: string;instanceId: string}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteServiceInstance>>, TError,{instanceId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteServiceInstance>>, TError,{instanceId: string}, TContext> => {
 
 const mutationKey = ['deleteServiceInstance'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -351,10 +336,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteServiceInstance>>, {serviceName: string;instanceId: string}> = (props) => {
-          const {serviceName,instanceId} = props ?? {};
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteServiceInstance>>, {instanceId: string}> = (props) => {
+          const {instanceId} = props ?? {};
 
-          return  deleteServiceInstance(serviceName,instanceId,requestOptions)
+          return  deleteServiceInstance(instanceId,requestOptions)
         }
 
         
@@ -370,11 +355,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
  * @summary Delete service instance
  */
 export const useDeleteServiceInstance = <TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteServiceInstance>>, TError,{serviceName: string;instanceId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteServiceInstance>>, TError,{instanceId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof deleteServiceInstance>>,
         TError,
-        {serviceName: string;instanceId: string},
+        {instanceId: string},
         TContext
       > => {
 
@@ -394,12 +379,12 @@ export const useDeleteServiceInstance = <TError = ErrorResponse | ErrorResponse 
  * @summary List service instances with filters and pagination
  */
 export const findAllServiceInstances = (
-    params: FindAllServiceInstancesParams,
+    params?: FindAllServiceInstancesParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
       
       
-      return customInstance<Page>(
+      return customInstance<ServiceInstancePageResponse>(
       {url: `/api/service-instances`, method: 'GET',
         params, signal
     },
@@ -422,7 +407,7 @@ export const getFindAllServiceInstancesQueryKey = (params?: FindAllServiceInstan
     }
 
     
-export const getFindAllServiceInstancesInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof findAllServiceInstances>>, FindAllServiceInstancesParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(params: FindAllServiceInstancesParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllServiceInstances>>, TError, TData, QueryKey, FindAllServiceInstancesParams['page']>>, request?: SecondParameter<typeof customInstance>}
+export const getFindAllServiceInstancesInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof findAllServiceInstances>>, FindAllServiceInstancesParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(params?: FindAllServiceInstancesParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllServiceInstances>>, TError, TData, QueryKey, FindAllServiceInstancesParams['page']>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -445,7 +430,7 @@ export type FindAllServiceInstancesInfiniteQueryError = ErrorResponse | ErrorRes
 
 
 export function useFindAllServiceInstancesInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findAllServiceInstances>>, FindAllServiceInstancesParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- params: FindAllServiceInstancesParams, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllServiceInstances>>, TError, TData, QueryKey, FindAllServiceInstancesParams['page']>> & Pick<
+ params: undefined |  FindAllServiceInstancesParams, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllServiceInstances>>, TError, TData, QueryKey, FindAllServiceInstancesParams['page']>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof findAllServiceInstances>>,
           TError,
@@ -455,7 +440,7 @@ export function useFindAllServiceInstancesInfinite<TData = InfiniteData<Awaited<
  , queryClient?: QueryClient
   ):  DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useFindAllServiceInstancesInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findAllServiceInstances>>, FindAllServiceInstancesParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- params: FindAllServiceInstancesParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllServiceInstances>>, TError, TData, QueryKey, FindAllServiceInstancesParams['page']>> & Pick<
+ params?: FindAllServiceInstancesParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllServiceInstances>>, TError, TData, QueryKey, FindAllServiceInstancesParams['page']>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof findAllServiceInstances>>,
           TError,
@@ -465,7 +450,7 @@ export function useFindAllServiceInstancesInfinite<TData = InfiniteData<Awaited<
  , queryClient?: QueryClient
   ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useFindAllServiceInstancesInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findAllServiceInstances>>, FindAllServiceInstancesParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- params: FindAllServiceInstancesParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllServiceInstances>>, TError, TData, QueryKey, FindAllServiceInstancesParams['page']>>, request?: SecondParameter<typeof customInstance>}
+ params?: FindAllServiceInstancesParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllServiceInstances>>, TError, TData, QueryKey, FindAllServiceInstancesParams['page']>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -473,7 +458,7 @@ export function useFindAllServiceInstancesInfinite<TData = InfiniteData<Awaited<
  */
 
 export function useFindAllServiceInstancesInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findAllServiceInstances>>, FindAllServiceInstancesParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- params: FindAllServiceInstancesParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllServiceInstances>>, TError, TData, QueryKey, FindAllServiceInstancesParams['page']>>, request?: SecondParameter<typeof customInstance>}
+ params?: FindAllServiceInstancesParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllServiceInstances>>, TError, TData, QueryKey, FindAllServiceInstancesParams['page']>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient 
  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
@@ -488,7 +473,7 @@ export function useFindAllServiceInstancesInfinite<TData = InfiniteData<Awaited<
 
 
 
-export const getFindAllServiceInstancesQueryOptions = <TData = Awaited<ReturnType<typeof findAllServiceInstances>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(params: FindAllServiceInstancesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findAllServiceInstances>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getFindAllServiceInstancesQueryOptions = <TData = Awaited<ReturnType<typeof findAllServiceInstances>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(params?: FindAllServiceInstancesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findAllServiceInstances>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -511,7 +496,7 @@ export type FindAllServiceInstancesQueryError = ErrorResponse | ErrorResponse | 
 
 
 export function useFindAllServiceInstances<TData = Awaited<ReturnType<typeof findAllServiceInstances>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- params: FindAllServiceInstancesParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof findAllServiceInstances>>, TError, TData>> & Pick<
+ params: undefined |  FindAllServiceInstancesParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof findAllServiceInstances>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof findAllServiceInstances>>,
           TError,
@@ -521,7 +506,7 @@ export function useFindAllServiceInstances<TData = Awaited<ReturnType<typeof fin
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useFindAllServiceInstances<TData = Awaited<ReturnType<typeof findAllServiceInstances>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- params: FindAllServiceInstancesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findAllServiceInstances>>, TError, TData>> & Pick<
+ params?: FindAllServiceInstancesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findAllServiceInstances>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof findAllServiceInstances>>,
           TError,
@@ -531,7 +516,7 @@ export function useFindAllServiceInstances<TData = Awaited<ReturnType<typeof fin
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useFindAllServiceInstances<TData = Awaited<ReturnType<typeof findAllServiceInstances>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- params: FindAllServiceInstancesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findAllServiceInstances>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ params?: FindAllServiceInstancesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findAllServiceInstances>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -539,7 +524,7 @@ export function useFindAllServiceInstances<TData = Awaited<ReturnType<typeof fin
  */
 
 export function useFindAllServiceInstances<TData = Awaited<ReturnType<typeof findAllServiceInstances>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- params: FindAllServiceInstancesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findAllServiceInstances>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ params?: FindAllServiceInstancesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findAllServiceInstances>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 

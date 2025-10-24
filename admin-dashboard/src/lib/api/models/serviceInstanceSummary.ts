@@ -20,10 +20,14 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export interface SortObject {
-  direction?: string;
-  nullHandling?: string;
-  ascending?: boolean;
-  property?: string;
-  ignoreCase?: boolean;
+export interface ServiceInstanceSummary {
+  serviceName?: string;
+  instanceId?: string;
+  host?: string;
+  port?: number;
+  status?: string;
+  scheme?: string;
+  uri?: string;
+  healthy?: boolean;
+  lastSeenAt?: number;
 }

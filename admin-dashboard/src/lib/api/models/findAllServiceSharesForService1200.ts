@@ -19,6 +19,6 @@
 
  * OpenAPI spec version: 1.0.0
  */
-import type { Page } from './page';
+import type { ServiceSharePageResponse } from './serviceSharePageResponse';
 
-export type FindAllServiceSharesForService1200 = string | Page;
+export type FindAllServiceSharesForService1200 = string | ServiceSharePageResponse;

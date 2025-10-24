@@ -21,6 +21,6 @@
  */
 
 /**
- * Response data payload
+ * Locality information for the service
  */
-export type ApiResponseData = { [key: string]: unknown };
+export type ConsulServiceResponseServiceLocality = { [key: string]: unknown };

@@ -19,18 +19,28 @@
 
  * OpenAPI spec version: 1.0.0
  */
-import type { IamUserCriteria } from './iamUserCriteria';
-import type { Pageable } from './pageable';
-import type { UserContext } from './userContext';
 
 export type FindAllIamUsersParams = {
+username?: string;
+email?: string;
+firstName?: string;
+lastName?: string;
+teamIds?: string[];
+managerId?: string;
+roles?: string[];
+userTeamIds?: string[];
 /**
- * Filter criteria for searching users
+ * Zero-based page index (0..N)
+ * @minimum 0
  */
-criteria: IamUserCriteria;
+page?: number;
 /**
- * Pagination parameters (page, size, sort)
+ * The size of the page to be returned
+ * @minimum 1
  */
-pageable: Pageable;
-userContext: UserContext;
+size?: number;
+/**
+ * Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.
+ */
+sort?: string[];
 };

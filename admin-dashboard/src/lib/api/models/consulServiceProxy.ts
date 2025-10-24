@@ -19,13 +19,17 @@
 
  * OpenAPI spec version: 1.0.0
  */
+import type { ConsulServiceProxyMeshGateway } from './consulServiceProxyMeshGateway';
+import type { ConsulServiceProxyExpose } from './consulServiceProxyExpose';
 
-export type FindAllDriftEventsStatus = typeof FindAllDriftEventsStatus[keyof typeof FindAllDriftEventsStatus];
-
-
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-export const FindAllDriftEventsStatus = {
-  DETECTED: 'DETECTED',
-  RESOLVED: 'RESOLVED',
-  IGNORED: 'IGNORED',
-} as const;
+/**
+ * Proxy configuration for Connect service mesh
+ */
+export interface ConsulServiceProxy {
+  /** Proxy mode (e.g., transparent, direct) */
+  Mode?: string;
+  /** Mesh gateway configuration */
+  MeshGateway?: ConsulServiceProxyMeshGateway;
+  /** Exposed paths configuration for the proxy */
+  Expose?: ConsulServiceProxyExpose;
+}

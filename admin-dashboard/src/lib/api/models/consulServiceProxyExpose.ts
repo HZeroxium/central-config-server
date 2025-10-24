@@ -20,12 +20,7 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export type FindAllDriftEventsStatus = typeof FindAllDriftEventsStatus[keyof typeof FindAllDriftEventsStatus];
-
-
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-export const FindAllDriftEventsStatus = {
-  DETECTED: 'DETECTED',
-  RESOLVED: 'RESOLVED',
-  IGNORED: 'IGNORED',
-} as const;
+/**
+ * Exposed paths configuration for the proxy
+ */
+export type ConsulServiceProxyExpose = {[key: string]: { [key: string]: unknown }};

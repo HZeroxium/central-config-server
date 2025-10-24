@@ -20,4 +20,7 @@
  * OpenAPI spec version: 1.0.0
  */
 
+/**
+ * Map of service names to their tags
+ */
 export type ConsulServicesMapServices = {[key: string]: string[]};

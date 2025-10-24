@@ -19,13 +19,14 @@
 
  * OpenAPI spec version: 1.0.0
  */
+import type { ServiceShareResponse } from './serviceShareResponse';
+import type { PageMetadata } from './pageMetadata';
 
-export type FindAllDriftEventsStatus = typeof FindAllDriftEventsStatus[keyof typeof FindAllDriftEventsStatus];
-
-
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-export const FindAllDriftEventsStatus = {
-  DETECTED: 'DETECTED',
-  RESOLVED: 'RESOLVED',
-  IGNORED: 'IGNORED',
-} as const;
+/**
+ * Page response for service shares
+ */
+export interface ServiceSharePageResponse {
+  /** List of service shares in current page */
+  items?: ServiceShareResponse[];
+  metadata?: PageMetadata;
+}

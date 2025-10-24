@@ -19,15 +19,14 @@
 
  * OpenAPI spec version: 1.0.0
  */
+import type { ApplicationServiceResponse } from './applicationServiceResponse';
+import type { PageMetadata } from './pageMetadata';
 
 /**
- * Response status
+ * Page response for application services
  */
-export type ApiResponseStatus = typeof ApiResponseStatus[keyof typeof ApiResponseStatus];
-
-
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-export const ApiResponseStatus = {
-  success: 'success',
-  error: 'error',
-} as const;
+export interface ApplicationServicePageResponse {
+  /** List of application services in current page */
+  items?: ApplicationServiceResponse[];
+  metadata?: PageMetadata;
+}

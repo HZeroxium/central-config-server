@@ -21,15 +21,13 @@
  */
 
 /**
- * Filter by grantee type
- * @minLength 0
- * @maxLength 20
+ * Current state of the configuration
  */
-export type ServiceShareQueryFilterGrantToType = typeof ServiceShareQueryFilterGrantToType[keyof typeof ServiceShareQueryFilterGrantToType];
+export type ConfigServerEnvironmentResponseState = typeof ConfigServerEnvironmentResponseState[keyof typeof ConfigServerEnvironmentResponseState];
 
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
-export const ServiceShareQueryFilterGrantToType = {
-  TEAM: 'TEAM',
-  USER: 'USER',
+export const ConfigServerEnvironmentResponseState = {
+  ACTIVE: 'ACTIVE',
+  INACTIVE: 'INACTIVE',
 } as const;

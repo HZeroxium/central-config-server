@@ -22,8 +22,9 @@
 import type { ConsulServicesMapServices } from './consulServicesMapServices';
 
 /**
- * Map of all registered services in Consul
+ * Map of all registered services in Consul with their tags
  */
 export interface ConsulServicesMap {
+  /** Map of service names to their tags */
   services?: ConsulServicesMapServices;
 }

@@ -19,20 +19,17 @@
 
  * OpenAPI spec version: 1.0.0
  */
-import type { PageableObject } from './pageableObject';
-import type { PageContentItem } from './pageContentItem';
-import type { SortObject } from './sortObject';
 
-export interface Page {
-  totalPages?: number;
-  totalElements?: number;
-  pageable?: PageableObject;
-  numberOfElements?: number;
-  size?: number;
-  content?: PageContentItem[];
-  number?: number;
-  sort?: SortObject[];
-  first?: boolean;
-  last?: boolean;
-  empty?: boolean;
-}
+/**
+ * Overall health status of the Config Server
+ */
+export type ConfigServerActuatorHealthResponseStatus = typeof ConfigServerActuatorHealthResponseStatus[keyof typeof ConfigServerActuatorHealthResponseStatus];
+
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const ConfigServerActuatorHealthResponseStatus = {
+  UP: 'UP',
+  DOWN: 'DOWN',
+  OUT_OF_SERVICE: 'OUT_OF_SERVICE',
+  UNKNOWN: 'UNKNOWN',
+} as const;

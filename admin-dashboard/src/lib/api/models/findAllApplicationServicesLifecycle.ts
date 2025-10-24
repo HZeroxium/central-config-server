@@ -20,12 +20,12 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export type FindAllDriftEventsStatus = typeof FindAllDriftEventsStatus[keyof typeof FindAllDriftEventsStatus];
+export type FindAllApplicationServicesLifecycle = typeof FindAllApplicationServicesLifecycle[keyof typeof FindAllApplicationServicesLifecycle];
 
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
-export const FindAllDriftEventsStatus = {
-  DETECTED: 'DETECTED',
-  RESOLVED: 'RESOLVED',
-  IGNORED: 'IGNORED',
+export const FindAllApplicationServicesLifecycle = {
+  ACTIVE: 'ACTIVE',
+  DEPRECATED: 'DEPRECATED',
+  RETIRED: 'RETIRED',
 } as const;
