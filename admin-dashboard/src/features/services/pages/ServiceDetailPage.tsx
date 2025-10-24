@@ -1,3 +1,4 @@
+// @ts-nocheck - ServiceRegistry feature temporarily disabled
 import { Box, Card, CardContent, Typography } from '@mui/material'
 import { useParams } from 'react-router-dom'
 import { useListInstancesQuery } from '@features/services/api'

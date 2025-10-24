@@ -89,28 +89,16 @@ export default function ConfigListPage() {
               <CardContent sx={{ textAlign: 'center' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mb: 1 }}>
                   <InfoIcon color="primary" />
-                  <Typography variant="h6">
-                    {infoData?.git?.branch || 'N/A'}
-                  </Typography>
+                  {infoLoading ? (
+                    <CircularProgress size={20} />
+                  ) : (
+                    <Typography variant="h6">
+                      {infoData?.url || 'N/A'}
+                    </Typography>
+                  )}
                 </Box>
                 <Typography variant="body2" color="text.secondary">
-                  Git Branch
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <Card>
-              <CardContent sx={{ textAlign: 'center' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mb: 1 }}>
-                  <InfoIcon color="secondary" />
-                  <Typography variant="h6">
-                    {infoData?.git?.commit?.id?.substring(0, 7) || 'N/A'}
-                  </Typography>
-                </Box>
-                <Typography variant="body2" color="text.secondary">
-                  Commit Hash
+                  Server URL
                 </Typography>
               </CardContent>
             </Card>
@@ -121,9 +109,13 @@ export default function ConfigListPage() {
               <CardContent sx={{ textAlign: 'center' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mb: 1 }}>
                   <InfoIcon color="info" />
-                  <Typography variant="h6">
-                    {infoData?.build?.version || 'N/A'}
-                  </Typography>
+                  {infoLoading ? (
+                    <CircularProgress size={20} />
+                  ) : (
+                    <Typography variant="h6">
+                      {infoData?.version || 'N/A'}
+                    </Typography>
+                  )}
                 </Box>
                 <Typography variant="body2" color="text.secondary">
                   Version

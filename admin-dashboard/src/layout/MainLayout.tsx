@@ -11,11 +11,12 @@ import {
   Toolbar,
   Typography,
   useMediaQuery,
-  useTheme
+  useTheme,
+  Badge
 } from '@mui/material'
 import MenuIcon from '@mui/icons-material/Menu'
 import SettingsIcon from '@mui/icons-material/Settings'
-import StorageIcon from '@mui/icons-material/Storage'
+import DnsIcon from '@mui/icons-material/Dns'
 import DashboardIcon from '@mui/icons-material/Dashboard'
 import AppsIcon from '@mui/icons-material/Apps'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
@@ -25,41 +26,50 @@ import PeopleIcon from '@mui/icons-material/People'
 import MemoryIcon from '@mui/icons-material/Memory'
 import LightModeIcon from '@mui/icons-material/LightMode'
 import DarkModeIcon from '@mui/icons-material/DarkMode'
-import { useState } from 'react'
 import Breadcrumbs from '@components/common/Breadcrumbs'
 import { useTheme as useCustomTheme } from '@app/providers/ThemeProvider'
 import UserMenu from '@features/auth/components/UserMenu'
 import { usePermissions } from '@features/auth/hooks/usePermissions'
+import { usePendingApprovalCount } from '@features/approvals/hooks/usePendingApprovalCount'
+import { useAppDispatch, useAppSelector } from '@store/hooks'
+import { toggleSidebar } from '@store/uiSlice'
+import { useCallback } from 'react'
 
 export default function MainLayout() {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
   const { mode, toggleMode } = useCustomTheme()
   const { isSysAdmin } = usePermissions()
-
-  const [open, setOpen] = useState(true)
+  const pendingApprovalCount = usePendingApprovalCount()
+  
+  const dispatch = useAppDispatch()
+  const open = useAppSelector((state) => state.ui.sidebarOpen)
   const location = useLocation()
+  
+  const handleToggleSidebar = useCallback(() => {
+    dispatch(toggleSidebar())
+  }, [dispatch])
 
   // Kích thước khi mở / khi đóng
   const openWidth = 240
   const closedWidth = 60
 
   const navigationItems = [
-    { path: '/dashboard', label: 'Dashboard', icon: <DashboardIcon /> },
-    { path: '/application-services', label: 'Application Services', icon: <AppsIcon /> },
-    { path: '/service-instances', label: 'Service Instances', icon: <MemoryIcon /> },
-    { path: '/services', label: 'Service Registry', icon: <StorageIcon /> },
-    { path: '/configs', label: 'Config Server', icon: <SettingsIcon /> },
-    { path: '/approvals', label: 'Approvals', icon: <CheckCircleIcon /> },
-    { path: '/drift-events', label: 'Drift Events', icon: <TrendingUpIcon /> },
-    { path: '/service-shares', label: 'Service Shares', icon: <ShareIcon /> },
+    { path: '/dashboard', label: 'Dashboard', icon: <DashboardIcon />, badge: undefined },
+    { path: '/application-services', label: 'Application Services', icon: <AppsIcon />, badge: undefined },
+    { path: '/service-instances', label: 'Service Instances', icon: <MemoryIcon />, badge: undefined },
+    { path: '/registry', label: 'Service Registry', icon: <DnsIcon />, badge: undefined },
+    { path: '/configs', label: 'Config Server', icon: <SettingsIcon />, badge: undefined },
+    { path: '/approvals', label: 'Approvals', icon: <CheckCircleIcon />, badge: pendingApprovalCount > 0 ? pendingApprovalCount : undefined },
+    { path: '/drift-events', label: 'Drift Events', icon: <TrendingUpIcon />, badge: undefined },
+    { path: '/service-shares', label: 'Service Shares', icon: <ShareIcon />, badge: undefined },
   ]
 
   // Add admin-only items
   if (isSysAdmin) {
     navigationItems.push(
-      { path: '/iam/users', label: 'Users', icon: <PeopleIcon /> },
-      { path: '/iam/teams', label: 'Teams', icon: <PeopleIcon /> }
+      { path: '/iam/users', label: 'Users', icon: <PeopleIcon />, badge: undefined },
+      { path: '/iam/teams', label: 'Teams', icon: <PeopleIcon />, badge: undefined }
     )
   }
 
@@ -88,7 +98,7 @@ export default function MainLayout() {
             <IconButton
               edge="start"
               color="inherit"
-              onClick={() => setOpen(!open)}
+              onClick={handleToggleSidebar}
               sx={{ mr: 2 }}
             >
               <MenuIcon />
@@ -109,7 +119,7 @@ export default function MainLayout() {
       <Drawer
         variant={isMobile ? 'temporary' : 'permanent'}
         open={open}
-        onClose={() => setOpen(false)}
+        onClose={handleToggleSidebar}
         sx={{
           width: open ? openWidth : closedWidth,
           flexShrink: 0,
@@ -151,17 +161,29 @@ export default function MainLayout() {
                     color: isActive ? 'primary.600' : 'text.secondary',
                   }}
                 >
-                  {item.icon}
+                  {item.badge ? (
+                    <Badge badgeContent={item.badge} color="warning" max={99}>
+                      {item.icon}
+                    </Badge>
+                  ) : (
+                    item.icon
+                  )}
                 </ListItemIcon>
                 {open && (
-                  <ListItemText
-                    primary={item.label}
-                    sx={{
-                      opacity: open ? 1 : 0,
-                      transition: 'opacity 0.3s',
-                      fontWeight: isActive ? 500 : 400,
-                    }}
-                  />
+                  <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
+                    <ListItemText
+                      primary={item.label}
+                      sx={{
+                        opacity: open ? 1 : 0,
+                        transition: 'opacity 0.3s',
+                        fontWeight: isActive ? 500 : 400,
+                        flex: 1,
+                      }}
+                    />
+                    {item.badge && (
+                      <Badge badgeContent={item.badge} color="warning" max={99} />
+                    )}
+                  </Box>
                 )}
               </ListItemButton>
             )

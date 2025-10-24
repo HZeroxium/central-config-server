@@ -5,7 +5,7 @@ export const DriftEventSchema = z.object({
   serviceName: z.string().min(1, 'Service Name is required'),
   instanceId: z.string().min(1, 'Instance ID is required'),
   severity: z.enum(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']),
-  status: z.enum(['OPEN', 'RESOLVED', 'IGNORED']),
+  status: z.enum(['DETECTED', 'ACKNOWLEDGED', 'RESOLVING', 'RESOLVED', 'IGNORED']),
   detectedAt: z.iso.datetime(),
   resolvedAt: z.iso.datetime().optional(),
   expectedHash: z.string().optional(),
@@ -19,7 +19,7 @@ export const DriftEventSchema = z.object({
 });
 
 export const UpdateDriftEventSchema = z.object({
-  status: z.enum(['OPEN', 'RESOLVED', 'IGNORED']).optional(),
+  status: z.enum(['DETECTED', 'ACKNOWLEDGED', 'RESOLVING', 'RESOLVED', 'IGNORED']).optional(),
   notes: z.string().optional(),
 });
 

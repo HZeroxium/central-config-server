@@ -19,16 +19,9 @@
 
  * OpenAPI spec version: 1.0.0
  */
+import type { ServiceInstanceSummary } from './serviceInstanceSummary';
 
-/**
- * Check status
- */
-export type ConsulHealthCheckStatus = typeof ConsulHealthCheckStatus[keyof typeof ConsulHealthCheckStatus];
-
-
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-export const ConsulHealthCheckStatus = {
-  passing: 'passing',
-  warning: 'warning',
-  critical: 'critical',
-} as const;
+export interface ServiceInstancesRegistryResponse {
+  serviceName?: string;
+  instances?: ServiceInstanceSummary[];
+}

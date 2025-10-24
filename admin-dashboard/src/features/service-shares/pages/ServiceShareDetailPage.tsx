@@ -1,250 +1,203 @@
-import React from 'react';
-import { useParams } from 'react-router-dom';
-import { Box, Card, CardContent, Typography, Chip, Button, Grid, Alert } from '@mui/material';
-import { Edit as EditIcon, Delete as DeleteIcon, ArrowBack as ArrowBackIcon } from '@mui/icons-material';
-import { PageHeader } from '@components/common/PageHeader';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Box, Card, CardContent, Typography, Chip, Button, Alert, Divider } from '@mui/material';
+import Grid from '@mui/material/Grid';
+import { Delete as DeleteIcon, ArrowBack as ArrowBackIcon } from '@mui/icons-material';
+import PageHeader from '@components/common/PageHeader';
+import Loading from '@components/common/Loading';
+import ConfirmDialog from '@components/common/ConfirmDialog';
 import { useFindByIdServiceShare, useRevokeServiceShare } from '@lib/api/hooks';
-import { useErrorHandler } from '../../../hooks/useErrorHandler';
-import { usePermissions } from '@features/auth/hooks/usePermissions';
-import { PERMISSION_LABELS, ENVIRONMENT_LABELS, ENVIRONMENT_COLORS } from '../types';
+import { useAuth } from '@features/auth/authContext';
+import { toast } from '@lib/toast/toast';
+import { handleApiError } from '@lib/api/errorHandler';
 import { format } from 'date-fns';
+import { useState } from 'react';
 
-export const ServiceShareDetailPage: React.FC = () => {
+export default function ServiceShareDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { isSysAdmin, permissions } = usePermissions();
-  const { handleError, showSuccess } = useErrorHandler();
+  const navigate = useNavigate();
+  const { isSysAdmin } = useAuth();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
-  const {
-    data: shareResponse,
-    isLoading,
-    error,
-    refetch,
-  } = useFindByIdServiceShare(id!, {
+  const { data: share, isLoading, error } = useFindByIdServiceShare(id!, {
     query: {
       enabled: !!id,
+      staleTime: 10_000,
     },
   });
 
   const revokeShareMutation = useRevokeServiceShare();
 
-  const share = shareResponse as any; // TODO: Fix API type generation
-
   const handleRevoke = async () => {
-    if (!share || !id) return;
-    
-    try {
-      await revokeShareMutation.mutateAsync({ id });
-      showSuccess('Service share revoked successfully');
-      // Navigate back to list
-      window.history.back();
-    } catch (error) {
-      handleError(error, 'Failed to revoke service share');
-    }
+    if (!id) return;
+
+    revokeShareMutation.mutate(
+      { id },
+      {
+        onSuccess: () => {
+          toast.success('Service share revoked successfully');
+          navigate('/service-shares');
+        },
+        onError: (error) => {
+          handleApiError(error);
+        },
+      }
+    );
   };
 
-  const canManageShares = isSysAdmin;
-
   if (isLoading) {
-    return (
-      <Box>
-        <PageHeader title="Loading..." />
-        <Box sx={{ p: 3 }}>Loading service share details...</Box>
-      </Box>
-    );
+    return <Loading />;
   }
 
   if (error || !share) {
     return (
       <Box>
-        <PageHeader title="Service Share Not Found" />
+        <PageHeader
+          title="Service Share Not Found"
+          actions={
+            <Button
+              variant="outlined"
+              startIcon={<ArrowBackIcon />}
+              onClick={() => navigate('/service-shares')}
+            >
+              Back
+            </Button>
+          }
+        />
         <Alert severity="error" sx={{ m: 3 }}>
-          The requested service share could not be found or you don't have permission to view it.
+          {error
+            ? `Failed to load service share: ${(error as any).detail || 'Unknown error'}`
+            : 'The requested service share could not be found.'}
         </Alert>
       </Box>
     );
   }
 
-  const isExpired = share.expiresAt ? new Date(share.expiresAt) < new Date() : false;
-
   return (
     <Box>
       <PageHeader
-        title={`Service Share: ${share.serviceName}`}
-        subtitle={`Access granted to ${share.grantedToName}`}
+        title={`Service Share: ${(share as any).serviceId || 'N/A'}`}
+        subtitle={`Granted to ${(share as any).grantToType}: ${(share as any).grantToId}`}
         actions={
-          <Box sx={{ display: 'flex', gap: 1 }}>
+          <>
             <Button
               variant="outlined"
               startIcon={<ArrowBackIcon />}
-              onClick={() => window.history.back()}
+              onClick={() => navigate('/service-shares')}
             >
               Back
             </Button>
-            {canManageShares && (
-              <>
-                <Button
-                  variant="outlined"
-                  startIcon={<EditIcon />}
-                  onClick={() => {
-                    // Navigate to edit form
-                    console.log('Edit share:', share.id);
-                  }}
-                >
-                  Edit
-                </Button>
-                <Button
-                  variant="contained"
-                  color="error"
-                  startIcon={<DeleteIcon />}
-                  onClick={handleRevoke}
-                  disabled={revokeShareMutation.isPending}
-                >
-                  Revoke Access
-                </Button>
-              </>
+            {isSysAdmin && (
+              <Button
+                variant="outlined"
+                color="error"
+                startIcon={<DeleteIcon />}
+                onClick={() => setDeleteDialogOpen(true)}
+              >
+                Revoke
+              </Button>
             )}
-          </Box>
+          </>
         }
       />
 
-      <Grid container spacing={3} sx={{ p: 3 }}>
-        {/* Basic Information */}
-        <Grid size={{ xs: 12, md: 6 }}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Basic Information
+      <Card>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>
+            Share Information
+          </Typography>
+          <Divider sx={{ mb: 2 }} />
+
+          <Grid container spacing={3}>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                Service ID
               </Typography>
-              
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="body2" color="text.secondary">
-                  Service
-                </Typography>
-                <Typography variant="body1" fontWeight="medium">
-                  {share.serviceName}
-                </Typography>
-              </Box>
+              <Typography variant="body1" fontFamily="monospace" fontWeight={600}>
+                {(share as any).serviceId}
+              </Typography>
+            </Grid>
 
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="body2" color="text.secondary">
-                  Granted To
-                </Typography>
-                <Typography variant="body1" fontWeight="medium">
-                  {share.grantedToName} ({share.grantedTo})
-                </Typography>
-              </Box>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                Grant To Type
+              </Typography>
+              <Chip
+                label={(share as any).grantToType}
+                color={(share as any).grantToType === 'TEAM' ? 'primary' : 'default'}
+              />
+            </Grid>
 
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="body2" color="text.secondary">
-                  Status
-                </Typography>
-                <Chip
-                  label={share.status}
-                  color={share.status === 'ACTIVE' ? 'success' : share.status === 'EXPIRED' ? 'warning' : 'error'}
-                  size="small"
-                />
-              </Box>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                Grant To ID
+              </Typography>
+              <Typography variant="body1">{(share as any).grantToId}</Typography>
+            </Grid>
 
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="body2" color="text.secondary">
-                  Created
-                </Typography>
-                <Typography variant="body1">
-                  {format(new Date(share.createdAt), 'PPP')}
-                </Typography>
-              </Box>
-
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="body2" color="text.secondary">
-                  Created By
-                </Typography>
-                <Typography variant="body1">
-                  {share.createdBy}
-                </Typography>
-              </Box>
-
-              {share.expiresAt && (
-                <Box sx={{ mb: 2 }}>
-                  <Typography variant="body2" color="text.secondary">
-                    Expires
-                  </Typography>
-                  <Typography 
-                    variant="body1" 
-                    color={isExpired ? 'error' : 'text.primary'}
-                    fontWeight={isExpired ? 'medium' : 'normal'}
-                  >
-                    {format(new Date(share.expiresAt), 'PPP')}
-                    {isExpired && ' (Expired)'}
-                  </Typography>
-                </Box>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Permissions */}
-        <Grid size={{ xs: 12, md: 6 }}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                 Permissions
               </Typography>
-              
-              <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-                {share.permissions.map((permission) => (
-                  <Chip
-                    key={permission}
-                    label={PERMISSION_LABELS[permission as keyof typeof PERMISSION_LABELS] || permission}
-                    size="small"
-                    variant="outlined"
-                    sx={{ mb: 0.5 }}
-                  />
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                {((share as any).permissions || []).map((perm: string) => (
+                  <Chip key={perm} label={perm} size="small" variant="outlined" />
                 ))}
               </Box>
+            </Grid>
 
-              {share.permissions.length === 0 && (
-                <Typography variant="body2" color="text.secondary">
-                  No permissions granted
-                </Typography>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Environments */}
-        <Grid size={{ xs: 12 }}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                 Environments
               </Typography>
-              
-              <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-                {share.environments.map((environment) => (
-                  <Chip
-                    key={environment}
-                    label={ENVIRONMENT_LABELS[environment as keyof typeof ENVIRONMENT_LABELS] || environment}
-                    size="small"
-                    sx={{
-                      backgroundColor: ENVIRONMENT_COLORS[environment as keyof typeof ENVIRONMENT_COLORS] || 'grey.300',
-                      color: 'white',
-                      fontWeight: 'medium',
-                    }}
-                  />
-                ))}
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                {((share as any).environments || []).length > 0 ? (
+                  ((share as any).environments || []).map((env: string) => (
+                    <Chip key={env} label={env.toUpperCase()} size="small" variant="filled" />
+                  ))
+                ) : (
+                  <Typography variant="body2" color="text.secondary">
+                    All environments
+                  </Typography>
+                )}
               </Box>
+            </Grid>
 
-              {share.environments.length === 0 && (
-                <Typography variant="body2" color="text.secondary">
-                  No environments specified
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                Created At
+              </Typography>
+              <Typography variant="body1">
+                {(share as any).createdAt
+                  ? format(new Date((share as any).createdAt), 'MMM dd, yyyy HH:mm:ss')
+                  : 'N/A'}
+              </Typography>
+            </Grid>
+
+            {(share as any).expiresAt && (
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                  Expires At
                 </Typography>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+                <Typography variant="body1">
+                  {format(new Date((share as any).expiresAt), 'MMM dd, yyyy HH:mm:ss')}
+                </Typography>
+              </Grid>
+            )}
+          </Grid>
+        </CardContent>
+      </Card>
+
+      {/* Revoke Confirmation Dialog */}
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        title="Revoke Service Share"
+        message={`Are you sure you want to revoke this service share? The ${(share as any).grantToType?.toLowerCase()} will lose access immediately.`}
+        confirmText="Revoke"
+        cancelText="Cancel"
+        onConfirm={handleRevoke}
+        onCancel={() => setDeleteDialogOpen(false)}
+        loading={revokeShareMutation.isPending}
+      />
     </Box>
   );
-};
-
-export default ServiceShareDetailPage;
+}

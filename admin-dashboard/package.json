@@ -23,6 +23,7 @@
     "@mui/x-data-grid": "^8.14.1",
     "@mui/x-date-pickers": "^8.14.1",
     "@react-keycloak/web": "^3.4.0",
+    "@reduxjs/toolkit": "^2.9.2",
     "@tanstack/react-query": "^5.90.5",
     "@tanstack/react-query-devtools": "^5.90.2",
     "@types/prismjs": "^1.26.5",
@@ -35,8 +36,10 @@
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-hook-form": "^7.65.0",
+    "react-redux": "^9.2.0",
     "react-router-dom": "7.9.3",
     "recharts": "^2.15.4",
+    "sonner": "^2.0.7",
     "yaml": "^2.8.1",
     "zod": "^4.1.11"
   },

@@ -1,183 +1,252 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, TextField, InputAdornment, FormControl, InputLabel, Select, MenuItem, Button } from '@mui/material';
+import { 
+  Box, 
+  Card, 
+  CardContent,
+  TextField, 
+  InputAdornment, 
+  FormControl, 
+  InputLabel, 
+  Select, 
+  MenuItem, 
+  Button,
+  Alert,
+} from '@mui/material';
+import Grid from '@mui/material/Grid';
 import { Search as SearchIcon, Refresh as RefreshIcon } from '@mui/icons-material';
-import { PageHeader } from '@components/common/PageHeader';
-import { ConfirmDialog } from '@components/common/ConfirmDialog';
+import PageHeader from '@components/common/PageHeader';
+import ConfirmDialog from '@components/common/ConfirmDialog';
+import Loading from '@components/common/Loading';
 import {
   useFindAllServiceInstances,
   useDeleteServiceInstance,
 } from '@lib/api/hooks';
-import type { ServiceInstance } from '../types';
 import { ServiceInstanceTable } from '../components/ServiceInstanceTable';
-import type { FindAllServiceInstancesStatus } from '@lib/api/models';
+import type { FindAllServiceInstancesStatus, FindAllServiceInstancesEnvironment } from '@lib/api/models';
+import { toast } from '@lib/toast/toast';
+import { handleApiError } from '@lib/api/errorHandler';
 
-const ServiceInstanceListPage: React.FC = () => {
+export default function ServiceInstanceListPage() {
   const navigate = useNavigate();
   const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(20);
   const [search, setSearch] = useState('');
-  const [environmentFilter, setEnvironmentFilter] = useState('');
+  const [environmentFilter, setEnvironmentFilter] = useState<FindAllServiceInstancesEnvironment | ''>('');
   const [statusFilter, setStatusFilter] = useState<FindAllServiceInstancesStatus | ''>('');
-  const [driftFilter, setDriftFilter] = useState('');
+  const [driftFilter, setDriftFilter] = useState<'true' | 'false' | ''>('');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [selectedInstance, setSelectedInstance] = useState<ServiceInstance | null>(null);
+  const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null);
 
-  const { data: instancesResponse, isLoading, refetch } = useFindAllServiceInstances(
+  const { data, isLoading, error, refetch } = useFindAllServiceInstances(
     {
-      serviceName: search || undefined,
-      status: (statusFilter as FindAllServiceInstancesStatus) || undefined,
+      serviceId: search || undefined,
+      status: statusFilter || undefined,
       environment: environmentFilter || undefined,
-      hasDrift: driftFilter ? driftFilter === 'true' : undefined,
-      pageable: { page, size: pageSize },
+      hasDrift: driftFilter || undefined,
+      page,
+      size: pageSize,
     },
     {
       query: {
-        staleTime: 30000,
+        staleTime: 30_000,
       },
     }
   );
 
-  const deleteInstanceMutation = useDeleteServiceInstance();
+  const deleteMutation = useDeleteServiceInstance();
 
-  // Get the page data from API response
-  const pageData = instancesResponse;
-  const instances = (pageData?.content || []) as ServiceInstance[];
+  const instances = data?.items || [];
+  const metadata = data?.metadata;
 
   const handleDeleteInstance = async () => {
-    if (!selectedInstance) return;
+    if (!selectedInstanceId) return;
     
-    try {
-      await deleteInstanceMutation.mutateAsync({ 
-        serviceName: selectedInstance.serviceName, 
-        instanceId: selectedInstance.instanceId 
-      });
-      setDeleteDialogOpen(false);
-      setSelectedInstance(null);
-    } catch (error) {
-      console.error('Failed to delete instance:', error);
-    }
+    deleteMutation.mutate(
+      { instanceId: selectedInstanceId },
+      {
+        onSuccess: () => {
+          toast.success('Instance deleted successfully');
+          setDeleteDialogOpen(false);
+          setSelectedInstanceId(null);
+          refetch();
+        },
+        onError: (error) => {
+          handleApiError(error);
+        },
+      }
+    );
   };
 
-  const handleDeleteClick = (instanceId: string) => {
-    const instanceToDelete = instances.find(i => i.instanceId === instanceId);
-    if (instanceToDelete) {
-      setSelectedInstance(instanceToDelete);
-      setDeleteDialogOpen(true);
-    }
+  const handleOpenDeleteDialog = (instanceId: string) => {
+    setSelectedInstanceId(instanceId);
+    setDeleteDialogOpen(true);
   };
 
-  const handleViewClick = (instanceId: string) => {
-    // Find the instance to get serviceName
-    const instance = instances.find(inst => inst.instanceId === instanceId);
-    if (instance) {
-      navigate(`/service-instances/${encodeURIComponent(instance.serviceName)}/${encodeURIComponent(instanceId)}`);
-    }
+  const handleCloseDeleteDialog = () => {
+    setDeleteDialogOpen(false);
+    setSelectedInstanceId(null);
   };
 
-  const handleEditClick = (instance: ServiceInstance) => {
-    // Open edit dialog
-    console.log('Edit instance:', instance);
-  };
-
-  const handleRefresh = () => {
-    refetch();
+  const handleFilterReset = () => {
+    setSearch('');
+    setEnvironmentFilter('');
+    setStatusFilter('');
+    setDriftFilter('');
+    setPage(0);
   };
 
   return (
     <Box>
       <PageHeader
         title="Service Instances"
+        subtitle="Manage service instances tracked by the system"
         actions={
           <Button
             variant="outlined"
             startIcon={<RefreshIcon />}
-            onClick={handleRefresh}
-            disabled={isLoading}
+            onClick={() => refetch()}
           >
             Refresh
           </Button>
         }
       />
-      
-      <Box sx={{ mb: 3, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-        <TextField
-          placeholder="Search by service name..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon />
-              </InputAdornment>
-            ),
-          }}
-          sx={{ minWidth: 250 }}
-        />
-        
-        <FormControl sx={{ minWidth: 120 }}>
-          <InputLabel>Environment</InputLabel>
-          <Select
-            value={environmentFilter}
-            onChange={(e) => setEnvironmentFilter(e.target.value)}
-            label="Environment"
-          >
-            <MenuItem value="">All</MenuItem>
-            <MenuItem value="dev">Dev</MenuItem>
-            <MenuItem value="staging">Staging</MenuItem>
-            <MenuItem value="prod">Prod</MenuItem>
-            <MenuItem value="test">Test</MenuItem>
-          </Select>
-        </FormControl>
 
-        <FormControl sx={{ minWidth: 120 }}>
-          <InputLabel>Status</InputLabel>
-          <Select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            label="Status"
-          >
-            <MenuItem value="">All</MenuItem>
-            <MenuItem value="UP">UP</MenuItem>
-            <MenuItem value="DOWN">DOWN</MenuItem>
-            <MenuItem value="UNKNOWN">UNKNOWN</MenuItem>
-          </Select>
-        </FormControl>
+      <Card>
+        <CardContent>
+          {/* Filters */}
+          <Grid container spacing={2} sx={{ mb: 3 }}>
+            <Grid size={{ xs: 12, md: 3 }}>
+              <TextField
+                fullWidth
+                label="Search by Service Name"
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(0);
+                }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            </Grid>
 
-        <FormControl sx={{ minWidth: 120 }}>
-          <InputLabel>Drift</InputLabel>
-          <Select
-            value={driftFilter}
-            onChange={(e) => setDriftFilter(e.target.value)}
-            label="Drift"
-          >
-            <MenuItem value="">All</MenuItem>
-            <MenuItem value="true">Has Drift</MenuItem>
-            <MenuItem value="false">No Drift</MenuItem>
-          </Select>
-        </FormControl>
-      </Box>
+            <Grid size={{ xs: 12, md: 2 }}>
+              <FormControl fullWidth>
+                <InputLabel>Environment</InputLabel>
+                <Select
+                  value={environmentFilter}
+                  label="Environment"
+                  onChange={(e) => {
+                    setEnvironmentFilter(e.target.value as FindAllServiceInstancesEnvironment | '');
+                    setPage(0);
+                  }}
+                >
+                  <MenuItem value="">All</MenuItem>
+                  <MenuItem value="dev">Development</MenuItem>
+                  <MenuItem value="staging">Staging</MenuItem>
+                  <MenuItem value="prod">Production</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
 
-      <ServiceInstanceTable
-        instances={instances}
-        loading={isLoading}
-        onView={handleViewClick}
-        onEdit={handleEditClick}
-        onDelete={handleDeleteClick}
-      />
+            <Grid size={{ xs: 12, md: 2 }}>
+              <FormControl fullWidth>
+                <InputLabel>Status</InputLabel>
+                <Select
+                  value={statusFilter}
+                  label="Status"
+                  onChange={(e) => {
+                    setStatusFilter(e.target.value as FindAllServiceInstancesStatus | '');
+                    setPage(0);
+                  }}
+                >
+                  <MenuItem value="">All</MenuItem>
+                  <MenuItem value="HEALTHY">Healthy</MenuItem>
+                  <MenuItem value="UNHEALTHY">Unhealthy</MenuItem>
+                  <MenuItem value="DRIFT">Drift</MenuItem>
+                  <MenuItem value="UNKNOWN">Unknown</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
 
+            <Grid size={{ xs: 12, md: 2 }}>
+              <FormControl fullWidth>
+                <InputLabel>Drift Status</InputLabel>
+                <Select
+                  value={driftFilter}
+                  label="Drift Status"
+                  onChange={(e) => {
+                    setDriftFilter(e.target.value as 'true' | 'false' | '');
+                    setPage(0);
+                  }}
+                >
+                  <MenuItem value="">All</MenuItem>
+                  <MenuItem value="true">Has Drift</MenuItem>
+                  <MenuItem value="false">No Drift</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid size={{ xs: 12, md: 3 }}>
+              <Button
+                fullWidth
+                variant="outlined"
+                onClick={handleFilterReset}
+                sx={{ height: '56px' }}
+              >
+                Reset Filters
+              </Button>
+            </Grid>
+          </Grid>
+
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              Failed to load service instances: {error instanceof Error ? error.message : 'Unknown error'}
+            </Alert>
+          )}
+
+          {isLoading && <Loading />}
+
+          {!isLoading && !error && (
+            <ServiceInstanceTable
+              instances={instances}
+              loading={isLoading}
+              page={page}
+              pageSize={pageSize}
+              totalElements={metadata?.totalElements || 0}
+              onPageChange={(newPage: number) => setPage(newPage)}
+              onPageSizeChange={(newPageSize: number) => {
+                setPageSize(newPageSize);
+                setPage(0);
+              }}
+              onRowClick={(instanceId: string) => {
+                const instance = instances.find((i) => i.instanceId === instanceId);
+                if (instance) {
+                  navigate(`/service-instances/${instance.serviceName}/${instance.instanceId}`);
+                }
+              }}
+              onDelete={handleOpenDeleteDialog}
+            />
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Delete Confirmation Dialog */}
       <ConfirmDialog
         open={deleteDialogOpen}
         title="Delete Service Instance"
-        message={`Are you sure you want to delete instance "${selectedInstance?.instanceId}"? This action cannot be undone.`}
-        onConfirm={handleDeleteInstance}
-        onCancel={() => setDeleteDialogOpen(false)}
+        message={`Are you sure you want to delete this instance? This action cannot be undone.`}
         confirmText="Delete"
         cancelText="Cancel"
-        loading={deleteInstanceMutation.isPending}
+        onConfirm={handleDeleteInstance}
+        onCancel={handleCloseDeleteDialog}
+        loading={deleteMutation.isPending}
       />
     </Box>
   );
-};
-
-export default ServiceInstanceListPage;
+}

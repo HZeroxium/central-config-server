@@ -14,14 +14,12 @@ import {
   Box,
 } from '@mui/material';
 import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { UpdateDriftEventSchema } from '../types';
-import type { UpdateDriftEventRequest } from '../types';
+import type { DriftEventUpdateRequest } from '@lib/api/models';
 
 interface ResolveDialogProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (update: UpdateDriftEventRequest) => void;
+  onSubmit: (update: DriftEventUpdateRequest) => void;
   loading?: boolean;
   eventTitle?: string;
 }
@@ -38,15 +36,14 @@ export const ResolveDialog: React.FC<ResolveDialogProps> = ({
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<UpdateDriftEventRequest>({
-    resolver: zodResolver(UpdateDriftEventSchema),
+  } = useForm<DriftEventUpdateRequest>({
     defaultValues: {
       status: 'RESOLVED',
       notes: '',
     },
   });
 
-  const handleFormSubmit = (data: UpdateDriftEventRequest) => {
+  const handleFormSubmit = (data: DriftEventUpdateRequest) => {
     onSubmit(data);
   };
 
@@ -78,9 +75,9 @@ export const ResolveDialog: React.FC<ResolveDialogProps> = ({
                     label="Ignored"
                   />
                   <FormControlLabel
-                    value="OPEN"
+                    value="DETECTED"
                     control={<Radio />}
-                    label="Reopen"
+                    label="Reopen (Detected)"
                   />
                 </RadioGroup>
               )}

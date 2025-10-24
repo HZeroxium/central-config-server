@@ -20,21 +20,16 @@
  * OpenAPI spec version: 1.0.0
  */
 import {
-  useInfiniteQuery,
   useQuery
 } from '@tanstack/react-query';
 import type {
   DataTag,
   DefinedInitialDataOptions,
-  DefinedUseInfiniteQueryResult,
   DefinedUseQueryResult,
-  InfiniteData,
   QueryClient,
   QueryFunction,
   QueryKey,
   UndefinedInitialDataOptions,
-  UseInfiniteQueryOptions,
-  UseInfiniteQueryResult,
   UseQueryOptions,
   UseQueryResult
 } from '@tanstack/react-query';
@@ -42,10 +37,6 @@ import type {
 import type {
   ErrorResponse,
   FindAllIamUsersParams,
-  FindByIdIamUserParams,
-  FindByManagerIamUserParams,
-  FindByTeamIamUserParams,
-  GetStatsIamUserParams,
   IamUserPageResponse,
   IamUserResponse,
   IamUserStatsResponse
@@ -80,12 +71,6 @@ export const findAllIamUsers = (
 
 
 
-export const getFindAllIamUsersInfiniteQueryKey = (params?: FindAllIamUsersParams,) => {
-    return [
-    'infinite', `/api/iam/users`, ...(params ? [params]: [])
-    ] as const;
-    }
-
 export const getFindAllIamUsersQueryKey = (params?: FindAllIamUsersParams,) => {
     return [
     `/api/iam/users`, ...(params ? [params]: [])
@@ -93,72 +78,6 @@ export const getFindAllIamUsersQueryKey = (params?: FindAllIamUsersParams,) => {
     }
 
     
-export const getFindAllIamUsersInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof findAllIamUsers>>, FindAllIamUsersParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(params?: FindAllIamUsersParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllIamUsers>>, TError, TData, QueryKey, FindAllIamUsersParams['page']>>, request?: SecondParameter<typeof customInstance>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getFindAllIamUsersInfiniteQueryKey(params);
-
-  
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof findAllIamUsers>>, QueryKey, FindAllIamUsersParams['page']> = ({ signal, pageParam }) => findAllIamUsers({...params, 'page': pageParam || params?.['page']}, requestOptions, signal);
-
-      
-
-      
-
-   return  { queryKey, queryFn, ...queryOptions} as UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllIamUsers>>, TError, TData, QueryKey, FindAllIamUsersParams['page']> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type FindAllIamUsersInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof findAllIamUsers>>>
-export type FindAllIamUsersInfiniteQueryError = ErrorResponse | ErrorResponse | ErrorResponse
-
-
-export function useFindAllIamUsersInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findAllIamUsers>>, FindAllIamUsersParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- params: undefined |  FindAllIamUsersParams, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllIamUsers>>, TError, TData, QueryKey, FindAllIamUsersParams['page']>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof findAllIamUsers>>,
-          TError,
-          Awaited<ReturnType<typeof findAllIamUsers>>, QueryKey
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useFindAllIamUsersInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findAllIamUsers>>, FindAllIamUsersParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- params?: FindAllIamUsersParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllIamUsers>>, TError, TData, QueryKey, FindAllIamUsersParams['page']>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof findAllIamUsers>>,
-          TError,
-          Awaited<ReturnType<typeof findAllIamUsers>>, QueryKey
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useFindAllIamUsersInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findAllIamUsers>>, FindAllIamUsersParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- params?: FindAllIamUsersParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllIamUsers>>, TError, TData, QueryKey, FindAllIamUsersParams['page']>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary List IAM users
- */
-
-export function useFindAllIamUsersInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findAllIamUsers>>, FindAllIamUsersParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- params?: FindAllIamUsersParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllIamUsers>>, TError, TData, QueryKey, FindAllIamUsersParams['page']>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient 
- ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getFindAllIamUsersInfiniteQueryOptions(params,options)
-
-  const query = useInfiniteQuery(queryOptions, queryClient) as  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  query.queryKey = queryOptions.queryKey ;
-
-  return query;
-}
-
-
-
 export const getFindAllIamUsersQueryOptions = <TData = Awaited<ReturnType<typeof findAllIamUsers>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(params?: FindAllIamUsersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findAllIamUsers>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -233,14 +152,12 @@ This endpoint is restricted to system administrators.
  */
 export const findByIdIamUser = (
     userId: string,
-    params: FindByIdIamUserParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
       
       
       return customInstance<IamUserResponse>(
-      {url: `/api/iam/users/${userId}`, method: 'GET',
-        params, signal
+      {url: `/api/iam/users/${userId}`, method: 'GET', signal
     },
       options);
     }
@@ -248,103 +165,23 @@ export const findByIdIamUser = (
 
 
 
-export const getFindByIdIamUserInfiniteQueryKey = (userId?: string,
-    params?: FindByIdIamUserParams,) => {
+export const getFindByIdIamUserQueryKey = (userId?: string,) => {
     return [
-    'infinite', `/api/iam/users/${userId}`, ...(params ? [params]: [])
-    ] as const;
-    }
-
-export const getFindByIdIamUserQueryKey = (userId?: string,
-    params?: FindByIdIamUserParams,) => {
-    return [
-    `/api/iam/users/${userId}`, ...(params ? [params]: [])
+    `/api/iam/users/${userId}`
     ] as const;
     }
 
     
-export const getFindByIdIamUserInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof findByIdIamUser>>, FindByIdIamUserParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(userId: string,
-    params: FindByIdIamUserParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findByIdIamUser>>, TError, TData, QueryKey, FindByIdIamUserParams['page']>>, request?: SecondParameter<typeof customInstance>}
+export const getFindByIdIamUserQueryOptions = <TData = Awaited<ReturnType<typeof findByIdIamUser>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(userId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findByIdIamUser>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getFindByIdIamUserInfiniteQueryKey(userId,params);
+  const queryKey =  queryOptions?.queryKey ?? getFindByIdIamUserQueryKey(userId);
 
   
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof findByIdIamUser>>, QueryKey, FindByIdIamUserParams['page']> = ({ signal, pageParam }) => findByIdIamUser(userId,{...params, 'page': pageParam || params?.['page']}, requestOptions, signal);
-
-      
-
-      
-
-   return  { queryKey, queryFn, enabled: !!(userId), ...queryOptions} as UseInfiniteQueryOptions<Awaited<ReturnType<typeof findByIdIamUser>>, TError, TData, QueryKey, FindByIdIamUserParams['page']> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type FindByIdIamUserInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof findByIdIamUser>>>
-export type FindByIdIamUserInfiniteQueryError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse
-
-
-export function useFindByIdIamUserInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findByIdIamUser>>, FindByIdIamUserParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- userId: string,
-    params: FindByIdIamUserParams, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findByIdIamUser>>, TError, TData, QueryKey, FindByIdIamUserParams['page']>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof findByIdIamUser>>,
-          TError,
-          Awaited<ReturnType<typeof findByIdIamUser>>, QueryKey
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useFindByIdIamUserInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findByIdIamUser>>, FindByIdIamUserParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- userId: string,
-    params: FindByIdIamUserParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findByIdIamUser>>, TError, TData, QueryKey, FindByIdIamUserParams['page']>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof findByIdIamUser>>,
-          TError,
-          Awaited<ReturnType<typeof findByIdIamUser>>, QueryKey
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useFindByIdIamUserInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findByIdIamUser>>, FindByIdIamUserParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- userId: string,
-    params: FindByIdIamUserParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findByIdIamUser>>, TError, TData, QueryKey, FindByIdIamUserParams['page']>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary Get IAM user by ID
- */
-
-export function useFindByIdIamUserInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findByIdIamUser>>, FindByIdIamUserParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- userId: string,
-    params: FindByIdIamUserParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findByIdIamUser>>, TError, TData, QueryKey, FindByIdIamUserParams['page']>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient 
- ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getFindByIdIamUserInfiniteQueryOptions(userId,params,options)
-
-  const query = useInfiniteQuery(queryOptions, queryClient) as  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  query.queryKey = queryOptions.queryKey ;
-
-  return query;
-}
-
-
-
-export const getFindByIdIamUserQueryOptions = <TData = Awaited<ReturnType<typeof findByIdIamUser>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(userId: string,
-    params: FindByIdIamUserParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findByIdIamUser>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getFindByIdIamUserQueryKey(userId,params);
-
-  
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof findByIdIamUser>>> = ({ signal }) => findByIdIamUser(userId,params, requestOptions, signal);
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof findByIdIamUser>>> = ({ signal }) => findByIdIamUser(userId, requestOptions, signal);
 
       
 
@@ -358,8 +195,7 @@ export type FindByIdIamUserQueryError = ErrorResponse | ErrorResponse | ErrorRes
 
 
 export function useFindByIdIamUser<TData = Awaited<ReturnType<typeof findByIdIamUser>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- userId: string,
-    params: FindByIdIamUserParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof findByIdIamUser>>, TError, TData>> & Pick<
+ userId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof findByIdIamUser>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof findByIdIamUser>>,
           TError,
@@ -369,8 +205,7 @@ export function useFindByIdIamUser<TData = Awaited<ReturnType<typeof findByIdIam
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useFindByIdIamUser<TData = Awaited<ReturnType<typeof findByIdIamUser>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- userId: string,
-    params: FindByIdIamUserParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findByIdIamUser>>, TError, TData>> & Pick<
+ userId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findByIdIamUser>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof findByIdIamUser>>,
           TError,
@@ -380,8 +215,7 @@ export function useFindByIdIamUser<TData = Awaited<ReturnType<typeof findByIdIam
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useFindByIdIamUser<TData = Awaited<ReturnType<typeof findByIdIamUser>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- userId: string,
-    params: FindByIdIamUserParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findByIdIamUser>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ userId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findByIdIamUser>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -389,12 +223,11 @@ export function useFindByIdIamUser<TData = Awaited<ReturnType<typeof findByIdIam
  */
 
 export function useFindByIdIamUser<TData = Awaited<ReturnType<typeof findByIdIamUser>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- userId: string,
-    params: FindByIdIamUserParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findByIdIamUser>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ userId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findByIdIamUser>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getFindByIdIamUserQueryOptions(userId,params,options)
+  const queryOptions = getFindByIdIamUserQueryOptions(userId,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -412,14 +245,13 @@ This endpoint is restricted to system administrators.
  * @summary Get user statistics
  */
 export const getStatsIamUser = (
-    params: GetStatsIamUserParams,
+    
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
       
       
       return customInstance<IamUserStatsResponse>(
-      {url: `/api/iam/users/stats`, method: 'GET',
-        params, signal
+      {url: `/api/iam/users/stats`, method: 'GET', signal
     },
       options);
     }
@@ -427,95 +259,23 @@ export const getStatsIamUser = (
 
 
 
-export const getGetStatsIamUserInfiniteQueryKey = (params?: GetStatsIamUserParams,) => {
+export const getGetStatsIamUserQueryKey = () => {
     return [
-    'infinite', `/api/iam/users/stats`, ...(params ? [params]: [])
-    ] as const;
-    }
-
-export const getGetStatsIamUserQueryKey = (params?: GetStatsIamUserParams,) => {
-    return [
-    `/api/iam/users/stats`, ...(params ? [params]: [])
+    `/api/iam/users/stats`
     ] as const;
     }
 
     
-export const getGetStatsIamUserInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof getStatsIamUser>>, GetStatsIamUserParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(params: GetStatsIamUserParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getStatsIamUser>>, TError, TData, QueryKey, GetStatsIamUserParams['page']>>, request?: SecondParameter<typeof customInstance>}
+export const getGetStatsIamUserQueryOptions = <TData = Awaited<ReturnType<typeof getStatsIamUser>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getStatsIamUser>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetStatsIamUserInfiniteQueryKey(params);
+  const queryKey =  queryOptions?.queryKey ?? getGetStatsIamUserQueryKey();
 
   
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getStatsIamUser>>, QueryKey, GetStatsIamUserParams['page']> = ({ signal, pageParam }) => getStatsIamUser({...params, 'page': pageParam || params?.['page']}, requestOptions, signal);
-
-      
-
-      
-
-   return  { queryKey, queryFn, ...queryOptions} as UseInfiniteQueryOptions<Awaited<ReturnType<typeof getStatsIamUser>>, TError, TData, QueryKey, GetStatsIamUserParams['page']> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type GetStatsIamUserInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof getStatsIamUser>>>
-export type GetStatsIamUserInfiniteQueryError = ErrorResponse | ErrorResponse | ErrorResponse
-
-
-export function useGetStatsIamUserInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getStatsIamUser>>, GetStatsIamUserParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- params: GetStatsIamUserParams, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getStatsIamUser>>, TError, TData, QueryKey, GetStatsIamUserParams['page']>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getStatsIamUser>>,
-          TError,
-          Awaited<ReturnType<typeof getStatsIamUser>>, QueryKey
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetStatsIamUserInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getStatsIamUser>>, GetStatsIamUserParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- params: GetStatsIamUserParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getStatsIamUser>>, TError, TData, QueryKey, GetStatsIamUserParams['page']>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getStatsIamUser>>,
-          TError,
-          Awaited<ReturnType<typeof getStatsIamUser>>, QueryKey
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetStatsIamUserInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getStatsIamUser>>, GetStatsIamUserParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- params: GetStatsIamUserParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getStatsIamUser>>, TError, TData, QueryKey, GetStatsIamUserParams['page']>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary Get user statistics
- */
-
-export function useGetStatsIamUserInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getStatsIamUser>>, GetStatsIamUserParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- params: GetStatsIamUserParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getStatsIamUser>>, TError, TData, QueryKey, GetStatsIamUserParams['page']>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient 
- ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getGetStatsIamUserInfiniteQueryOptions(params,options)
-
-  const query = useInfiniteQuery(queryOptions, queryClient) as  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  query.queryKey = queryOptions.queryKey ;
-
-  return query;
-}
-
-
-
-export const getGetStatsIamUserQueryOptions = <TData = Awaited<ReturnType<typeof getStatsIamUser>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(params: GetStatsIamUserParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getStatsIamUser>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getGetStatsIamUserQueryKey(params);
-
-  
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getStatsIamUser>>> = ({ signal }) => getStatsIamUser(params, requestOptions, signal);
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getStatsIamUser>>> = ({ signal }) => getStatsIamUser(requestOptions, signal);
 
       
 
@@ -529,7 +289,7 @@ export type GetStatsIamUserQueryError = ErrorResponse | ErrorResponse | ErrorRes
 
 
 export function useGetStatsIamUser<TData = Awaited<ReturnType<typeof getStatsIamUser>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- params: GetStatsIamUserParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getStatsIamUser>>, TError, TData>> & Pick<
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getStatsIamUser>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getStatsIamUser>>,
           TError,
@@ -539,7 +299,7 @@ export function useGetStatsIamUser<TData = Awaited<ReturnType<typeof getStatsIam
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useGetStatsIamUser<TData = Awaited<ReturnType<typeof getStatsIamUser>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- params: GetStatsIamUserParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getStatsIamUser>>, TError, TData>> & Pick<
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getStatsIamUser>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getStatsIamUser>>,
           TError,
@@ -549,7 +309,7 @@ export function useGetStatsIamUser<TData = Awaited<ReturnType<typeof getStatsIam
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useGetStatsIamUser<TData = Awaited<ReturnType<typeof getStatsIamUser>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- params: GetStatsIamUserParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getStatsIamUser>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getStatsIamUser>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -557,11 +317,11 @@ export function useGetStatsIamUser<TData = Awaited<ReturnType<typeof getStatsIam
  */
 
 export function useGetStatsIamUser<TData = Awaited<ReturnType<typeof getStatsIamUser>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- params: GetStatsIamUserParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getStatsIamUser>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getStatsIamUser>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getGetStatsIamUserQueryOptions(params,options)
+  const queryOptions = getGetStatsIamUserQueryOptions(options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -580,14 +340,12 @@ This endpoint is restricted to system administrators.
  */
 export const findByTeamIamUser = (
     teamId: string,
-    params: FindByTeamIamUserParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
       
       
       return customInstance<string>(
-      {url: `/api/iam/users/by-team/${teamId}`, method: 'GET',
-        params, signal
+      {url: `/api/iam/users/by-team/${teamId}`, method: 'GET', signal
     },
       options);
     }
@@ -595,103 +353,23 @@ export const findByTeamIamUser = (
 
 
 
-export const getFindByTeamIamUserInfiniteQueryKey = (teamId?: string,
-    params?: FindByTeamIamUserParams,) => {
+export const getFindByTeamIamUserQueryKey = (teamId?: string,) => {
     return [
-    'infinite', `/api/iam/users/by-team/${teamId}`, ...(params ? [params]: [])
-    ] as const;
-    }
-
-export const getFindByTeamIamUserQueryKey = (teamId?: string,
-    params?: FindByTeamIamUserParams,) => {
-    return [
-    `/api/iam/users/by-team/${teamId}`, ...(params ? [params]: [])
+    `/api/iam/users/by-team/${teamId}`
     ] as const;
     }
 
     
-export const getFindByTeamIamUserInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof findByTeamIamUser>>, FindByTeamIamUserParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(teamId: string,
-    params: FindByTeamIamUserParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findByTeamIamUser>>, TError, TData, QueryKey, FindByTeamIamUserParams['page']>>, request?: SecondParameter<typeof customInstance>}
+export const getFindByTeamIamUserQueryOptions = <TData = Awaited<ReturnType<typeof findByTeamIamUser>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(teamId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findByTeamIamUser>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getFindByTeamIamUserInfiniteQueryKey(teamId,params);
+  const queryKey =  queryOptions?.queryKey ?? getFindByTeamIamUserQueryKey(teamId);
 
   
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof findByTeamIamUser>>, QueryKey, FindByTeamIamUserParams['page']> = ({ signal, pageParam }) => findByTeamIamUser(teamId,{...params, 'page': pageParam || params?.['page']}, requestOptions, signal);
-
-      
-
-      
-
-   return  { queryKey, queryFn, enabled: !!(teamId), ...queryOptions} as UseInfiniteQueryOptions<Awaited<ReturnType<typeof findByTeamIamUser>>, TError, TData, QueryKey, FindByTeamIamUserParams['page']> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type FindByTeamIamUserInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof findByTeamIamUser>>>
-export type FindByTeamIamUserInfiniteQueryError = ErrorResponse | ErrorResponse | ErrorResponse
-
-
-export function useFindByTeamIamUserInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findByTeamIamUser>>, FindByTeamIamUserParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- teamId: string,
-    params: FindByTeamIamUserParams, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findByTeamIamUser>>, TError, TData, QueryKey, FindByTeamIamUserParams['page']>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof findByTeamIamUser>>,
-          TError,
-          Awaited<ReturnType<typeof findByTeamIamUser>>, QueryKey
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useFindByTeamIamUserInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findByTeamIamUser>>, FindByTeamIamUserParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- teamId: string,
-    params: FindByTeamIamUserParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findByTeamIamUser>>, TError, TData, QueryKey, FindByTeamIamUserParams['page']>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof findByTeamIamUser>>,
-          TError,
-          Awaited<ReturnType<typeof findByTeamIamUser>>, QueryKey
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useFindByTeamIamUserInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findByTeamIamUser>>, FindByTeamIamUserParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- teamId: string,
-    params: FindByTeamIamUserParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findByTeamIamUser>>, TError, TData, QueryKey, FindByTeamIamUserParams['page']>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary List users by team
- */
-
-export function useFindByTeamIamUserInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findByTeamIamUser>>, FindByTeamIamUserParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- teamId: string,
-    params: FindByTeamIamUserParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findByTeamIamUser>>, TError, TData, QueryKey, FindByTeamIamUserParams['page']>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient 
- ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getFindByTeamIamUserInfiniteQueryOptions(teamId,params,options)
-
-  const query = useInfiniteQuery(queryOptions, queryClient) as  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  query.queryKey = queryOptions.queryKey ;
-
-  return query;
-}
-
-
-
-export const getFindByTeamIamUserQueryOptions = <TData = Awaited<ReturnType<typeof findByTeamIamUser>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(teamId: string,
-    params: FindByTeamIamUserParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findByTeamIamUser>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getFindByTeamIamUserQueryKey(teamId,params);
-
-  
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof findByTeamIamUser>>> = ({ signal }) => findByTeamIamUser(teamId,params, requestOptions, signal);
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof findByTeamIamUser>>> = ({ signal }) => findByTeamIamUser(teamId, requestOptions, signal);
 
       
 
@@ -705,8 +383,7 @@ export type FindByTeamIamUserQueryError = ErrorResponse | ErrorResponse | ErrorR
 
 
 export function useFindByTeamIamUser<TData = Awaited<ReturnType<typeof findByTeamIamUser>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- teamId: string,
-    params: FindByTeamIamUserParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof findByTeamIamUser>>, TError, TData>> & Pick<
+ teamId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof findByTeamIamUser>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof findByTeamIamUser>>,
           TError,
@@ -716,8 +393,7 @@ export function useFindByTeamIamUser<TData = Awaited<ReturnType<typeof findByTea
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useFindByTeamIamUser<TData = Awaited<ReturnType<typeof findByTeamIamUser>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- teamId: string,
-    params: FindByTeamIamUserParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findByTeamIamUser>>, TError, TData>> & Pick<
+ teamId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findByTeamIamUser>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof findByTeamIamUser>>,
           TError,
@@ -727,8 +403,7 @@ export function useFindByTeamIamUser<TData = Awaited<ReturnType<typeof findByTea
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useFindByTeamIamUser<TData = Awaited<ReturnType<typeof findByTeamIamUser>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- teamId: string,
-    params: FindByTeamIamUserParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findByTeamIamUser>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ teamId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findByTeamIamUser>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -736,12 +411,11 @@ export function useFindByTeamIamUser<TData = Awaited<ReturnType<typeof findByTea
  */
 
 export function useFindByTeamIamUser<TData = Awaited<ReturnType<typeof findByTeamIamUser>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- teamId: string,
-    params: FindByTeamIamUserParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findByTeamIamUser>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ teamId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findByTeamIamUser>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getFindByTeamIamUserQueryOptions(teamId,params,options)
+  const queryOptions = getFindByTeamIamUserQueryOptions(teamId,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -760,14 +434,12 @@ This endpoint is restricted to system administrators.
  */
 export const findByManagerIamUser = (
     managerId: string,
-    params: FindByManagerIamUserParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
       
       
       return customInstance<string>(
-      {url: `/api/iam/users/by-manager/${managerId}`, method: 'GET',
-        params, signal
+      {url: `/api/iam/users/by-manager/${managerId}`, method: 'GET', signal
     },
       options);
     }
@@ -775,103 +447,23 @@ export const findByManagerIamUser = (
 
 
 
-export const getFindByManagerIamUserInfiniteQueryKey = (managerId?: string,
-    params?: FindByManagerIamUserParams,) => {
+export const getFindByManagerIamUserQueryKey = (managerId?: string,) => {
     return [
-    'infinite', `/api/iam/users/by-manager/${managerId}`, ...(params ? [params]: [])
-    ] as const;
-    }
-
-export const getFindByManagerIamUserQueryKey = (managerId?: string,
-    params?: FindByManagerIamUserParams,) => {
-    return [
-    `/api/iam/users/by-manager/${managerId}`, ...(params ? [params]: [])
+    `/api/iam/users/by-manager/${managerId}`
     ] as const;
     }
 
     
-export const getFindByManagerIamUserInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof findByManagerIamUser>>, FindByManagerIamUserParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(managerId: string,
-    params: FindByManagerIamUserParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findByManagerIamUser>>, TError, TData, QueryKey, FindByManagerIamUserParams['page']>>, request?: SecondParameter<typeof customInstance>}
+export const getFindByManagerIamUserQueryOptions = <TData = Awaited<ReturnType<typeof findByManagerIamUser>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(managerId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findByManagerIamUser>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getFindByManagerIamUserInfiniteQueryKey(managerId,params);
+  const queryKey =  queryOptions?.queryKey ?? getFindByManagerIamUserQueryKey(managerId);
 
   
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof findByManagerIamUser>>, QueryKey, FindByManagerIamUserParams['page']> = ({ signal, pageParam }) => findByManagerIamUser(managerId,{...params, 'page': pageParam || params?.['page']}, requestOptions, signal);
-
-      
-
-      
-
-   return  { queryKey, queryFn, enabled: !!(managerId), ...queryOptions} as UseInfiniteQueryOptions<Awaited<ReturnType<typeof findByManagerIamUser>>, TError, TData, QueryKey, FindByManagerIamUserParams['page']> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type FindByManagerIamUserInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof findByManagerIamUser>>>
-export type FindByManagerIamUserInfiniteQueryError = ErrorResponse | ErrorResponse | ErrorResponse
-
-
-export function useFindByManagerIamUserInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findByManagerIamUser>>, FindByManagerIamUserParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- managerId: string,
-    params: FindByManagerIamUserParams, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findByManagerIamUser>>, TError, TData, QueryKey, FindByManagerIamUserParams['page']>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof findByManagerIamUser>>,
-          TError,
-          Awaited<ReturnType<typeof findByManagerIamUser>>, QueryKey
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useFindByManagerIamUserInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findByManagerIamUser>>, FindByManagerIamUserParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- managerId: string,
-    params: FindByManagerIamUserParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findByManagerIamUser>>, TError, TData, QueryKey, FindByManagerIamUserParams['page']>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof findByManagerIamUser>>,
-          TError,
-          Awaited<ReturnType<typeof findByManagerIamUser>>, QueryKey
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useFindByManagerIamUserInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findByManagerIamUser>>, FindByManagerIamUserParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- managerId: string,
-    params: FindByManagerIamUserParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findByManagerIamUser>>, TError, TData, QueryKey, FindByManagerIamUserParams['page']>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary List users by manager
- */
-
-export function useFindByManagerIamUserInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findByManagerIamUser>>, FindByManagerIamUserParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- managerId: string,
-    params: FindByManagerIamUserParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findByManagerIamUser>>, TError, TData, QueryKey, FindByManagerIamUserParams['page']>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient 
- ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getFindByManagerIamUserInfiniteQueryOptions(managerId,params,options)
-
-  const query = useInfiniteQuery(queryOptions, queryClient) as  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  query.queryKey = queryOptions.queryKey ;
-
-  return query;
-}
-
-
-
-export const getFindByManagerIamUserQueryOptions = <TData = Awaited<ReturnType<typeof findByManagerIamUser>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(managerId: string,
-    params: FindByManagerIamUserParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findByManagerIamUser>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getFindByManagerIamUserQueryKey(managerId,params);
-
-  
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof findByManagerIamUser>>> = ({ signal }) => findByManagerIamUser(managerId,params, requestOptions, signal);
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof findByManagerIamUser>>> = ({ signal }) => findByManagerIamUser(managerId, requestOptions, signal);
 
       
 
@@ -885,8 +477,7 @@ export type FindByManagerIamUserQueryError = ErrorResponse | ErrorResponse | Err
 
 
 export function useFindByManagerIamUser<TData = Awaited<ReturnType<typeof findByManagerIamUser>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- managerId: string,
-    params: FindByManagerIamUserParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof findByManagerIamUser>>, TError, TData>> & Pick<
+ managerId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof findByManagerIamUser>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof findByManagerIamUser>>,
           TError,
@@ -896,8 +487,7 @@ export function useFindByManagerIamUser<TData = Awaited<ReturnType<typeof findBy
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useFindByManagerIamUser<TData = Awaited<ReturnType<typeof findByManagerIamUser>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- managerId: string,
-    params: FindByManagerIamUserParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findByManagerIamUser>>, TError, TData>> & Pick<
+ managerId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findByManagerIamUser>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof findByManagerIamUser>>,
           TError,
@@ -907,8 +497,7 @@ export function useFindByManagerIamUser<TData = Awaited<ReturnType<typeof findBy
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useFindByManagerIamUser<TData = Awaited<ReturnType<typeof findByManagerIamUser>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- managerId: string,
-    params: FindByManagerIamUserParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findByManagerIamUser>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ managerId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findByManagerIamUser>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -916,12 +505,11 @@ export function useFindByManagerIamUser<TData = Awaited<ReturnType<typeof findBy
  */
 
 export function useFindByManagerIamUser<TData = Awaited<ReturnType<typeof findByManagerIamUser>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- managerId: string,
-    params: FindByManagerIamUserParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findByManagerIamUser>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ managerId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findByManagerIamUser>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getFindByManagerIamUserQueryOptions(managerId,params,options)
+  const queryOptions = getFindByManagerIamUserQueryOptions(managerId,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

@@ -20,21 +20,16 @@
  * OpenAPI spec version: 1.0.0
  */
 import {
-  useInfiniteQuery,
   useQuery
 } from '@tanstack/react-query';
 import type {
   DataTag,
   DefinedInitialDataOptions,
-  DefinedUseInfiniteQueryResult,
   DefinedUseQueryResult,
-  InfiniteData,
   QueryClient,
   QueryFunction,
   QueryKey,
   UndefinedInitialDataOptions,
-  UseInfiniteQueryOptions,
-  UseInfiniteQueryResult,
   UseQueryOptions,
   UseQueryResult
 } from '@tanstack/react-query';
@@ -76,12 +71,6 @@ export const getInfoConfigServer = (
 
 
 
-export const getGetInfoConfigServerInfiniteQueryKey = () => {
-    return [
-    'infinite', `/api/config-server/info`
-    ] as const;
-    }
-
 export const getGetInfoConfigServerQueryKey = () => {
     return [
     `/api/config-server/info`
@@ -89,72 +78,6 @@ export const getGetInfoConfigServerQueryKey = () => {
     }
 
     
-export const getGetInfoConfigServerInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof getInfoConfigServer>>>, TError = ErrorResponse | ErrorResponse>( options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getInfoConfigServer>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getGetInfoConfigServerInfiniteQueryKey();
-
-  
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getInfoConfigServer>>> = ({ signal }) => getInfoConfigServer(requestOptions, signal);
-
-      
-
-      
-
-   return  { queryKey, queryFn, ...queryOptions} as UseInfiniteQueryOptions<Awaited<ReturnType<typeof getInfoConfigServer>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type GetInfoConfigServerInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof getInfoConfigServer>>>
-export type GetInfoConfigServerInfiniteQueryError = ErrorResponse | ErrorResponse
-
-
-export function useGetInfoConfigServerInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getInfoConfigServer>>>, TError = ErrorResponse | ErrorResponse>(
-  options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getInfoConfigServer>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getInfoConfigServer>>,
-          TError,
-          Awaited<ReturnType<typeof getInfoConfigServer>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetInfoConfigServerInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getInfoConfigServer>>>, TError = ErrorResponse | ErrorResponse>(
-  options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getInfoConfigServer>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getInfoConfigServer>>,
-          TError,
-          Awaited<ReturnType<typeof getInfoConfigServer>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetInfoConfigServerInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getInfoConfigServer>>>, TError = ErrorResponse | ErrorResponse>(
-  options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getInfoConfigServer>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary Get Config Server information
- */
-
-export function useGetInfoConfigServerInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getInfoConfigServer>>>, TError = ErrorResponse | ErrorResponse>(
-  options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getInfoConfigServer>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient 
- ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getGetInfoConfigServerInfiniteQueryOptions(options)
-
-  const query = useInfiniteQuery(queryOptions, queryClient) as  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  query.queryKey = queryOptions.queryKey ;
-
-  return query;
-}
-
-
-
 export const getGetInfoConfigServerQueryOptions = <TData = Awaited<ReturnType<typeof getInfoConfigServer>>, TError = ErrorResponse | ErrorResponse>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getInfoConfigServer>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -242,12 +165,6 @@ export const getHealthConfigServer = (
 
 
 
-export const getGetHealthConfigServerInfiniteQueryKey = () => {
-    return [
-    'infinite', `/api/config-server/health`
-    ] as const;
-    }
-
 export const getGetHealthConfigServerQueryKey = () => {
     return [
     `/api/config-server/health`
@@ -255,72 +172,6 @@ export const getGetHealthConfigServerQueryKey = () => {
     }
 
     
-export const getGetHealthConfigServerInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof getHealthConfigServer>>>, TError = ErrorResponse | ErrorResponse>( options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getHealthConfigServer>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getGetHealthConfigServerInfiniteQueryKey();
-
-  
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getHealthConfigServer>>> = ({ signal }) => getHealthConfigServer(requestOptions, signal);
-
-      
-
-      
-
-   return  { queryKey, queryFn, ...queryOptions} as UseInfiniteQueryOptions<Awaited<ReturnType<typeof getHealthConfigServer>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type GetHealthConfigServerInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof getHealthConfigServer>>>
-export type GetHealthConfigServerInfiniteQueryError = ErrorResponse | ErrorResponse
-
-
-export function useGetHealthConfigServerInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getHealthConfigServer>>>, TError = ErrorResponse | ErrorResponse>(
-  options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getHealthConfigServer>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getHealthConfigServer>>,
-          TError,
-          Awaited<ReturnType<typeof getHealthConfigServer>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetHealthConfigServerInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getHealthConfigServer>>>, TError = ErrorResponse | ErrorResponse>(
-  options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getHealthConfigServer>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getHealthConfigServer>>,
-          TError,
-          Awaited<ReturnType<typeof getHealthConfigServer>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetHealthConfigServerInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getHealthConfigServer>>>, TError = ErrorResponse | ErrorResponse>(
-  options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getHealthConfigServer>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary Get Config Server health status
- */
-
-export function useGetHealthConfigServerInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getHealthConfigServer>>>, TError = ErrorResponse | ErrorResponse>(
-  options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getHealthConfigServer>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient 
- ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getGetHealthConfigServerInfiniteQueryOptions(options)
-
-  const query = useInfiniteQuery(queryOptions, queryClient) as  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  query.queryKey = queryOptions.queryKey ;
-
-  return query;
-}
-
-
-
 export const getGetHealthConfigServerQueryOptions = <TData = Awaited<ReturnType<typeof getHealthConfigServer>>, TError = ErrorResponse | ErrorResponse>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getHealthConfigServer>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -411,14 +262,6 @@ export const getEnvironmentConfigServer = (
 
 
 
-export const getGetEnvironmentConfigServerInfiniteQueryKey = (application?: string,
-    profile?: string,
-    params?: GetEnvironmentConfigServerParams,) => {
-    return [
-    'infinite', `/api/config-server/environment/${application}/${profile}`, ...(params ? [params]: [])
-    ] as const;
-    }
-
 export const getGetEnvironmentConfigServerQueryKey = (application?: string,
     profile?: string,
     params?: GetEnvironmentConfigServerParams,) => {
@@ -428,82 +271,6 @@ export const getGetEnvironmentConfigServerQueryKey = (application?: string,
     }
 
     
-export const getGetEnvironmentConfigServerInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof getEnvironmentConfigServer>>, GetEnvironmentConfigServerParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(application: string,
-    profile: string,
-    params?: GetEnvironmentConfigServerParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getEnvironmentConfigServer>>, TError, TData, QueryKey, GetEnvironmentConfigServerParams['page']>>, request?: SecondParameter<typeof customInstance>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getGetEnvironmentConfigServerInfiniteQueryKey(application,profile,params);
-
-  
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getEnvironmentConfigServer>>, QueryKey, GetEnvironmentConfigServerParams['page']> = ({ signal, pageParam }) => getEnvironmentConfigServer(application,profile,{...params, 'page': pageParam || params?.['page']}, requestOptions, signal);
-
-      
-
-      
-
-   return  { queryKey, queryFn, enabled: !!(application && profile), ...queryOptions} as UseInfiniteQueryOptions<Awaited<ReturnType<typeof getEnvironmentConfigServer>>, TError, TData, QueryKey, GetEnvironmentConfigServerParams['page']> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type GetEnvironmentConfigServerInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof getEnvironmentConfigServer>>>
-export type GetEnvironmentConfigServerInfiniteQueryError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse
-
-
-export function useGetEnvironmentConfigServerInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getEnvironmentConfigServer>>, GetEnvironmentConfigServerParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- application: string,
-    profile: string,
-    params: undefined |  GetEnvironmentConfigServerParams, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getEnvironmentConfigServer>>, TError, TData, QueryKey, GetEnvironmentConfigServerParams['page']>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getEnvironmentConfigServer>>,
-          TError,
-          Awaited<ReturnType<typeof getEnvironmentConfigServer>>, QueryKey
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetEnvironmentConfigServerInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getEnvironmentConfigServer>>, GetEnvironmentConfigServerParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- application: string,
-    profile: string,
-    params?: GetEnvironmentConfigServerParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getEnvironmentConfigServer>>, TError, TData, QueryKey, GetEnvironmentConfigServerParams['page']>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getEnvironmentConfigServer>>,
-          TError,
-          Awaited<ReturnType<typeof getEnvironmentConfigServer>>, QueryKey
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetEnvironmentConfigServerInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getEnvironmentConfigServer>>, GetEnvironmentConfigServerParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- application: string,
-    profile: string,
-    params?: GetEnvironmentConfigServerParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getEnvironmentConfigServer>>, TError, TData, QueryKey, GetEnvironmentConfigServerParams['page']>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary Get configuration environment
- */
-
-export function useGetEnvironmentConfigServerInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getEnvironmentConfigServer>>, GetEnvironmentConfigServerParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- application: string,
-    profile: string,
-    params?: GetEnvironmentConfigServerParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getEnvironmentConfigServer>>, TError, TData, QueryKey, GetEnvironmentConfigServerParams['page']>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient 
- ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getGetEnvironmentConfigServerInfiniteQueryOptions(application,profile,params,options)
-
-  const query = useInfiniteQuery(queryOptions, queryClient) as  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  query.queryKey = queryOptions.queryKey ;
-
-  return query;
-}
-
-
-
 export const getGetEnvironmentConfigServerQueryOptions = <TData = Awaited<ReturnType<typeof getEnvironmentConfigServer>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(application: string,
     profile: string,
     params?: GetEnvironmentConfigServerParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getEnvironmentConfigServer>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
@@ -601,12 +368,6 @@ export const getActuatorEndpointConfigServer = (
 
 
 
-export const getGetActuatorEndpointConfigServerInfiniteQueryKey = (path?: string,) => {
-    return [
-    'infinite', `/api/config-server/actuator/${path}`
-    ] as const;
-    }
-
 export const getGetActuatorEndpointConfigServerQueryKey = (path?: string,) => {
     return [
     `/api/config-server/actuator/${path}`
@@ -614,72 +375,6 @@ export const getGetActuatorEndpointConfigServerQueryKey = (path?: string,) => {
     }
 
     
-export const getGetActuatorEndpointConfigServerInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof getActuatorEndpointConfigServer>>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(path: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getActuatorEndpointConfigServer>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getGetActuatorEndpointConfigServerInfiniteQueryKey(path);
-
-  
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getActuatorEndpointConfigServer>>> = ({ signal }) => getActuatorEndpointConfigServer(path, requestOptions, signal);
-
-      
-
-      
-
-   return  { queryKey, queryFn, enabled: !!(path), ...queryOptions} as UseInfiniteQueryOptions<Awaited<ReturnType<typeof getActuatorEndpointConfigServer>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type GetActuatorEndpointConfigServerInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof getActuatorEndpointConfigServer>>>
-export type GetActuatorEndpointConfigServerInfiniteQueryError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse
-
-
-export function useGetActuatorEndpointConfigServerInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getActuatorEndpointConfigServer>>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- path: string, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getActuatorEndpointConfigServer>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getActuatorEndpointConfigServer>>,
-          TError,
-          Awaited<ReturnType<typeof getActuatorEndpointConfigServer>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetActuatorEndpointConfigServerInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getActuatorEndpointConfigServer>>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- path: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getActuatorEndpointConfigServer>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getActuatorEndpointConfigServer>>,
-          TError,
-          Awaited<ReturnType<typeof getActuatorEndpointConfigServer>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetActuatorEndpointConfigServerInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getActuatorEndpointConfigServer>>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- path: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getActuatorEndpointConfigServer>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary Proxy to Config Server actuator endpoint
- */
-
-export function useGetActuatorEndpointConfigServerInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getActuatorEndpointConfigServer>>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- path: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getActuatorEndpointConfigServer>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient 
- ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getGetActuatorEndpointConfigServerInfiniteQueryOptions(path,options)
-
-  const query = useInfiniteQuery(queryOptions, queryClient) as  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  query.queryKey = queryOptions.queryKey ;
-
-  return query;
-}
-
-
-
 export const getGetActuatorEndpointConfigServerQueryOptions = <TData = Awaited<ReturnType<typeof getActuatorEndpointConfigServer>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(path: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getActuatorEndpointConfigServer>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 

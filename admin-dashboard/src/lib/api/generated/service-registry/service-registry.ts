@@ -20,32 +20,25 @@
  * OpenAPI spec version: 1.0.0
  */
 import {
-  useInfiniteQuery,
   useQuery
 } from '@tanstack/react-query';
 import type {
   DataTag,
   DefinedInitialDataOptions,
-  DefinedUseInfiniteQueryResult,
   DefinedUseQueryResult,
-  InfiniteData,
   QueryClient,
   QueryFunction,
   QueryKey,
   UndefinedInitialDataOptions,
-  UseInfiniteQueryOptions,
-  UseInfiniteQueryResult,
   UseQueryOptions,
   UseQueryResult
 } from '@tanstack/react-query';
 
 import type {
-  ConsulHealthResponse,
-  ConsulServiceResponse,
   ConsulServicesMap,
   ErrorResponse,
   GetServiceRegistryServiceInstancesParams,
-  ServiceInstanceSummary
+  ServiceInstancesRegistryResponse
 } from '../../models';
 
 import { customInstance } from '../../mutator';
@@ -76,12 +69,6 @@ export const listServiceRegistryServices = (
 
 
 
-export const getListServiceRegistryServicesInfiniteQueryKey = () => {
-    return [
-    'infinite', `/api/registry/services`
-    ] as const;
-    }
-
 export const getListServiceRegistryServicesQueryKey = () => {
     return [
     `/api/registry/services`
@@ -89,72 +76,6 @@ export const getListServiceRegistryServicesQueryKey = () => {
     }
 
     
-export const getListServiceRegistryServicesInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof listServiceRegistryServices>>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>( options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof listServiceRegistryServices>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getListServiceRegistryServicesInfiniteQueryKey();
-
-  
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listServiceRegistryServices>>> = ({ signal }) => listServiceRegistryServices(requestOptions, signal);
-
-      
-
-      
-
-   return  { queryKey, queryFn, ...queryOptions} as UseInfiniteQueryOptions<Awaited<ReturnType<typeof listServiceRegistryServices>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type ListServiceRegistryServicesInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof listServiceRegistryServices>>>
-export type ListServiceRegistryServicesInfiniteQueryError = ErrorResponse | ErrorResponse | ErrorResponse
-
-
-export function useListServiceRegistryServicesInfinite<TData = InfiniteData<Awaited<ReturnType<typeof listServiceRegistryServices>>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
-  options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof listServiceRegistryServices>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof listServiceRegistryServices>>,
-          TError,
-          Awaited<ReturnType<typeof listServiceRegistryServices>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useListServiceRegistryServicesInfinite<TData = InfiniteData<Awaited<ReturnType<typeof listServiceRegistryServices>>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
-  options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof listServiceRegistryServices>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof listServiceRegistryServices>>,
-          TError,
-          Awaited<ReturnType<typeof listServiceRegistryServices>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useListServiceRegistryServicesInfinite<TData = InfiniteData<Awaited<ReturnType<typeof listServiceRegistryServices>>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
-  options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof listServiceRegistryServices>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary List all registered services
- */
-
-export function useListServiceRegistryServicesInfinite<TData = InfiniteData<Awaited<ReturnType<typeof listServiceRegistryServices>>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
-  options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof listServiceRegistryServices>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient 
- ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getListServiceRegistryServicesInfiniteQueryOptions(options)
-
-  const query = useInfiniteQuery(queryOptions, queryClient) as  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  query.queryKey = queryOptions.queryKey ;
-
-  return query;
-}
-
-
-
 export const getListServiceRegistryServicesQueryOptions = <TData = Awaited<ReturnType<typeof listServiceRegistryServices>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listServiceRegistryServices>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -222,172 +143,6 @@ export function useListServiceRegistryServices<TData = Awaited<ReturnType<typeof
 
 
 /**
- * Retrieves detailed information about a specific service from Consul.
-This includes all registered instances and their metadata.
-
- * @summary Get service details
- */
-export const getServiceRegistryService = (
-    serviceName: string,
- options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
-) => {
-      
-      
-      return customInstance<ConsulServiceResponse>(
-      {url: `/api/registry/services/${serviceName}`, method: 'GET', signal
-    },
-      options);
-    }
-  
-
-
-
-export const getGetServiceRegistryServiceInfiniteQueryKey = (serviceName?: string,) => {
-    return [
-    'infinite', `/api/registry/services/${serviceName}`
-    ] as const;
-    }
-
-export const getGetServiceRegistryServiceQueryKey = (serviceName?: string,) => {
-    return [
-    `/api/registry/services/${serviceName}`
-    ] as const;
-    }
-
-    
-export const getGetServiceRegistryServiceInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof getServiceRegistryService>>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(serviceName: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getServiceRegistryService>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getGetServiceRegistryServiceInfiniteQueryKey(serviceName);
-
-  
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getServiceRegistryService>>> = ({ signal }) => getServiceRegistryService(serviceName, requestOptions, signal);
-
-      
-
-      
-
-   return  { queryKey, queryFn, enabled: !!(serviceName), ...queryOptions} as UseInfiniteQueryOptions<Awaited<ReturnType<typeof getServiceRegistryService>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type GetServiceRegistryServiceInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof getServiceRegistryService>>>
-export type GetServiceRegistryServiceInfiniteQueryError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse
-
-
-export function useGetServiceRegistryServiceInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getServiceRegistryService>>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- serviceName: string, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getServiceRegistryService>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getServiceRegistryService>>,
-          TError,
-          Awaited<ReturnType<typeof getServiceRegistryService>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetServiceRegistryServiceInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getServiceRegistryService>>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- serviceName: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getServiceRegistryService>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getServiceRegistryService>>,
-          TError,
-          Awaited<ReturnType<typeof getServiceRegistryService>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetServiceRegistryServiceInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getServiceRegistryService>>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- serviceName: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getServiceRegistryService>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary Get service details
- */
-
-export function useGetServiceRegistryServiceInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getServiceRegistryService>>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- serviceName: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getServiceRegistryService>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient 
- ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getGetServiceRegistryServiceInfiniteQueryOptions(serviceName,options)
-
-  const query = useInfiniteQuery(queryOptions, queryClient) as  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  query.queryKey = queryOptions.queryKey ;
-
-  return query;
-}
-
-
-
-export const getGetServiceRegistryServiceQueryOptions = <TData = Awaited<ReturnType<typeof getServiceRegistryService>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(serviceName: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getServiceRegistryService>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getGetServiceRegistryServiceQueryKey(serviceName);
-
-  
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getServiceRegistryService>>> = ({ signal }) => getServiceRegistryService(serviceName, requestOptions, signal);
-
-      
-
-      
-
-   return  { queryKey, queryFn, enabled: !!(serviceName), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getServiceRegistryService>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type GetServiceRegistryServiceQueryResult = NonNullable<Awaited<ReturnType<typeof getServiceRegistryService>>>
-export type GetServiceRegistryServiceQueryError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse
-
-
-export function useGetServiceRegistryService<TData = Awaited<ReturnType<typeof getServiceRegistryService>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- serviceName: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getServiceRegistryService>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getServiceRegistryService>>,
-          TError,
-          Awaited<ReturnType<typeof getServiceRegistryService>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetServiceRegistryService<TData = Awaited<ReturnType<typeof getServiceRegistryService>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- serviceName: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getServiceRegistryService>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getServiceRegistryService>>,
-          TError,
-          Awaited<ReturnType<typeof getServiceRegistryService>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetServiceRegistryService<TData = Awaited<ReturnType<typeof getServiceRegistryService>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- serviceName: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getServiceRegistryService>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary Get service details
- */
-
-export function useGetServiceRegistryService<TData = Awaited<ReturnType<typeof getServiceRegistryService>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- serviceName: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getServiceRegistryService>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient 
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getGetServiceRegistryServiceQueryOptions(serviceName,options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  query.queryKey = queryOptions.queryKey ;
-
-  return query;
-}
-
-
-
-/**
  * Retrieves instances of a specific service from Consul.
 Can filter to show only healthy instances or all instances.
 
@@ -400,7 +155,7 @@ export const getServiceRegistryServiceInstances = (
 ) => {
       
       
-      return customInstance<ServiceInstanceSummary>(
+      return customInstance<ServiceInstancesRegistryResponse>(
       {url: `/api/registry/services/${serviceName}/instances`, method: 'GET',
         params, signal
     },
@@ -410,13 +165,6 @@ export const getServiceRegistryServiceInstances = (
 
 
 
-export const getGetServiceRegistryServiceInstancesInfiniteQueryKey = (serviceName?: string,
-    params?: GetServiceRegistryServiceInstancesParams,) => {
-    return [
-    'infinite', `/api/registry/services/${serviceName}/instances`, ...(params ? [params]: [])
-    ] as const;
-    }
-
 export const getGetServiceRegistryServiceInstancesQueryKey = (serviceName?: string,
     params?: GetServiceRegistryServiceInstancesParams,) => {
     return [
@@ -425,77 +173,6 @@ export const getGetServiceRegistryServiceInstancesQueryKey = (serviceName?: stri
     }
 
     
-export const getGetServiceRegistryServiceInstancesInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof getServiceRegistryServiceInstances>>, GetServiceRegistryServiceInstancesParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(serviceName: string,
-    params?: GetServiceRegistryServiceInstancesParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getServiceRegistryServiceInstances>>, TError, TData, QueryKey, GetServiceRegistryServiceInstancesParams['page']>>, request?: SecondParameter<typeof customInstance>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getGetServiceRegistryServiceInstancesInfiniteQueryKey(serviceName,params);
-
-  
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getServiceRegistryServiceInstances>>, QueryKey, GetServiceRegistryServiceInstancesParams['page']> = ({ signal, pageParam }) => getServiceRegistryServiceInstances(serviceName,{...params, 'page': pageParam || params?.['page']}, requestOptions, signal);
-
-      
-
-      
-
-   return  { queryKey, queryFn, enabled: !!(serviceName), ...queryOptions} as UseInfiniteQueryOptions<Awaited<ReturnType<typeof getServiceRegistryServiceInstances>>, TError, TData, QueryKey, GetServiceRegistryServiceInstancesParams['page']> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type GetServiceRegistryServiceInstancesInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof getServiceRegistryServiceInstances>>>
-export type GetServiceRegistryServiceInstancesInfiniteQueryError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse
-
-
-export function useGetServiceRegistryServiceInstancesInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getServiceRegistryServiceInstances>>, GetServiceRegistryServiceInstancesParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- serviceName: string,
-    params: undefined |  GetServiceRegistryServiceInstancesParams, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getServiceRegistryServiceInstances>>, TError, TData, QueryKey, GetServiceRegistryServiceInstancesParams['page']>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getServiceRegistryServiceInstances>>,
-          TError,
-          Awaited<ReturnType<typeof getServiceRegistryServiceInstances>>, QueryKey
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetServiceRegistryServiceInstancesInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getServiceRegistryServiceInstances>>, GetServiceRegistryServiceInstancesParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- serviceName: string,
-    params?: GetServiceRegistryServiceInstancesParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getServiceRegistryServiceInstances>>, TError, TData, QueryKey, GetServiceRegistryServiceInstancesParams['page']>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getServiceRegistryServiceInstances>>,
-          TError,
-          Awaited<ReturnType<typeof getServiceRegistryServiceInstances>>, QueryKey
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetServiceRegistryServiceInstancesInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getServiceRegistryServiceInstances>>, GetServiceRegistryServiceInstancesParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- serviceName: string,
-    params?: GetServiceRegistryServiceInstancesParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getServiceRegistryServiceInstances>>, TError, TData, QueryKey, GetServiceRegistryServiceInstancesParams['page']>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary Get service instances
- */
-
-export function useGetServiceRegistryServiceInstancesInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getServiceRegistryServiceInstances>>, GetServiceRegistryServiceInstancesParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- serviceName: string,
-    params?: GetServiceRegistryServiceInstancesParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getServiceRegistryServiceInstances>>, TError, TData, QueryKey, GetServiceRegistryServiceInstancesParams['page']>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient 
- ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getGetServiceRegistryServiceInstancesInfiniteQueryOptions(serviceName,params,options)
-
-  const query = useInfiniteQuery(queryOptions, queryClient) as  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  query.queryKey = queryOptions.queryKey ;
-
-  return query;
-}
-
-
-
 export const getGetServiceRegistryServiceInstancesQueryOptions = <TData = Awaited<ReturnType<typeof getServiceRegistryServiceInstances>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(serviceName: string,
     params?: GetServiceRegistryServiceInstancesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getServiceRegistryServiceInstances>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
@@ -557,172 +234,6 @@ export function useGetServiceRegistryServiceInstances<TData = Awaited<ReturnType
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getGetServiceRegistryServiceInstancesQueryOptions(serviceName,params,options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  query.queryKey = queryOptions.queryKey ;
-
-  return query;
-}
-
-
-
-/**
- * Retrieves the health status of a specific service from Consul.
-This includes health checks for all instances of the service.
-
- * @summary Get service health status
- */
-export const getServiceRegistryServiceHealth = (
-    serviceName: string,
- options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
-) => {
-      
-      
-      return customInstance<ConsulHealthResponse>(
-      {url: `/api/registry/health/${serviceName}`, method: 'GET', signal
-    },
-      options);
-    }
-  
-
-
-
-export const getGetServiceRegistryServiceHealthInfiniteQueryKey = (serviceName?: string,) => {
-    return [
-    'infinite', `/api/registry/health/${serviceName}`
-    ] as const;
-    }
-
-export const getGetServiceRegistryServiceHealthQueryKey = (serviceName?: string,) => {
-    return [
-    `/api/registry/health/${serviceName}`
-    ] as const;
-    }
-
-    
-export const getGetServiceRegistryServiceHealthInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof getServiceRegistryServiceHealth>>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(serviceName: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getServiceRegistryServiceHealth>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getGetServiceRegistryServiceHealthInfiniteQueryKey(serviceName);
-
-  
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getServiceRegistryServiceHealth>>> = ({ signal }) => getServiceRegistryServiceHealth(serviceName, requestOptions, signal);
-
-      
-
-      
-
-   return  { queryKey, queryFn, enabled: !!(serviceName), ...queryOptions} as UseInfiniteQueryOptions<Awaited<ReturnType<typeof getServiceRegistryServiceHealth>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type GetServiceRegistryServiceHealthInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof getServiceRegistryServiceHealth>>>
-export type GetServiceRegistryServiceHealthInfiniteQueryError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse
-
-
-export function useGetServiceRegistryServiceHealthInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getServiceRegistryServiceHealth>>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- serviceName: string, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getServiceRegistryServiceHealth>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getServiceRegistryServiceHealth>>,
-          TError,
-          Awaited<ReturnType<typeof getServiceRegistryServiceHealth>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetServiceRegistryServiceHealthInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getServiceRegistryServiceHealth>>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- serviceName: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getServiceRegistryServiceHealth>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getServiceRegistryServiceHealth>>,
-          TError,
-          Awaited<ReturnType<typeof getServiceRegistryServiceHealth>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetServiceRegistryServiceHealthInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getServiceRegistryServiceHealth>>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- serviceName: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getServiceRegistryServiceHealth>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary Get service health status
- */
-
-export function useGetServiceRegistryServiceHealthInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getServiceRegistryServiceHealth>>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- serviceName: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getServiceRegistryServiceHealth>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient 
- ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getGetServiceRegistryServiceHealthInfiniteQueryOptions(serviceName,options)
-
-  const query = useInfiniteQuery(queryOptions, queryClient) as  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  query.queryKey = queryOptions.queryKey ;
-
-  return query;
-}
-
-
-
-export const getGetServiceRegistryServiceHealthQueryOptions = <TData = Awaited<ReturnType<typeof getServiceRegistryServiceHealth>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(serviceName: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getServiceRegistryServiceHealth>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getGetServiceRegistryServiceHealthQueryKey(serviceName);
-
-  
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getServiceRegistryServiceHealth>>> = ({ signal }) => getServiceRegistryServiceHealth(serviceName, requestOptions, signal);
-
-      
-
-      
-
-   return  { queryKey, queryFn, enabled: !!(serviceName), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getServiceRegistryServiceHealth>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type GetServiceRegistryServiceHealthQueryResult = NonNullable<Awaited<ReturnType<typeof getServiceRegistryServiceHealth>>>
-export type GetServiceRegistryServiceHealthQueryError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse
-
-
-export function useGetServiceRegistryServiceHealth<TData = Awaited<ReturnType<typeof getServiceRegistryServiceHealth>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- serviceName: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getServiceRegistryServiceHealth>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getServiceRegistryServiceHealth>>,
-          TError,
-          Awaited<ReturnType<typeof getServiceRegistryServiceHealth>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetServiceRegistryServiceHealth<TData = Awaited<ReturnType<typeof getServiceRegistryServiceHealth>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- serviceName: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getServiceRegistryServiceHealth>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getServiceRegistryServiceHealth>>,
-          TError,
-          Awaited<ReturnType<typeof getServiceRegistryServiceHealth>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetServiceRegistryServiceHealth<TData = Awaited<ReturnType<typeof getServiceRegistryServiceHealth>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- serviceName: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getServiceRegistryServiceHealth>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary Get service health status
- */
-
-export function useGetServiceRegistryServiceHealth<TData = Awaited<ReturnType<typeof getServiceRegistryServiceHealth>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- serviceName: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getServiceRegistryServiceHealth>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient 
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getGetServiceRegistryServiceHealthQueryOptions(serviceName,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

@@ -1,92 +1,132 @@
-import React from 'react';
-import { type GridColDef, GridActionsCellItem } from '@mui/x-data-grid';
-import {
-  Visibility as ViewIcon,
-  CheckCircle as ResolveIcon,
+import { DataGrid, type GridColDef, GridActionsCellItem } from '@mui/x-data-grid';
+import { 
+  Visibility as ViewIcon, 
+  CheckCircle as ResolveIcon, 
+  RemoveCircle as IgnoreIcon 
 } from '@mui/icons-material';
-import { DataTable } from '@components/common/DataTable';
-import { ChipStatus } from '@components/common/ChipStatus';
-import { DriftSeverityChip } from './DriftSeverityChip';
-import type { DriftEvent } from '../types';
-import { usePermissions } from '@features/auth/hooks/usePermissions';
+import { Box, Chip } from '@mui/material';
+import type { DriftEventResponse } from '@lib/api/models';
+import { format } from 'date-fns';
 
 interface DriftEventTableProps {
-  events: DriftEvent[];
-  loading?: boolean;
-  onView: (id: string) => void;
-  onResolve: (event: DriftEvent) => void;
+  events: DriftEventResponse[];
+  loading: boolean;
+  page: number;
+  pageSize: number;
+  totalElements: number;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (pageSize: number) => void;
+  onRowClick: (eventId: string) => void;
+  onResolve?: (eventId: string) => void;
+  onIgnore?: (eventId: string) => void;
 }
 
-export const DriftEventTable: React.FC<DriftEventTableProps> = ({
+export function DriftEventTable({
   events,
   loading,
-  onView,
+  page,
+  pageSize,
+  totalElements,
+  onPageChange,
+  onPageSizeChange,
+  onRowClick,
   onResolve,
-}) => {
-  const { canViewDriftEvents } = usePermissions();
+  onIgnore,
+}: DriftEventTableProps) {
+  const getStatusColor = (status?: string): 'default' | 'success' | 'warning' | 'error' => {
+    switch (status) {
+      case 'DETECTED':
+        return 'warning';
+      case 'RESOLVED':
+        return 'success';
+      case 'IGNORED':
+        return 'default';
+      default:
+        return 'error';
+    }
+  };
 
-  const columns: GridColDef[] = [
-    { 
-      field: 'serviceName', 
-      headerName: 'Service Name', 
-      width: 200,
+  const getSeverityColor = (severity?: string): 'default' | 'info' | 'warning' | 'error' => {
+    switch (severity) {
+      case 'LOW':
+        return 'info';
+      case 'MEDIUM':
+        return 'warning';
+      case 'HIGH':
+        return 'warning';
+      case 'CRITICAL':
+        return 'error';
+      default:
+        return 'default';
+    }
+  };
+
+  const columns: GridColDef<DriftEventResponse>[] = [
+    {
+      field: 'serviceName',
+      headerName: 'Service Name',
+      flex: 1,
+      minWidth: 150,
       renderCell: (params) => (
-        <strong>{params.value}</strong>
+        <Box sx={{ fontWeight: 600 }}>{params.value}</Box>
       ),
-    },
-    { 
-      field: 'instanceId', 
-      headerName: 'Instance ID', 
-      width: 150,
-      renderCell: (params) => (
-        <span style={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>
-          {params.value.substring(0, 8)}...
-        </span>
-      ),
-    },
-    { 
-      field: 'environment', 
-      headerName: 'Environment', 
-      width: 120,
-      renderCell: (params) => {
-        const env = params.value;
-        return env ? (
-          <span style={{ textTransform: 'uppercase', fontWeight: 500 }}>
-            {env}
-          </span>
-        ) : 'N/A';
-      },
     },
     {
-      field: 'severity',
-      headerName: 'Severity',
-      width: 120,
-      renderCell: (params) => <DriftSeverityChip severity={params.value} />,
+      field: 'instanceId',
+      headerName: 'Instance ID',
+      flex: 1,
+      minWidth: 200,
+      renderCell: (params) => (
+        <Box sx={{ fontFamily: 'monospace', fontSize: '0.875rem' }}>
+          {params.value}
+        </Box>
+      ),
     },
     {
       field: 'status',
       headerName: 'Status',
       width: 120,
-      renderCell: (params) => <ChipStatus status={params.value} />,
+      renderCell: (params) => (
+        <Chip label={params.value || 'Unknown'} color={getStatusColor(params.value)} size="small" />
+      ),
+    },
+    {
+      field: 'severity',
+      headerName: 'Severity',
+      width: 120,
+      renderCell: (params) => (
+        <Chip
+          label={params.value || 'Unknown'}
+          color={getSeverityColor(params.value)}
+          size="small"
+          variant="outlined"
+        />
+      ),
     },
     {
       field: 'detectedAt',
       headerName: 'Detected At',
-      width: 150,
-      type: 'dateTime',
-      valueFormatter: (value: any) => {
-        if (!value) return '';
-        return new Date(value).toLocaleDateString();
+      width: 160,
+      renderCell: (params) => {
+        if (!params.value) return '-';
+        try {
+          return format(new Date(params.value), 'MMM dd, yyyy HH:mm');
+        } catch {
+          return params.value;
+        }
       },
     },
     {
       field: 'resolvedAt',
       headerName: 'Resolved At',
-      width: 150,
-      type: 'dateTime',
-      valueFormatter: (value: any) => {
-        if (!value) return '';
-        return new Date(value).toLocaleDateString();
+      width: 160,
+      renderCell: (params) => {
+        if (!params.value) return '-';
+        try {
+          return format(new Date(params.value), 'MMM dd, yyyy HH:mm');
+        } catch {
+          return params.value;
+        }
       },
     },
     {
@@ -95,27 +135,32 @@ export const DriftEventTable: React.FC<DriftEventTableProps> = ({
       headerName: 'Actions',
       width: 120,
       getActions: (params) => {
-        const event = params.row as DriftEvent;
-        const canResolve = canViewDriftEvents && event.status === 'OPEN';
-        
         const actions = [
           <GridActionsCellItem
             key="view"
             icon={<ViewIcon />}
             label="View"
-            onClick={() => onView(params.id as string)}
-            showInMenu
+            onClick={() => onRowClick(params.row.id || '')}
+            showInMenu={false}
           />,
         ];
 
-        if (canResolve) {
+        // Only show Resolve/Ignore for DETECTED status
+        if (params.row.status === 'DETECTED' && onResolve && onIgnore) {
           actions.push(
             <GridActionsCellItem
               key="resolve"
-              icon={<ResolveIcon />}
+              icon={<ResolveIcon style={{ color: 'var(--mui-palette-success-main)' }} />}
               label="Resolve"
-              onClick={() => onResolve(event)}
-              showInMenu
+              onClick={() => onResolve(params.row.id || '')}
+              showInMenu={false}
+            />,
+            <GridActionsCellItem
+              key="ignore"
+              icon={<IgnoreIcon style={{ color: 'var(--mui-palette-grey-500)' }} />}
+              label="Ignore"
+              onClick={() => onIgnore(params.row.id || '')}
+              showInMenu={false}
             />
           );
         }
@@ -125,5 +170,34 @@ export const DriftEventTable: React.FC<DriftEventTableProps> = ({
     },
   ];
 
-  return <DataTable rows={events} columns={columns} loading={loading} getRowId={(row) => row.id} />;
-};
+  // Create rows with unique id for DataGrid (events already have id field)
+  const rows = events;
+
+  return (
+    <Box sx={{ height: 600, width: '100%' }}>
+      <DataGrid
+        rows={rows}
+        columns={columns}
+        loading={loading}
+        paginationMode="server"
+        rowCount={totalElements}
+        paginationModel={{ page, pageSize }}
+        onPaginationModelChange={(model) => {
+          if (model.page !== page) {
+            onPageChange(model.page);
+          }
+          if (model.pageSize !== pageSize) {
+            onPageSizeChange(model.pageSize);
+          }
+        }}
+        pageSizeOptions={[10, 20, 50, 100]}
+        disableRowSelectionOnClick
+        sx={{
+          '& .MuiDataGrid-row': {
+            cursor: 'pointer',
+          },
+        }}
+      />
+    </Box>
+  );
+}

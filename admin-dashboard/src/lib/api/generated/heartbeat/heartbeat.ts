@@ -20,23 +20,18 @@
  * OpenAPI spec version: 1.0.0
  */
 import {
-  useInfiniteQuery,
   useMutation,
   useQuery
 } from '@tanstack/react-query';
 import type {
   DataTag,
   DefinedInitialDataOptions,
-  DefinedUseInfiniteQueryResult,
   DefinedUseQueryResult,
-  InfiniteData,
   MutationFunction,
   QueryClient,
   QueryFunction,
   QueryKey,
   UndefinedInitialDataOptions,
-  UseInfiniteQueryOptions,
-  UseInfiniteQueryResult,
   UseMutationOptions,
   UseMutationResult,
   UseQueryOptions,
@@ -148,12 +143,6 @@ export const heartbeatHealth = (
 
 
 
-export const getHeartbeatHealthInfiniteQueryKey = () => {
-    return [
-    'infinite', `/api/heartbeat/health`
-    ] as const;
-    }
-
 export const getHeartbeatHealthQueryKey = () => {
     return [
     `/api/heartbeat/health`
@@ -161,72 +150,6 @@ export const getHeartbeatHealthQueryKey = () => {
     }
 
     
-export const getHeartbeatHealthInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof heartbeatHealth>>>, TError = ErrorResponse>( options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof heartbeatHealth>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getHeartbeatHealthInfiniteQueryKey();
-
-  
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof heartbeatHealth>>> = ({ signal }) => heartbeatHealth(requestOptions, signal);
-
-      
-
-      
-
-   return  { queryKey, queryFn, ...queryOptions} as UseInfiniteQueryOptions<Awaited<ReturnType<typeof heartbeatHealth>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type HeartbeatHealthInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof heartbeatHealth>>>
-export type HeartbeatHealthInfiniteQueryError = ErrorResponse
-
-
-export function useHeartbeatHealthInfinite<TData = InfiniteData<Awaited<ReturnType<typeof heartbeatHealth>>>, TError = ErrorResponse>(
-  options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof heartbeatHealth>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof heartbeatHealth>>,
-          TError,
-          Awaited<ReturnType<typeof heartbeatHealth>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useHeartbeatHealthInfinite<TData = InfiniteData<Awaited<ReturnType<typeof heartbeatHealth>>>, TError = ErrorResponse>(
-  options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof heartbeatHealth>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof heartbeatHealth>>,
-          TError,
-          Awaited<ReturnType<typeof heartbeatHealth>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useHeartbeatHealthInfinite<TData = InfiniteData<Awaited<ReturnType<typeof heartbeatHealth>>>, TError = ErrorResponse>(
-  options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof heartbeatHealth>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary Health check endpoint
- */
-
-export function useHeartbeatHealthInfinite<TData = InfiniteData<Awaited<ReturnType<typeof heartbeatHealth>>>, TError = ErrorResponse>(
-  options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof heartbeatHealth>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient 
- ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getHeartbeatHealthInfiniteQueryOptions(options)
-
-  const query = useInfiniteQuery(queryOptions, queryClient) as  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  query.queryKey = queryOptions.queryKey ;
-
-  return query;
-}
-
-
-
 export const getHeartbeatHealthQueryOptions = <TData = Awaited<ReturnType<typeof heartbeatHealth>>, TError = ErrorResponse>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof heartbeatHealth>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 

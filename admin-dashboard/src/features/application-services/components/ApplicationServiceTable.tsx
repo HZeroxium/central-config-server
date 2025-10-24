@@ -1,154 +1,175 @@
-import React from 'react';
-import { type GridColDef, GridActionsCellItem } from '@mui/x-data-grid';
-import {
-  Visibility as ViewIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Share as ShareIcon,
-} from '@mui/icons-material';
-import { DataTable } from '@components/common/DataTable';
-import { ChipStatus } from '@components/common/ChipStatus';
-import type { ApplicationService } from '../types';
-import { usePermissions } from '@features/auth/hooks/usePermissions';
+import { DataGrid, type GridColDef, GridActionsCellItem } from '@mui/x-data-grid';
+import { Delete as DeleteIcon, Visibility as ViewIcon, PersonAdd as RequestOwnershipIcon } from '@mui/icons-material';
+import { Box, Chip } from '@mui/material';
+import type { ApplicationServiceResponse } from '@lib/api/models';
+import { useAuth } from '@features/auth/authContext';
 
 interface ApplicationServiceTableProps {
-  services: ApplicationService[];
-  loading?: boolean;
-  onView?: (service: ApplicationService) => void;
-  onEdit?: (service: ApplicationService) => void;
-  onDelete?: (service: ApplicationService) => void;
-  onShare?: (service: ApplicationService) => void;
+  services: ApplicationServiceResponse[];
+  loading: boolean;
+  page: number;
+  pageSize: number;
+  totalElements: number;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (pageSize: number) => void;
+  onRowClick: (serviceId: string) => void;
+  onDelete: (serviceId: string) => void;
+  onRequestOwnership?: (serviceId: string) => void;
 }
 
-export const ApplicationServiceTable: React.FC<ApplicationServiceTableProps> = ({
+export function ApplicationServiceTable({
   services,
-  loading = false,
-  onView,
-  onEdit,
+  loading,
+  page,
+  pageSize,
+  totalElements,
+  onPageChange,
+  onPageSizeChange,
+  onRowClick,
   onDelete,
-  onShare,
-}) => {
-  const { canEditService, canDeleteService, canShareService } = usePermissions();
+  onRequestOwnership,
+}: ApplicationServiceTableProps) {
+  const { isSysAdmin, permissions } = useAuth();
 
-  const columns: GridColDef[] = [
+  const canDelete = (serviceId?: string) => {
+    if (isSysAdmin) return true;
+    if (!serviceId) return false;
+    return permissions?.ownedServiceIds?.includes(serviceId) || false;
+  };
+
+  const isOrphaned = (service: ApplicationServiceResponse) => {
+    return !service.ownerTeamId || service.ownerTeamId === null;
+  };
+
+  const columns: GridColDef<ApplicationServiceResponse>[] = [
     {
       field: 'id',
       headerName: 'Service ID',
-      width: 200,
+      flex: 1,
+      minWidth: 200,
       renderCell: (params) => (
-        <span style={{ fontWeight: 500, fontFamily: 'monospace' }}>
+        <Box sx={{ fontFamily: 'monospace', fontWeight: 600, color: 'primary.main' }}>
           {params.value}
-        </span>
+        </Box>
       ),
     },
     {
       field: 'displayName',
       headerName: 'Display Name',
-      width: 250,
-      flex: 1,
+      flex: 1.5,
+      minWidth: 220,
     },
     {
       field: 'ownerTeamId',
       headerName: 'Owner Team',
-      width: 180,
-      renderCell: (params) => (
-        <ChipStatus
-          status="ACTIVE"
-          label={params.value}
-          variant="outlined"
-        />
-      ),
-    },
-    {
-      field: 'environments',
-      headerName: 'Environments',
       width: 200,
-      renderCell: (params) => (
-        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-          {params.value.map((env: string) => (
-            <ChipStatus
-              key={env}
-              status={env.toUpperCase()}
-              label={env}
+      renderCell: (params) => {
+        if (!params.value) {
+          return (
+            <Chip 
+              label="UNASSIGNED" 
+              color="warning" 
               size="small"
+              sx={{ fontWeight: 600 }}
             />
-          ))}
-        </div>
-      ),
+          );
+        }
+        return <Chip label={params.value} variant="outlined" size="small" />;
+      },
     },
     {
       field: 'lifecycle',
       headerName: 'Lifecycle',
       width: 120,
-      renderCell: (params) => params.value ? (
-        <ChipStatus
-          status={params.value}
-          label={params.value}
-        />
-      ) : (
-        <span style={{ color: '#666' }}>Not set</span>
-      ),
+      renderCell: (params) => {
+        const lifecycleColors: Record<string, 'success' | 'warning' | 'error' | 'default'> = {
+          ACTIVE: 'success',
+          DEPRECATED: 'warning',
+          RETIRED: 'error',
+        };
+        const color = lifecycleColors[params.value as string] || 'default';
+        return <Chip label={params.value} color={color} size="small" />;
+      },
     },
     {
-      field: 'createdAt',
-      headerName: 'Created',
-      width: 150,
-      type: 'dateTime',
-      valueFormatter: (value: any) => {
-        if (!value) return '';
-        return new Date(value).toLocaleDateString();
+      field: 'environments',
+      headerName: 'Environments',
+      flex: 1,
+      minWidth: 150,
+      renderCell: (params) => {
+        const envs = params.value as string[] | undefined;
+        if (!envs || envs.length === 0) return '-';
+        return (
+          <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+            {envs.slice(0, 3).map((env) => (
+              <Chip
+                key={env}
+                label={env.toUpperCase()}
+                size="small"
+                variant="outlined"
+                color={env === 'prod' ? 'error' : env === 'staging' ? 'warning' : 'info'}
+              />
+            ))}
+            {envs.length > 3 && <Chip label={`+${envs.length - 3}`} size="small" variant="outlined" />}
+          </Box>
+        );
+      },
+    },
+    {
+      field: 'tags',
+      headerName: 'Tags',
+      flex: 1,
+      minWidth: 150,
+      renderCell: (params) => {
+        const tags = params.value as string[] | undefined;
+        if (!tags || tags.length === 0) return '-';
+        return (
+          <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+            {tags.slice(0, 2).map((tag) => (
+              <Chip key={tag} label={tag} size="small" variant="filled" color="default" />
+            ))}
+            {tags.length > 2 && <Chip label={`+${tags.length - 2}`} size="small" />}
+          </Box>
+        );
       },
     },
     {
       field: 'actions',
       type: 'actions',
       headerName: 'Actions',
-      width: 150,
+      width: 120,
       getActions: (params) => {
-        const service = params.row as ApplicationService;
-        const actions = [];
+        const actions = [
+          <GridActionsCellItem
+            key="view"
+            icon={<ViewIcon />}
+            label="View"
+            onClick={() => onRowClick(params.row.id || '')}
+            showInMenu={false}
+          />,
+        ];
 
-        if (onView) {
+        // Add Request Ownership action for orphaned services
+        if (isOrphaned(params.row) && onRequestOwnership) {
           actions.push(
             <GridActionsCellItem
-              key="view"
-              icon={<ViewIcon />}
-              label="View"
-              onClick={() => onView(service)}
+              key="request-ownership"
+              icon={<RequestOwnershipIcon style={{ color: 'var(--mui-palette-warning-main)' }} />}
+              label="Request Ownership"
+              onClick={() => onRequestOwnership(params.row.id || '')}
+              showInMenu={false}
             />
           );
         }
 
-        if (canEditService(service.id) && onEdit) {
-          actions.push(
-            <GridActionsCellItem
-              key="edit"
-              icon={<EditIcon />}
-              label="Edit"
-              onClick={() => onEdit(service)}
-            />
-          );
-        }
-
-        if (canShareService(service.id) && onShare) {
-          actions.push(
-            <GridActionsCellItem
-              key="share"
-              icon={<ShareIcon />}
-              label="Share"
-              onClick={() => onShare(service)}
-            />
-          );
-        }
-
-        if (canDeleteService(service.id) && onDelete) {
+        if (canDelete(params.row.id)) {
           actions.push(
             <GridActionsCellItem
               key="delete"
               icon={<DeleteIcon />}
               label="Delete"
-              onClick={() => onDelete(service)}
-              showInMenu
+              onClick={() => onDelete(params.row.id || '')}
+              showInMenu={false}
             />
           );
         }
@@ -158,15 +179,43 @@ export const ApplicationServiceTable: React.FC<ApplicationServiceTableProps> = (
     },
   ];
 
-  return (
-    <DataTable
-      rows={services}
-      columns={columns}
-      loading={loading}
-      getRowId={(row) => row.id}
-      noRowsMessage="No application services found"
-    />
-  );
-};
+  // Create rows with unique id for DataGrid (service already has id field)
+  const rows = services;
 
-export default ApplicationServiceTable;
+  return (
+    <Box sx={{ height: 600, width: '100%' }}>
+      <DataGrid
+        rows={rows}
+        columns={columns}
+        loading={loading}
+        paginationMode="server"
+        rowCount={totalElements}
+        paginationModel={{ page, pageSize }}
+        onPaginationModelChange={(model) => {
+          if (model.page !== page) {
+            onPageChange(model.page);
+          }
+          if (model.pageSize !== pageSize) {
+            onPageSizeChange(model.pageSize);
+          }
+        }}
+        pageSizeOptions={[10, 20, 50, 100]}
+        disableRowSelectionOnClick
+        getRowClassName={(params) => {
+          return isOrphaned(params.row) ? 'orphaned-service-row' : '';
+        }}
+        sx={{
+          '& .MuiDataGrid-row': {
+            cursor: 'pointer',
+          },
+          '& .orphaned-service-row': {
+            backgroundColor: 'warning.lighter',
+            '&:hover': {
+              backgroundColor: 'warning.light',
+            },
+          },
+        }}
+      />
+    </Box>
+  );
+}

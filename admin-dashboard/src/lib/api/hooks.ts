@@ -1,6 +1,11 @@
 // src/lib/api/hooks.ts
 
-// Import hooks first before re-exporting
+/**
+ * Central export file for all API hooks.
+ * Re-exports generated hooks from orval with convenient aliases.
+ */
+
+// Import hooks from generated files
 import { 
   useFindAllApplicationServices,
   useCreateApplicationService,
@@ -47,8 +52,6 @@ import {
 import { 
   useListServiceRegistryServices,
   useGetServiceRegistryServiceInstances,
-  useGetServiceRegistryServiceHealth,
-  useGetServiceRegistryService,
 } from './generated/service-registry/service-registry';
 
 import { 
@@ -71,7 +74,11 @@ import {
   useGetStatsIamUser,
 } from './generated/iam-users/iam-users';
 
-// Re-export all hooks
+// ============================================================================
+// Re-export all hooks with documentation
+// ============================================================================
+
+// Application Services - Core service management
 export { 
   useFindAllApplicationServices,
   useCreateApplicationService,
@@ -80,6 +87,7 @@ export {
   useFindApplicationServiceById,
 };
 
+// Service Instances - Runtime instance tracking
 export { 
   useFindAllServiceInstances,
   useUpdateServiceInstance,
@@ -87,6 +95,7 @@ export {
   useFindByIdServiceInstance,
 };
 
+// Drift Events - Configuration drift detection
 export { 
   useFindAllDriftEvents,
   useCreateDriftEvent,
@@ -94,6 +103,7 @@ export {
   useFindDriftEventById,
 };
 
+// Approval Requests - Multi-gate approval workflow
 export { 
   useFindAllApprovalRequests,
   useCreateApprovalRequest,
@@ -102,6 +112,7 @@ export {
   useCancelApprovalRequest,
 };
 
+// Service Shares - Rename for better API
 export { 
   useFindAllServiceSharesForService1 as useFindAllServiceShares,
   useGrantServiceShare,
@@ -109,24 +120,26 @@ export {
   useFindByIdServiceShare,
 };
 
+// Config Server
 export { 
   useGetEnvironmentConfigServer,
   useGetHealthConfigServer,
   useGetInfoConfigServer,
 };
 
+// Service Registry - Rename for consistency
 export { 
   useListServiceRegistryServices as useFindAllServiceRegistry,
   useGetServiceRegistryServiceInstances,
-  useGetServiceRegistryServiceHealth,
-  useGetServiceRegistryService,
 };
 
+// User Management - Current user info and permissions
 export { 
   useFindCurrentUserInformation,
   useFindCurrentUserPermissions,
 };
 
+// IAM Teams - Team management (read-only, synced from Keycloak)
 export {
   useFindAllIamTeams,
   useFindByIdIamTeam,
@@ -134,6 +147,7 @@ export {
   useGetStatsIamTeam,
 };
 
+// IAM Users - User management (read-only, synced from Keycloak)
 export {
   useFindAllIamUsers,
   useFindByIdIamUser,

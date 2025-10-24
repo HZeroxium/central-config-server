@@ -1,91 +1,204 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
-  Typography,
-  Chip,
   Button,
-  Stack,
+  Card,
+  CardContent,
   Tabs,
   Tab,
+  Typography,
+  Chip,
+  Divider,
   Alert,
+  Drawer,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
 import Grid from '@mui/material/Grid';
 import {
-  Edit as EditIcon,
-  Share as ShareIcon,
   ArrowBack as BackIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Share as ShareIcon,
+  Visibility as ViewIcon,
+  Delete as RevokeIcon,
 } from '@mui/icons-material';
-import { PageHeader } from '@components/common/PageHeader';
-import { DetailCard } from '@components/common/DetailCard';
-import { TabPanel } from '@components/common/TabPanel';
+import PageHeader from '@components/common/PageHeader';
+import Loading from '@components/common/Loading';
+import ConfirmDialog from '@components/common/ConfirmDialog';
+import {
+  useFindApplicationServiceById,
+  useDeleteApplicationService,
+  useFindAllServiceInstances,
+  useFindAllServiceShares,
+  useRevokeServiceShare,
+} from '@lib/api/hooks';
+import { useAuth } from '@features/auth/authContext';
+import { toast } from '@lib/toast/toast';
+import { handleApiError } from '@lib/api/errorHandler';
 import { ApplicationServiceForm } from '../components/ApplicationServiceForm';
 import { ServiceShareDrawer } from '../components/ServiceShareDrawer';
-import { useGetApplicationServiceByIdQuery, useUpdateApplicationServiceMutation } from '../api';
-import { usePermissions } from '@features/auth/hooks/usePermissions';
-export const ApplicationServiceDetailPage: React.FC = () => {
+import { format } from 'date-fns';
+import type { FindAllServiceInstancesEnvironment } from '@lib/api/models';
+
+export default function ApplicationServiceDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { isSysAdmin, permissions } = useAuth();
+
   const [tabValue, setTabValue] = useState(0);
-  const [formOpen, setFormOpen] = useState(false);
+  const [selectedEnvironment, setSelectedEnvironment] = useState<FindAllServiceInstancesEnvironment | ''>('');
+  const [editDrawerOpen, setEditDrawerOpen] = useState(false);
   const [shareDrawerOpen, setShareDrawerOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [revokeShareDialogOpen, setRevokeShareDialogOpen] = useState(false);
+  const [selectedShareId, setSelectedShareId] = useState<string | null>(null);
 
-  const { canEditService } = usePermissions();
-
-  const {
-    data: service,
-    isLoading,
-    error,
-  } = useGetApplicationServiceByIdQuery(id!, {
-    skip: !id,
-  });
-
-  const [updateService, { isLoading: updateLoading }] = useUpdateApplicationServiceMutation();
-
-  const handleUpdateService = async (data: any) => {
-    if (!service) return;
-    
-    try {
-      await updateService({
-        id: service.id,
-        service: data,
-      }).unwrap();
-      setFormOpen(false);
-    } catch (error) {
-      console.error('Failed to update service:', error);
+  const { data: service, isLoading, error, refetch } = useFindApplicationServiceById(
+    id!,
+    {
+      query: {
+        enabled: !!id,
+        staleTime: 10_000,
+      },
     }
+  );
+
+  // Fetch service instances
+  const { data: instancesData, isLoading: instancesLoading } = useFindAllServiceInstances(
+    {
+      serviceId: id,
+      environment: selectedEnvironment || undefined,
+      page: 0,
+      size: 100,
+    },
+    {
+      query: {
+        enabled: !!id && tabValue === 1,
+        staleTime: 15_000,
+      },
+    }
+  );
+
+  // Fetch service shares
+  const { data: sharesDataRaw, isLoading: sharesLoading, refetch: refetchShares } = useFindAllServiceShares(
+    {
+      serviceId: id,
+      page: 0,
+      size: 100,
+    },
+    {
+      query: {
+        enabled: !!id && tabValue === 2,
+        staleTime: 15_000,
+      },
+    }
+  );
+
+  // Type assertion for shares data
+  const sharesData = (typeof sharesDataRaw === 'object' ? sharesDataRaw : undefined) as { items?: Array<{
+    id?: string;
+    grantToType?: string;
+    grantToId?: string;
+    permissions?: string[];
+    environments?: string[];
+    createdAt?: string;
+  }>; } | undefined;
+
+  const deleteMutation = useDeleteApplicationService();
+  const revokeShareMutation = useRevokeServiceShare();
+
+  const handleBack = () => {
+    navigate('/application-services');
   };
 
-  const handleShareService = async (data: any) => {
-    // TODO: Implement share service API call
-    console.log('Share service data:', data);
+  const canEdit =
+    isSysAdmin || (id && permissions?.ownedServiceIds?.includes(id));
+
+  const handleDelete = async () => {
+    if (!id) return;
+
+    deleteMutation.mutate(
+      { id },
+      {
+        onSuccess: () => {
+          toast.success('Service deleted successfully');
+          navigate('/application-services');
+        },
+        onError: (error) => {
+          handleApiError(error);
+        },
+      }
+    );
+  };
+
+  const handleEditSuccess = () => {
+    toast.success('Service updated successfully');
+    setEditDrawerOpen(false);
+    refetch();
+  };
+
+  const handleRevokeShare = (shareId: string) => {
+    setSelectedShareId(shareId);
+    setRevokeShareDialogOpen(true);
+  };
+
+  const handleConfirmRevokeShare = async () => {
+    if (!selectedShareId) return;
+
+    revokeShareMutation.mutate(
+      { id: selectedShareId },
+      {
+        onSuccess: () => {
+          toast.success('Service share revoked successfully');
+          setRevokeShareDialogOpen(false);
+          setSelectedShareId(null);
+          refetchShares();
+        },
+        onError: (error) => {
+          handleApiError(error);
+        },
+      }
+    );
+  };
+
+  const handleViewInstance = (instanceId: string) => {
+    navigate(`/service-instances/${id}/${instanceId}`);
+  };
+
+  const handleShareSuccess = () => {
+    toast.success('Service share granted successfully');
     setShareDrawerOpen(false);
+    refetchShares();
   };
 
-  const breadcrumbs = [
-    { label: 'Services', href: '/services' },
-    { label: service?.displayName || 'Service' },
-  ];
+  if (isLoading) {
+    return <Loading />;
+  }
 
-  if (error) {
+  if (error || !service) {
     return (
       <Box>
         <PageHeader
-          title="Service Not Found"
-          breadcrumbs={[{ label: 'Services', href: '/services' }]}
+          title="Application Service Details"
+          actions={
+            <Button variant="outlined" startIcon={<BackIcon />} onClick={handleBack}>
+              Back
+            </Button>
+          }
         />
         <Alert severity="error">
-          The requested service could not be found or you don't have permission to view it.
+          Failed to load service.{' '}
+          {error ? (error as any).detail || 'Please try again.' : 'Service not found.'}
         </Alert>
-      </Box>
-    );
-  }
-
-  if (isLoading || !service) {
-    return (
-      <Box>
-        <PageHeader title="Loading..." />
-        {/* Loading skeleton could go here */}
       </Box>
     );
   }
@@ -93,211 +206,460 @@ export const ApplicationServiceDetailPage: React.FC = () => {
   return (
     <Box>
       <PageHeader
-        title={service.displayName}
-        subtitle={service.id}
-        breadcrumbs={breadcrumbs}
+        title={service.displayName || service.id || 'Application Service'}
+        subtitle={`Service ID: ${service.id}`}
         actions={
-          <Stack direction="row" spacing={1}>
-            <Button
-              startIcon={<BackIcon />}
-              onClick={() => navigate('/services')}
-            >
-              Back to Services
+          <>
+            <Button variant="outlined" startIcon={<BackIcon />} onClick={handleBack}>
+              Back
             </Button>
-            {canEditService && (
+            {canEdit && (
               <>
                 <Button
                   variant="outlined"
-                  startIcon={<EditIcon />}
-                  onClick={() => setFormOpen(true)}
-                >
-                  Edit
-                </Button>
-                <Button
-                  variant="contained"
                   startIcon={<ShareIcon />}
                   onClick={() => setShareDrawerOpen(true)}
                 >
                   Share
                 </Button>
+                <Button
+                  variant="outlined"
+                  startIcon={<EditIcon />}
+                  onClick={() => setEditDrawerOpen(true)}
+                >
+                  Edit
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="error"
+                  startIcon={<DeleteIcon />}
+                  onClick={() => setDeleteDialogOpen(true)}
+                >
+                  Delete
+                </Button>
               </>
             )}
-          </Stack>
+          </>
         }
       />
 
-      <Box sx={{ mb: 3 }}>
-        <Tabs
-          value={tabValue}
-          onChange={(_, newValue) => setTabValue(newValue)}
-          sx={{ borderBottom: 1, borderColor: 'divider' }}
-        >
+      {/* Tabs */}
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+        <Tabs value={tabValue} onChange={(_, newValue) => setTabValue(newValue)}>
           <Tab label="Overview" />
           <Tab label="Instances" />
           <Tab label="Shares" />
-          <Tab label="Drift Events" />
+          <Tab label="Approvals" />
         </Tabs>
       </Box>
 
-      <TabPanel value={tabValue} index={0}>
-        <Grid container spacing={3}>
-          <Grid size={{ xs: 12, md: 8 }}>
-            <DetailCard title="Service Information">
-              <Grid container spacing={2}>
-                <Grid size={{ xs: 12, sm: 6 }}>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Service ID
-                  </Typography>
-                  <Typography variant="body1" sx={{ fontFamily: 'monospace' }}>
-                    {service.id}
-                  </Typography>
-                </Grid>
-                <Grid size={{ xs: 12, sm: 6 }}>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Display Name
-                  </Typography>
-                  <Typography variant="body1">
-                    {service.displayName}
-                  </Typography>
-                </Grid>
-                <Grid size={{ xs: 12, sm: 6 }}>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Owner Team
-                  </Typography>
-                  <Typography variant="body1">
-                    {service.ownerTeamId}
-                  </Typography>
-                </Grid>
-                <Grid size={{ xs: 12, sm: 6 }}>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Lifecycle
-                  </Typography>
-                  <Typography variant="body1">
-                    {service.lifecycle || 'Not set'}
-                  </Typography>
-                </Grid>
-                <Grid size={{ xs: 12 }}>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Repository URL
-                  </Typography>
-                  <Typography variant="body1">
-                    {service.repoUrl || 'Not set'}
-                  </Typography>
-                </Grid>
-                <Grid size={{ xs: 12 }}>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Created
-                  </Typography>
-                  <Typography variant="body1">
-                    {new Date(service.createdAt).toLocaleString()}
-                  </Typography>
-                </Grid>
-                <Grid size={{ xs: 12 }}>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Last Updated
-                  </Typography>
-                  <Typography variant="body1">
-                    {new Date(service.updatedAt).toLocaleString()}
-                  </Typography>
-                </Grid>
+      {/* Overview Tab */}
+      {tabValue === 0 && (
+        <Card>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Service Information
+            </Typography>
+            <Divider sx={{ mb: 2 }} />
+
+            <Grid container spacing={3}>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                  Service ID
+                </Typography>
+                <Typography variant="body1" fontFamily="monospace" fontWeight={600}>
+                  {service.id}
+                </Typography>
               </Grid>
-            </DetailCard>
-          </Grid>
 
-          <Grid size={{ xs: 12, md: 4 }}>
-            <DetailCard title="Environments">
-              <Box display="flex" flexWrap="wrap" gap={1}>
-                {service.environments.map((env) => (
-                  <Chip
-                    key={env}
-                    label={env.toUpperCase()}
-                    color="primary"
-                    variant="outlined"
-                  />
-                ))}
-              </Box>
-            </DetailCard>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                  Display Name
+                </Typography>
+                <Typography variant="body1">{service.displayName}</Typography>
+              </Grid>
 
-            <DetailCard title="Tags">
-              <Box display="flex" flexWrap="wrap" gap={1}>
-                {service.tags.length > 0 ? (
-                  service.tags.map((tag) => (
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                  Owner Team
+                </Typography>
+                <Chip label={service.ownerTeamId} variant="outlined" />
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                  Lifecycle
+                </Typography>
+                <Chip
+                  label={service.lifecycle}
+                  color={
+                    service.lifecycle === 'ACTIVE'
+                      ? 'success'
+                      : service.lifecycle === 'DEPRECATED'
+                      ? 'warning'
+                      : 'error'
+                  }
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                  Environments
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                  {service.environments?.map((env) => (
                     <Chip
-                      key={tag}
-                      label={tag}
+                      key={env}
+                      label={env.toUpperCase()}
                       size="small"
                       variant="outlined"
+                      color={
+                        env === 'prod' ? 'error' : env === 'staging' ? 'warning' : 'info'
+                      }
                     />
-                  ))
-                ) : (
-                  <Typography color="text.secondary">
-                    No tags
-                  </Typography>
-                )}
-              </Box>
-            </DetailCard>
-
-            <DetailCard title="Attributes">
-              {Object.keys(service.attributes).length > 0 ? (
-                <Box>
-                  {Object.entries(service.attributes).map(([key, value]) => (
-                    <Box key={key} sx={{ mb: 1 }}>
-                      <Typography variant="caption" color="text.secondary">
-                        {key}
-                      </Typography>
-                      <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                        {value}
-                      </Typography>
-                    </Box>
-                  ))}
+                  )) || 'N/A'}
                 </Box>
-              ) : (
-                <Typography color="text.secondary">
-                  No attributes
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                  Tags
                 </Typography>
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                  {service.tags && service.tags.length > 0 ? (
+                    service.tags.map((tag) => <Chip key={tag} label={tag} size="small" />)
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">
+                      No tags
+                    </Typography>
+                  )}
+                </Box>
+              </Grid>
+
+              {service.repoUrl && (
+                <Grid size={{ xs: 12 }}>
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                    Repository URL
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    component="a"
+                    href={service.repoUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    sx={{ color: 'primary.main', textDecoration: 'none' }}
+                  >
+                    {service.repoUrl}
+                  </Typography>
+                </Grid>
               )}
-            </DetailCard>
-          </Grid>
-        </Grid>
-      </TabPanel>
 
-      <TabPanel value={tabValue} index={1}>
-        <Alert severity="info">
-          Service instances will be displayed here. This feature is coming soon.
-        </Alert>
-      </TabPanel>
+              {service.attributes && Object.keys(service.attributes).length > 0 && (
+                <Grid size={{ xs: 12 }}>
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                    Attributes
+                  </Typography>
+                  <Box
+                    component="pre"
+                    sx={{
+                      bgcolor: 'grey.100',
+                      p: 2,
+                      borderRadius: 1,
+                      overflow: 'auto',
+                      fontSize: '0.875rem',
+                    }}
+                  >
+                    {JSON.stringify(service.attributes, null, 2)}
+                  </Box>
+                </Grid>
+              )}
+            </Grid>
+          </CardContent>
+        </Card>
+      )}
 
-      <TabPanel value={tabValue} index={2}>
-        <Alert severity="info">
-          Service shares will be displayed here. This feature is coming soon.
-        </Alert>
-      </TabPanel>
+      {/* Instances Tab */}
+      {tabValue === 1 && (
+        <Card>
+          <CardContent>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+              <Typography variant="h6">Service Instances</Typography>
+            </Box>
 
-      <TabPanel value={tabValue} index={3}>
-        <Alert severity="info">
-          Drift events will be displayed here. This feature is coming soon.
-        </Alert>
-      </TabPanel>
+            {/* Environment Filter */}
+            <Box sx={{ mb: 3, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              <Chip
+                label="All"
+                onClick={() => setSelectedEnvironment('')}
+                color={selectedEnvironment === '' ? 'primary' : 'default'}
+                variant={selectedEnvironment === '' ? 'filled' : 'outlined'}
+              />
+              {service.environments?.map((env) => (
+                <Chip
+                  key={env}
+                  label={env.toUpperCase()}
+                  onClick={() => setSelectedEnvironment(env as FindAllServiceInstancesEnvironment)}
+                  color={selectedEnvironment === env ? 'primary' : 'default'}
+                  variant={selectedEnvironment === env ? 'filled' : 'outlined'}
+                />
+              ))}
+            </Box>
 
-      {/* Edit Form */}
-      <ApplicationServiceForm
-        open={formOpen}
-        mode="edit"
-        initialData={service}
-        onSubmit={handleUpdateService}
-        onClose={() => setFormOpen(false)}
-        loading={updateLoading}
+            {instancesLoading ? (
+              <Loading />
+            ) : instancesData?.items && instancesData.items.length > 0 ? (
+              <TableContainer component={Paper} variant="outlined">
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Instance ID</TableCell>
+                      <TableCell>Environment</TableCell>
+                      <TableCell>Host</TableCell>
+                      <TableCell>Port</TableCell>
+                      <TableCell>Version</TableCell>
+                      <TableCell>Status</TableCell>
+                      <TableCell>Drift</TableCell>
+                      <TableCell align="right">Actions</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {instancesData.items.map((instance) => (
+                      <TableRow key={instance.instanceId} hover>
+                        <TableCell sx={{ fontFamily: 'monospace' }}>
+                          {instance.instanceId}
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            label={instance.environment?.toUpperCase() || 'N/A'}
+                            size="small"
+                            color={
+                              instance.environment === 'prod'
+                                ? 'error'
+                                : instance.environment === 'staging'
+                                ? 'warning'
+                                : 'info'
+                            }
+                          />
+                        </TableCell>
+                        <TableCell>{instance.host || 'N/A'}</TableCell>
+                        <TableCell>{instance.port || 'N/A'}</TableCell>
+                        <TableCell>{instance.version || 'N/A'}</TableCell>
+                        <TableCell>
+                          <Chip
+                            label={instance.status || 'UNKNOWN'}
+                            size="small"
+                            color={
+                              instance.status === 'HEALTHY'
+                                ? 'success'
+                                : instance.status === 'DRIFT'
+                                ? 'warning'
+                                : 'error'
+                            }
+                          />
+                        </TableCell>
+                        <TableCell>
+                          {instance.hasDrift ? (
+                            <Chip label="Drift Detected" size="small" color="warning" />
+                          ) : (
+                            <Chip label="In Sync" size="small" color="success" />
+                          )}
+                        </TableCell>
+                        <TableCell align="right">
+                          <Tooltip title="View Details">
+                            <IconButton
+                              size="small"
+                              onClick={() => handleViewInstance(instance.instanceId || '')}
+                            >
+                              <ViewIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            ) : (
+              <Alert severity="info">No instances found for this service.</Alert>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Shares Tab */}
+      {tabValue === 2 && (
+        <Card>
+          <CardContent>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+              <Typography variant="h6">Service Shares</Typography>
+              {canEdit && (
+                <Button
+                  variant="contained"
+                  size="small"
+                  startIcon={<ShareIcon />}
+                  onClick={() => setShareDrawerOpen(true)}
+                >
+                  Grant Share
+                </Button>
+              )}
+            </Box>
+
+            {sharesLoading ? (
+              <Loading />
+            ) : sharesData?.items && sharesData.items.length > 0 ? (
+              <TableContainer component={Paper} variant="outlined">
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Share ID</TableCell>
+                      <TableCell>Grantee Type</TableCell>
+                      <TableCell>Grantee ID</TableCell>
+                      <TableCell>Permissions</TableCell>
+                      <TableCell>Environments</TableCell>
+                      <TableCell>Created At</TableCell>
+                      <TableCell align="right">Actions</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {sharesData.items.map((share) => (
+                      <TableRow key={share.id} hover>
+                        <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>
+                          {share.id}
+                        </TableCell>
+                        <TableCell>
+                          <Chip label={share.grantToType} size="small" variant="outlined" />
+                        </TableCell>
+                        <TableCell>{share.grantToId}</TableCell>
+                        <TableCell>
+                          <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                            {share.permissions?.map((perm) => (
+                              <Chip key={perm} label={perm} size="small" color="primary" />
+                            ))}
+                          </Box>
+                        </TableCell>
+                        <TableCell>
+                          {share.environments && share.environments.length > 0 ? (
+                            <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                              {share.environments.map((env) => (
+                                <Chip
+                                  key={env}
+                                  label={env.toUpperCase()}
+                                  size="small"
+                                  color={
+                                    env === 'prod' ? 'error' : env === 'staging' ? 'warning' : 'info'
+                                  }
+                                />
+                              ))}
+                            </Box>
+                          ) : (
+                            <Typography variant="body2" color="text.secondary">
+                              All
+                            </Typography>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {share.createdAt
+                            ? format(new Date(share.createdAt), 'MMM dd, yyyy')
+                            : 'N/A'}
+                        </TableCell>
+                        <TableCell align="right">
+                          {canEdit && (
+                            <Tooltip title="Revoke Share">
+                              <IconButton
+                                size="small"
+                                color="error"
+                                onClick={() => handleRevokeShare(share.id || '')}
+                              >
+                                <RevokeIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            ) : (
+              <Alert severity="info">
+                No shares configured for this service.
+                {canEdit && ' Click "Grant Share" to share this service with other teams.'}
+              </Alert>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Approvals Tab - Placeholder */}
+      {tabValue === 3 && (
+        <Card>
+          <CardContent>
+            <Typography variant="body1" color="text.secondary">
+              Approval requests view - coming soon
+            </Typography>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Edit Service Drawer */}
+      <Drawer
+        anchor="right"
+        open={editDrawerOpen}
+        onClose={() => setEditDrawerOpen(false)}
+        PaperProps={{
+          sx: { width: { xs: '100%', sm: 600 } },
+        }}
+      >
+        <ApplicationServiceForm
+          mode="edit"
+          initialData={service}
+          onSuccess={handleEditSuccess}
+          onCancel={() => setEditDrawerOpen(false)}
+        />
+      </Drawer>
+
+      {/* Share Service Drawer */}
+      <Drawer
+        anchor="right"
+        open={shareDrawerOpen}
+        onClose={() => setShareDrawerOpen(false)}
+        PaperProps={{
+          sx: { width: { xs: '100%', sm: 600 } },
+        }}
+      >
+        <ServiceShareDrawer
+          serviceId={service.id || ''}
+          onSuccess={handleShareSuccess}
+          onClose={() => setShareDrawerOpen(false)}
+        />
+      </Drawer>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        title="Delete Application Service"
+        message={`Are you sure you want to delete ${service.displayName || service.id}? This action cannot be undone and will affect all associated instances and shares.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteDialogOpen(false)}
+        loading={deleteMutation.isPending}
       />
 
-      {/* Share Drawer */}
-      <ServiceShareDrawer
-        open={shareDrawerOpen}
-        serviceId={service.id}
-        onClose={() => setShareDrawerOpen(false)}
-        onSubmit={handleShareService}
+      {/* Revoke Share Confirmation Dialog */}
+      <ConfirmDialog
+        open={revokeShareDialogOpen}
+        title="Revoke Service Share"
+        message="Are you sure you want to revoke this share? The grantee will lose access immediately."
+        confirmText="Revoke"
+        cancelText="Cancel"
+        onConfirm={handleConfirmRevokeShare}
+        onCancel={() => {
+          setRevokeShareDialogOpen(false);
+          setSelectedShareId(null);
+        }}
+        loading={revokeShareMutation.isPending}
       />
     </Box>
   );
-};
-
-export default ApplicationServiceDetailPage;
+}

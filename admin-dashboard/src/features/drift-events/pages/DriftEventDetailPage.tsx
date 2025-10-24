@@ -1,20 +1,23 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Box, Button, Typography, Alert, Grid, Chip, Divider } from '@mui/material';
+import { Box, Button, Typography, Alert, Divider } from '@mui/material';
+import Grid from '@mui/material/Grid';
 import { ArrowBack as BackIcon } from '@mui/icons-material';
 import { PageHeader } from '@components/common/PageHeader';
 import { SkeletonLoader } from '@components/common/SkeletonLoader';
 import { DetailCard } from '@components/common/DetailCard';
 import { DriftSeverityChip } from '../components/DriftSeverityChip';
 import { ChipStatus } from '@components/common/ChipStatus';
-import { useGetDriftEventByIdQuery } from '../api';
+import { useFindDriftEventById } from '@lib/api/hooks';
 
 export const DriftEventDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   
-  const { data: event, isLoading, error } = useGetDriftEventByIdQuery(id!, {
-    skip: !id,
+  const { data: event, isLoading, error } = useFindDriftEventById(id!, {
+    query: {
+      enabled: !!id,
+    },
   });
 
   const handleBack = () => {
@@ -105,7 +108,7 @@ export const DriftEventDetailPage: React.FC = () => {
   return (
     <Box>
       <PageHeader
-        title={`Drift Event: ${event.id.substring(0, 8)}...`}
+        title={`Drift Event: ${event.id ? event.id.substring(0, 8) + '...' : 'Details'}`}
         actions={
           <Button variant="outlined" startIcon={<BackIcon />} onClick={handleBack}>
             Back to Drift Events
@@ -142,37 +145,13 @@ export const DriftEventDetailPage: React.FC = () => {
               <Grid size={{ xs: 12, sm: 6 }}>
                 <Box>
                   <Typography variant="subtitle2" color="text.secondary">
-                    Environment
-                  </Typography>
-                  {event.environment ? (
-                    <Chip label={event.environment.toUpperCase()} variant="outlined" />
-                  ) : (
-                    <Typography variant="body2" color="text.secondary">N/A</Typography>
-                  )}
-                </Box>
-              </Grid>
-
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <Box>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Config Key
-                  </Typography>
-                  {event.configKey ? (
-                    <Typography variant="body1" fontFamily="monospace">
-                      {event.configKey}
-                    </Typography>
-                  ) : (
-                    <Typography variant="body2" color="text.secondary">N/A</Typography>
-                  )}
-                </Box>
-              </Grid>
-
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <Box>
-                  <Typography variant="subtitle2" color="text.secondary">
                     Severity
                   </Typography>
-                  <DriftSeverityChip severity={event.severity} />
+                  {event.severity ? (
+                    <DriftSeverityChip severity={event.severity as any} />
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">N/A</Typography>
+                  )}
                 </Box>
               </Grid>
 
@@ -181,7 +160,11 @@ export const DriftEventDetailPage: React.FC = () => {
                   <Typography variant="subtitle2" color="text.secondary">
                     Status
                   </Typography>
-                  <ChipStatus status={event.status} />
+                  {event.status ? (
+                    <ChipStatus status={event.status as string} />
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">N/A</Typography>
+                  )}
                 </Box>
               </Grid>
 
@@ -190,9 +173,13 @@ export const DriftEventDetailPage: React.FC = () => {
                   <Typography variant="subtitle2" color="text.secondary">
                     Detected At
                   </Typography>
-                  <Typography variant="body1">
-                    {formatDateTime(event.detectedAt)}
-                  </Typography>
+                  {event.detectedAt ? (
+                    <Typography variant="body1">
+                      {formatDateTime(event.detectedAt)}
+                    </Typography>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">N/A</Typography>
+                  )}
                 </Box>
               </Grid>
 
@@ -233,32 +220,26 @@ export const DriftEventDetailPage: React.FC = () => {
           <DetailCard title="Resolution Information">
             <Box>
               <Typography variant="subtitle2" color="text.secondary">
-                Resolved By
+                Detected By
               </Typography>
               <Typography variant="body1">
-                {event.resolvedBy || 'Not resolved yet'}
+                {event.detectedBy || 'Unknown'}
               </Typography>
             </Box>
             
-            <Divider sx={{ my: 2 }} />
-            
-            <Box>
-              <Typography variant="subtitle2" color="text.secondary">
-                Created At
-              </Typography>
-              <Typography variant="body1">
-                {formatDateTime(event.createdAt)}
-              </Typography>
-            </Box>
-            
-            <Box sx={{ mt: 2 }}>
-              <Typography variant="subtitle2" color="text.secondary">
-                Last Updated
-              </Typography>
-              <Typography variant="body1">
-                {formatDateTime(event.updatedAt)}
-              </Typography>
-            </Box>
+            {event.resolvedBy && (
+              <>
+                <Divider sx={{ my: 2 }} />
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Resolved By
+                  </Typography>
+                  <Typography variant="body1">
+                    {event.resolvedBy}
+                  </Typography>
+                </Box>
+              </>
+            )}
           </DetailCard>
         </Grid>
       </Grid>

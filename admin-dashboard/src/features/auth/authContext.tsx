@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useMemo } from 'react';
 import { useKeycloak } from '@react-keycloak/web';
 import { useFindCurrentUserPermissions, useFindCurrentUserInformation } from '@lib/api/hooks';
-import type { MeResponse } from '@lib/api/models';
+import type { MeResponse, PermissionsResponse } from '@lib/api/models';
 
 export interface UserInfo {
   userId: string;
@@ -36,6 +36,8 @@ interface AuthContextType {
   isSysAdmin: boolean;
   login: () => void;
   logout: () => void;
+  refetchUserInfo: () => void;
+  refetchPermissions: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -82,20 +84,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isAuthenticated = keycloak?.authenticated ?? false;
 
   // Fetch user info from backend (more reliable than token parsing)
-  const { data: meData, isLoading: meLoading } = useFindCurrentUserInformation({
+  const { data: meData, isLoading: meLoading, refetch: refetchUserInfo } = useFindCurrentUserInformation({
     query: {
       enabled: isAuthenticated,
-      staleTime: 5 * 60 * 1000, // 5 minutes
+      staleTime: Infinity, // Cache indefinitely - user info rarely changes
       refetchOnWindowFocus: false,
     }
   });
 
   // Fetch user permissions from backend
-  const { data: permissionsData, isLoading: permissionsLoading } = useFindCurrentUserPermissions({
+  const { data: permissionsData, isLoading: permissionsLoading, refetch: refetchPermissions } = useFindCurrentUserPermissions({
     query: {
       enabled: isAuthenticated,
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      refetchOnWindowFocus: true, // Refetch on window focus to ensure fresh permissions
+      staleTime: Infinity, // Cache indefinitely - permissions change rarely, refetch manually when needed
+      refetchOnWindowFocus: false,
     }
   });
 
@@ -112,18 +114,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const permissions = useMemo((): UserPermissions | null => {
     if (!permissionsData) return null;
     
-    const unwrapped = permissionsData;
-    if (!unwrapped) return null;
+    const data = permissionsData as PermissionsResponse;
     
     return {
-      allowedApiRoutes: (unwrapped as any).allowedApiRoutes || [],
-      allowedUiRoutes: (unwrapped as any).allowedUiRoutes || [],
-      roles: (unwrapped as any).roles || [],
-      teams: (unwrapped as any).teams || [],
-      features: (unwrapped as any).features || {},
-      actions: (unwrapped as any).actions || {},
-      ownedServiceIds: (unwrapped as any).ownedServiceIds || [],
-      sharedServiceIds: (unwrapped as any).sharedServiceIds || [],
+      allowedApiRoutes: data.allowedApiRoutes || [],
+      allowedUiRoutes: data.allowedUiRoutes || [],
+      roles: data.roles || [],
+      teams: data.teams || [],
+      features: data.features || {},
+      actions: data.actions || {},
+      ownedServiceIds: data.ownedServiceIds || [],
+      sharedServiceIds: data.sharedServiceIds || [],
     };
   }, [permissionsData]);
 
@@ -154,6 +155,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isSysAdmin,
     login,
     logout,
+    refetchUserInfo: () => { refetchUserInfo(); },
+    refetchPermissions: () => { refetchPermissions(); },
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

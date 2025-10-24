@@ -20,23 +20,18 @@
  * OpenAPI spec version: 1.0.0
  */
 import {
-  useInfiniteQuery,
   useMutation,
   useQuery
 } from '@tanstack/react-query';
 import type {
   DataTag,
   DefinedInitialDataOptions,
-  DefinedUseInfiniteQueryResult,
   DefinedUseQueryResult,
-  InfiniteData,
   MutationFunction,
   QueryClient,
   QueryFunction,
   QueryKey,
   UndefinedInitialDataOptions,
-  UseInfiniteQueryOptions,
-  UseInfiniteQueryResult,
   UseMutationOptions,
   UseMutationResult,
   UseQueryOptions,
@@ -238,12 +233,6 @@ export const findAllApprovalRequests = (
 
 
 
-export const getFindAllApprovalRequestsInfiniteQueryKey = (params?: FindAllApprovalRequestsParams,) => {
-    return [
-    'infinite', `/api/approval-requests`, ...(params ? [params]: [])
-    ] as const;
-    }
-
 export const getFindAllApprovalRequestsQueryKey = (params?: FindAllApprovalRequestsParams,) => {
     return [
     `/api/approval-requests`, ...(params ? [params]: [])
@@ -251,72 +240,6 @@ export const getFindAllApprovalRequestsQueryKey = (params?: FindAllApprovalReque
     }
 
     
-export const getFindAllApprovalRequestsInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof findAllApprovalRequests>>, FindAllApprovalRequestsParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(params?: FindAllApprovalRequestsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllApprovalRequests>>, TError, TData, QueryKey, FindAllApprovalRequestsParams['page']>>, request?: SecondParameter<typeof customInstance>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getFindAllApprovalRequestsInfiniteQueryKey(params);
-
-  
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof findAllApprovalRequests>>, QueryKey, FindAllApprovalRequestsParams['page']> = ({ signal, pageParam }) => findAllApprovalRequests({...params, 'page': pageParam || params?.['page']}, requestOptions, signal);
-
-      
-
-      
-
-   return  { queryKey, queryFn, ...queryOptions} as UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllApprovalRequests>>, TError, TData, QueryKey, FindAllApprovalRequestsParams['page']> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type FindAllApprovalRequestsInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof findAllApprovalRequests>>>
-export type FindAllApprovalRequestsInfiniteQueryError = ErrorResponse | ErrorResponse | ErrorResponse
-
-
-export function useFindAllApprovalRequestsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findAllApprovalRequests>>, FindAllApprovalRequestsParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- params: undefined |  FindAllApprovalRequestsParams, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllApprovalRequests>>, TError, TData, QueryKey, FindAllApprovalRequestsParams['page']>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof findAllApprovalRequests>>,
-          TError,
-          Awaited<ReturnType<typeof findAllApprovalRequests>>, QueryKey
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useFindAllApprovalRequestsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findAllApprovalRequests>>, FindAllApprovalRequestsParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- params?: FindAllApprovalRequestsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllApprovalRequests>>, TError, TData, QueryKey, FindAllApprovalRequestsParams['page']>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof findAllApprovalRequests>>,
-          TError,
-          Awaited<ReturnType<typeof findAllApprovalRequests>>, QueryKey
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useFindAllApprovalRequestsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findAllApprovalRequests>>, FindAllApprovalRequestsParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- params?: FindAllApprovalRequestsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllApprovalRequests>>, TError, TData, QueryKey, FindAllApprovalRequestsParams['page']>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary List approval requests
- */
-
-export function useFindAllApprovalRequestsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findAllApprovalRequests>>, FindAllApprovalRequestsParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- params?: FindAllApprovalRequestsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllApprovalRequests>>, TError, TData, QueryKey, FindAllApprovalRequestsParams['page']>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient 
- ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getFindAllApprovalRequestsInfiniteQueryOptions(params,options)
-
-  const query = useInfiniteQuery(queryOptions, queryClient) as  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  query.queryKey = queryOptions.queryKey ;
-
-  return query;
-}
-
-
-
 export const getFindAllApprovalRequestsQueryOptions = <TData = Awaited<ReturnType<typeof findAllApprovalRequests>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(params?: FindAllApprovalRequestsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findAllApprovalRequests>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -408,12 +331,6 @@ export const findApprovalRequestById = (
 
 
 
-export const getFindApprovalRequestByIdInfiniteQueryKey = (id?: string,) => {
-    return [
-    'infinite', `/api/approval-requests/${id}`
-    ] as const;
-    }
-
 export const getFindApprovalRequestByIdQueryKey = (id?: string,) => {
     return [
     `/api/approval-requests/${id}`
@@ -421,72 +338,6 @@ export const getFindApprovalRequestByIdQueryKey = (id?: string,) => {
     }
 
     
-export const getFindApprovalRequestByIdInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof findApprovalRequestById>>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(id: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findApprovalRequestById>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getFindApprovalRequestByIdInfiniteQueryKey(id);
-
-  
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof findApprovalRequestById>>> = ({ signal }) => findApprovalRequestById(id, requestOptions, signal);
-
-      
-
-      
-
-   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseInfiniteQueryOptions<Awaited<ReturnType<typeof findApprovalRequestById>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type FindApprovalRequestByIdInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof findApprovalRequestById>>>
-export type FindApprovalRequestByIdInfiniteQueryError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse
-
-
-export function useFindApprovalRequestByIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findApprovalRequestById>>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- id: string, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findApprovalRequestById>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof findApprovalRequestById>>,
-          TError,
-          Awaited<ReturnType<typeof findApprovalRequestById>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useFindApprovalRequestByIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findApprovalRequestById>>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- id: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findApprovalRequestById>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof findApprovalRequestById>>,
-          TError,
-          Awaited<ReturnType<typeof findApprovalRequestById>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useFindApprovalRequestByIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findApprovalRequestById>>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- id: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findApprovalRequestById>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary Get approval request by ID
- */
-
-export function useFindApprovalRequestByIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findApprovalRequestById>>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- id: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findApprovalRequestById>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient 
- ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getFindApprovalRequestByIdInfiniteQueryOptions(id,options)
-
-  const query = useInfiniteQuery(queryOptions, queryClient) as  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  query.queryKey = queryOptions.queryKey ;
-
-  return query;
-}
-
-
-
 export const getFindApprovalRequestByIdQueryOptions = <TData = Awaited<ReturnType<typeof findApprovalRequestById>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findApprovalRequestById>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 

@@ -1,97 +1,111 @@
-import React, { useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { Box, Card, CardContent, Typography, Chip, Button, Grid, Alert, Stepper, Step, StepLabel, StepContent } from '@mui/material';
-import { ArrowBack as ArrowBackIcon, CheckCircle as ApproveIcon, Cancel as RejectIcon } from '@mui/icons-material';
-import { PageHeader } from '@components/common/PageHeader';
+import { useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import {
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  Chip,
+  Button,
+  Alert,
+  Divider,
+} from '@mui/material';
+import Grid from '@mui/material/Grid';
+import { ArrowBack as ArrowBackIcon, CheckCircle as ApproveIcon } from '@mui/icons-material';
+import PageHeader from '@components/common/PageHeader';
+import Loading from '@components/common/Loading';
 import { useFindApprovalRequestById, useSubmitApprovalDecision } from '@lib/api/hooks';
-import { useErrorHandler } from '../../../hooks/useErrorHandler';
-import { usePermissions } from '@features/auth/hooks/usePermissions';
+import { useAuth } from '@features/auth/authContext';
+import { toast } from '@lib/toast/toast';
+import { handleApiError } from '@lib/api/errorHandler';
 import { DecisionDialog } from '../components/DecisionDialog';
-import { 
-  REQUEST_TYPE_LABELS, 
-  STATUS_LABELS, 
-  PRIORITY_LABELS, 
-  STATUS_COLORS, 
-  PRIORITY_COLORS,
-  GATE_LABELS 
-} from '../types';
 import { format } from 'date-fns';
 
-export const ApprovalDetailPage: React.FC = () => {
+export default function ApprovalDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { isSysAdmin } = usePermissions();
-  const { handleError, showSuccess } = useErrorHandler();
+  const navigate = useNavigate();
+  const { isSysAdmin } = useAuth();
+  const [decisionDialogOpen, setDecisionDialogOpen] = useState(false);
 
-  const {
-    data: requestResponse,
-    isLoading,
-    error,
-    refetch,
-  } = useFindApprovalRequestById(id!, {
+  const { data: request, isLoading, error, refetch } = useFindApprovalRequestById(id!, {
     query: {
       enabled: !!id,
+      staleTime: 10_000,
     },
   });
 
   const submitDecisionMutation = useSubmitApprovalDecision();
 
-  const request = requestResponse as any; // TODO: Fix API type generation
-  const [decisionDialogOpen, setDecisionDialogOpen] = useState(false);
+  const handleSubmitDecision = async (decision: { decision: 'APPROVE' | 'REJECT'; note?: string }) => {
+    if (!id) return;
 
-  const handleSubmitDecision = async (decision: any) => {
-    if (!request || !id) return;
-    
-    try {
-      await submitDecisionMutation.mutateAsync({
-        id: id,
-        data: {
-          decision: decision.decision,
-          note: decision.note,
-        }
-      });
-      setDecisionDialogOpen(false);
-      showSuccess('Decision submitted successfully');
-      refetch();
-    } catch (error) {
-      handleError(error, 'Failed to submit decision');
+    submitDecisionMutation.mutate(
+      { id, data: decision as any },
+      {
+        onSuccess: () => {
+          toast.success('Decision submitted successfully');
+          setDecisionDialogOpen(false);
+          refetch();
+        },
+        onError: (error) => {
+          handleApiError(error);
+        },
+      }
+    );
+  };
+
+  const canApprove = isSysAdmin; // TODO: Check if user is in approval gate
+
+  const getStatusColor = (status?: string): 'default' | 'info' | 'success' | 'error' | 'warning' => {
+    switch (status) {
+      case 'PENDING':
+        return 'warning';
+      case 'APPROVED':
+        return 'success';
+      case 'REJECTED':
+        return 'error';
+      case 'CANCELLED':
+        return 'default';
+      default:
+        return 'info';
     }
   };
 
-  const canApprove = isSysAdmin;
-
   if (isLoading) {
-    return (
-      <Box>
-        <PageHeader title="Loading..." />
-        <Box sx={{ p: 3 }}>Loading approval request details...</Box>
-      </Box>
-    );
+    return <Loading />;
   }
 
   if (error || !request) {
     return (
       <Box>
-        <PageHeader title="Approval Request Not Found" />
+        <PageHeader
+          title="Approval Request Not Found"
+          actions={
+            <Button variant="outlined" startIcon={<ArrowBackIcon />} onClick={() => navigate('/approvals')}>
+              Back
+            </Button>
+          }
+        />
         <Alert severity="error" sx={{ m: 3 }}>
-          The requested approval could not be found or you don't have permission to view it.
+          {error
+            ? `Failed to load approval request: ${(error as any).detail || 'Unknown error'}`
+            : 'The requested approval could not be found.'}
         </Alert>
       </Box>
     );
   }
 
-  const isExpired = request.expiresAt ? new Date(request.expiresAt) < new Date() : false;
-
   return (
     <Box>
       <PageHeader
-        title={`Approval Request: ${request.serviceName}`}
-        subtitle={`${REQUEST_TYPE_LABELS[request.requestType as keyof typeof REQUEST_TYPE_LABELS]} - ${request.status}`}
+        title={`Approval Request: ${request.target?.serviceId || 'N/A'}`}
+        subtitle={`${request.requestType || 'Unknown'} - ${request.status || 'Unknown'}`}
         actions={
           <Box sx={{ display: 'flex', gap: 1 }}>
             <Button
               variant="outlined"
               startIcon={<ArrowBackIcon />}
-              onClick={() => window.history.back()}
+              onClick={() => navigate('/approvals')}
             >
               Back
             </Button>
@@ -108,181 +122,120 @@ export const ApprovalDetailPage: React.FC = () => {
         }
       />
 
-      <Grid container spacing={3} sx={{ p: 3 }}>
-        {/* Request Information */}
-        <Grid size={{ xs: 12, md: 6 }}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Request Information
+      <Card>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>
+            Request Information
+          </Typography>
+          <Divider sx={{ mb: 2 }} />
+
+          <Grid container spacing={3}>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                Request ID
               </Typography>
-              
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="body2" color="text.secondary">
-                  Service
-                </Typography>
-                <Typography variant="body1" fontWeight="medium">
-                  {request.serviceName}
-                </Typography>
-              </Box>
+              <Typography variant="body1" fontFamily="monospace">
+                {request.id}
+              </Typography>
+            </Grid>
 
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="body2" color="text.secondary">
-                  Type
-                </Typography>
-                <Chip
-                  label={REQUEST_TYPE_LABELS[request.requestType as keyof typeof REQUEST_TYPE_LABELS] || request.requestType}
-                  size="small"
-                  variant="outlined"
-                />
-              </Box>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                Status
+              </Typography>
+              <Chip label={request.status} color={getStatusColor(request.status)} />
+            </Grid>
 
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="body2" color="text.secondary">
-                  Status
-                </Typography>
-                <Chip
-                  label={STATUS_LABELS[request.status as keyof typeof STATUS_LABELS] || request.status}
-                  color={STATUS_COLORS[request.status as keyof typeof STATUS_COLORS] as any}
-                  size="small"
-                />
-              </Box>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                Request Type
+              </Typography>
+              <Typography variant="body1">{request.requestType}</Typography>
+            </Grid>
 
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="body2" color="text.secondary">
-                  Priority
-                </Typography>
-                <Chip
-                  label={PRIORITY_LABELS[request.priority as keyof typeof PRIORITY_LABELS] || request.priority}
-                  color={PRIORITY_COLORS[request.priority as keyof typeof PRIORITY_COLORS] as any}
-                  size="small"
-                />
-              </Box>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                Requester
+              </Typography>
+              <Typography variant="body1">{request.requesterUserId}</Typography>
+            </Grid>
 
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="body2" color="text.secondary">
-                  Requester
-                </Typography>
-                <Typography variant="body1">
-                  {request.requestedBy} ({request.requestedByEmail})
-                </Typography>
-              </Box>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                Target Service
+              </Typography>
+              <Typography variant="body1">{request.target?.serviceId || 'N/A'}</Typography>
+            </Grid>
 
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="body2" color="text.secondary">
-                  Created
+            {request.target?.teamId && (
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                  Target Team
                 </Typography>
-                <Typography variant="body1">
-                  {format(new Date(request.createdAt), 'PPP')}
-                </Typography>
-              </Box>
+                <Typography variant="body1">{request.target.teamId}</Typography>
+              </Grid>
+            )}
 
-              {request.expiresAt && (
-                <Box sx={{ mb: 2 }}>
-                  <Typography variant="body2" color="text.secondary">
-                    Expires
-                  </Typography>
-                  <Typography 
-                    variant="body1" 
-                    color={isExpired ? 'error' : 'text.primary'}
-                    fontWeight={isExpired ? 'medium' : 'normal'}
-                  >
-                    {format(new Date(request.expiresAt), 'PPP')}
-                    {isExpired && ' (Expired)'}
-                  </Typography>
-                </Box>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Description */}
-        <Grid size={{ xs: 12, md: 6 }}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Description
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                Created At
               </Typography>
               <Typography variant="body1">
-                {request.description}
+                {request.createdAt
+                  ? format(new Date(request.createdAt), 'MMM dd, yyyy HH:mm:ss')
+                  : 'N/A'}
               </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
+            </Grid>
 
-        {/* Approval Timeline */}
-        <Grid size={{ xs: 12 }}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Approval Timeline
-              </Typography>
-              
-              <Stepper orientation="vertical">
-                {request.requiredGates.map((gate, index) => {
-                  const currentApprovals = request.currentApprovals.filter(approval => approval.gate === gate.gate);
-                  const isComplete = currentApprovals.length >= gate.minApprovals;
-                  const isActive = !isComplete && request.status === 'PENDING';
-                  
-                  return (
-                    <Step key={gate.gate} completed={isComplete} active={isActive}>
-                      <StepLabel>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Typography variant="body1" fontWeight="medium">
-                            {GATE_LABELS[gate.gate as keyof typeof GATE_LABELS] || gate.gate}
-                          </Typography>
-                          <Chip
-                            label={`${currentApprovals.length}/${gate.minApprovals}`}
-                            color={isComplete ? 'success' : isActive ? 'primary' : 'default'}
-                            size="small"
-                          />
-                        </Box>
-                      </StepLabel>
-                      <StepContent>
-                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                          {gate.description}
-                        </Typography>
-                        
-                        {currentApprovals.length > 0 && (
-                          <Box sx={{ mb: 2 }}>
-                            <Typography variant="body2" fontWeight="medium" gutterBottom>
-                              Approvals:
-                            </Typography>
-                            {currentApprovals.map((approval) => (
-                              <Box key={approval.id} sx={{ ml: 2, mb: 1 }}>
-                                <Typography variant="body2">
-                                  <strong>{approval.approverName}</strong> - {approval.decision}
-                                </Typography>
-                                <Typography variant="caption" color="text.secondary">
-                                  {format(new Date(approval.createdAt), 'PPP')}
-                                </Typography>
-                                {approval.note && (
-                                  <Typography variant="caption" color="text.secondary" display="block">
-                                    Note: {approval.note}
-                                  </Typography>
-                                )}
-                              </Box>
-                            ))}
-                          </Box>
-                        )}
-                      </StepContent>
-                    </Step>
-                  );
-                })}
-              </Stepper>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
 
+            {request.note && (
+              <Grid size={{ xs: 12 }}>
+                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                  Requester Note
+                </Typography>
+                <Typography variant="body1">{request.note}</Typography>
+              </Grid>
+            )}
+          </Grid>
+        </CardContent>
+      </Card>
+
+      {/* Required Approval Gates */}
+      {request.required && request.required.length > 0 && (
+        <Card sx={{ mt: 3 }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Required Approval Gates
+            </Typography>
+            <Divider sx={{ mb: 2 }} />
+
+            <Grid container spacing={2}>
+              {request.required.map((gate, index) => (
+                <Grid key={index} size={{ xs: 12, md: 6 }}>
+                  <Card variant="outlined">
+                    <CardContent>
+                      <Typography variant="subtitle1" gutterBottom>
+                        {gate.gate || `Gate ${index + 1}`}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Minimum Approvals Required: {gate.minApprovals || 1}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Decision Dialog */}
       <DecisionDialog
         open={decisionDialogOpen}
         onClose={() => setDecisionDialogOpen(false)}
         onSubmit={handleSubmitDecision}
-        request={request}
+        loading={submitDecisionMutation.isPending}
       />
     </Box>
   );
-};
-
-export default ApprovalDetailPage;
+}

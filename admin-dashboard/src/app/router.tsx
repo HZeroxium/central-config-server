@@ -8,8 +8,6 @@ import ProtectedRoute from '@components/auth/ProtectedRoute'
 
 // Lazy load all pages
 const DashboardPage = lazy(() => import('@features/dashboard/pages/DashboardPage').then(module => ({ default: module.default })))
-const ServiceListPage = lazy(() => import('@features/services/pages/ServiceListPage'))
-const ServiceDetailPage = lazy(() => import('@features/services/pages/ServiceDetailPage'))
 const ConfigListPage = lazy(() => import('@features/configs/pages/ConfigListPage'))
 const ConfigDetailPage = lazy(() => import('@features/configs/pages/ConfigDetailPage'))
 const ApplicationServiceListPage = lazy(() => import('@features/application-services/pages/ApplicationServiceListPage'))
@@ -23,6 +21,8 @@ const ServiceShareListPage = lazy(() => import('@features/service-shares/pages/S
 const ServiceShareDetailPage = lazy(() => import('@features/service-shares/pages/ServiceShareDetailPage'))
 const IamUserListPage = lazy(() => import('@features/iam/pages/IamUserListPage'))
 const IamTeamListPage = lazy(() => import('@features/iam/pages/IamTeamListPage'))
+const ServiceRegistryListPage = lazy(() => import('@features/service-registry/pages/ServiceRegistryListPage'))
+const ServiceRegistryDetailPage = lazy(() => import('@features/service-registry/pages/ServiceRegistryDetailPage'))
 const ProfilePage = lazy(() => import('@features/auth/pages/ProfilePage'))
 const LoginCallbackPage = lazy(() => import('@features/auth/pages/LoginCallbackPage'))
 
@@ -71,31 +71,6 @@ export const router = createBrowserRouter([
               <ProtectedRoute requiredRoute="/application-services">
                 <Suspense fallback={<Loading />}> 
                   <ApplicationServiceDetailPage />
-                </Suspense>
-              </ProtectedRoute>
-            ),
-          },
-        ],
-      },
-      {
-        path: 'services',
-        children: [
-          {
-            index: true,
-            element: (
-              <ProtectedRoute>
-                <Suspense fallback={<Loading />}> 
-                  <ServiceListPage />
-                </Suspense>
-              </ProtectedRoute>
-            ),
-          },
-          {
-            path: ':serviceName',
-            element: (
-              <ProtectedRoute>
-                <Suspense fallback={<Loading />}> 
-                  <ServiceDetailPage />
                 </Suspense>
               </ProtectedRoute>
             ),
@@ -206,6 +181,31 @@ export const router = createBrowserRouter([
               <ProtectedRoute>
                 <Suspense fallback={<Loading />}> 
                   <ServiceShareDetailPage />
+                </Suspense>
+              </ProtectedRoute>
+            ),
+          },
+        ],
+      },
+      {
+        path: 'registry',
+        children: [
+          {
+            index: true,
+            element: (
+              <ProtectedRoute>
+                <Suspense fallback={<Loading />}> 
+                  <ServiceRegistryListPage />
+                </Suspense>
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: ':serviceName',
+            element: (
+              <ProtectedRoute>
+                <Suspense fallback={<Loading />}> 
+                  <ServiceRegistryDetailPage />
                 </Suspense>
               </ProtectedRoute>
             ),

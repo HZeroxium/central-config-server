@@ -10,8 +10,8 @@ import {
 } from '@mui/material';
 import { ExpandMore as ExpandMoreIcon } from '@mui/icons-material';
 import { DetailCard } from '@components/common/DetailCard';
-import { InstanceStatusChip } from './InstanceStatusChip';
-import { DriftIndicator } from './DriftIndicator';
+import InstanceStatusChip from './InstanceStatusChip';
+import DriftIndicator from './DriftIndicator';
 import type { ServiceInstance } from '../types';
 
 interface InstanceDetailCardProps {
@@ -143,10 +143,10 @@ export const InstanceDetailCard: React.FC<InstanceDetailCardProps> = ({ instance
         </DetailCard>
       )}
 
-      {instance.configHashes && Object.keys(instance.configHashes).length > 0 && (
+      {instance.configHash && typeof instance.configHash === 'object' && Object.keys(instance.configHash).length > 0 && (
         <DetailCard title="Configuration Hashes">
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            {formatConfigHashes(instance.configHashes)}
+            {formatConfigHashes(instance.configHash as Record<string, string>)}
           </Box>
         </DetailCard>
       )}

@@ -1,192 +1,210 @@
-import React from 'react';
-import {
-  Box,
-  Typography,
-  Chip,
-  Avatar,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-} from '@mui/material';
-import {
-  Person as PersonIcon,
-  Email as EmailIcon,
-  Groups as GroupsIcon,
-  AdminPanelSettings as AdminIcon,
-  SupervisorAccount as ManagerIcon,
-} from '@mui/icons-material';
-import { useSelector } from 'react-redux';
-import { type RootState } from '@app/store';
-import { PageHeader } from '@components/common/PageHeader';
-import { DetailCard } from '@components/common/DetailCard';
-import Grid from '@mui/material/Grid'
+import { Box, Card, CardContent, Typography, Avatar, Grid, Divider, Chip, Button, Stack } from '@mui/material';
+import PersonIcon from '@mui/icons-material/Person';
+import EmailIcon from '@mui/icons-material/Email';
+import BusinessIcon from '@mui/icons-material/Business';
+import SupervisorAccountIcon from '@mui/icons-material/SupervisorAccount';
+import AppsIcon from '@mui/icons-material/Apps';
+import ShareIcon from '@mui/icons-material/Share';
+import { useAuth } from '../authContext';
+import { useFindCurrentUserInformation } from '@lib/api/hooks';
+import PageHeader from '@components/common/PageHeader';
+import Loading from '@components/common/Loading';
+import ErrorFallback from '@components/common/ErrorFallback';
+import { getErrorMessage } from '@lib/api/errorHandler';
 
-export const ProfilePage: React.FC = () => {
-  const { userInfo, permissions } = useSelector((state: RootState) => state.auth);
+export default function ProfilePage() {
+  const { hasRole } = useAuth();
+  const { data: userInfo, isLoading, error, refetch } = useFindCurrentUserInformation();
 
-  if (!userInfo) {
-    return (
-      <Box>
-        <PageHeader title="Profile" />
-        <Typography>No user information available.</Typography>
-      </Box>
-    );
-  }
+  if (isLoading) return <Loading />;
+  if (error) return <ErrorFallback message={getErrorMessage(error)} onRetry={refetch} />;
 
-  const getInitials = (firstName: string, lastName: string) => {
-    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+  const handleChangePassword = () => {
+    // Keycloak account management would be handled here
+    window.open('/account', '_blank');
   };
 
   return (
     <Box>
-      <PageHeader title="Profile" />
-      
-      <Grid container spacing={3}>
-        <Grid size={{ xs: 12, md: 4 }}> 
-          <DetailCard title="User Information">
-            <Box display="flex" flexDirection="column" alignItems="center" gap={2}>
+      <PageHeader
+        title="My Profile"
+        subtitle="View your account information and permissions"
+      />
+
+      <Stack spacing={3}>
+        {/* User Overview Card */}
+        <Card>
+          <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
               <Avatar
-                sx={{
-                  width: 80,
-                  height: 80,
+                sx={{ 
+                  width: 80, 
+                  height: 80, 
                   bgcolor: 'primary.main',
-                  fontSize: '2rem',
+                  mr: 3,
+                  fontSize: '2rem'
                 }}
               >
-                {getInitials(userInfo.firstName, userInfo.lastName)}
+                {userInfo?.username?.charAt(0).toUpperCase() || 'U'}
               </Avatar>
-              <Typography variant="h6" fontWeight={600}>
-                {userInfo.firstName} {userInfo.lastName}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {userInfo.username}
-              </Typography>
-            </Box>
-          </DetailCard>
-        </Grid>
-
-        <Grid size={{ xs: 12, md: 8 }}> 
-          <DetailCard title="Contact Information">
-            <List>
-              <ListItem>
-                <ListItemIcon>
-                  <EmailIcon />
-                </ListItemIcon>
-                <ListItemText
-                  primary="Email"
-                  secondary={userInfo.email}
-                />
-              </ListItem>
-              <ListItem>
-                <ListItemIcon>
-                  <PersonIcon />
-                </ListItemIcon>
-                <ListItemText
-                  primary="User ID"
-                  secondary={userInfo.userId}
-                />
-              </ListItem>
-            </List>
-          </DetailCard>
-        </Grid>
-
-        <Grid size={{ xs: 12, md: 6 }}> 
-          <DetailCard title="Roles">
-            <Box display="flex" flexWrap="wrap" gap={1}>
-              {userInfo.roles.map((role) => (
-                <Chip
-                  key={role}
-                  label={role}
-                  color={role === 'SYS_ADMIN' ? 'error' : 'primary'}
-                  variant="outlined"
-                  icon={role === 'SYS_ADMIN' ? <AdminIcon /> : undefined}
-                />
-              ))}
-            </Box>
-          </DetailCard>
-        </Grid>
-
-        <Grid size={{ xs: 12, md: 6 }}> 
-          <DetailCard title="Teams">
-            <Box display="flex" flexWrap="wrap" gap={1}>
-              {userInfo.teamIds.length > 0 ? (
-                userInfo.teamIds.map((teamId) => (
-                  <Chip
-                    key={teamId}
-                    label={teamId}
-                    color="secondary"
-                    variant="outlined"
-                    icon={<GroupsIcon />}
-                  />
-                ))
-              ) : (
-                <Typography color="text.secondary">
-                  No teams assigned
+              <Box>
+                <Typography variant="h5" gutterBottom>
+                  {userInfo?.username || 'Unknown User'}
                 </Typography>
-              )}
+                <Typography variant="body2" color="text.secondary">
+                  @{userInfo?.username}
+                </Typography>
+              </Box>
             </Box>
-          </DetailCard>
-        </Grid>
 
-        {userInfo.managerId && (
-          <Grid size={{ xs: 12 }}> 
-            <DetailCard title="Manager">
-              <ListItem>
-                <ListItemIcon>
-                  <ManagerIcon />
-                </ListItemIcon>
-                <ListItemText
-                  primary="Reports to"
-                  secondary={userInfo.managerId}
-                />
-              </ListItem>
-            </DetailCard>
-          </Grid>
-        )}
+            <Divider sx={{ my: 2 }} />
 
-        {permissions && (
-          <Grid size={{ xs: 12 }}> 
-            <DetailCard title="Permissions">
-              <Grid container spacing={2}>
-                <Grid size={{ xs: 12, md: 6 }}> 
-                  <Typography variant="subtitle2" gutterBottom>
-                    Allowed Routes
-                  </Typography>
-                  <Box display="flex" flexWrap="wrap" gap={1}>
-                    {permissions.allowedRoutes.map((route) => (
-                      <Chip
-                        key={route}
-                        label={route}
-                        size="small"
-                        variant="outlined"
-                      />
-                    ))}
+            <Grid container spacing={3}>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <EmailIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                  <Box>
+                    <Typography variant="caption" color="text.secondary" display="block">
+                      Email
+                    </Typography>
+                    <Typography variant="body1">
+                      {userInfo?.email || 'N/A'}
+                    </Typography>
                   </Box>
-                </Grid>
-                <Grid size={{ xs: 12, md: 6 }}> 
-                  <Typography variant="subtitle2" gutterBottom>
-                    Features
-                  </Typography>
-                  <Box display="flex" flexWrap="wrap" gap={1}>
-                    {Object.entries(permissions.features).map(([feature, enabled]) => (
-                      <Chip
-                        key={feature}
-                        label={feature}
-                        size="small"
-                        color={enabled ? 'success' : 'default'}
-                        variant={enabled ? 'filled' : 'outlined'}
-                      />
-                    ))}
-                  </Box>
-                </Grid>
+                </Box>
               </Grid>
-            </DetailCard>
+
+              {userInfo?.managerId && (
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                    <SupervisorAccountIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" display="block">
+                        Manager
+                      </Typography>
+                      <Typography variant="body1">
+                        {userInfo.managerId}
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Grid>
+              )}
+
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <BusinessIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                  <Box>
+                    <Typography variant="caption" color="text.secondary" display="block">
+                      Teams
+                    </Typography>
+                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 0.5 }}>
+                      {userInfo?.teamIds && userInfo.teamIds.length > 0 ? (
+                        userInfo.teamIds.map((teamId: string) => (
+                          <Chip key={teamId} label={teamId} size="small" />
+                        ))
+                      ) : (
+                        <Typography variant="body2" color="text.secondary">
+                          No teams
+                        </Typography>
+                      )}
+                    </Box>
+                  </Box>
+                </Box>
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <PersonIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                  <Box>
+                    <Typography variant="caption" color="text.secondary" display="block">
+                      Roles
+                    </Typography>
+                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 0.5 }}>
+                      {hasRole('SYS_ADMIN') && <Chip label="System Admin" size="small" color="error" />}
+                      {hasRole('TEAM_LEAD') && <Chip label="Team Lead" size="small" color="primary" />}
+                      {hasRole('DEVELOPER') && <Chip label="Developer" size="small" color="default" />}
+                      {!hasRole('SYS_ADMIN') && !hasRole('TEAM_LEAD') && !hasRole('DEVELOPER') && (
+                        <Typography variant="body2" color="text.secondary">
+                          No roles
+                        </Typography>
+                      )}
+                    </Box>
+                  </Box>
+                </Box>
+              </Grid>
+            </Grid>
+
+            <Box sx={{ mt: 3 }}>
+              <Button 
+                variant="outlined" 
+                onClick={handleChangePassword}
+              >
+                Manage Account (Keycloak)
+              </Button>
+            </Box>
+          </CardContent>
+        </Card>
+
+        {/* Services Summary */}
+        <Grid container spacing={3}>
+          <Grid size={{ xs: 12, md: 4 }}>
+            <Card>
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <AppsIcon sx={{ mr: 1, color: 'primary.main' }} />
+                  <Typography variant="h6">
+                    Owned Services
+                  </Typography>
+                </Box>
+                <Typography variant="h3" color="primary.main">
+                  0
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                  Services you own
+                </Typography>
+              </CardContent>
+            </Card>
           </Grid>
-        )}
-      </Grid>
+
+          <Grid size={{ xs: 12, md: 4 }}>
+            <Card>
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <ShareIcon sx={{ mr: 1, color: 'success.main' }} />
+                  <Typography variant="h6">
+                    Shared Services
+                  </Typography>
+                </Box>
+                <Typography variant="h3" color="success.main">
+                  0
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                  Services shared with you
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid size={{ xs: 12, md: 4 }}>
+            <Card>
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <BusinessIcon sx={{ mr: 1, color: 'info.main' }} />
+                  <Typography variant="h6">
+                    Team Services
+                  </Typography>
+                </Box>
+                <Typography variant="h3" color="info.main">
+                  0
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                  Services in your teams
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+      </Stack>
     </Box>
   );
-};
-
-export default ProfilePage;
+}

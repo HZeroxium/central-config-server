@@ -1,68 +1,80 @@
-import React from 'react';
-import { type GridColDef, GridActionsCellItem } from '@mui/x-data-grid';
-import {
-  Visibility as ViewIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-} from '@mui/icons-material';
-import { DataTable } from '@components/common/DataTable';
-import { InstanceStatusChip } from './InstanceStatusChip';
-import { DriftIndicator } from './DriftIndicator';
-import type { ServiceInstance } from '../types';
-import { usePermissions } from '@features/auth/hooks/usePermissions';
+import { DataGrid, type GridColDef, GridActionsCellItem } from '@mui/x-data-grid';
+import { Delete as DeleteIcon, Visibility as ViewIcon } from '@mui/icons-material';
+import { Box, Chip } from '@mui/material';
+import type { ServiceInstanceResponse } from '@lib/api/models';
+import { useAuth } from '@features/auth/authContext';
+import InstanceStatusChip from './InstanceStatusChip';
+import DriftIndicator from './DriftIndicator';
+import { format } from 'date-fns';
 
 interface ServiceInstanceTableProps {
-  instances: ServiceInstance[];
-  loading?: boolean;
-  onView: (id: string) => void;
-  onEdit: (instance: ServiceInstance) => void;
-  onDelete: (id: string) => void;
+  instances: ServiceInstanceResponse[];
+  loading: boolean;
+  page: number;
+  pageSize: number;
+  totalElements: number;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (pageSize: number) => void;
+  onRowClick: (instanceId: string) => void;
+  onDelete: (instanceId: string) => void;
 }
 
-export const ServiceInstanceTable: React.FC<ServiceInstanceTableProps> = ({
+export function ServiceInstanceTable({
   instances,
   loading,
-  onView,
-  onEdit,
+  page,
+  pageSize,
+  totalElements,
+  onPageChange,
+  onPageSizeChange,
+  onRowClick,
   onDelete,
-}) => {
-  const { canManageApplicationServices } = usePermissions();
+}: ServiceInstanceTableProps) {
+  const { isSysAdmin, permissions } = useAuth();
 
-  const columns: GridColDef[] = [
-    { 
-      field: 'serviceName', 
-      headerName: 'Service Name', 
-      width: 200,
+  const canDelete = (serviceName?: string) => {
+    if (isSysAdmin) return true;
+    if (!serviceName) return false;
+    // Check if user's team owns this service or has edit permissions
+    return permissions?.ownedServiceIds?.includes(serviceName) || false;
+  };
+
+  const columns: GridColDef<ServiceInstanceResponse>[] = [
+    {
+      field: 'serviceName',
+      headerName: 'Service Name',
+      flex: 1,
+      minWidth: 180,
       renderCell: (params) => (
-        <strong>{params.value}</strong>
+        <Box sx={{ fontWeight: 600, color: 'primary.main' }}>{params.value}</Box>
       ),
     },
-    { 
-      field: 'instanceId', 
-      headerName: 'Instance ID', 
-      width: 150,
+    {
+      field: 'instanceId',
+      headerName: 'Instance ID',
+      flex: 1,
+      minWidth: 200,
     },
-    { 
-      field: 'host', 
-      headerName: 'Host:Port', 
-      width: 150,
-      renderCell: (params) => `${params.row.host}:${params.row.port}`,
-    },
-    { 
-      field: 'environment', 
-      headerName: 'Environment', 
+    {
+      field: 'environment',
+      headerName: 'Environment',
       width: 120,
-      renderCell: (params) => (
-        <span style={{ textTransform: 'uppercase', fontWeight: 500 }}>
-          {params.value}
-        </span>
-      ),
-    },
-    { 
-      field: 'version', 
-      headerName: 'Version', 
-      width: 120,
-      renderCell: (params) => params.value || 'N/A',
+      renderCell: (params) => {
+        const envColors: Record<string, string> = {
+          dev: 'info',
+          staging: 'warning',
+          prod: 'error',
+        };
+        const color = envColors[params.value as string] || 'default';
+        return (
+          <Chip
+            label={params.value?.toUpperCase()}
+            color={color as any}
+            size="small"
+            variant="outlined"
+          />
+        );
+      },
     },
     {
       field: 'status',
@@ -73,55 +85,64 @@ export const ServiceInstanceTable: React.FC<ServiceInstanceTableProps> = ({
     {
       field: 'hasDrift',
       headerName: 'Drift',
-      width: 80,
+      width: 100,
       align: 'center',
       renderCell: (params) => (
-        <DriftIndicator hasDrift={params.value} />
+        <DriftIndicator hasDrift={params.value} driftDetectedAt={params.row.driftDetectedAt} />
       ),
+    },
+    {
+      field: 'version',
+      headerName: 'Version',
+      width: 100,
+    },
+    {
+      field: 'host',
+      headerName: 'Host',
+      width: 150,
+    },
+    {
+      field: 'port',
+      headerName: 'Port',
+      width: 80,
     },
     {
       field: 'lastSeenAt',
       headerName: 'Last Seen',
-      width: 150,
-      type: 'dateTime',
-      valueFormatter: (value: any) => {
-        if (!value) return '';
-        return new Date(value).toLocaleDateString();
+      width: 160,
+      renderCell: (params) => {
+        if (!params.value) return '-';
+        try {
+          return format(new Date(params.value), 'MMM dd, yyyy HH:mm');
+        } catch {
+          return params.value;
+        }
       },
     },
     {
       field: 'actions',
       type: 'actions',
       headerName: 'Actions',
-      width: 120,
+      width: 100,
       getActions: (params) => {
         const actions = [
           <GridActionsCellItem
             key="view"
             icon={<ViewIcon />}
             label="View"
-            onClick={() => onView(params.id as string)}
-            showInMenu
+            onClick={() => onRowClick(params.row.instanceId || '')}
+            showInMenu={false}
           />,
         ];
 
-        if (canManageApplicationServices) {
-          actions.push(
-            <GridActionsCellItem
-              key="edit"
-              icon={<EditIcon />}
-              label="Edit"
-              onClick={() => onEdit(params.row as ServiceInstance)}
-              showInMenu
-            />
-          );
+        if (canDelete(params.row.serviceName)) {
           actions.push(
             <GridActionsCellItem
               key="delete"
               icon={<DeleteIcon />}
               label="Delete"
-              onClick={() => onDelete(params.id as string)}
-              showInMenu
+              onClick={() => onDelete(params.row.instanceId || '')}
+              showInMenu={false}
             />
           );
         }
@@ -131,5 +152,37 @@ export const ServiceInstanceTable: React.FC<ServiceInstanceTableProps> = ({
     },
   ];
 
-  return <DataTable rows={instances} columns={columns} loading={loading} getRowId={(row) => row.id} />;
-};
+  // Create rows with unique id for DataGrid
+  const rows = instances.map((instance) => ({
+    ...instance,
+    id: instance.instanceId || `${instance.serviceName}-${Math.random()}`,
+  }));
+
+  return (
+    <Box sx={{ height: 600, width: '100%' }}>
+      <DataGrid
+        rows={rows}
+        columns={columns}
+        loading={loading}
+        paginationMode="server"
+        rowCount={totalElements}
+        paginationModel={{ page, pageSize }}
+        onPaginationModelChange={(model) => {
+          if (model.page !== page) {
+            onPageChange(model.page);
+          }
+          if (model.pageSize !== pageSize) {
+            onPageSizeChange(model.pageSize);
+          }
+        }}
+        pageSizeOptions={[10, 20, 50, 100]}
+        disableRowSelectionOnClick
+        sx={{
+          '& .MuiDataGrid-row': {
+            cursor: 'pointer',
+          },
+        }}
+      />
+    </Box>
+  );
+}

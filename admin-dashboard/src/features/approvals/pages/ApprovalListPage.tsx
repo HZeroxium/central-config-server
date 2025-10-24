@@ -1,231 +1,272 @@
-import React, { useState } from 'react';
-import { Box, Button, TextField, InputAdornment, FormControl, InputLabel, Select, MenuItem, Chip, Tabs, Tab } from '@mui/material';
-import { Search as SearchIcon, FilterList as FilterIcon, Refresh as RefreshIcon } from '@mui/icons-material';
-import { PageHeader } from '@components/common/PageHeader';
-import { ApprovalRequestTable } from '../components/ApprovalRequestTable';
-import { DecisionDialog } from '../components/DecisionDialog';
+import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
-  useFindAllApprovalRequests,
-  useSubmitApprovalDecision,
-  useCancelApprovalRequest,
-} from '@lib/api/hooks';
-import { useErrorHandler } from '@hooks/useErrorHandler';
-import type { ApprovalRequest, ApprovalRequestFilter, RequestStatus } from '../types';
-import { REQUEST_STATUSES, STATUS_LABELS } from '../types';
-import { usePermissions } from '@features/auth/hooks/usePermissions';
+  Box,
+  Button,
+  Card,
+  CardContent,
+  TextField,
+  InputAdornment,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Tabs,
+  Tab,
+  Alert,
+  FormControlLabel,
+  Switch,
+  Badge,
+} from '@mui/material';
+import Grid from '@mui/material/Grid';
+import { Search as SearchIcon, Refresh as RefreshIcon, CheckCircle as ApprovalIcon } from '@mui/icons-material';
+import PageHeader from '@components/common/PageHeader';
+import Loading from '@components/common/Loading';
+import { useFindAllApprovalRequests } from '@lib/api/hooks';
+import { ApprovalRequestTable } from '../components/ApprovalRequestTable';
+import { useAuth } from '@features/auth/authContext';
 
-export const ApprovalListPage: React.FC = () => {
-  const [page] = useState(0);
-  const [pageSize] = useState(10);
+export default function ApprovalListPage() {
+  const navigate = useNavigate();
+  const { isSysAdmin, userInfo } = useAuth();
+
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(20);
   const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState<ApprovalRequestFilter>({});
-  const [decisionDialogOpen, setDecisionDialogOpen] = useState(false);
-  const [selectedRequest, setSelectedRequest] = useState<ApprovalRequest | null>(null);
-  const [showFilters, setShowFilters] = useState(false);
-  const [activeTab, setActiveTab] = useState<RequestStatus>('PENDING');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [requestTypeFilter, setRequestTypeFilter] = useState('');
+  const [activeTab, setActiveTab] = useState(0);
+  const [showMyApprovalsOnly, setShowMyApprovalsOnly] = useState(false);
 
-  const { isSysAdmin } = usePermissions();
-  const { handleError, showSuccess } = useErrorHandler();
+  // Map tab to status filter
+  const tabToStatus: Record<number, string | undefined> = {
+    0: undefined, // All
+    1: 'PENDING',
+    2: 'APPROVED',
+    3: 'REJECTED',
+    4: 'CANCELLED',
+  };
 
-  const {
-    data: requestsResponse,
-    isLoading,
-    refetch,
-  } = useFindAllApprovalRequests(
+  const currentStatus = statusFilter || tabToStatus[activeTab];
+
+  const { data, isLoading, error, refetch } = useFindAllApprovalRequests(
     {
-      filter: {
-        search: search || undefined,
-      },
-      pageable: { page, size: pageSize },
+      requesterUserId: search || undefined,
+      status: currentStatus,
+      requestType: requestTypeFilter || undefined,
+      page,
+      size: pageSize,
     },
     {
       query: {
-        staleTime: 10000, // 10 seconds for real-time updates
-        refetchInterval: 30000, // Auto-refresh every 30 seconds
+        staleTime: 10_000,
+        refetchInterval: 30_000, // Auto-refresh every 30s
       },
     }
   );
 
-  const submitDecisionMutation = useSubmitApprovalDecision();
-  const cancelRequestMutation = useCancelApprovalRequest();
+  const allRequests = data?.items || [];
+  const metadata = data?.metadata;
 
-  // Get the page data from API response
-  const pageData = requestsResponse;
-  const requests = (pageData?.content || []) as ApprovalRequest[];
+  // Filter requests for "Pending My Approval"
+  const requests = useMemo(() => {
+    if (!showMyApprovalsOnly) return allRequests;
 
-  const handleSubmitDecision = async (decision: any) => {
-    if (!selectedRequest) return;
-    
-    try {
-      await submitDecisionMutation.mutateAsync({
-        id: selectedRequest.id,
-        data: {
-          decision: decision.decision,
-          note: decision.note,
-        },
-      });
-      setDecisionDialogOpen(false);
-      setSelectedRequest(null);
-      showSuccess('Decision submitted successfully');
-      refetch();
-    } catch (error) {
-      handleError(error, 'Failed to submit decision');
-    }
-  };
+    return allRequests.filter((request) => {
+      // Only show pending requests
+      if (request.status !== 'PENDING') return false;
 
-  const handleCancelRequest = async (request: ApprovalRequest) => {
-    try {
-      await cancelRequestMutation.mutateAsync({ id: request.id });
-      showSuccess('Request cancelled successfully');
-      refetch();
-    } catch (error) {
-      handleError(error, 'Failed to cancel request');
-    }
-  };
+      // SYS_ADMIN can approve everything
+      if (isSysAdmin) return true;
 
-  const handleDecisionClick = (request: ApprovalRequest) => {
-    setSelectedRequest(request);
-    setDecisionDialogOpen(true);
-  };
+      // LINE_MANAGER can approve if they are the manager of the requester
+      if (request.snapshot?.managerId === userInfo?.userId) return true;
 
-  const handleTabChange = (_: React.SyntheticEvent, newValue: RequestStatus) => {
+      return false;
+    });
+  }, [allRequests, showMyApprovalsOnly, isSysAdmin, userInfo?.userId]);
+
+  // Count pending approvals for badge
+  const pendingMyApprovalCount = useMemo(() => {
+    if (!allRequests) return 0;
+    return allRequests.filter((request) => {
+      if (request.status !== 'PENDING') return false;
+      if (isSysAdmin) return true;
+      if (request.snapshot?.managerId === userInfo?.userId) return true;
+      return false;
+    }).length;
+  }, [allRequests, isSysAdmin, userInfo?.userId]);
+
+  const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue);
+    setPage(0);
   };
 
-  const handleClearFilters = () => {
-    setFilter({});
+  const handleFilterReset = () => {
     setSearch('');
+    setStatusFilter('');
+    setRequestTypeFilter('');
+    setShowMyApprovalsOnly(false);
+    setPage(0);
   };
-
-  const canApprove = isSysAdmin;
 
   return (
     <Box>
       <PageHeader
         title="Approval Requests"
-        subtitle="Review and approve service access and configuration changes"
+        subtitle="Manage service access approval requests"
         actions={
-          <Button
-            variant="outlined"
-            startIcon={<RefreshIcon />}
-            onClick={() => refetch()}
-            disabled={isLoading}
-          >
-            Refresh
-          </Button>
+          <>
+            {pendingMyApprovalCount > 0 && (
+              <Badge badgeContent={pendingMyApprovalCount} color="warning" sx={{ mr: 2 }}>
+                <ApprovalIcon color="action" />
+              </Badge>
+            )}
+            <Button variant="outlined" startIcon={<RefreshIcon />} onClick={() => refetch()}>
+              Refresh
+            </Button>
+          </>
         }
       />
 
-      {/* Status Tabs */}
-      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-        <Tabs value={activeTab} onChange={handleTabChange}>
-          {Object.entries(REQUEST_STATUSES).map(([key, status]) => (
-            <Tab
-              key={key}
-              label={`${STATUS_LABELS[status]} (${requests.length})`}
-              value={status}
+      <Card>
+        <CardContent>
+          {/* Status Tabs */}
+          <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+            <Tabs value={activeTab} onChange={handleTabChange}>
+              <Tab label="All" />
+              <Tab label="Pending" />
+              <Tab label="Approved" />
+              <Tab label="Rejected" />
+              <Tab label="Cancelled" />
+            </Tabs>
+          </Box>
+
+          {/* Pending My Approval Toggle */}
+          <Box sx={{ mb: 2 }}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={showMyApprovalsOnly}
+                  onChange={(e) => {
+                    setShowMyApprovalsOnly(e.target.checked);
+                    setPage(0);
+                  }}
+                  color="warning"
+                />
+              }
+              label={
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <ApprovalIcon fontSize="small" />
+                  Show Pending My Approval Only
+                  {pendingMyApprovalCount > 0 && (
+                    <Badge badgeContent={pendingMyApprovalCount} color="warning" />
+                  )}
+                </Box>
+              }
             />
-          ))}
-        </Tabs>
-      </Box>
+          </Box>
 
-      {/* Search and Filters */}
-      <Box sx={{ mb: 3, display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-        <TextField
-          placeholder="Search by service name or requester..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon />
-              </InputAdornment>
-            ),
-          }}
-          sx={{ minWidth: 300 }}
-        />
-
-        <Button
-          variant="outlined"
-          startIcon={<FilterIcon />}
-          onClick={() => setShowFilters(!showFilters)}
-        >
-          Filters
-        </Button>
-
-        {Object.keys(filter).length > 0 && (
-          <Button variant="text" onClick={handleClearFilters}>
-            Clear Filters
-          </Button>
-        )}
-      </Box>
-
-      {/* Filter Controls */}
-      {showFilters && (
-        <Box sx={{ mb: 3, p: 2, bgcolor: 'grey.50', borderRadius: 1, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-          <FormControl sx={{ minWidth: 120 }}>
-            <InputLabel>Type</InputLabel>
-            <Select
-              value={filter.requestType || ''}
-              onChange={(e) => setFilter(prev => ({ ...prev, requestType: e.target.value as any }))}
-              label="Type"
-            >
-              <MenuItem value="">All</MenuItem>
-              <MenuItem value="SERVICE_SHARE">Service Share</MenuItem>
-              <MenuItem value="CONFIG_CHANGE">Config Change</MenuItem>
-              <MenuItem value="DRIFT_RESOLUTION">Drift Resolution</MenuItem>
-              <MenuItem value="SERVICE_DELETION">Service Deletion</MenuItem>
-            </Select>
-          </FormControl>
-
-          <FormControl sx={{ minWidth: 120 }}>
-            <InputLabel>Priority</InputLabel>
-            <Select
-              value={filter.priority || ''}
-              onChange={(e) => setFilter(prev => ({ ...prev, priority: e.target.value as any }))}
-              label="Priority"
-            >
-              <MenuItem value="">All</MenuItem>
-              <MenuItem value="LOW">Low</MenuItem>
-              <MenuItem value="MEDIUM">Medium</MenuItem>
-              <MenuItem value="HIGH">High</MenuItem>
-              <MenuItem value="CRITICAL">Critical</MenuItem>
-            </Select>
-          </FormControl>
-        </Box>
-      )}
-
-      {/* Active Filters Display */}
-      {Object.keys(filter).length > 0 && (
-        <Box sx={{ mb: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-          {Object.entries(filter).map(([key, value]) => (
-            value && (
-              <Chip
-                key={key}
-                label={`${key}: ${value}`}
-                onDelete={() => setFilter(prev => ({ ...prev, [key]: undefined }))}
-                size="small"
+          {/* Filters */}
+          <Grid container spacing={2} sx={{ mb: 3 }}>
+            <Grid size={{ xs: 12, md: 4 }}>
+              <TextField
+                fullWidth
+                label="Search by Requester User ID"
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(0);
+                }}
+                disabled={showMyApprovalsOnly}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon />
+                    </InputAdornment>
+                  ),
+                }}
               />
-            )
-          ))}
-        </Box>
-      )}
+            </Grid>
 
-      <ApprovalRequestTable
-        requests={requests}
-        loading={isLoading}
-        onDecision={canApprove ? handleDecisionClick : undefined}
-        onCancel={canApprove ? handleCancelRequest : undefined}
-      />
+            <Grid size={{ xs: 12, md: 3 }}>
+              <FormControl fullWidth>
+                <InputLabel>Request Type</InputLabel>
+                <Select
+                  value={requestTypeFilter}
+                  label="Request Type"
+                  onChange={(e) => {
+                    setRequestTypeFilter(e.target.value);
+                    setPage(0);
+                  }}
+                  disabled={showMyApprovalsOnly}
+                >
+                  <MenuItem value="">All</MenuItem>
+                  <MenuItem value="SERVICE_ACCESS">Service Access</MenuItem>
+                  <MenuItem value="PERMISSION_GRANT">Permission Grant</MenuItem>
+                  <MenuItem value="ROLE_ASSIGNMENT">Role Assignment</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
 
-      <DecisionDialog
-        open={decisionDialogOpen}
-        onClose={() => setDecisionDialogOpen(false)}
-        onSubmit={handleSubmitDecision}
-        request={selectedRequest}
-      />
+            <Grid size={{ xs: 12, md: 3 }}>
+              <FormControl fullWidth>
+                <InputLabel>Status Override</InputLabel>
+                <Select
+                  value={statusFilter}
+                  label="Status Override"
+                  onChange={(e) => {
+                    setStatusFilter(e.target.value);
+                    setPage(0);
+                  }}
+                  disabled={showMyApprovalsOnly}
+                >
+                  <MenuItem value="">Use Tab Filter</MenuItem>
+                  <MenuItem value="PENDING">Pending</MenuItem>
+                  <MenuItem value="APPROVED">Approved</MenuItem>
+                  <MenuItem value="REJECTED">Rejected</MenuItem>
+                  <MenuItem value="CANCELLED">Cancelled</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid size={{ xs: 12, md: 2 }}>
+              <Button
+                fullWidth
+                variant="outlined"
+                onClick={handleFilterReset}
+                sx={{ height: '56px' }}
+              >
+                Reset
+              </Button>
+            </Grid>
+          </Grid>
+
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              Failed to load approval requests: {(error as any).detail || 'Unknown error'}
+            </Alert>
+          )}
+
+          {isLoading && <Loading />}
+
+          {!isLoading && !error && (
+            <ApprovalRequestTable
+              requests={requests}
+              loading={isLoading}
+              page={page}
+              pageSize={pageSize}
+              totalElements={metadata?.totalElements || 0}
+              onPageChange={(newPage: number) => setPage(newPage)}
+              onPageSizeChange={(newPageSize: number) => {
+                setPageSize(newPageSize);
+                setPage(0);
+              }}
+              onRowClick={(requestId: string) => navigate(`/approvals/${requestId}`)}
+            />
+          )}
+        </CardContent>
+      </Card>
     </Box>
   );
-};
-
-export default ApprovalListPage;
+}

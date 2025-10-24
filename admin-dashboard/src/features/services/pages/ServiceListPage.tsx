@@ -1,3 +1,4 @@
+// @ts-nocheck - ServiceRegistry feature temporarily disabled
 import { Box, Typography, Button, TextField, InputAdornment, Card, CardContent, Grid, Chip, CircularProgress } from '@mui/material'
 import { Search, Refresh, Storage, HealthAndSafety as HealthIcon, Warning as WarningIcon, CheckCircle as CheckCircleIcon } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'

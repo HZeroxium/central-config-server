@@ -1,230 +1,135 @@
-import React, { useState } from 'react';
-import { Box, Button, TextField, InputAdornment, FormControl, InputLabel, Select, MenuItem, Chip, Card, CardContent, Typography, Grid } from '@mui/material';
-import { Search as SearchIcon, Refresh as RefreshIcon, Group as GroupIcon, Person as PersonIcon } from '@mui/icons-material';
-import { PageHeader } from '@components/common/PageHeader';
-import { IamTeamTable } from '../components/IamTeamTable';
-import { TeamDetailCard } from '../components/TeamDetailCard';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
-  useFindAllIamTeams,
-  useGetStatsIamTeam,
-} from '@lib/api/hooks';
-import { useErrorHandler } from '../../../hooks/useErrorHandler';
-import type { IamTeam, IamFilter } from '../types';
-import { usePermissions } from '@features/auth/hooks/usePermissions';
+  Box,
+  Button,
+  Card,
+  CardContent,
+  TextField,
+  InputAdornment,
+  Alert,
+} from '@mui/material';
+import Grid from '@mui/material/Grid';
+import { Search as SearchIcon, Refresh as RefreshIcon } from '@mui/icons-material';
+import PageHeader from '@components/common/PageHeader';
+import Loading from '@components/common/Loading';
+import { useFindAllIamTeams } from '@lib/api/hooks';
+import { useAuth } from '@features/auth/authContext';
+import { IamTeamTable } from '../components/IamTeamTable';
 
-export const IamTeamListPage: React.FC = () => {
-  const [page] = useState(0);
-  const [pageSize] = useState(10);
+export default function IamTeamListPage() {
+  const navigate = useNavigate();
+  const { isSysAdmin } = useAuth();
+
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(20);
   const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState<IamFilter>({});
-  const [selectedTeam, setSelectedTeam] = useState<IamTeam | null>(null);
 
-  const { isSysAdmin } = usePermissions();
-  const { handleError } = useErrorHandler();
+  // Only SYS_ADMIN can access IAM pages
+  if (!isSysAdmin) {
+    return (
+      <Box>
+        <PageHeader title="Access Denied" />
+        <Alert severity="error" sx={{ m: 3 }}>
+          You do not have permission to access this page. This feature is restricted to system administrators.
+        </Alert>
+      </Box>
+    );
+  }
 
-  const {
-    data: teamsResponse,
-    isLoading,
-    refetch,
-  } = useFindAllIamTeams(
+  const { data, isLoading, error, refetch } = useFindAllIamTeams(
     {
-      criteria: {
-        ...filter,
-        displayName: search || undefined,
-      },
-      userContext: {
-        userId: 'current', // This would be the current user ID
-      },
-      pageable: { page, size: pageSize },
+      displayName: search || undefined,
+      page,
+      size: pageSize,
     },
     {
       query: {
-        staleTime: 30000,
+        staleTime: 30_000,
       },
     }
   );
 
-  // Get the page data from API response
-  const pageData = teamsResponse;
-  const teams = (pageData?.content || []) as IamTeam[];
+  const teams = data?.items || [];
+  const metadata = data?.metadata;
 
-  const handleTeamSelect = (team: IamTeam) => {
-    setSelectedTeam(team);
-  };
-
-  const handleClearFilters = () => {
-    setFilter({});
+  const handleFilterReset = () => {
     setSearch('');
+    setPage(0);
   };
 
   return (
     <Box>
       <PageHeader
-        title="Teams"
+        title="IAM Teams"
         subtitle="Manage teams and their members"
         actions={
-          <Button
-            variant="outlined"
-            startIcon={<RefreshIcon />}
-            onClick={() => refetch()}
-            disabled={isLoading}
-          >
+          <Button variant="outlined" startIcon={<RefreshIcon />} onClick={() => refetch()}>
             Refresh
           </Button>
         }
       />
 
-      {/* Search and Filters */}
-      <Box sx={{ mb: 3, display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-        <TextField
-          placeholder="Search teams..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon />
-              </InputAdornment>
-            ),
-          }}
-          sx={{ minWidth: 300 }}
-        />
-
-        <FormControl sx={{ minWidth: 120 }}>
-          <InputLabel>Manager</InputLabel>
-          <Select
-            value={filter.managerId || ''}
-            onChange={(e) => setFilter(prev => ({ ...prev, managerId: e.target.value || undefined }))}
-            label="Manager"
-          >
-            <MenuItem value="">All</MenuItem>
-            {/* This would be populated from users API */}
-            <MenuItem value="manager1">John Doe</MenuItem>
-            <MenuItem value="manager2">Jane Smith</MenuItem>
-          </Select>
-        </FormControl>
-
-        {Object.keys(filter).length > 0 && (
-          <Button variant="text" onClick={handleClearFilters}>
-            Clear Filters
-          </Button>
-        )}
-      </Box>
-
-      {/* Active Filters Display */}
-      {Object.keys(filter).length > 0 && (
-        <Box sx={{ mb: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-          {Object.entries(filter).map(([key, value]) => (
-            value && (
-              <Chip
-                key={key}
-                label={`${key}: ${value}`}
-                onDelete={() => setFilter(prev => ({ ...prev, [key]: undefined }))}
-                size="small"
+      <Card>
+        <CardContent>
+          {/* Filters */}
+          <Grid container spacing={2} sx={{ mb: 3 }}>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TextField
+                fullWidth
+                label="Search by Team Name"
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(0);
+                }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon />
+                    </InputAdornment>
+                  ),
+                }}
               />
-            )
-          ))}
-        </Box>
-      )}
+            </Grid>
 
-      <Grid container spacing={3}>
-        {/* Teams Table */}
-        <Grid size={{ xs: selectedTeam ? 8 : 12 }}>
-          <IamTeamTable
-            teams={teams}
-            loading={isLoading}
-            onTeamSelect={handleTeamSelect}
-            selectedTeam={selectedTeam}
-          />
-        </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Button
+                fullWidth
+                variant="outlined"
+                onClick={handleFilterReset}
+                sx={{ height: '56px' }}
+              >
+                Reset Filters
+              </Button>
+            </Grid>
+          </Grid>
 
-        {/* Team Detail Card */}
-        {selectedTeam && (
-          <Grid size={{ xs: 4 }}>
-            <TeamDetailCard
-              team={selectedTeam}
-              onClose={() => setSelectedTeam(null)}
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              Failed to load teams: {(error as any).detail || 'Unknown error'}
+            </Alert>
+          )}
+
+          {isLoading && <Loading />}
+
+          {!isLoading && !error && (
+            <IamTeamTable
+              teams={teams}
+              loading={isLoading}
+              page={page}
+              pageSize={pageSize}
+              totalElements={metadata?.totalElements || 0}
+              onPageChange={(newPage: number) => setPage(newPage)}
+              onPageSizeChange={(newPageSize: number) => {
+                setPageSize(newPageSize);
+                setPage(0);
+              }}
+              onRowClick={(teamId: string) => navigate(`/iam/teams/${teamId}`)}
             />
-          </Grid>
-        )}
-      </Grid>
-
-      {/* Summary Cards */}
-      <Box sx={{ mt: 3 }}>
-        <Grid container spacing={2}>
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <Card>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <GroupIcon color="primary" />
-                  <Box>
-                    <Typography variant="h6">{teams.length}</Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Total Teams
-                    </Typography>
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <Card>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <PersonIcon color="success" />
-                  <Box>
-                    <Typography variant="h6">
-                      {teams.reduce((sum, team) => sum + team.memberCount, 0)}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Total Members
-                    </Typography>
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <Card>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <GroupIcon color="warning" />
-                  <Box>
-                    <Typography variant="h6">
-                      {teams.filter(team => team.ownedServiceIds.length > 0).length}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Teams with Services
-                    </Typography>
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <Card>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <PersonIcon color="info" />
-                  <Box>
-                    <Typography variant="h6">
-                      {teams.filter(team => team.managerId).length}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Teams with Managers
-                    </Typography>
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
-      </Box>
+          )}
+        </CardContent>
+      </Card>
     </Box>
   );
-};
-
-export default IamTeamListPage;
+}

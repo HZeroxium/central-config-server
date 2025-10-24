@@ -20,23 +20,18 @@
  * OpenAPI spec version: 1.0.0
  */
 import {
-  useInfiniteQuery,
   useMutation,
   useQuery
 } from '@tanstack/react-query';
 import type {
   DataTag,
   DefinedInitialDataOptions,
-  DefinedUseInfiniteQueryResult,
   DefinedUseQueryResult,
-  InfiniteData,
   MutationFunction,
   QueryClient,
   QueryFunction,
   QueryKey,
   UndefinedInitialDataOptions,
-  UseInfiniteQueryOptions,
-  UseInfiniteQueryResult,
   UseMutationOptions,
   UseMutationResult,
   UseQueryOptions,
@@ -83,12 +78,6 @@ export const findByIdServiceInstance = (
 
 
 
-export const getFindByIdServiceInstanceInfiniteQueryKey = (instanceId?: string,) => {
-    return [
-    'infinite', `/api/service-instances/${instanceId}`
-    ] as const;
-    }
-
 export const getFindByIdServiceInstanceQueryKey = (instanceId?: string,) => {
     return [
     `/api/service-instances/${instanceId}`
@@ -96,72 +85,6 @@ export const getFindByIdServiceInstanceQueryKey = (instanceId?: string,) => {
     }
 
     
-export const getFindByIdServiceInstanceInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof findByIdServiceInstance>>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(instanceId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findByIdServiceInstance>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getFindByIdServiceInstanceInfiniteQueryKey(instanceId);
-
-  
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof findByIdServiceInstance>>> = ({ signal }) => findByIdServiceInstance(instanceId, requestOptions, signal);
-
-      
-
-      
-
-   return  { queryKey, queryFn, enabled: !!(instanceId), ...queryOptions} as UseInfiniteQueryOptions<Awaited<ReturnType<typeof findByIdServiceInstance>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type FindByIdServiceInstanceInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof findByIdServiceInstance>>>
-export type FindByIdServiceInstanceInfiniteQueryError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse
-
-
-export function useFindByIdServiceInstanceInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findByIdServiceInstance>>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- instanceId: string, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findByIdServiceInstance>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof findByIdServiceInstance>>,
-          TError,
-          Awaited<ReturnType<typeof findByIdServiceInstance>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useFindByIdServiceInstanceInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findByIdServiceInstance>>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- instanceId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findByIdServiceInstance>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof findByIdServiceInstance>>,
-          TError,
-          Awaited<ReturnType<typeof findByIdServiceInstance>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useFindByIdServiceInstanceInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findByIdServiceInstance>>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- instanceId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findByIdServiceInstance>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary Get service instance by ID
- */
-
-export function useFindByIdServiceInstanceInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findByIdServiceInstance>>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(
- instanceId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findByIdServiceInstance>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient 
- ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getFindByIdServiceInstanceInfiniteQueryOptions(instanceId,options)
-
-  const query = useInfiniteQuery(queryOptions, queryClient) as  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  query.queryKey = queryOptions.queryKey ;
-
-  return query;
-}
-
-
-
 export const getFindByIdServiceInstanceQueryOptions = <TData = Awaited<ReturnType<typeof findByIdServiceInstance>>, TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse>(instanceId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findByIdServiceInstance>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -394,12 +317,6 @@ export const findAllServiceInstances = (
 
 
 
-export const getFindAllServiceInstancesInfiniteQueryKey = (params?: FindAllServiceInstancesParams,) => {
-    return [
-    'infinite', `/api/service-instances`, ...(params ? [params]: [])
-    ] as const;
-    }
-
 export const getFindAllServiceInstancesQueryKey = (params?: FindAllServiceInstancesParams,) => {
     return [
     `/api/service-instances`, ...(params ? [params]: [])
@@ -407,72 +324,6 @@ export const getFindAllServiceInstancesQueryKey = (params?: FindAllServiceInstan
     }
 
     
-export const getFindAllServiceInstancesInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof findAllServiceInstances>>, FindAllServiceInstancesParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(params?: FindAllServiceInstancesParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllServiceInstances>>, TError, TData, QueryKey, FindAllServiceInstancesParams['page']>>, request?: SecondParameter<typeof customInstance>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getFindAllServiceInstancesInfiniteQueryKey(params);
-
-  
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof findAllServiceInstances>>, QueryKey, FindAllServiceInstancesParams['page']> = ({ signal, pageParam }) => findAllServiceInstances({...params, 'page': pageParam || params?.['page']}, requestOptions, signal);
-
-      
-
-      
-
-   return  { queryKey, queryFn, ...queryOptions} as UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllServiceInstances>>, TError, TData, QueryKey, FindAllServiceInstancesParams['page']> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type FindAllServiceInstancesInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof findAllServiceInstances>>>
-export type FindAllServiceInstancesInfiniteQueryError = ErrorResponse | ErrorResponse | ErrorResponse
-
-
-export function useFindAllServiceInstancesInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findAllServiceInstances>>, FindAllServiceInstancesParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- params: undefined |  FindAllServiceInstancesParams, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllServiceInstances>>, TError, TData, QueryKey, FindAllServiceInstancesParams['page']>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof findAllServiceInstances>>,
-          TError,
-          Awaited<ReturnType<typeof findAllServiceInstances>>, QueryKey
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useFindAllServiceInstancesInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findAllServiceInstances>>, FindAllServiceInstancesParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- params?: FindAllServiceInstancesParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllServiceInstances>>, TError, TData, QueryKey, FindAllServiceInstancesParams['page']>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof findAllServiceInstances>>,
-          TError,
-          Awaited<ReturnType<typeof findAllServiceInstances>>, QueryKey
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useFindAllServiceInstancesInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findAllServiceInstances>>, FindAllServiceInstancesParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- params?: FindAllServiceInstancesParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllServiceInstances>>, TError, TData, QueryKey, FindAllServiceInstancesParams['page']>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary List service instances with filters and pagination
- */
-
-export function useFindAllServiceInstancesInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findAllServiceInstances>>, FindAllServiceInstancesParams['page']>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
- params?: FindAllServiceInstancesParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findAllServiceInstances>>, TError, TData, QueryKey, FindAllServiceInstancesParams['page']>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient 
- ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getFindAllServiceInstancesInfiniteQueryOptions(params,options)
-
-  const query = useInfiniteQuery(queryOptions, queryClient) as  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  query.queryKey = queryOptions.queryKey ;
-
-  return query;
-}
-
-
-
 export const getFindAllServiceInstancesQueryOptions = <TData = Awaited<ReturnType<typeof findAllServiceInstances>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(params?: FindAllServiceInstancesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findAllServiceInstances>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 

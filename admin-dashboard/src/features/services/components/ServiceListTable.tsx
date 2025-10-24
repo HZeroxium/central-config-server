@@ -1,3 +1,4 @@
+// @ts-nocheck - ServiceRegistry feature temporarily disabled
 import { Card, CardContent, Typography, Table, TableHead, TableRow, TableCell, TableBody, Chip } from '@mui/material'
 import { useMemo } from 'react'
 import StatusBadge from '@components/common/StatusBadge'

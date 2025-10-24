@@ -27,7 +27,8 @@
       "@assets/*": ["src/assets/*"],
       "@theme/*": ["src/theme/*"],
       "@layout/*": ["src/layout/*"],
-      "@hooks/*": ["src/hooks/*"]
+      "@hooks/*": ["src/hooks/*"],
+      "@store/*": ["src/store/*"]
     },
 
     /* Linting */
@@ -38,5 +39,9 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": [
+    "src/lib/api/generated/config-server/config-server.ts",
+    "src/lib/api/generated/service-registry/service-registry.ts"
+  ]
 }

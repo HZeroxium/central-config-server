@@ -20,21 +20,16 @@
  * OpenAPI spec version: 1.0.0
  */
 import {
-  useInfiniteQuery,
   useQuery
 } from '@tanstack/react-query';
 import type {
   DataTag,
   DefinedInitialDataOptions,
-  DefinedUseInfiniteQueryResult,
   DefinedUseQueryResult,
-  InfiniteData,
   QueryClient,
   QueryFunction,
   QueryKey,
   UndefinedInitialDataOptions,
-  UseInfiniteQueryOptions,
-  UseInfiniteQueryResult,
   UseQueryOptions,
   UseQueryResult
 } from '@tanstack/react-query';
@@ -73,12 +68,6 @@ export const findCurrentUserInformation = (
 
 
 
-export const getFindCurrentUserInformationInfiniteQueryKey = () => {
-    return [
-    'infinite', `/api/user/whoami`
-    ] as const;
-    }
-
 export const getFindCurrentUserInformationQueryKey = () => {
     return [
     `/api/user/whoami`
@@ -86,72 +75,6 @@ export const getFindCurrentUserInformationQueryKey = () => {
     }
 
     
-export const getFindCurrentUserInformationInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof findCurrentUserInformation>>>, TError = ErrorResponse | ErrorResponse>( options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findCurrentUserInformation>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getFindCurrentUserInformationInfiniteQueryKey();
-
-  
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof findCurrentUserInformation>>> = ({ signal }) => findCurrentUserInformation(requestOptions, signal);
-
-      
-
-      
-
-   return  { queryKey, queryFn, ...queryOptions} as UseInfiniteQueryOptions<Awaited<ReturnType<typeof findCurrentUserInformation>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type FindCurrentUserInformationInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof findCurrentUserInformation>>>
-export type FindCurrentUserInformationInfiniteQueryError = ErrorResponse | ErrorResponse
-
-
-export function useFindCurrentUserInformationInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findCurrentUserInformation>>>, TError = ErrorResponse | ErrorResponse>(
-  options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findCurrentUserInformation>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof findCurrentUserInformation>>,
-          TError,
-          Awaited<ReturnType<typeof findCurrentUserInformation>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useFindCurrentUserInformationInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findCurrentUserInformation>>>, TError = ErrorResponse | ErrorResponse>(
-  options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findCurrentUserInformation>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof findCurrentUserInformation>>,
-          TError,
-          Awaited<ReturnType<typeof findCurrentUserInformation>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useFindCurrentUserInformationInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findCurrentUserInformation>>>, TError = ErrorResponse | ErrorResponse>(
-  options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findCurrentUserInformation>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary Get current user information
- */
-
-export function useFindCurrentUserInformationInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findCurrentUserInformation>>>, TError = ErrorResponse | ErrorResponse>(
-  options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findCurrentUserInformation>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient 
- ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getFindCurrentUserInformationInfiniteQueryOptions(options)
-
-  const query = useInfiniteQuery(queryOptions, queryClient) as  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  query.queryKey = queryOptions.queryKey ;
-
-  return query;
-}
-
-
-
 export const getFindCurrentUserInformationQueryOptions = <TData = Awaited<ReturnType<typeof findCurrentUserInformation>>, TError = ErrorResponse | ErrorResponse>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findCurrentUserInformation>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
@@ -245,12 +168,6 @@ export const findCurrentUserPermissions = (
 
 
 
-export const getFindCurrentUserPermissionsInfiniteQueryKey = () => {
-    return [
-    'infinite', `/api/user/me/permissions`
-    ] as const;
-    }
-
 export const getFindCurrentUserPermissionsQueryKey = () => {
     return [
     `/api/user/me/permissions`
@@ -258,72 +175,6 @@ export const getFindCurrentUserPermissionsQueryKey = () => {
     }
 
     
-export const getFindCurrentUserPermissionsInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof findCurrentUserPermissions>>>, TError = ErrorResponse | ErrorResponse>( options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findCurrentUserPermissions>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getFindCurrentUserPermissionsInfiniteQueryKey();
-
-  
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof findCurrentUserPermissions>>> = ({ signal }) => findCurrentUserPermissions(requestOptions, signal);
-
-      
-
-      
-
-   return  { queryKey, queryFn, ...queryOptions} as UseInfiniteQueryOptions<Awaited<ReturnType<typeof findCurrentUserPermissions>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type FindCurrentUserPermissionsInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof findCurrentUserPermissions>>>
-export type FindCurrentUserPermissionsInfiniteQueryError = ErrorResponse | ErrorResponse
-
-
-export function useFindCurrentUserPermissionsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findCurrentUserPermissions>>>, TError = ErrorResponse | ErrorResponse>(
-  options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findCurrentUserPermissions>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof findCurrentUserPermissions>>,
-          TError,
-          Awaited<ReturnType<typeof findCurrentUserPermissions>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useFindCurrentUserPermissionsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findCurrentUserPermissions>>>, TError = ErrorResponse | ErrorResponse>(
-  options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findCurrentUserPermissions>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof findCurrentUserPermissions>>,
-          TError,
-          Awaited<ReturnType<typeof findCurrentUserPermissions>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useFindCurrentUserPermissionsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findCurrentUserPermissions>>>, TError = ErrorResponse | ErrorResponse>(
-  options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findCurrentUserPermissions>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary Get user permissions and routes
- */
-
-export function useFindCurrentUserPermissionsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof findCurrentUserPermissions>>>, TError = ErrorResponse | ErrorResponse>(
-  options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof findCurrentUserPermissions>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient 
- ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getFindCurrentUserPermissionsInfiniteQueryOptions(options)
-
-  const query = useInfiniteQuery(queryOptions, queryClient) as  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  query.queryKey = queryOptions.queryKey ;
-
-  return query;
-}
-
-
-
 export const getFindCurrentUserPermissionsQueryOptions = <TData = Awaited<ReturnType<typeof findCurrentUserPermissions>>, TError = ErrorResponse | ErrorResponse>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findCurrentUserPermissions>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 

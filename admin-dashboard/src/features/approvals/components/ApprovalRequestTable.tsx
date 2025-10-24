@@ -1,240 +1,160 @@
-import React from 'react';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Chip,
-  IconButton,
-  Box,
-  Typography,
-  Tooltip,
-  LinearProgress,
-} from '@mui/material';
-import {
-  CheckCircle as ApproveIcon,
-  Close as CancelIcon,
-  Visibility as ViewIcon,
-} from '@mui/icons-material';
+import { DataGrid, type GridColDef, GridActionsCellItem } from '@mui/x-data-grid';
+import { Visibility as ViewIcon } from '@mui/icons-material';
+import { Box, Chip, LinearProgress, Tooltip } from '@mui/material';
+import type { ApprovalRequestResponse } from '@lib/api/models';
 import { format } from 'date-fns';
-import type { ApprovalRequest } from '../types';
-import { 
-  REQUEST_TYPE_LABELS, 
-  STATUS_LABELS, 
-  PRIORITY_LABELS, 
-  STATUS_COLORS, 
-  PRIORITY_COLORS 
-} from '../types';
 
 interface ApprovalRequestTableProps {
-  requests: ApprovalRequest[];
+  requests: ApprovalRequestResponse[];
   loading: boolean;
-  onDecision?: (request: ApprovalRequest) => void;
-  onCancel?: (request: ApprovalRequest) => void;
-  onView?: (request: ApprovalRequest) => void;
+  page: number;
+  pageSize: number;
+  totalElements: number;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (pageSize: number) => void;
+  onRowClick: (requestId: string) => void;
 }
 
-export const ApprovalRequestTable: React.FC<ApprovalRequestTableProps> = ({
+export function ApprovalRequestTable({
   requests,
   loading,
-  onDecision,
-  onCancel,
-  onView,
-}) => {
-  const getStatusColor = (status: string) => {
-    return STATUS_COLORS[status as keyof typeof STATUS_COLORS] || 'default';
+  page,
+  pageSize,
+  totalElements,
+  onPageChange,
+  onPageSizeChange,
+  onRowClick,
+}: ApprovalRequestTableProps) {
+  const getStatusColor = (status?: string): 'default' | 'info' | 'success' | 'error' | 'warning' => {
+    switch (status) {
+      case 'PENDING':
+        return 'warning';
+      case 'APPROVED':
+        return 'success';
+      case 'REJECTED':
+        return 'error';
+      case 'CANCELLED':
+        return 'default';
+      default:
+        return 'info';
+    }
   };
 
-  const getPriorityColor = (priority: string) => {
-    return PRIORITY_COLORS[priority as keyof typeof PRIORITY_COLORS] || 'default';
-  };
+  const columns: GridColDef<ApprovalRequestResponse>[] = [
+    {
+      field: 'id',
+      headerName: 'Request ID',
+      flex: 1,
+      minWidth: 200,
+      renderCell: (params) => (
+        <Box sx={{ fontFamily: 'monospace', fontSize: '0.875rem' }}>{params.value}</Box>
+      ),
+    },
+    {
+      field: 'requestType',
+      headerName: 'Type',
+      width: 150,
+      renderCell: (params) => <Chip label={params.value || 'N/A'} size="small" variant="outlined" />,
+    },
+    {
+      field: 'requesterUserId',
+      headerName: 'Requester',
+      flex: 1,
+      minWidth: 150,
+    },
+    {
+      field: 'targetServiceId',
+      headerName: 'Target Service',
+      flex: 1,
+      minWidth: 150,
+    },
+    {
+      field: 'status',
+      headerName: 'Status',
+      width: 120,
+      renderCell: (params) => (
+        <Chip label={params.value || 'Unknown'} color={getStatusColor(params.value)} size="small" />
+      ),
+    },
+    {
+      field: 'approvalGates',
+      headerName: 'Gates Progress',
+      width: 150,
+      renderCell: (params) => {
+        const gates = params.value as any[] | undefined;
+        if (!gates || gates.length === 0) return '-';
+        
+        const approved = gates.filter((g) => g.status === 'APPROVED').length;
+        const total = gates.length;
+        const progress = (approved / total) * 100;
 
-  const formatDate = (dateString: string) => {
-    return format(new Date(dateString), 'MMM dd, yyyy HH:mm');
-  };
+        return (
+          <Tooltip title={`${approved}/${total} gates approved`}>
+            <Box sx={{ width: '100%' }}>
+              <LinearProgress variant="determinate" value={progress} sx={{ height: 8, borderRadius: 1 }} />
+            </Box>
+          </Tooltip>
+        );
+      },
+    },
+    {
+      field: 'createdAt',
+      headerName: 'Created',
+      width: 160,
+      renderCell: (params) => {
+        if (!params.value) return '-';
+        try {
+          return format(new Date(params.value), 'MMM dd, yyyy HH:mm');
+        } catch {
+          return params.value;
+        }
+      },
+    },
+    {
+      field: 'actions',
+      type: 'actions',
+      headerName: 'Actions',
+      width: 80,
+      getActions: (params) => [
+        <GridActionsCellItem
+          key="view"
+          icon={<ViewIcon />}
+          label="View"
+          onClick={() => onRowClick(params.row.id || '')}
+          showInMenu={false}
+        />,
+      ],
+    },
+  ];
 
-  const isExpired = (expiresAt?: string) => {
-    if (!expiresAt) return false;
-    return new Date(expiresAt) < new Date();
-  };
-
-  const getApprovalProgress = (request: ApprovalRequest) => {
-    const totalRequired = request.requiredGates.reduce((sum, gate) => sum + gate.minApprovals, 0);
-    const currentApprovals = request.currentApprovals.length;
-    return { current: currentApprovals, total: totalRequired };
-  };
-
-  if (loading) {
-    return <LinearProgress />;
-  }
+  // Create rows with unique id for DataGrid (requests already have id field)
+  const rows = requests;
 
   return (
-    <TableContainer component={Paper}>
-      <Table>
-        <TableHead>
-          <TableRow>
-            <TableCell>Service</TableCell>
-            <TableCell>Type</TableCell>
-            <TableCell>Requester</TableCell>
-            <TableCell>Priority</TableCell>
-            <TableCell>Status</TableCell>
-            <TableCell>Progress</TableCell>
-            <TableCell>Created</TableCell>
-            <TableCell>Expires</TableCell>
-            <TableCell align="right">Actions</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {requests.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={9} align="center">
-                <Typography variant="body2" color="text.secondary">
-                  No approval requests found
-                </Typography>
-              </TableCell>
-            </TableRow>
-          ) : (
-            requests.map((request) => {
-              const progress = getApprovalProgress(request);
-              const isExpiredRequest = isExpired(request.expiresAt);
-              
-              return (
-                <TableRow key={request.id} hover>
-                  <TableCell>
-                    <Typography variant="body2" fontWeight="medium">
-                      {request.serviceName}
-                    </Typography>
-                  </TableCell>
-                  
-                  <TableCell>
-                    <Chip
-                      label={REQUEST_TYPE_LABELS[request.requestType as keyof typeof REQUEST_TYPE_LABELS] || request.requestType}
-                      size="small"
-                      variant="outlined"
-                    />
-                  </TableCell>
-
-                  <TableCell>
-                    <Box>
-                      <Typography variant="body2" fontWeight="medium">
-                        {request.requestedBy}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {request.requestedByEmail}
-                      </Typography>
-                    </Box>
-                  </TableCell>
-
-                  <TableCell>
-                    <Chip
-                      label={PRIORITY_LABELS[request.priority as keyof typeof PRIORITY_LABELS] || request.priority}
-                      color={getPriorityColor(request.priority) as any}
-                      size="small"
-                    />
-                  </TableCell>
-
-                  <TableCell>
-                    <Chip
-                      label={STATUS_LABELS[request.status as keyof typeof STATUS_LABELS] || request.status}
-                      color={getStatusColor(request.status) as any}
-                      size="small"
-                    />
-                  </TableCell>
-
-                  <TableCell>
-                    <Box sx={{ minWidth: 100 }}>
-                      <Typography variant="body2" color="text.secondary">
-                        {progress.current}/{progress.total}
-                      </Typography>
-                      <Box sx={{ 
-                        width: '100%', 
-                        height: 4, 
-                        bgcolor: 'grey.200', 
-                        borderRadius: 2,
-                        overflow: 'hidden'
-                      }}>
-                        <Box
-                          sx={{
-                            width: `${(progress.current / progress.total) * 100}%`,
-                            height: '100%',
-                            bgcolor: progress.current >= progress.total ? 'success.main' : 'primary.main',
-                            transition: 'width 0.3s ease',
-                          }}
-                        />
-                      </Box>
-                    </Box>
-                  </TableCell>
-
-                  <TableCell>
-                    <Typography variant="body2" color="text.secondary">
-                      {formatDate(request.createdAt)}
-                    </Typography>
-                  </TableCell>
-
-                  <TableCell>
-                    {request.expiresAt ? (
-                      <Typography
-                        variant="body2"
-                        color={isExpiredRequest ? 'error' : 'text.secondary'}
-                        fontWeight={isExpiredRequest ? 'medium' : 'normal'}
-                      >
-                        {formatDate(request.expiresAt)}
-                        {isExpiredRequest && ' (Expired)'}
-                      </Typography>
-                    ) : (
-                      <Typography variant="body2" color="text.secondary">
-                        Never
-                      </Typography>
-                    )}
-                  </TableCell>
-
-                  <TableCell align="right">
-                    <Box sx={{ display: 'flex', gap: 0.5 }}>
-                      {onView && (
-                        <Tooltip title="View Details">
-                          <IconButton
-                            size="small"
-                            onClick={() => onView(request)}
-                          >
-                            <ViewIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      )}
-                      
-                      {onDecision && request.status === 'PENDING' && (
-                        <Tooltip title="Make Decision">
-                          <IconButton
-                            size="small"
-                            onClick={() => onDecision(request)}
-                            color="primary"
-                          >
-                            <ApproveIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      )}
-                      
-                      {onCancel && request.status === 'PENDING' && (
-                        <Tooltip title="Cancel Request">
-                          <IconButton
-                            size="small"
-                            onClick={() => onCancel(request)}
-                            color="error"
-                          >
-                            <CancelIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      )}
-                    </Box>
-                  </TableCell>
-                </TableRow>
-              );
-            })
-          )}
-        </TableBody>
-      </Table>
-    </TableContainer>
+    <Box sx={{ height: 600, width: '100%' }}>
+      <DataGrid
+        rows={rows}
+        columns={columns}
+        loading={loading}
+        paginationMode="server"
+        rowCount={totalElements}
+        paginationModel={{ page, pageSize }}
+        onPaginationModelChange={(model) => {
+          if (model.page !== page) {
+            onPageChange(model.page);
+          }
+          if (model.pageSize !== pageSize) {
+            onPageSizeChange(model.pageSize);
+          }
+        }}
+        pageSizeOptions={[10, 20, 50, 100]}
+        disableRowSelectionOnClick
+        sx={{
+          '& .MuiDataGrid-row': {
+            cursor: 'pointer',
+          },
+        }}
+      />
+    </Box>
   );
-};
+}

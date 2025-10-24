@@ -1,48 +1,57 @@
-import React from 'react';
 import { Chip, type ChipProps } from '@mui/material';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import ErrorIcon from '@mui/icons-material/Error';
+import WarningIcon from '@mui/icons-material/Warning';
+import HelpIcon from '@mui/icons-material/Help';
+import type { ServiceInstanceResponseStatus } from '@lib/api/models';
 
-export type InstanceStatusType = 'UP' | 'DOWN' | 'UNKNOWN';
-
-interface InstanceStatusChipProps extends ChipProps {
-  status: InstanceStatusType;
+interface InstanceStatusChipProps {
+  status?: ServiceInstanceResponseStatus | string;
+  size?: 'small' | 'medium';
 }
 
-const getStatusColor = (status: InstanceStatusType): ChipProps['color'] => {
+const getStatusConfig = (
+  status?: ServiceInstanceResponseStatus | string
+): { label: string; color: ChipProps['color']; icon: React.ReactElement } => {
   switch (status) {
-    case 'UP':
-      return 'success';
-    case 'DOWN':
-      return 'error';
+    case 'HEALTHY':
+      return {
+        label: 'Healthy',
+        color: 'success',
+        icon: <CheckCircleIcon />,
+      };
+    case 'UNHEALTHY':
+      return {
+        label: 'Unhealthy',
+        color: 'error',
+        icon: <ErrorIcon />,
+      };
+    case 'DRIFT':
+      return {
+        label: 'Drift',
+        color: 'warning',
+        icon: <WarningIcon />,
+      };
     case 'UNKNOWN':
-      return 'warning';
     default:
-      return 'default';
+      return {
+        label: 'Unknown',
+        color: 'default',
+        icon: <HelpIcon />,
+      };
   }
 };
 
-const getStatusIcon = (status: InstanceStatusType) => {
-  switch (status) {
-    case 'UP':
-      return '🟢';
-    case 'DOWN':
-      return '🔴';
-    case 'UNKNOWN':
-      return '🟡';
-    default:
-      return '⚪';
-  }
-};
+export default function InstanceStatusChip({ status, size = 'small' }: InstanceStatusChipProps) {
+  const config = getStatusConfig(status);
 
-export const InstanceStatusChip: React.FC<InstanceStatusChipProps> = ({ status, ...props }) => {
-  const color = getStatusColor(status);
-  const icon = getStatusIcon(status);
-  
   return (
     <Chip
-      label={`${icon} ${status}`}
-      color={color}
-      size="small"
-      {...props}
+      label={config.label}
+      color={config.color}
+      icon={config.icon}
+      size={size}
+      variant="outlined"
     />
   );
-};
+}

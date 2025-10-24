@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Avatar,
   IconButton,
@@ -14,13 +15,11 @@ import {
   Settings as SettingsIcon,
   Logout as LogoutIcon,
 } from '@mui/icons-material';
-import { useAuth } from '@lib/keycloak/useAuth';
-import { useSelector } from 'react-redux';
-import { type RootState } from '@app/store';
+import { useAuth } from '@features/auth/authContext';
 
 export const UserMenu: React.FC = () => {
-  const { logout } = useAuth();
-  const { userInfo } = useSelector((state: RootState) => state.auth);
+  const navigate = useNavigate();
+  const { logout, userInfo } = useAuth();
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
@@ -38,18 +37,18 @@ export const UserMenu: React.FC = () => {
 
   const handleProfile = () => {
     handleMenuClose();
-    // Navigate to profile page
+    navigate('/profile');
   };
 
   const handleSettings = () => {
     handleMenuClose();
-    // Navigate to settings page
+    // TODO: Navigate to settings page when implemented
   };
 
   if (!userInfo) return null;
 
   const getInitials = (firstName: string, lastName: string) => {
-    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+    return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase();
   };
 
   return (

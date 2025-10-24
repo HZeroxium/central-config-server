@@ -1,149 +1,123 @@
-import React from 'react';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Chip,
-  Box,
-  Typography,
-  IconButton,
-  Tooltip,
-  CircularProgress,
-} from '@mui/material';
-import { Visibility as VisibilityIcon, Group as GroupIcon, Person as PersonIcon } from '@mui/icons-material';
-import type { IamTeam } from '../types';
+import { DataGrid, type GridColDef, GridActionsCellItem } from '@mui/x-data-grid';
+import { Visibility as ViewIcon } from '@mui/icons-material';
+import { Box, Chip } from '@mui/material';
+import type { IamTeamResponse } from '@lib/api/models';
 
 interface IamTeamTableProps {
-  teams: IamTeam[];
+  teams: IamTeamResponse[];
   loading: boolean;
-  onTeamSelect: (team: IamTeam) => void;
-  selectedTeam?: IamTeam | null;
+  page: number;
+  pageSize: number;
+  totalElements: number;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (pageSize: number) => void;
+  onRowClick: (teamId: string) => void;
 }
 
-export const IamTeamTable: React.FC<IamTeamTableProps> = ({
+export function IamTeamTable({
   teams,
   loading,
-  onTeamSelect,
-  selectedTeam,
-}) => {
-  if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
+  page,
+  pageSize,
+  totalElements,
+  onPageChange,
+  onPageSizeChange,
+  onRowClick,
+}: IamTeamTableProps) {
+  const columns: GridColDef<IamTeamResponse>[] = [
+    {
+      field: 'id',
+      headerName: 'Team ID',
+      flex: 1,
+      minWidth: 200,
+      renderCell: (params) => (
+        <Box sx={{ fontFamily: 'monospace', fontWeight: 600 }}>{params.value}</Box>
+      ),
+    },
+    {
+      field: 'displayName',
+      headerName: 'Display Name',
+      flex: 1.5,
+      minWidth: 200,
+    },
+    {
+      field: 'members',
+      headerName: 'Members',
+      width: 120,
+      renderCell: (params) => {
+        const members = params.value as string[] | undefined;
+        const count = members?.length || 0;
+        return (
+          <Chip
+            label={`${count} members`}
+            size="small"
+            variant="outlined"
+            color={count > 0 ? 'primary' : 'default'}
+          />
+        );
+      },
+    },
+    {
+      field: 'syncStatus',
+      headerName: 'Sync Status',
+      width: 120,
+      renderCell: (params) => {
+        const status = params.value as string | undefined;
+        const color = status === 'SYNCED' ? 'success' : status === 'PENDING' ? 'warning' : 'default';
+        return (
+          <Chip
+            label={status || 'Unknown'}
+            size="small"
+            color={color}
+          />
+        );
+      },
+    },
+    {
+      field: 'actions',
+      type: 'actions',
+      headerName: 'Actions',
+      width: 80,
+      getActions: (params) => [
+        <GridActionsCellItem
+          key="view"
+          icon={<ViewIcon />}
+          label="View"
+          onClick={() => onRowClick(params.row.teamId || '')}
+          showInMenu={false}
+        />,
+      ],
+    },
+  ];
 
-  if (teams.length === 0) {
-    return (
-      <Box sx={{ textAlign: 'center', p: 3 }}>
-        <GroupIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
-        <Typography variant="h6" color="text.secondary">
-          No teams found
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          Try adjusting your search or filter criteria
-        </Typography>
-      </Box>
-    );
-  }
+  // Create rows with unique id for DataGrid (teams already have id field)
+  const rows = teams;
 
   return (
-    <TableContainer component={Paper}>
-      <Table>
-        <TableHead>
-          <TableRow>
-            <TableCell>Team Name</TableCell>
-            <TableCell>Description</TableCell>
-            <TableCell align="center">Members</TableCell>
-            <TableCell align="center">Services</TableCell>
-            <TableCell>Manager</TableCell>
-            <TableCell align="center">Actions</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {teams.map((team) => (
-            <TableRow
-              key={team.id}
-              hover
-              selected={selectedTeam?.id === team.id}
-              onClick={() => onTeamSelect(team)}
-              sx={{ cursor: 'pointer' }}
-            >
-              <TableCell>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <GroupIcon color="primary" />
-                  <Box>
-                    <Typography variant="subtitle2" fontWeight="medium">
-                      {team.name}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      ID: {team.id}
-                    </Typography>
-                  </Box>
-                </Box>
-              </TableCell>
-
-              <TableCell>
-                <Typography variant="body2" color="text.secondary" noWrap>
-                  {team.description || 'No description'}
-                </Typography>
-              </TableCell>
-
-              <TableCell align="center">
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
-                  <PersonIcon fontSize="small" color="action" />
-                  <Typography variant="body2" fontWeight="medium">
-                    {team.memberCount}
-                  </Typography>
-                </Box>
-              </TableCell>
-
-              <TableCell align="center">
-                <Chip
-                  label={team.ownedServiceIds.length}
-                  size="small"
-                  color={team.ownedServiceIds.length > 0 ? 'primary' : 'default'}
-                  variant={team.ownedServiceIds.length > 0 ? 'filled' : 'outlined'}
-                />
-              </TableCell>
-
-              <TableCell>
-                {team.managerName ? (
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <PersonIcon fontSize="small" color="action" />
-                    <Typography variant="body2">
-                      {team.managerName}
-                    </Typography>
-                  </Box>
-                ) : (
-                  <Typography variant="body2" color="text.secondary">
-                    No manager
-                  </Typography>
-                )}
-              </TableCell>
-
-              <TableCell align="center">
-                <Tooltip title="View Details">
-                  <IconButton
-                    size="small"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onTeamSelect(team);
-                    }}
-                  >
-                    <VisibilityIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </TableContainer>
+    <Box sx={{ height: 600, width: '100%' }}>
+      <DataGrid
+        rows={rows}
+        columns={columns}
+        loading={loading}
+        paginationMode="server"
+        rowCount={totalElements}
+        paginationModel={{ page, pageSize }}
+        onPaginationModelChange={(model) => {
+          if (model.page !== page) {
+            onPageChange(model.page);
+          }
+          if (model.pageSize !== pageSize) {
+            onPageSizeChange(model.pageSize);
+          }
+        }}
+        pageSizeOptions={[10, 20, 50, 100]}
+        disableRowSelectionOnClick
+        sx={{
+          '& .MuiDataGrid-row': {
+            cursor: 'pointer',
+          },
+        }}
+      />
+    </Box>
   );
-};
+}

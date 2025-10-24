@@ -19,13 +19,7 @@ export default {
           },
           query: {
             useQuery: true,
-            useInfinite: true,
-            useInfiniteQueryParam: 'page',
-            useInfiniteQueryOptions: {
-              getNextPageParam: (lastPage, allPages) => {
-                return lastPage.hasNext ? allPages.length : undefined;
-              }
-            }
+            useInfinite: false,
           },
         },
       },

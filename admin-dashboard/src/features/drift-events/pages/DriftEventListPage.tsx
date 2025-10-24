@@ -1,162 +1,269 @@
-import React, { useState, useEffect } from 'react';
-import { Box, Button, Alert } from '@mui/material';
-import { Refresh as RefreshIcon, AutoAwesome as AutoRefreshIcon } from '@mui/icons-material';
-import { PageHeader } from '@components/common/PageHeader';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  TextField,
+  InputAdornment,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Alert,
+  Switch,
+  FormControlLabel,
+} from '@mui/material';
+import Grid from '@mui/material/Grid';
+import { Search as SearchIcon, Refresh as RefreshIcon } from '@mui/icons-material';
+import PageHeader from '@components/common/PageHeader';
+import Loading from '@components/common/Loading';
 import { useFindAllDriftEvents, useUpdateDriftEvent } from '@lib/api/hooks';
-import type { DriftEvent, UpdateDriftEventRequest } from '../types';
-import { usePermissions } from '@features/auth/hooks/usePermissions';
 import { DriftEventTable } from '../components/DriftEventTable';
-import { DriftFilterBar } from '../components/DriftFilterBar';
 import { ResolveDialog } from '../components/ResolveDialog';
-import type { FindAllDriftEventsStatus, FindAllDriftEventsSeverity } from '@lib/api/models';
+import { toast } from '@lib/toast/toast';
+import { handleApiError } from '@lib/api/errorHandler';
+import type { 
+  FindAllDriftEventsStatus, 
+  FindAllDriftEventsSeverity,
+  DriftEventUpdateRequest,
+  DriftEventUpdateRequestStatus
+} from '@lib/api/models';
 
-const DriftEventListPage: React.FC = () => {
+export default function DriftEventListPage() {
+  const navigate = useNavigate();
+
   const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState(10);
-  const [serviceName, setServiceName] = useState('');
-  const [status, setStatus] = useState<FindAllDriftEventsStatus | ''>('');
-  const [severity, setSeverity] = useState<FindAllDriftEventsSeverity | ''>('');
-  const [environment, setEnvironment] = useState('');
-  const [resolveDialogOpen, setResolveDialogOpen] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState<DriftEvent | null>(null);
+  const [pageSize, setPageSize] = useState(20);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<FindAllDriftEventsStatus | ''>('');
+  const [severityFilter, setSeverityFilter] = useState<FindAllDriftEventsSeverity | ''>('');
+  const [unresolvedOnly, setUnresolvedOnly] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(false);
+  const [resolveDialogOpen, setResolveDialogOpen] = useState(false);
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const [resolveAction, setResolveAction] = useState<DriftEventUpdateRequestStatus>('RESOLVED');
 
-  const { permissions } = usePermissions();
-
-  const { data: eventsResponse, isLoading, refetch } = useFindAllDriftEvents(
+  const { data, isLoading, error, refetch } = useFindAllDriftEvents(
     {
-      serviceName: serviceName || undefined,
-      status: (status as FindAllDriftEventsStatus) || undefined,
-      severity: (severity as FindAllDriftEventsSeverity) || undefined,
-      pageable: { page, size: pageSize },
+      serviceName: search || undefined,
+      status: statusFilter || undefined,
+      severity: severityFilter || undefined,
+      unresolvedOnly: unresolvedOnly ? 'true' : undefined,
+      page,
+      size: pageSize,
     },
     {
       query: {
-        staleTime: 10000, // 10 seconds for drift events (more real-time)
-        refetchInterval: autoRefresh ? 30000 : false, // Auto-refresh if enabled
+        staleTime: 10_000,
+        refetchInterval: autoRefresh ? 30_000 : false,
       },
     }
   );
 
-  const updateEventMutation = useUpdateDriftEvent();
+  const events = data?.items || [];
+  const metadata = data?.metadata;
 
-  // Get the page data from API response
-  const pageData = eventsResponse;
-  const events = (pageData?.content || []) as DriftEvent[];
+  const updateMutation = useUpdateDriftEvent();
 
-  const handleResolveEvent = async (update: UpdateDriftEventRequest) => {
-    if (!selectedEvent) return;
-    
-    try {
-      await updateEventMutation.mutateAsync({
-        id: selectedEvent.id,
-        data: update as any,
-      });
-      setResolveDialogOpen(false);
-      setSelectedEvent(null);
-      refetch(); // Refresh the data
-    } catch (error) {
-      console.error('Failed to resolve drift event:', error);
-    }
-  };
-
-  const handleResolveClick = (event: DriftEvent) => {
-    setSelectedEvent(event);
+  const handleResolve = (eventId: string) => {
+    setSelectedEventId(eventId);
+    setResolveAction('RESOLVED');
     setResolveDialogOpen(true);
   };
 
-  const handleViewClick = (eventId: string) => {
-    // Navigate to event detail page
-    console.log('Navigate to drift event:', eventId);
+  const handleIgnore = (eventId: string) => {
+    setSelectedEventId(eventId);
+    setResolveAction('IGNORED');
+    setResolveDialogOpen(true);
   };
 
-  const handleRefresh = () => {
-    refetch();
-  };
+  const handleSubmitResolution = (updateRequest: DriftEventUpdateRequest) => {
+    if (!selectedEventId) return;
 
-  const handleToggleAutoRefresh = () => {
-    setAutoRefresh(!autoRefresh);
-  };
-
-  const handleClearFilters = () => {
-    setServiceName('');
-    setStatus('');
-    setSeverity('');
-    setEnvironment('');
-  };
-
-  // Permission check - allow if user has permissions object
-  // Individual permissions are checked by ProtectedRoute
-  if (!permissions) {
-    return (
-      <Box>
-        <PageHeader title="Drift Events" />
-        <Alert severity="warning">
-          Loading permissions...
-        </Alert>
-      </Box>
+    updateMutation.mutate(
+      {
+        id: selectedEventId,
+        data: {
+          ...updateRequest,
+          status: updateRequest.status || resolveAction,
+        },
+      },
+      {
+        onSuccess: () => {
+          toast.success(`Drift event ${resolveAction?.toLowerCase() || 'updated'} successfully`);
+          setResolveDialogOpen(false);
+          setSelectedEventId(null);
+          refetch();
+        },
+        onError: (error) => {
+          handleApiError(error);
+        },
+      }
     );
-  }
+  };
+
+  const handleFilterReset = () => {
+    setSearch('');
+    setStatusFilter('');
+    setSeverityFilter('');
+    setUnresolvedOnly(false);
+    setPage(0);
+  };
 
   return (
     <Box>
       <PageHeader
         title="Drift Events"
+        subtitle="Monitor configuration drift across service instances"
         actions={
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button
-              variant={autoRefresh ? 'contained' : 'outlined'}
-              startIcon={<AutoRefreshIcon />}
-              onClick={handleToggleAutoRefresh}
-              color={autoRefresh ? 'success' : 'primary'}
-            >
-              {autoRefresh ? 'Auto Refresh ON' : 'Auto Refresh OFF'}
-            </Button>
-            <Button
-              variant="outlined"
-              startIcon={<RefreshIcon />}
-              onClick={handleRefresh}
-              disabled={isLoading}
-            >
+          <>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={autoRefresh}
+                  onChange={(e) => setAutoRefresh(e.target.checked)}
+                />
+              }
+              label="Auto-refresh"
+            />
+            <Button variant="outlined" startIcon={<RefreshIcon />} onClick={() => refetch()}>
               Refresh
             </Button>
-          </Box>
+          </>
         }
       />
-      
-      {autoRefresh && (
-        <Alert severity="info" sx={{ mb: 2 }}>
-          Auto-refresh is enabled. Data will refresh every 30 seconds.
-        </Alert>
-      )}
-      
-      <DriftFilterBar
-        serviceName={serviceName}
-        status={status}
-        severity={severity}
-        environment={environment}
-        onServiceNameChange={setServiceName}
-        onStatusChange={setStatus}
-        onSeverityChange={setSeverity}
-        onEnvironmentChange={setEnvironment}
-        onClearFilters={handleClearFilters}
-      />
 
-      <DriftEventTable
-        events={events}
-        loading={isLoading}
-        onView={handleViewClick}
-        onResolve={handleResolveClick}
-      />
+      <Card>
+        <CardContent>
+          {/* Filters */}
+          <Grid container spacing={2} sx={{ mb: 3 }}>
+            <Grid size={{ xs: 12, md: 3 }}>
+              <TextField
+                fullWidth
+                label="Search by Service Name"
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(0);
+                }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            </Grid>
 
+            <Grid size={{ xs: 12, md: 2 }}>
+              <FormControl fullWidth>
+                <InputLabel>Status</InputLabel>
+                <Select
+                  value={statusFilter}
+                  label="Status"
+                  onChange={(e) => {
+                    setStatusFilter(e.target.value as FindAllDriftEventsStatus | '');
+                    setPage(0);
+                  }}
+                >
+                  <MenuItem value="">All</MenuItem>
+                  <MenuItem value="DETECTED">Detected</MenuItem>
+                  <MenuItem value="RESOLVED">Resolved</MenuItem>
+                  <MenuItem value="IGNORED">Ignored</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid size={{ xs: 12, md: 2 }}>
+              <FormControl fullWidth>
+                <InputLabel>Severity</InputLabel>
+                <Select
+                  value={severityFilter}
+                  label="Severity"
+                  onChange={(e) => {
+                    setSeverityFilter(e.target.value as FindAllDriftEventsSeverity | '');
+                    setPage(0);
+                  }}
+                >
+                  <MenuItem value="">All</MenuItem>
+                  <MenuItem value="LOW">Low</MenuItem>
+                  <MenuItem value="MEDIUM">Medium</MenuItem>
+                  <MenuItem value="HIGH">High</MenuItem>
+                  <MenuItem value="CRITICAL">Critical</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid size={{ xs: 12, md: 2 }}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={unresolvedOnly}
+                    onChange={(e) => {
+                      setUnresolvedOnly(e.target.checked);
+                      setPage(0);
+                    }}
+                  />
+                }
+                label="Unresolved Only"
+                sx={{ mt: 2 }}
+              />
+            </Grid>
+
+            <Grid size={{ xs: 12, md: 3 }}>
+              <Button
+                fullWidth
+                variant="outlined"
+                onClick={handleFilterReset}
+                sx={{ height: '56px' }}
+              >
+                Reset Filters
+              </Button>
+            </Grid>
+          </Grid>
+
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              Failed to load drift events: {(error as any).detail || 'Unknown error'}
+            </Alert>
+          )}
+
+          {isLoading && <Loading />}
+
+          {!isLoading && !error && (
+            <DriftEventTable
+              events={events}
+              loading={isLoading}
+              page={page}
+              pageSize={pageSize}
+              totalElements={metadata?.totalElements || 0}
+              onPageChange={(newPage: number) => setPage(newPage)}
+              onPageSizeChange={(newPageSize: number) => {
+                setPageSize(newPageSize);
+                setPage(0);
+              }}
+              onRowClick={(eventId: string) => navigate(`/drift-events/${eventId}`)}
+              onResolve={handleResolve}
+              onIgnore={handleIgnore}
+            />
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Resolve/Ignore Dialog */}
       <ResolveDialog
         open={resolveDialogOpen}
-        onClose={() => setResolveDialogOpen(false)}
-        onSubmit={handleResolveEvent}
-        eventTitle={selectedEvent?.serviceName}
+        onClose={() => {
+          setResolveDialogOpen(false);
+          setSelectedEventId(null);
+        }}
+        onSubmit={handleSubmitResolution}
+        loading={updateMutation.isPending}
+        eventTitle={selectedEventId || ''}
       />
     </Box>
   );
-};
-
-export default DriftEventListPage;
+}
