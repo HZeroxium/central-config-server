@@ -1,0 +1,11 @@
+# Profile for automatic data seeding on startup
+# Usage: SPRING_PROFILES_ACTIVE=seed-data or add to existing profiles
+
+seeding:
+  enabled: true
+  auto-run-on-startup: true
+  clean-before-seed: true
+
+logging:
+  level:
+    com.example.control.seeding: DEBUG

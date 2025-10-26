@@ -31,7 +31,7 @@ public interface IamTeamRepositoryPort extends RepositoryPort<IamTeam, IamTeamId
     /**
      * Delete all team projections (for full sync).
      */
-    void deleteAll();
+    // void deleteAll();
 
     /**
      * Count all teams.

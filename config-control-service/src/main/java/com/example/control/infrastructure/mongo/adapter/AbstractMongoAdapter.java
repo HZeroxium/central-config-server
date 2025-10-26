@@ -15,15 +15,16 @@ import java.util.Optional;
 /**
  * Abstract base adapter providing common MongoDB operations with type safety.
  * <p>
- * This class implements the standard CRUD operations and delegates domain-specific
+ * This class implements the standard CRUD operations and delegates
+ * domain-specific
  * operations to subclasses. It handles the common pattern of converting between
  * domain entities and MongoDB documents.
  * </p>
  *
- * @param <T> the domain entity type
- * @param <D> the MongoDB document type
+ * @param <T>  the domain entity type
+ * @param <D>  the MongoDB document type
  * @param <ID> the entity identifier type
- * @param <F> the filter criteria type
+ * @param <F>  the filter criteria type
  */
 @Slf4j
 public abstract class AbstractMongoAdapter<T, D, ID, F> implements RepositoryPort<T, ID, F> {
@@ -34,7 +35,7 @@ public abstract class AbstractMongoAdapter<T, D, ID, F> implements RepositoryPor
     /**
      * Constructor for the abstract adapter.
      *
-     * @param repository the MongoDB repository
+     * @param repository    the MongoDB repository
      * @param mongoTemplate the MongoDB template for complex queries
      */
     protected AbstractMongoAdapter(MongoRepository<D, String> repository, MongoTemplate mongoTemplate) {
@@ -113,24 +114,24 @@ public abstract class AbstractMongoAdapter<T, D, ID, F> implements RepositoryPor
     @Override
     public Page<T> findAll(F filter, Pageable pageable) {
         log.debug("Finding entities with filter: {}, pageable: {}", filter, pageable);
-        
+
         Query query = buildQuery(filter);
-        
+
         // Apply pagination
         query.with(pageable);
-        
+
         // Execute query
         List<D> documents = mongoTemplate.find(query, getDocumentClass(), getCollectionName());
-        
+
         // Count total for pagination
         Query countQuery = buildQuery(filter);
         long total = mongoTemplate.count(countQuery, getDocumentClass(), getCollectionName());
-        
+
         // Convert to domain entities
         List<T> entities = documents.stream()
                 .map(this::toDomain)
                 .toList();
-        
+
         Page<T> result = new PageImpl<>(entities, pageable, total);
         log.debug("Found {} entities out of {} total", entities.size(), total);
         return result;
@@ -139,11 +140,22 @@ public abstract class AbstractMongoAdapter<T, D, ID, F> implements RepositoryPor
     @Override
     public long count(F filter) {
         log.debug("Counting entities with filter: {}", filter);
-        
+
         Query query = buildQuery(filter);
         long count = mongoTemplate.count(query, getDocumentClass(), getCollectionName());
-        
+
         log.debug("Counted {} entities", count);
+        return count;
+    }
+
+    @Override
+    public long deleteAll() {
+        log.warn("Deleting ALL entities from collection: {}", getCollectionName());
+
+        long count = repository.count();
+        repository.deleteAll();
+
+        log.warn("Deleted {} entities from collection: {}", count, getCollectionName());
         return count;
     }
 
@@ -161,12 +173,12 @@ public abstract class AbstractMongoAdapter<T, D, ID, F> implements RepositoryPor
         if (id == null) {
             throw new IllegalArgumentException("ID cannot be null");
         }
-        
+
         // Special handling for ServiceInstanceId composite key
         if (id instanceof com.example.control.domain.id.ServiceInstanceId) {
             return ((com.example.control.domain.id.ServiceInstanceId) id).toDocumentId();
         }
-        
+
         return id.toString();
     }
 
@@ -186,8 +198,8 @@ public abstract class AbstractMongoAdapter<T, D, ID, F> implements RepositoryPor
      * Helper method for constructing Page objects from MongoDB results.
      *
      * @param documents the MongoDB documents
-     * @param pageable the pagination info
-     * @param total the total count
+     * @param pageable  the pagination info
+     * @param total     the total count
      * @return a page of domain entities
      */
     protected Page<T> buildPage(List<D> documents, Pageable pageable, long total) {
@@ -209,15 +221,15 @@ public abstract class AbstractMongoAdapter<T, D, ID, F> implements RepositoryPor
      */
     protected long bulkUpdateTeamIdByServiceId(String serviceId, String newTeamId) {
         log.debug("Bulk updating teamId to {} for serviceId: {}", newTeamId, serviceId);
-        
+
         Query query = new Query(org.springframework.data.mongodb.core.query.Criteria.where("serviceId").is(serviceId));
         org.springframework.data.mongodb.core.query.Update update = new org.springframework.data.mongodb.core.query.Update()
                 .set("teamId", newTeamId)
                 .set("updatedAt", java.time.Instant.now());
-        
+
         com.mongodb.client.result.UpdateResult result = mongoTemplate.updateMulti(
                 query, update, getDocumentClass());
-        
+
         log.debug("Bulk updated {} documents for serviceId: {}", result.getModifiedCount(), serviceId);
         return result.getModifiedCount();
     }

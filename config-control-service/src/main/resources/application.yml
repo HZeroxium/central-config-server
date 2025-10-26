@@ -44,12 +44,12 @@ spring:
   # Spring Cloud Bus Configuration
   cloud:
     bus:
-      enabled: true  # Enable Spring Cloud Bus
+      enabled: true # Enable Spring Cloud Bus
       refresh:
-        enabled: true  # Enable configuration refresh
-      destination: springCloudBus  # Kafka topic name
+        enabled: true # Enable configuration refresh
+      destination: springCloudBus # Kafka topic name
       trace:
-        enabled: true  # Enable trace for debugging
+        enabled: true # Enable trace for debugging
     stream:
       kafka:
         binder:
@@ -91,7 +91,7 @@ spring:
           grpc_port: ${grpc.server.port}
         tags:
           - config-control
-          - management  
+          - management
 
 # New Consul SDK Configuration
 consulclient:
@@ -106,7 +106,7 @@ app:
   name: config-control-service
   version: 1.0.0
   environment: ${ENVIRONMENT:development}
-  
+
   # Metrics configuration
   metrics:
     enabled: true
@@ -204,7 +204,7 @@ management:
   tracing:
     enabled: true
     sampling:
-      probability: 1.0  # For dev/testing - sample all traces
+      probability: 1.0 # For dev/testing - sample all traces
   otlp:
     tracing:
       endpoint: http://alloy:4318/v1/traces
@@ -270,7 +270,7 @@ thrift:
   server:
     port: ${THRIFT_PORT:9090}
 
-# gRPC Server Configuration  
+# gRPC Server Configuration
 grpc:
   server:
     port: ${GRPC_PORT:9091}
@@ -311,3 +311,33 @@ logging:
     org.springframework.cloud: WARN
     org.springframework.security: DEBUG
   config: classpath:log4j2-spring.xml
+
+# Data Seeding Configuration
+seeding:
+  enabled: false # Enable only in dev/seed-data profile
+  auto-run-on-startup: false
+  clean-before-seed: true
+  data:
+    teams:
+      count: 2
+      ids:
+        - team1
+        - team2
+    services:
+      team1-count: 3
+      team2-count: 3
+      orphan-count: 2
+    instances-per-service:
+      min: 5
+      max: 10
+    drift-events:
+      min-per-service: 2
+      max-per-service: 5
+    shares:
+      count: 5
+    approval-requests:
+      pending: 2
+      approved: 3
+      rejected: 1
+  admin:
+    user-id: ${SEEDER_ADMIN_USER_ID:admin} # Default admin user ID from Keycloak
