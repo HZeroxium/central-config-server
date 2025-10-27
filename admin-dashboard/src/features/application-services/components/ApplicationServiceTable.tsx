@@ -29,7 +29,7 @@ export function ApplicationServiceTable({
   onDelete,
   onRequestOwnership,
 }: ApplicationServiceTableProps) {
-  const { isSysAdmin, permissions } = useAuth();
+  const { isSysAdmin, permissions, userInfo } = useAuth();
 
   const canDelete = (serviceId?: string) => {
     if (isSysAdmin) return true;
@@ -39,6 +39,15 @@ export function ApplicationServiceTable({
 
   const isOrphaned = (service: ApplicationServiceResponse) => {
     return !service.ownerTeamId || service.ownerTeamId === null;
+  };
+
+  const isShared = (service: ApplicationServiceResponse) => {
+    // Service is shared if:
+    // 1. It has an owner team (not orphaned)
+    // 2. User is not a member of the owner team
+    // 3. User can see it (which means it must be shared)
+    if (!service.ownerTeamId || !userInfo?.teamIds) return false;
+    return !userInfo.teamIds.includes(service.ownerTeamId);
   };
 
   const columns: GridColDef<ApplicationServiceResponse>[] = [
@@ -62,8 +71,9 @@ export function ApplicationServiceTable({
     {
       field: 'ownerTeamId',
       headerName: 'Owner Team',
-      width: 200,
+      width: 250,
       renderCell: (params) => {
+        const service = params.row;
         if (!params.value) {
           return (
             <Chip 
@@ -74,6 +84,22 @@ export function ApplicationServiceTable({
             />
           );
         }
+        
+        // Show "SHARED" badge for services shared to user's team
+        if (isShared(service)) {
+          return (
+            <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
+              <Chip label={params.value} variant="outlined" size="small" />
+              <Chip 
+                label="SHARED" 
+                color="info" 
+                size="small"
+                sx={{ fontWeight: 600 }}
+              />
+            </Box>
+          );
+        }
+        
         return <Chip label={params.value} variant="outlined" size="small" />;
       },
     },

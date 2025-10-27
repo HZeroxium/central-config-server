@@ -147,7 +147,7 @@ public class ApplicationServiceController {
 
         UserContext userContext = UserContext.fromJwt(jwt);
         ApplicationService service = ApplicationServiceApiMapper.toDomain(request);
-        ApplicationService service = ApplicationServiceApiMapper.toDomain(request);
+
         service.setCreatedBy(userContext.getUserId());
 
         ApplicationService saved = applicationServiceService.save(service, userContext);
@@ -262,7 +262,6 @@ public class ApplicationServiceController {
         }
 
         ApplicationService service = serviceOpt.get();
-        ApplicationService updated = ApplicationServiceApiMapper.apply(service, request);
         ApplicationService updated = ApplicationServiceApiMapper.apply(service, request);
         ApplicationService saved = applicationServiceService.save(updated, userContext);
         ApplicationServiceDtos.Response response = ApplicationServiceApiMapper.toResponse(saved);

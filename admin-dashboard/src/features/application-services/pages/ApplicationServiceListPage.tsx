@@ -74,19 +74,9 @@ export default function ApplicationServiceListPage() {
   const deleteMutation = useDeleteApplicationService();
   const createApprovalRequestMutation = useCreateApprovalRequest();
 
-  // Filter services by environment and unassigned status on the frontend
-  let services = data?.items || [];
-  
-  if (showUnassignedOnly) {
-    services = services.filter((service) => !service.ownerTeamId);
-  }
-  
-  if (environmentFilter) {
-    services = services.filter((service) =>
-      service.environments?.includes(environmentFilter)
-    );
-  }
-  
+  // Server-side filtering handles visibility (orphaned + team-owned + shared services)
+  // No client-side filtering needed - trust server response
+  const services = data?.items || [];
   const metadata = data?.metadata;
 
   const canCreate = isSysAdmin || permissions?.actions?.['APPLICATION_SERVICE']?.includes('CREATE');

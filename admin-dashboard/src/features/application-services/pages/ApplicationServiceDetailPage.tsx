@@ -184,20 +184,47 @@ export default function ApplicationServiceDetailPage() {
     return <Loading />;
   }
 
+  // Handle errors (404, 403, or network errors)
+  // 404 from backend could mean service doesn't exist OR user lacks permission
   if (error || !service) {
+    const errorMessage = error 
+      ? (error as any).detail || (error as any).message || 'Service not found or access denied.'
+      : 'Service not found or access denied.';
+    
+    const isUnauthorized = error && ((error as any).status === 403 || (error as any).status === 404);
+    
     return (
       <Box>
         <PageHeader
           title="Application Service Details"
           actions={
             <Button variant="outlined" startIcon={<BackIcon />} onClick={handleBack}>
-              Back
+              Back to Services
             </Button>
           }
         />
-        <Alert severity="error">
-          Failed to load service.{' '}
-          {error ? (error as any).detail || 'Please try again.' : 'Service not found.'}
+        <Alert 
+          severity={isUnauthorized ? 'warning' : 'error'}
+          action={
+            <Button color="inherit" size="small" onClick={handleBack}>
+              Go Back
+            </Button>
+          }
+        >
+          {isUnauthorized ? (
+            <>
+              <strong>Access Denied</strong>
+              <br />
+              You don't have permission to view this service. You can only view orphaned services, 
+              services owned by your teams, or services shared to your teams.
+            </>
+          ) : (
+            <>
+              <strong>Service Not Found</strong>
+              <br />
+              {errorMessage}
+            </>
+          )}
         </Alert>
       </Box>
     );

@@ -177,38 +177,48 @@ main() {
   # Proactively ensure roles, groups, clients, then validate
   ensure_role_exists SYS_ADMIN "System administrator with full access"
   ensure_role_exists USER "Regular user with basic access"
-  ensure_group_exists team_core
-  ensure_group_exists team_analytics
-  ensure_group_exists team_infrastructure
-  ensure_client_exists config-control-service '{"clientId":"config-control-service","name":"Config Control Service","enabled":true,"protocol":"openid-connect","publicClient":false,"serviceAccountsEnabled":true,"secret":"config-control-service-secret"}'
+  ensure_role_exists TEAM_LEADER "Team leader role for future use"
+  ensure_group_exists team1
+  ensure_group_exists team2
+  ensure_client_exists config-control-service '{"clientId":"config-control-service","name":"Config Control Service","enabled":true,"protocol":"openid-connect","publicClient":false,"serviceAccountsEnabled":true,"directAccessGrantsEnabled":true,"secret":"config-control-service-secret"}'
   ensure_client_exists admin-dashboard '{"clientId":"admin-dashboard","name":"Admin Dashboard","enabled":true,"protocol":"openid-connect","publicClient":true,"standardFlowEnabled":true,"directAccessGrantsEnabled":true,"attributes":{"pkce.code.challenge.method":"S256"},"redirectUris":["http://localhost:3000/*","http://localhost:3001/*"],"webOrigins":["http://localhost:3000","http://localhost:3001"]}'
 
   # Users
   assert_user_exists admin
+  assert_user_exists admin2
   assert_user_exists user1
   assert_user_exists user2
   assert_user_exists user3
+  assert_user_exists user4
+  assert_user_exists user5
 
   # Roles
   ensure_user_role admin SYS_ADMIN
+  ensure_user_role admin2 SYS_ADMIN
   ensure_user_role user1 USER
   ensure_user_role user2 USER
   ensure_user_role user3 USER
+  ensure_user_role user4 USER
+  ensure_user_role user5 USER
   assert_user_has_role admin SYS_ADMIN
+  assert_user_has_role admin2 SYS_ADMIN
   assert_user_has_role user1 USER
   assert_user_has_role user2 USER
   assert_user_has_role user3 USER
+  assert_user_has_role user4 USER
+  assert_user_has_role user5 USER
 
   # Groups
-  assert_group_exists team_core
-  assert_group_exists team_analytics
-  assert_group_exists team_infrastructure
-  ensure_user_in_group user1 team_core
-  ensure_user_in_group user2 team_analytics
-  ensure_user_in_group user3 team_infrastructure
-  assert_user_in_group user1 team_core
-  assert_user_in_group user2 team_analytics
-  assert_user_in_group user3 team_infrastructure
+  assert_group_exists team1
+  assert_group_exists team2
+  ensure_user_in_group user1 team1
+  ensure_user_in_group user2 team1
+  ensure_user_in_group user3 team2
+  ensure_user_in_group user4 team2
+  assert_user_in_group user1 team1
+  assert_user_in_group user2 team1
+  assert_user_in_group user3 team2
+  assert_user_in_group user4 team2
 
   # Clients
   assert_client_exists config-control-service

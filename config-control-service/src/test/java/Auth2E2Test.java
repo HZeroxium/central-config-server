@@ -273,7 +273,7 @@ public class Auth2E2Test {
             @SuppressWarnings("unchecked")
             List<String> groups = (List<String>) claims.get("groups");
             assertNotNull(groups, "Groups should be present");
-            assertTrue(groups.contains("team_core"), "Should be in team_core group");
+            assertTrue(groups.contains("team1"), "Should be in team1 group");
             
             // Verify manager_id (user1 is a manager, so should NOT have manager_id)
             String managerId = (String) claims.get("manager_id");
@@ -299,7 +299,7 @@ public class Auth2E2Test {
             @SuppressWarnings("unchecked")
             List<String> groups = (List<String>) claims.get("groups");
             assertNotNull(groups, "Groups should be present");
-            assertTrue(groups.contains("team_analytics"), "Should be in team_analytics group");
+            assertTrue(groups.contains("team1"), "Should be in team1 group");
             
             // Verify manager_id (should be user1's ID for LINE_MANAGER gate)
             String managerId = (String) claims.get("manager_id");
@@ -321,15 +321,11 @@ public class Auth2E2Test {
             @SuppressWarnings("unchecked")
             List<String> groups = (List<String>) claims.get("groups");
             assertNotNull(groups, "Groups should be present");
-            assertTrue(groups.contains("team_infrastructure"), "Should be in team_infrastructure group");
+            assertTrue(groups.contains("team2"), "Should be in team2 group");
             
-            // Verify manager_id (should be user1's ID for LINE_MANAGER gate)
+            // Verify manager_id (user3 is a team lead, so should NOT have manager_id)
             String managerId = (String) claims.get("manager_id");
-            if (managerId != null) {
-                System.out.println("User3 manager_id: " + managerId);
-            } else {
-                System.out.println("User3 manager_id not present - this may be due to Keycloak configuration");
-            }
+            assertNull(managerId, "User3 is a team lead and should NOT have manager_id claim");
             
             System.out.println("User3 token claims verified successfully");
         }
@@ -410,24 +406,28 @@ public class Auth2E2Test {
 
         @Test
         @Order(30)
-        @DisplayName("Team Isolation - Users Cannot See Other Teams' Data")
+        @DisplayName("Team Isolation - Users Can See Their Team's Data")
         void testTeamIsolation() throws Exception {
             System.out.println("Testing team isolation...");
             
-            // Create a test service instance for team_core (user1's team)
+            // Create a test service instance for team1 (user1's team)
             // This would require setting up test data, but for now we'll test the concept
             
-            // User1 (team_core) should be able to access team_core data
+            // User1 (team1) should be able to access team1 data
             HttpResponse<String> response = sendAuthenticatedRequest(user1Token, "GET", "/service-instances");
             assertEquals(200, response.statusCode(), "User1 should access service instances");
             
-            // User2 (team_analytics) should be able to access team_analytics data (if token is available)
+            // User2 (team1 member) should also be able to access team1 data
             if (user2Token != null) {
                 response = sendAuthenticatedRequest(user2Token, "GET", "/service-instances");
-                assertEquals(200, response.statusCode(), "User2 should access service instances");
+                assertEquals(200, response.statusCode(), "User2 should access service instances (same team)");
             } else {
                 System.out.println("Skipping user2 team isolation test - user2 login failed");
             }
+            
+            // User3 (team2) should only see team2 data (team filtering enforced by service layer)
+            response = sendAuthenticatedRequest(user3Token, "GET", "/service-instances");
+            assertEquals(200, response.statusCode(), "User3 should access service instances");
             
             // The actual team filtering is enforced at the service layer
             // and would require test data to fully verify

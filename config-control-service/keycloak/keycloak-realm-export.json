@@ -139,6 +139,14 @@
         "composite": false,
         "clientRole": false,
         "containerId": "config-control"
+      },
+      {
+        "id": "5e0f7g3g-6h4c-6d5e-0f1g-3h4i5j6k7l8m",
+        "name": "TEAM_LEADER",
+        "description": "Team leader role for future use",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "config-control"
       }
     ]
   },
@@ -150,29 +158,20 @@
       "subGroups": [
         {
           "id": "2b3c4d5e-6f7g-8h9i-0j1k-2l3m4n5o6p7q",
-          "name": "team_core",
-          "path": "/teams/team_core",
+          "name": "team1",
+          "path": "/teams/team1",
           "attributes": {
-            "displayName": ["Core Platform Team"],
-            "description": ["Team responsible for core platform services"]
+            "displayName": ["Team 1"],
+            "description": ["First team for testing and development"]
           }
         },
         {
           "id": "3c4d5e6f-7g8h-9i0j-1k2l-3m4n5o6p7q8r",
-          "name": "team_analytics",
-          "path": "/teams/team_analytics",
+          "name": "team2",
+          "path": "/teams/team2",
           "attributes": {
-            "displayName": ["Analytics Team"],
-            "description": ["Team responsible for analytics and reporting services"]
-          }
-        },
-        {
-          "id": "4d5e6f7g-8h9i-0j1k-2l3m-4n5o6p7q8r9s",
-          "name": "team_infrastructure",
-          "path": "/teams/team_infrastructure",
-          "attributes": {
-            "displayName": ["Infrastructure Team"],
-            "description": ["Team responsible for infrastructure and DevOps services"]
+            "displayName": ["Team 2"],
+            "description": ["Second team for testing and development"]
           }
         }
       ]
@@ -190,7 +189,7 @@
       "secret": "config-control-service-secret",
       "standardFlowEnabled": false,
       "implicitFlowEnabled": false,
-      "directAccessGrantsEnabled": false,
+      "directAccessGrantsEnabled": true,
       "serviceAccountsEnabled": true,
       "publicClient": false,
       "frontchannelLogout": false,
