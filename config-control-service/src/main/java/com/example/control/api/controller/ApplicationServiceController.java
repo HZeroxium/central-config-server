@@ -52,9 +52,9 @@ public class ApplicationServiceController {
     /**
      * List all application services (authenticated endpoint).
      *
-     * @param filter optional query filter
+     * @param filter   optional query filter
      * @param pageable pagination information
-     * @param jwt the JWT token
+     * @param jwt      the JWT token
      * @return page of application services
      */
     @Operation(
@@ -100,7 +100,7 @@ public class ApplicationServiceController {
             Pageable pageable,
             @AuthenticationPrincipal Jwt jwt) {
         log.debug("Listing application services with filter: {}", filter);
-        
+
         UserContext userContext = UserContext.fromJwt(jwt);
         ApplicationServiceCriteria criteria = ApplicationServiceApiMapper.toCriteria(filter, userContext);
         // Application services are public to authenticated users
@@ -114,14 +114,12 @@ public class ApplicationServiceController {
      * Create a new application service (authenticated).
      *
      * @param request the create request
-     * @param jwt the JWT token
+     * @param jwt     the JWT token
      * @return the created service
      */
-    @Operation(
-        summary = "Create a new application service",
-        description = """
+    @Operation(summary = "Create a new application service", description = """
             Create a new application service with team ownership.
-            
+
             **Required Permissions:**
             - SYS_ADMIN: Can create services for any team
             - Team members: Can create services for their own team
@@ -134,31 +132,24 @@ public class ApplicationServiceController {
         operationId = "createApplicationService"
     )
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "201", description = "Application service created successfully",
-            content = @Content(schema = @Schema(implementation = ApplicationServiceDtos.Response.class))),
-        @ApiResponse(responseCode = "400", description = "Invalid request data",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
-        @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
-        @ApiResponse(responseCode = "403", description = "Forbidden - Insufficient permissions",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
-        @ApiResponse(responseCode = "409", description = "Conflict - Service ID already exists",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
-        @ApiResponse(responseCode = "500", description = "Internal server error",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+            @ApiResponse(responseCode = "201", description = "Application service created successfully", content = @Content(schema = @Schema(implementation = ApplicationServiceDtos.Response.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid request data", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Insufficient permissions", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "409", description = "Conflict - Service ID already exists", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
     @PostMapping
     public ResponseEntity<ApplicationServiceDtos.Response> create(
-            @Parameter(description = "Application service creation request", 
-                      schema = @Schema(implementation = ApplicationServiceDtos.CreateRequest.class))
-            @Valid @RequestBody ApplicationServiceDtos.CreateRequest request,
+            @Parameter(description = "Application service creation request", schema = @Schema(implementation = ApplicationServiceDtos.CreateRequest.class)) @Valid @RequestBody ApplicationServiceDtos.CreateRequest request,
             @AuthenticationPrincipal Jwt jwt) {
         log.info("Creating application service: {}", request.id());
-        
+
         UserContext userContext = UserContext.fromJwt(jwt);
         ApplicationService service = ApplicationServiceApiMapper.toDomain(request);
+        ApplicationService service = ApplicationServiceApiMapper.toDomain(request);
         service.setCreatedBy(userContext.getUserId());
-        
+
         ApplicationService saved = applicationServiceService.save(service, userContext);
         ApplicationServiceDtos.Response response = ApplicationServiceApiMapper.toResponse(saved);
         
@@ -172,11 +163,9 @@ public class ApplicationServiceController {
      * @param jwt the JWT token
      * @return the service details
      */
-    @Operation(
-        summary = "Get application service by ID",
-        description = """
+    @Operation(summary = "Get application service by ID", description = """
             Retrieve a specific application service by its ID.
-            
+
             **Access Control:**
             - **Authentication required** - Unauthenticated requests will receive 401
             - **Visibility rules apply** - Users can only access:
@@ -229,16 +218,14 @@ public class ApplicationServiceController {
     /**
      * Update application service (owner team or SYS_ADMIN).
      *
-     * @param id the service ID
+     * @param id      the service ID
      * @param request the update request
-     * @param jwt the JWT token
+     * @param jwt     the JWT token
      * @return the updated service
      */
-    @Operation(
-        summary = "Update application service",
-        description = """
+    @Operation(summary = "Update application service", description = """
             Update an existing application service.
-            
+
             **Required Permissions:**
             - SYS_ADMIN: Can update any service
             - Team members: Can update services owned by their team
@@ -251,18 +238,12 @@ public class ApplicationServiceController {
         operationId = "updateApplicationService"
     )
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Application service updated successfully",
-            content = @Content(schema = @Schema(implementation = ApplicationServiceDtos.Response.class))),
-        @ApiResponse(responseCode = "400", description = "Invalid request data",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
-        @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
-        @ApiResponse(responseCode = "403", description = "Forbidden - Insufficient permissions",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
-        @ApiResponse(responseCode = "404", description = "Application service not found",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
-        @ApiResponse(responseCode = "500", description = "Internal server error",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+            @ApiResponse(responseCode = "200", description = "Application service updated successfully", content = @Content(schema = @Schema(implementation = ApplicationServiceDtos.Response.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid request data", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Insufficient permissions", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Application service not found", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
     @PutMapping("/{id}")
     public ResponseEntity<ApplicationServiceDtos.Response> update(
@@ -273,14 +254,15 @@ public class ApplicationServiceController {
             @Valid @RequestBody ApplicationServiceDtos.UpdateRequest request,
             @AuthenticationPrincipal Jwt jwt) {
         log.info("Updating application service: {}", id);
-        
+
         UserContext userContext = UserContext.fromJwt(jwt);
         Optional<ApplicationService> serviceOpt = applicationServiceService.findById(ApplicationServiceId.of(id));
         if (serviceOpt.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
-        
+
         ApplicationService service = serviceOpt.get();
+        ApplicationService updated = ApplicationServiceApiMapper.apply(service, request);
         ApplicationService updated = ApplicationServiceApiMapper.apply(service, request);
         ApplicationService saved = applicationServiceService.save(updated, userContext);
         ApplicationServiceDtos.Response response = ApplicationServiceApiMapper.toResponse(saved);
@@ -291,15 +273,13 @@ public class ApplicationServiceController {
     /**
      * Delete application service (SYS_ADMIN only).
      *
-     * @param id the service ID
+     * @param id  the service ID
      * @param jwt the JWT token
      * @return no content
      */
-    @Operation(
-        summary = "Delete application service",
-        description = """
+    @Operation(summary = "Delete application service", description = """
             Delete an application service permanently.
-            
+
             **Required Permissions:**
             - SYS_ADMIN: Only system administrators can delete services
             - This action is irreversible and will remove all associated data
@@ -311,28 +291,23 @@ public class ApplicationServiceController {
         operationId = "deleteApplicationService"
     )
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "204", description = "Application service deleted successfully"),
-        @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
-        @ApiResponse(responseCode = "403", description = "Forbidden - SYS_ADMIN role required",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
-        @ApiResponse(responseCode = "404", description = "Application service not found",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
-        @ApiResponse(responseCode = "500", description = "Internal server error",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+            @ApiResponse(responseCode = "204", description = "Application service deleted successfully"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Forbidden - SYS_ADMIN role required", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Application service not found", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(
-            @Parameter(description = "Application service ID", example = "payment-service")
-            @PathVariable String id, 
+            @Parameter(description = "Application service ID", example = "payment-service") @PathVariable String id,
             @AuthenticationPrincipal Jwt jwt) {
         log.info("Deleting application service: {}", id);
-        
+
         UserContext userContext = UserContext.fromJwt(jwt);
         if (!userContext.isSysAdmin()) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
-        
+
         applicationServiceService.delete(ApplicationServiceId.of(id), userContext);
         return ResponseEntity.noContent().build();
     }

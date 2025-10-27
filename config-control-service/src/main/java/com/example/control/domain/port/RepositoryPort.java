@@ -8,13 +8,15 @@ import java.util.Optional;
 /**
  * Generic base repository port interface providing standard CRUD operations.
  * <p>
- * This interface defines the common contract for all repository ports in the system.
- * Each specific repository port should extend this interface with appropriate generic types.
+ * This interface defines the common contract for all repository ports in the
+ * system.
+ * Each specific repository port should extend this interface with appropriate
+ * generic types.
  * </p>
  * 
- * @param <T> the domain entity type
+ * @param <T>  the domain entity type
  * @param <ID> the entity identifier type
- * @param <F> the filter criteria type
+ * @param <F>  the filter criteria type
  */
 public interface RepositoryPort<T, ID, F> {
 
@@ -55,11 +57,13 @@ public interface RepositoryPort<T, ID, F> {
     /**
      * Find all entities matching the given filter criteria with pagination.
      * <p>
-     * The filter object should contain the search criteria. Each repository implementation
-     * should define its own filter record type that extends or contains common filtering
+     * The filter object should contain the search criteria. Each repository
+     * implementation
+     * should define its own filter record type that extends or contains common
+     * filtering
      * capabilities like team-based access control.
      *
-     * @param filter the filter criteria (can be null for no filtering)
+     * @param filter   the filter criteria (can be null for no filtering)
      * @param pageable pagination and sorting information
      * @return a page of matching entities
      */
@@ -98,4 +102,14 @@ public interface RepositoryPort<T, ID, F> {
     default long countAll() {
         return count(null);
     }
+
+    /**
+     * Delete all entities in the repository.
+     * <p>
+     * WARNING: This operation removes ALL entities without filtering.
+     * Use with extreme caution, typically only in test/seeding scenarios.
+     *
+     * @return the count of deleted entities
+     */
+    long deleteAll();
 }

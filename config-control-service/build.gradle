@@ -103,6 +103,9 @@ dependencies {
     // AspectJ for AOP profiling
     implementation libs.aspectjweaver
     
+    // Datafaker for mock data generation
+    implementation 'net.datafaker:datafaker:2.1.0'
+    
     // Testing
     testImplementation libs.spring.boot.starter.test
     testImplementation libs.bundles.testing

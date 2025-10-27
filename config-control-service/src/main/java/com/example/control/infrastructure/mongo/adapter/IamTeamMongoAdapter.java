@@ -44,8 +44,9 @@ public class IamTeamMongoAdapter
     @Override
     protected Query buildQuery(IamTeamCriteria criteria) {
         Query query = new Query();
-        if (criteria == null) return query;
-        
+        if (criteria == null)
+            return query;
+
         // Apply filters
         if (criteria.displayName() != null) {
             query.addCriteria(Criteria.where("displayName").is(criteria.displayName()));
@@ -53,12 +54,12 @@ public class IamTeamMongoAdapter
         if (criteria.members() != null && !criteria.members().isEmpty()) {
             query.addCriteria(Criteria.where("members").in(criteria.members()));
         }
-        
+
         // ABAC: Team-based filtering
         if (criteria.userTeamIds() != null && !criteria.userTeamIds().isEmpty()) {
             query.addCriteria(Criteria.where("teamId").in(criteria.userTeamIds()));
         }
-        
+
         return query;
     }
 
@@ -75,25 +76,25 @@ public class IamTeamMongoAdapter
     @Override
     public List<IamTeam> findByMember(String userId) {
         log.debug("Finding IAM teams by member: {}", userId);
-        
+
         List<IamTeamDocument> documents = repository.findByMember(userId);
         return documents.stream()
                 .map(IamTeamDocument::toDomain)
                 .toList();
     }
 
-    @Override
-    public void deleteAll() {
-        log.debug("Deleting all IAM teams");
-        
-        repository.deleteAll();
-        log.debug("Successfully deleted all IAM teams");
-    }
+    // @Override
+    // public void deleteAll() {
+    //     log.debug("Deleting all IAM teams");
+
+    //     repository.deleteAll();
+    //     log.debug("Successfully deleted all IAM teams");
+    // }
 
     @Override
     public long countAll() {
         log.debug("Counting all IAM teams");
-        
+
         return repository.count();
     }
 }

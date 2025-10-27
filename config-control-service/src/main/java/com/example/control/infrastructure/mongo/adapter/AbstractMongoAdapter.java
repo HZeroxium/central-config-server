@@ -20,13 +20,14 @@ import java.util.function.Function;
 /**
  * Abstract base adapter providing common MongoDB operations with type safety.
  * <p>
- * This class implements the standard CRUD operations and delegates domain-specific
+ * This class implements the standard CRUD operations and delegates
+ * domain-specific
  * operations to subclasses. It handles the common pattern of converting between
  * domain entities and MongoDB documents.
  * </p>
  *
- * @param <T> the domain entity type
- * @param <D> the MongoDB document type
+ * @param <T>  the domain entity type
+ * @param <D>  the MongoDB document type
  * @param <ID> the entity identifier type
  * @param <F> the filter criteria type
  * @param <R> the MongoDB repository type that extends MongoRepository<D, String>
@@ -42,7 +43,7 @@ public abstract class AbstractMongoAdapter<T, D, ID, F, R extends MongoRepositor
     /**
      * Constructor for the abstract adapter.
      *
-     * @param repository the MongoDB repository
+     * @param repository    the MongoDB repository
      * @param mongoTemplate the MongoDB template for complex queries
      * @param idMapper the function to convert the domain ID to a MongoDB document ID
      */
@@ -148,27 +149,27 @@ public abstract class AbstractMongoAdapter<T, D, ID, F, R extends MongoRepositor
     @Override
     public Page<T> findAll(F filter, Pageable pageable) {
         log.debug("Finding entities with filter: {}, pageable: {}", filter, pageable);
-        
+
         // Build MongoDB query from filter criteria
         Query query = buildQuery(filter);
-        
+
         // Apply pagination
         query.with(pageable);
-        
+
         // Execute query
         List<D> documents = mongoTemplate.find(query, getDocumentClass(), getCollectionName());
-        
+
         // Count total for pagination
         Query countQuery = buildQuery(filter);
 
         // Count total for pagination
         long total = mongoTemplate.count(countQuery, getDocumentClass(), getCollectionName());
-        
+
         // Convert to domain entities
         List<T> entities = documents.stream()
                 .map(this::toDomain)
                 .toList();
-        
+
         // Build page from documents and pagination info
         Page<T> result = new PageImpl<>(entities, pageable, total);
 
@@ -179,14 +180,25 @@ public abstract class AbstractMongoAdapter<T, D, ID, F, R extends MongoRepositor
     @Override
     public long count(F filter) {
         log.debug("Counting entities with filter: {}", filter);
-        
+
         // Build MongoDB query from filter criteria
         Query query = buildQuery(filter);
 
         // Count total for pagination
         long count = mongoTemplate.count(query, getDocumentClass(), getCollectionName());
-        
+
         log.debug("Counted {} entities", count);
+        return count;
+    }
+
+    @Override
+    public long deleteAll() {
+        log.warn("Deleting ALL entities from collection: {}", getCollectionName());
+
+        long count = repository.count();
+        repository.deleteAll();
+
+        log.warn("Deleted {} entities from collection: {}", count, getCollectionName());
         return count;
     }
 
@@ -225,8 +237,8 @@ public abstract class AbstractMongoAdapter<T, D, ID, F, R extends MongoRepositor
      * Helper method for constructing Page objects from MongoDB results.
      *
      * @param documents the MongoDB documents
-     * @param pageable the pagination info
-     * @param total the total count
+     * @param pageable  the pagination info
+     * @param total     the total count
      * @return a page of domain entities
      */
     protected Page<T> buildPage(List<D> documents, Pageable pageable, long total) {
@@ -248,7 +260,7 @@ public abstract class AbstractMongoAdapter<T, D, ID, F, R extends MongoRepositor
      */
     protected long bulkUpdateTeamIdByServiceId(String serviceId, String newTeamId) {
         log.debug("Bulk updating teamId to {} for serviceId: {}", newTeamId, serviceId);
-        
+
         Query query = new Query(org.springframework.data.mongodb.core.query.Criteria.where("serviceId").is(serviceId));
         Update update = new Update()
                 .set("teamId", newTeamId)
@@ -256,7 +268,7 @@ public abstract class AbstractMongoAdapter<T, D, ID, F, R extends MongoRepositor
         
         UpdateResult result = mongoTemplate.updateMulti(
                 query, update, getDocumentClass());
-        
+
         log.debug("Bulk updated {} documents for serviceId: {}", result.getModifiedCount(), serviceId);
         return result.getModifiedCount();
     }

@@ -14,7 +14,8 @@ import java.util.List;
  * audit, reporting, and workflow support.
  * </p>
  * <p>
- * <strong>Note:</strong> The source of truth for user information remains Keycloak.
+ * <strong>Note:</strong> The source of truth for user information remains
+ * Keycloak.
  * This is only a cached projection that should be synchronized periodically.
  * </p>
  */
@@ -55,7 +56,7 @@ public interface IamUserRepositoryPort extends RepositoryPort<IamUser, IamUserId
     /**
      * Delete all user projections (for full sync).
      */
-    void deleteAll();
+    // void deleteAll();
 
     /**
      * Count users by team.

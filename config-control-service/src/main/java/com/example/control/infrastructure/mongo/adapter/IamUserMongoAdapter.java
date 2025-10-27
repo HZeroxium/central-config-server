@@ -44,8 +44,9 @@ public class IamUserMongoAdapter
     @Override
     protected Query buildQuery(IamUserCriteria criteria) {
         Query query = new Query();
-        if (criteria == null) return query;
-        
+        if (criteria == null)
+            return query;
+
         // Apply filters
         if (criteria.username() != null) {
             query.addCriteria(Criteria.where("username").is(criteria.username()));
@@ -68,12 +69,12 @@ public class IamUserMongoAdapter
         if (criteria.roles() != null && !criteria.roles().isEmpty()) {
             query.addCriteria(Criteria.where("roles").in(criteria.roles()));
         }
-        
+
         // ABAC: Team-based filtering
         if (criteria.userTeamIds() != null && !criteria.userTeamIds().isEmpty()) {
             query.addCriteria(Criteria.where("teamIds").in(criteria.userTeamIds()));
         }
-        
+
         return query;
     }
 
@@ -90,7 +91,7 @@ public class IamUserMongoAdapter
     @Override
     public List<IamUser> findByTeam(String teamId) {
         log.debug("Finding IAM users by team: {}", teamId);
-        
+
         List<IamUserDocument> documents = repository.findByTeamId(teamId);
         return documents.stream()
                 .map(IamUserDocument::toDomain)
@@ -100,7 +101,7 @@ public class IamUserMongoAdapter
     @Override
     public List<IamUser> findByManager(String managerId) {
         log.debug("Finding IAM users by manager: {}", managerId);
-        
+
         List<IamUserDocument> documents = repository.findByManagerId(managerId);
         return documents.stream()
                 .map(IamUserDocument::toDomain)
@@ -110,7 +111,7 @@ public class IamUserMongoAdapter
     @Override
     public List<IamUser> findByRole(String role) {
         log.debug("Finding IAM users by role: {}", role);
-        
+
         List<IamUserDocument> documents = repository.findByRole(role);
         return documents.stream()
                 .map(IamUserDocument::toDomain)
@@ -120,39 +121,39 @@ public class IamUserMongoAdapter
     @Override
     public List<String> findUserIdsByTeams(List<String> teamIds) {
         log.debug("Finding user IDs by teams: {}", teamIds);
-        
+
         List<IamUserDocument> documents = repository.findUserIdsByTeamIds(teamIds);
         return documents.stream()
                 .map(IamUserDocument::getUserId)
                 .toList();
     }
 
-    @Override
-    public void deleteAll() {
-        log.debug("Deleting all IAM users");
-        
-        repository.deleteAll();
-        log.debug("Successfully deleted all IAM users");
-    }
+    // @Override
+    // public void deleteAll() {
+    // log.debug("Deleting all IAM users");
+
+    // repository.deleteAll();
+    // log.debug("Successfully deleted all IAM users");
+    // }
 
     @Override
     public long countByTeam(String teamId) {
         log.debug("Counting IAM users by team: {}", teamId);
-        
+
         return repository.countByTeamId(teamId);
     }
 
     @Override
     public long countByRole(String role) {
         log.debug("Counting IAM users by role: {}", role);
-        
+
         return repository.countByRole(role);
     }
 
     @Override
     public long countAll() {
         log.debug("Counting all IAM users");
-        
+
         return repository.count();
     }
 }
