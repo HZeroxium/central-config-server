@@ -1,8 +1,8 @@
                                                                                                                                                                                                                                                                                                                                                                                                                                     package com.example.control.application.service;
 
+import com.example.control.application.query.ApplicationServiceQueryService;
+import com.example.control.application.query.ServiceShareQueryService;
 import com.example.control.config.security.UserContext;
-import com.example.control.domain.criteria.ServiceShareCriteria;
-import com.example.control.domain.object.ServiceShare;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -11,13 +11,11 @@ import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * Service for managing user permissions and access control discovery.
@@ -31,8 +29,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class UserPermissionsService {
 
-    private final ApplicationServiceService applicationServiceService;
-    private final ServiceShareService serviceShareService;
+    private final ApplicationServiceQueryService applicationServiceQueryService;
+    private final ServiceShareQueryService serviceShareQueryService;
 
     /**
      * Get comprehensive permissions for a user.
@@ -230,7 +228,7 @@ public class UserPermissionsService {
         }
 
         return userContext.getTeamIds().stream()
-                .flatMap(teamId -> applicationServiceService.findByOwnerTeam(teamId).stream())
+                .flatMap(teamId -> applicationServiceQueryService.findByOwnerTeam(teamId).stream())
                 .map(service -> service.getId().id())
                 .toList();
     }
@@ -247,14 +245,7 @@ public class UserPermissionsService {
             return List.of();
         }
 
-        // Query for shares granted to user's teams
-        ServiceShareCriteria criteria = ServiceShareCriteria.forUser(userContext);
-
-        return serviceShareService.findAll(criteria, Pageable.unpaged(), userContext)
-                .stream()
-                .map(ServiceShare::getServiceId)
-                .distinct()
-                .collect(Collectors.toList());
+        return serviceShareQueryService.getSharedServiceIdsForTeams(userContext.getTeamIds());
     }
 
     /**

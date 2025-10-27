@@ -1,5 +1,7 @@
 package com.example.control.application.service;
 
+import com.example.control.application.command.applicationservice.TransferOwnershipCommand;
+import com.example.control.application.command.applicationservice.TransferOwnershipHandler;
 import com.example.control.config.security.DomainPermissionEvaluator;
 import com.example.control.config.security.UserContext;
 import com.example.control.domain.object.ApplicationService;
@@ -41,6 +43,7 @@ public class ApprovalService {
     private final ApprovalDecisionService approvalDecisionService;
     private final ApplicationServiceService applicationServiceService;
     private final DomainPermissionEvaluator permissionEvaluator;
+    private final TransferOwnershipHandler transferOwnershipHandler;
 
     /**
      * Create a new approval request.
@@ -286,20 +289,14 @@ public class ApprovalService {
             throw new IllegalStateException("Failed to approve request due to concurrent modification");
         }
 
-        // Transfer service ownership with cascade to related entities
-        UserContext systemContext = UserContext.builder()
-                .userId("system")
-                .username("system")
-                .email("system@example.com")
-                .teamIds(List.of("SYS_ADMIN"))
-                .roles(List.of("SYS_ADMIN"))
+        // Transfer service ownership using command handler
+        TransferOwnershipCommand command = TransferOwnershipCommand.builder()
+                .serviceId(request.getTarget().getServiceId())
+                .newTeamId(request.getTarget().getTeamId())
+                .transferredBy("system")
                 .build();
         
-        applicationServiceService.transferOwnershipWithCascade(
-                request.getTarget().getServiceId(),
-                request.getTarget().getTeamId(),
-                systemContext
-        );
+        transferOwnershipHandler.handle(command);
 
         log.info("Successfully approved request: {} and transferred service ownership", requestId);
     }

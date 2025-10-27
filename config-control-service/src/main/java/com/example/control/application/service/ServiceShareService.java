@@ -1,5 +1,11 @@
 package com.example.control.application.service;
 
+import com.example.control.application.command.serviceshare.GrantShareCommand;
+import com.example.control.application.command.serviceshare.GrantShareHandler;
+import com.example.control.application.command.serviceshare.RevokeShareCommand;
+import com.example.control.application.command.serviceshare.RevokeShareHandler;
+import com.example.control.application.query.ApplicationServiceQueryService;
+import com.example.control.application.query.ServiceShareQueryService;
 import com.example.control.config.security.DomainPermissionEvaluator;
 import com.example.control.config.security.UserContext;
 import com.example.control.domain.object.ApplicationService;
@@ -33,13 +39,16 @@ import java.util.Optional;
 public class ServiceShareService {
 
     private final ServiceShareRepositoryPort shareRepository;
-    private final ApplicationServiceService applicationServiceService;
+    private final ApplicationServiceQueryService applicationServiceQueryService;
+    private final ServiceShareQueryService serviceShareQueryService;
     private final DomainPermissionEvaluator permissionEvaluator;
+    private final GrantShareHandler grantShareHandler;
+    private final RevokeShareHandler revokeShareHandler;
 
     /**
      * Grant share permissions for a service.
      * <p>
-     * Only service owners or system admins can grant shares.
+     * Delegates to GrantShareHandler for write operations.
      *
      * @param serviceId the service ID to share
      * @param grantToType the type of grantee (TEAM or USER)
@@ -61,34 +70,17 @@ public class ServiceShareService {
         log.info("Granting share for service: {} to {}:{} by user: {}", 
                 serviceId, grantToType, grantToId, userContext.getUserId());
 
-        // Validate service exists and user has permission to share
-        ApplicationService service = applicationServiceService.findById(ApplicationServiceId.of(serviceId))
-                .orElseThrow(() -> new IllegalArgumentException("Service not found: " + serviceId));
-
-        if (!permissionEvaluator.canManageShares(userContext, service)) {
-            throw new IllegalStateException("User does not have permission to manage shares for this service");
-        }
-
-        // Check if share already exists
-        if (shareRepository.existsByServiceAndGranteeAndEnvironments(serviceId, grantToType, grantToId, environments)) {
-            throw new IllegalStateException("Share already exists for the specified criteria");
-        }
-
-        // Create share
-        ServiceShare share = ServiceShare.builder()
-                .id(ServiceShareId.of(generateShareId()))
-                .resourceLevel(ServiceShare.ResourceLevel.SERVICE)
+        GrantShareCommand command = GrantShareCommand.builder()
                 .serviceId(serviceId)
                 .grantToType(grantToType)
                 .grantToId(grantToId)
                 .permissions(permissions)
                 .environments(environments)
-                .grantedBy(userContext.getUserId())
-                .createdAt(Instant.now())
                 .expiresAt(expiresAt)
+                .grantedBy(userContext.getUserId())
                 .build();
 
-        ServiceShare saved = shareRepository.save(share);
+        ServiceShare saved = grantShareHandler.handle(command);
         log.info("Successfully granted share: {}", saved.getId());
         return saved;
     }
@@ -96,7 +88,7 @@ public class ServiceShareService {
     /**
      * Revoke a service share.
      * <p>
-     * Only the user who granted the share or system admins can revoke it.
+     * Delegates to RevokeShareHandler for write operations.
      *
      * @param shareId the share ID to revoke
      * @param userContext the current user context
@@ -105,15 +97,12 @@ public class ServiceShareService {
     public void revokeShare(String shareId, UserContext userContext) {
         log.info("Revoking share: {} by user: {}", shareId, userContext.getUserId());
 
-        ServiceShare share = shareRepository.findById(ServiceShareId.of(shareId))
-                .orElseThrow(() -> new IllegalArgumentException("Share not found: " + shareId));
+        RevokeShareCommand command = RevokeShareCommand.builder()
+                .shareId(shareId)
+                .revokedBy(userContext.getUserId())
+                .build();
 
-        // Check permission to revoke
-        if (!canRevokeShare(userContext, share)) {
-            throw new IllegalStateException("User does not have permission to revoke this share");
-        }
-
-        shareRepository.deleteById(ServiceShareId.of(shareId));
+        revokeShareHandler.handle(command);
         log.info("Successfully revoked share: {}", shareId);
     }
 
@@ -130,7 +119,7 @@ public class ServiceShareService {
         log.debug("Listing shares for service: {} by user: {}", serviceId, userContext.getUserId());
 
         // Validate service exists and user has permission to view shares
-        ApplicationService service = applicationServiceService.findById(ApplicationServiceId.of(serviceId))
+        ApplicationService service = applicationServiceQueryService.findById(ApplicationServiceId.of(serviceId))
                 .orElseThrow(() -> new IllegalArgumentException("Service not found: " + serviceId));
 
         if (!permissionEvaluator.canViewShares(userContext, service)) {
@@ -159,7 +148,7 @@ public class ServiceShareService {
 
         // If filtering by service, check permission to view shares for that service
         if (criteria != null && criteria.serviceId() != null) {
-            ApplicationService service = applicationServiceService.findById(ApplicationServiceId.of(criteria.serviceId()))
+            ApplicationService service = applicationServiceQueryService.findById(ApplicationServiceId.of(criteria.serviceId()))
                     .orElseThrow(() -> new IllegalArgumentException("Service not found: " + criteria.serviceId()));
 
             if (!permissionEvaluator.canViewShares(userContext, service)) {
@@ -172,6 +161,8 @@ public class ServiceShareService {
 
     /**
      * Find a service share by ID.
+     * <p>
+     * Delegates to ServiceShareQueryService for read operations.
      *
      * @param shareId the share ID
      * @param userContext the current user context
@@ -180,7 +171,7 @@ public class ServiceShareService {
     public Optional<ServiceShare> findById(String shareId, UserContext userContext) {
         log.debug("Finding service share by ID: {} for user: {}", shareId, userContext.getUserId());
 
-        Optional<ServiceShare> share = shareRepository.findById(ServiceShareId.of(shareId));
+        Optional<ServiceShare> share = serviceShareQueryService.findById(ServiceShareId.of(shareId));
         
         if (share.isPresent()) {
             ServiceShare shareEntity = share.get();
@@ -215,25 +206,6 @@ public class ServiceShareService {
     }
 
 
-
-    /**
-     * Check if user can revoke a specific share.
-     * <p>
-     * Users can revoke shares they granted, system admins can revoke any share.
-     *
-     * @param userContext the user context
-     * @param share the service share
-     * @return true if user can revoke the share
-     */
-    private boolean canRevokeShare(UserContext userContext, ServiceShare share) {
-        // System admins can revoke any share
-        if (userContext.isSysAdmin()) {
-            return true;
-        }
-
-        // Users can revoke shares they granted
-        return userContext.getUserId().equals(share.getGrantedBy());
-    }
 
     /**
      * Check if user can view a specific share.
@@ -282,33 +254,13 @@ public class ServiceShareService {
     /**
      * Get all service IDs that are shared to specific teams.
      * <p>
-     * Used for filtering ApplicationServices to include shared services in user's view.
-     * This enables visibility of services shared to user's teams.
-     * </p>
+     * Delegates to ServiceShareQueryService for read operations.
      *
      * @param teamIds the team IDs to check (user's team membership)
      * @return list of unique service IDs shared to any of the specified teams
      */
     public List<String> getSharedServiceIdsForTeams(List<String> teamIds) {
         log.debug("Getting shared service IDs for teams: {}", teamIds);
-        
-        if (teamIds == null || teamIds.isEmpty()) {
-            log.debug("No team IDs provided, returning empty list");
-            return List.of();
-        }
-        
-        List<String> sharedServiceIds = shareRepository.findServiceIdsByGranteeTeams(teamIds);
-        log.debug("Found {} services shared to teams: {}", sharedServiceIds.size(), teamIds);
-        
-        return sharedServiceIds;
-    }
-
-    /**
-     * Generate a unique share ID.
-     *
-     * @return unique share ID
-     */
-    private String generateShareId() {
-        return "share_" + System.currentTimeMillis() + "_" + (int) (Math.random() * 1000);
+        return serviceShareQueryService.getSharedServiceIdsForTeams(teamIds);
     }
 }

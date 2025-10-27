@@ -39,6 +39,10 @@
       "description": "Multi-gate approval workflow for service ownership requests"
     },
     {
+      "name": "Data Seeding",
+      "description": "Operations for managing mock data generation (Admin only)"
+    },
+    {
       "name": "IAM Users",
       "description": "User management endpoints"
     },
@@ -93,8 +97,18 @@
           }
         ],
         "responses": {
-          "404": {
-            "description": "Service instance not found",
+          "200": {
+            "description": "Service instance found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceInstanceResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -113,8 +127,8 @@
               }
             }
           },
-          "500": {
-            "description": "Internal server error",
+          "404": {
+            "description": "Service instance not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -123,18 +137,8 @@
               }
             }
           },
-          "200": {
-            "description": "Service instance found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ServiceInstanceResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -183,16 +187,6 @@
           "required": true
         },
         "responses": {
-          "404": {
-            "description": "Service instance not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "200": {
             "description": "Service instance updated successfully",
             "content": {
@@ -203,8 +197,28 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "403": {
             "description": "Forbidden - Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Service instance not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -225,16 +239,6 @@
           },
           "400": {
             "description": "Invalid request data",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -273,8 +277,11 @@
           }
         ],
         "responses": {
-          "404": {
-            "description": "Service instance not found",
+          "200": {
+            "description": "Service instance deleted successfully"
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -293,8 +300,8 @@
               }
             }
           },
-          "500": {
-            "description": "Internal server error",
+          "404": {
+            "description": "Service instance not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -303,11 +310,8 @@
               }
             }
           },
-          "200": {
-            "description": "Service instance deleted successfully"
-          },
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -333,7 +337,7 @@
           "Application Services"
         ],
         "summary": "Get application service by ID",
-        "description": "Retrieve a specific application service by its ID.\n\n**Access Control:**\n- Public endpoint - no authentication required\n- Returns service metadata for discovery purposes\n",
+        "description": "Retrieve a specific application service by its ID.\n\n**Access Control:**\n- **Authentication required** - Unauthenticated requests will receive 401\n- **Visibility rules apply** - Users can only access:\n  - Orphaned services (ownerTeamId=null)\n  - Services owned by their teams\n  - Services shared to their teams\n- Returns 404 if service doesn't exist or user lacks permission\n",
         "operationId": "findApplicationServiceById",
         "parameters": [
           {
@@ -358,6 +362,16 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Internal server error",
             "content": {
@@ -369,7 +383,7 @@
             }
           },
           "404": {
-            "description": "Application service not found",
+            "description": "Application service not found or access denied",
             "content": {
               "application/json": {
                 "schema": {
@@ -418,6 +432,16 @@
           "required": true
         },
         "responses": {
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "403": {
             "description": "Forbidden - Insufficient permissions",
             "content": {
@@ -428,8 +452,8 @@
               }
             }
           },
-          "500": {
-            "description": "Internal server error",
+          "404": {
+            "description": "Application service not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -438,8 +462,8 @@
               }
             }
           },
-          "404": {
-            "description": "Application service not found",
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -464,16 +488,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApplicationServiceResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -518,8 +532,8 @@
               }
             }
           },
-          "500": {
-            "description": "Internal server error",
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -527,9 +541,6 @@
                 }
               }
             }
-          },
-          "204": {
-            "description": "Application service deleted successfully"
           },
           "404": {
             "description": "Application service not found",
@@ -541,8 +552,11 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "204": {
+            "description": "Application service deleted successfully"
+          },
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -671,8 +685,18 @@
           }
         ],
         "responses": {
-          "500": {
-            "description": "Internal server error",
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request parameters",
             "content": {
               "application/json": {
                 "schema": {
@@ -698,18 +722,8 @@
               }
             }
           },
-          "400": {
-            "description": "Invalid request parameters",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -756,6 +770,26 @@
           "required": true
         },
         "responses": {
+          "201": {
+            "description": "Service share created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceShareResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "403": {
             "description": "Forbidden - Insufficient permissions",
             "content": {
@@ -776,26 +810,6 @@
               }
             }
           },
-          "201": {
-            "description": "Service share created successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ServiceShareResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Service not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "400": {
             "description": "Invalid request data",
             "content": {
@@ -806,8 +820,8 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "404": {
+            "description": "Service not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -846,6 +860,16 @@
           "required": true
         },
         "responses": {
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "400": {
             "description": "Invalid heartbeat payload",
             "content": {
@@ -886,16 +910,6 @@
                       }
                     }
                   }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -1061,8 +1075,8 @@
               }
             }
           },
-          "500": {
-            "description": "Internal server error",
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -1081,8 +1095,8 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -1119,6 +1133,16 @@
           "required": true
         },
         "responses": {
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "200": {
             "description": "Drift event created successfully",
             "content": {
@@ -1151,16 +1175,6 @@
           },
           "400": {
             "description": "Invalid request data",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -1211,38 +1225,8 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "Decision submitted successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApprovalRequestResponse"
-                }
-              }
-            }
-          },
           "404": {
             "description": "Approval request not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid decision data",
             "content": {
               "application/json": {
                 "schema": {
@@ -1261,8 +1245,38 @@
               }
             }
           },
+          "200": {
+            "description": "Decision submitted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalRequestResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "403": {
             "description": "Forbidden - Not authorized to approve this request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid decision data",
             "content": {
               "application/json": {
                 "schema": {
@@ -1313,28 +1327,18 @@
           "required": true
         },
         "responses": {
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "403": {
             "description": "Forbidden - Insufficient permissions",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Conflict - Request already exists",
             "content": {
               "application/json": {
                 "schema": {
@@ -1353,6 +1357,16 @@
               }
             }
           },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "400": {
             "description": "Invalid request data",
             "content": {
@@ -1363,8 +1377,8 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "409": {
+            "description": "Conflict - Request already exists",
             "content": {
               "application/json": {
                 "schema": {
@@ -1390,7 +1404,7 @@
           "Application Services"
         ],
         "summary": "List all application services",
-        "description": "Retrieve a paginated list of all application services.\n\n**Access Control:**\n- All authenticated users can view application services\n- Services are public to authenticated users for discovery\n- Filtering by team ownership is applied automatically\n",
+        "description": "Retrieve a paginated list of application services visible to the authenticated user.\n\n**Access Control & Visibility Rules:**\n- **Authentication required** - Unauthenticated requests will receive 401\n- **System admins** see all services (no filtering)\n- **Regular users** see:\n  - Orphaned services (ownerTeamId=null) - for ownership request workflow\n  - Services owned by their teams\n  - Services shared to their teams via ServiceShare grants\n- Server-side filtering ensures users only see authorized services\n\n**Use Cases:**\n- Service discovery and catalog browsing\n- Requesting ownership of orphaned services\n- Viewing team-owned and shared services\n",
         "operationId": "findAllApplicationServices",
         "parameters": [
           {
@@ -1494,18 +1508,8 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "Successfully retrieved application services",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApplicationServicePageResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -1524,12 +1528,22 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Successfully retrieved application services",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationServicePageResponse"
                 }
               }
             }
@@ -1562,6 +1576,16 @@
           "required": true
         },
         "responses": {
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "403": {
             "description": "Forbidden - Insufficient permissions",
             "content": {
@@ -1582,8 +1606,8 @@
               }
             }
           },
-          "409": {
-            "description": "Conflict - Service ID already exists",
+          "400": {
+            "description": "Invalid request data",
             "content": {
               "application/json": {
                 "schema": {
@@ -1602,18 +1626,8 @@
               }
             }
           },
-          "400": {
-            "description": "Invalid request data",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "409": {
+            "description": "Conflict - Service ID already exists",
             "content": {
               "application/json": {
                 "schema": {
@@ -1631,6 +1645,70 @@
             "oauth2_password": []
           }
         ]
+      }
+    },
+    "/api/admin/seed/seed": {
+      "post": {
+        "tags": [
+          "Data Seeding"
+        ],
+        "summary": "Seed new mock data",
+        "description": "Generates and saves new mock data (services, instances, drift events, etc.) based on seeding configuration. Does not clean existing data first.",
+        "operationId": "seedData",
+        "responses": {
+          "200": {
+            "description": "Data seeded successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeedResult"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error during seeding operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeedResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/seed/clean-and-seed": {
+      "post": {
+        "tags": [
+          "Data Seeding"
+        ],
+        "summary": "Clean and seed mock data",
+        "description": "Atomically removes all existing mock data and generates fresh data. This is the recommended endpoint for environment resets.",
+        "operationId": "cleanAndSeedData",
+        "responses": {
+          "200": {
+            "description": "Data cleaned and seeded successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CombinedResult"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error during clean-and-seed operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CombinedResult"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/drift-events/{id}": {
@@ -1654,12 +1732,12 @@
           }
         ],
         "responses": {
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
+          "200": {
+            "description": "Drift event found",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "$ref": "#/components/schemas/DriftEventResponse"
                 }
               }
             }
@@ -1674,8 +1752,8 @@
               }
             }
           },
-          "500": {
-            "description": "Internal server error",
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -1684,18 +1762,18 @@
               }
             }
           },
-          "200": {
-            "description": "Drift event found",
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DriftEventResponse"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
           },
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -1744,8 +1822,18 @@
           "required": true
         },
         "responses": {
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
+          "200": {
+            "description": "Drift event updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DriftEventResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Drift event not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -1754,8 +1842,18 @@
               }
             }
           },
-          "404": {
-            "description": "Drift event not found",
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
             "content": {
               "application/json": {
                 "schema": {
@@ -1774,28 +1872,8 @@
               }
             }
           },
-          "200": {
-            "description": "Drift event updated successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DriftEventResponse"
-                }
-              }
-            }
-          },
           "400": {
             "description": "Invalid request data",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -1824,6 +1902,16 @@
         "description": "Retrieve detailed information about the currently authenticated user.\nThis includes user ID, username, email, names, team memberships, roles, and manager ID.\n",
         "operationId": "findCurrentUserInformation",
         "responses": {
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Internal server error",
             "content": {
@@ -1840,16 +1928,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/MeResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -1874,16 +1952,6 @@
         "description": "Retrieve comprehensive permission information for the current user.\nThis includes allowed API routes, UI routes, roles, teams, actions, and service access.\n\n**Permission Matrix:**\n- API routes: Endpoints the user can access\n- UI routes: Frontend pages the user can navigate to\n- Actions: Specific operations the user can perform\n- Services: Owned and shared services the user can access\n",
         "operationId": "findCurrentUserPermissions",
         "responses": {
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "200": {
             "description": "User permissions retrieved successfully",
             "content": {
@@ -1896,6 +1964,16 @@
           },
           "401": {
             "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -1936,8 +2014,8 @@
           }
         ],
         "responses": {
-          "404": {
-            "description": "Service share not found",
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -1956,16 +2034,6 @@
               }
             }
           },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "200": {
             "description": "Service share found",
             "content": {
@@ -1976,8 +2044,18 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Service share not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -2016,8 +2094,8 @@
           }
         ],
         "responses": {
-          "404": {
-            "description": "Service share not found",
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -2049,8 +2127,8 @@
           "204": {
             "description": "Service share revoked successfully"
           },
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "404": {
+            "description": "Service share not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -2222,8 +2300,18 @@
           }
         ],
         "responses": {
-          "500": {
-            "description": "Internal server error",
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request parameters",
             "content": {
               "application/json": {
                 "schema": {
@@ -2242,18 +2330,8 @@
               }
             }
           },
-          "400": {
-            "description": "Invalid request parameters",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -2282,6 +2360,26 @@
         "description": "Retrieves a list of all services registered with Consul.\nThis provides an overview of available services in the ecosystem.\n",
         "operationId": "listServiceRegistryServices",
         "responses": {
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Internal server error or Consul unreachable",
             "content": {
@@ -2298,26 +2396,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ConsulServicesMap"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -2365,28 +2443,8 @@
           }
         ],
         "responses": {
-          "500": {
-            "description": "Internal server error or Consul unreachable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Service not found",
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -2405,8 +2463,28 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error or Consul unreachable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Service not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -2554,8 +2632,8 @@
               }
             }
           },
-          "500": {
-            "description": "Internal server error",
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -2574,8 +2652,8 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -2629,18 +2707,8 @@
               }
             }
           },
-          "200": {
-            "description": "IAM user found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IamUserResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -2659,8 +2727,18 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "200": {
+            "description": "IAM user found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IamUserResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -2702,8 +2780,8 @@
               }
             }
           },
-          "500": {
-            "description": "Internal server error",
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -2722,8 +2800,8 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -2767,26 +2845,6 @@
           }
         ],
         "responses": {
-          "403": {
-            "description": "Forbidden - SYS_ADMIN role required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "200": {
             "description": "Users in team found",
             "content": {
@@ -2797,8 +2855,28 @@
               }
             }
           },
+          "403": {
+            "description": "Forbidden - SYS_ADMIN role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "401": {
             "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -2852,8 +2930,8 @@
               }
             }
           },
-          "500": {
-            "description": "Internal server error",
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -2872,8 +2950,8 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -2981,6 +3059,16 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Internal server error",
             "content": {
@@ -2997,16 +3085,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/IamTeamPageResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -3056,8 +3134,8 @@
               }
             }
           },
-          "500": {
-            "description": "Internal server error",
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -3076,22 +3154,22 @@
               }
             }
           },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "200": {
             "description": "IAM team found",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/IamTeamResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -3129,6 +3207,16 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Internal server error",
             "content": {
@@ -3145,16 +3233,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/IamTeamStatsResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -3204,6 +3282,16 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Internal server error",
             "content": {
@@ -3220,16 +3308,6 @@
               "application/json": {
                 "schema": {
                   "type": "string"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -3303,6 +3381,16 @@
         "description": "Retrieves basic information about the Config Server instance.\nThis includes URL, status, and version information.\n",
         "operationId": "getInfoConfigServer",
         "responses": {
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Internal server error",
             "content": {
@@ -3319,16 +3407,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ConfigServerInfo"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -3353,8 +3431,8 @@
         "description": "Retrieves the health status of the underlying Spring Cloud Config Server.\nThis provides information about the Config Server's operational state.\n",
         "operationId": "getHealthConfigServer",
         "responses": {
-          "500": {
-            "description": "Internal server error or Config Server unreachable",
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -3373,8 +3451,8 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "500": {
+            "description": "Internal server error or Config Server unreachable",
             "content": {
               "application/json": {
                 "schema": {
@@ -3435,8 +3513,8 @@
           }
         ],
         "responses": {
-          "500": {
-            "description": "Internal server error or Config Server unreachable",
+          "400": {
+            "description": "Invalid application or profile name",
             "content": {
               "application/json": {
                 "schema": {
@@ -3445,8 +3523,18 @@
               }
             }
           },
-          "404": {
-            "description": "Configuration not found for the specified application/profile",
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
             "content": {
               "application/json": {
                 "schema": {
@@ -3465,8 +3553,8 @@
               }
             }
           },
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
+          "404": {
+            "description": "Configuration not found for the specified application/profile",
             "content": {
               "application/json": {
                 "schema": {
@@ -3475,18 +3563,8 @@
               }
             }
           },
-          "400": {
-            "description": "Invalid application or profile name",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "500": {
+            "description": "Internal server error or Config Server unreachable",
             "content": {
               "application/json": {
                 "schema": {
@@ -3527,8 +3605,8 @@
           }
         ],
         "responses": {
-          "500": {
-            "description": "Internal server error or Config Server unreachable",
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -3547,16 +3625,6 @@
               }
             }
           },
-          "400": {
-            "description": "Invalid actuator path",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "200": {
             "description": "Actuator endpoint response retrieved successfully",
             "content": {
@@ -3567,8 +3635,18 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "400": {
+            "description": "Invalid actuator path",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error or Config Server unreachable",
             "content": {
               "application/json": {
                 "schema": {
@@ -3681,8 +3759,18 @@
           }
         ],
         "responses": {
-          "500": {
-            "description": "Internal server error",
+          "200": {
+            "description": "Approval requests retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalRequestPageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -3701,18 +3789,8 @@
               }
             }
           },
-          "200": {
-            "description": "Approval requests retrieved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApprovalRequestPageResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -3753,18 +3831,18 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "Approval request found",
+          "404": {
+            "description": "Approval request not found",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApprovalRequestResponse"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
           },
-          "404": {
-            "description": "Approval request not found",
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -3793,12 +3871,12 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "200": {
+            "description": "Approval request found",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "$ref": "#/components/schemas/ApprovalRequestResponse"
                 }
               }
             }
@@ -3843,8 +3921,8 @@
               }
             }
           },
-          "500": {
-            "description": "Internal server error",
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -3863,9 +3941,6 @@
               }
             }
           },
-          "204": {
-            "description": "Approval request cancelled successfully"
-          },
           "409": {
             "description": "Conflict - Request cannot be cancelled in current status",
             "content": {
@@ -3876,8 +3951,11 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "204": {
+            "description": "Approval request cancelled successfully"
+          },
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -3895,6 +3973,38 @@
             "oauth2_password": []
           }
         ]
+      }
+    },
+    "/api/admin/seed/clean": {
+      "delete": {
+        "tags": [
+          "Data Seeding"
+        ],
+        "summary": "Clean all mock data",
+        "description": "Removes all application services, instances, drift events, shares, approval requests, and decisions. IAM data (users/teams) is preserved.",
+        "operationId": "cleanData",
+        "responses": {
+          "500": {
+            "description": "Internal server error during cleaning operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CleanResult"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Data cleaned successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CleanResult"
+                }
+              }
+            }
+          }
+        }
       }
     }
   },
@@ -3980,90 +4090,6 @@
           }
         },
         "description": "Service instance update request"
-      },
-      "ErrorResponse": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string",
-            "description": "A URI reference that identifies the problem type",
-            "example": "https://api.example.com/problems/validation-error"
-          },
-          "title": {
-            "type": "string",
-            "description": "A short, human-readable summary of the problem type",
-            "example": "Validation Failed"
-          },
-          "status": {
-            "type": "integer",
-            "description": "The HTTP status code",
-            "format": "int32",
-            "example": 400
-          },
-          "detail": {
-            "type": "string",
-            "description": "A human-readable explanation specific to this occurrence of the problem",
-            "example": "Request validation failed"
-          },
-          "instance": {
-            "type": "string",
-            "description": "A URI reference that identifies the specific occurrence of the problem",
-            "example": "/api/application-services"
-          },
-          "timestamp": {
-            "type": "string",
-            "description": "Timestamp when the error occurred",
-            "format": "date-time",
-            "example": "2024-01-15T10:30:45.123Z"
-          },
-          "traceId": {
-            "type": "string",
-            "description": "Trace ID for correlation across services",
-            "example": "550e8400-e29b-41d4-a716-446655440000"
-          },
-          "context": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "object",
-              "description": "Additional context about the error"
-            },
-            "description": "Additional context about the error"
-          },
-          "validationErrors": {
-            "type": "array",
-            "description": "Validation errors (for validation failures)",
-            "items": {
-              "$ref": "#/components/schemas/ValidationError"
-            }
-          }
-        },
-        "description": "Standardized error response following RFC-7807 Problem Details for HTTP APIs"
-      },
-      "ValidationError": {
-        "type": "object",
-        "properties": {
-          "field": {
-            "type": "string",
-            "description": "The field that failed validation",
-            "example": "serviceId"
-          },
-          "rejectedValue": {
-            "type": "object",
-            "description": "The value that was rejected",
-            "example": "invalid-service-id"
-          },
-          "message": {
-            "type": "string",
-            "description": "Human-readable error message",
-            "example": "Service ID must not exceed 100 characters"
-          },
-          "code": {
-            "type": "string",
-            "description": "Validation constraint code",
-            "example": "Size"
-          }
-        },
-        "description": "Individual validation error details"
       },
       "ServiceInstanceResponse": {
         "type": "object",
@@ -4178,6 +4204,90 @@
           }
         },
         "description": "Service instance details response"
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "A URI reference that identifies the problem type",
+            "example": "https://api.example.com/problems/validation-error"
+          },
+          "title": {
+            "type": "string",
+            "description": "A short, human-readable summary of the problem type",
+            "example": "Validation Failed"
+          },
+          "status": {
+            "type": "integer",
+            "description": "The HTTP status code",
+            "format": "int32",
+            "example": 400
+          },
+          "detail": {
+            "type": "string",
+            "description": "A human-readable explanation specific to this occurrence of the problem",
+            "example": "Request validation failed"
+          },
+          "instance": {
+            "type": "string",
+            "description": "A URI reference that identifies the specific occurrence of the problem",
+            "example": "/api/application-services"
+          },
+          "timestamp": {
+            "type": "string",
+            "description": "Timestamp when the error occurred",
+            "format": "date-time",
+            "example": "2024-01-15T10:30:45.123Z"
+          },
+          "traceId": {
+            "type": "string",
+            "description": "Trace ID for correlation across services",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "context": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "description": "Additional context about the error"
+            },
+            "description": "Additional context about the error"
+          },
+          "validationErrors": {
+            "type": "array",
+            "description": "Validation errors (for validation failures)",
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            }
+          }
+        },
+        "description": "Standardized error response following RFC-7807 Problem Details for HTTP APIs"
+      },
+      "ValidationError": {
+        "type": "object",
+        "properties": {
+          "field": {
+            "type": "string",
+            "description": "The field that failed validation",
+            "example": "serviceId"
+          },
+          "rejectedValue": {
+            "type": "object",
+            "description": "The value that was rejected",
+            "example": "invalid-service-id"
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable error message",
+            "example": "Service ID must not exceed 100 characters"
+          },
+          "code": {
+            "type": "string",
+            "description": "Validation constraint code",
+            "example": "Size"
+          }
+        },
+        "description": "Individual validation error details"
       },
       "ApplicationServiceUpdateRequest": {
         "type": "object",
@@ -4917,6 +5027,86 @@
         },
         "description": "Application service creation request"
       },
+      "SeedResult": {
+        "type": "object",
+        "properties": {
+          "servicesSeeded": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "instancesSeeded": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "driftEventsSeeded": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sharesSeeded": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "approvalRequestsSeeded": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "approvalDecisionsSeeded": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalSeeded": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "CleanResult": {
+        "type": "object",
+        "properties": {
+          "servicesDeleted": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "instancesDeleted": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "driftEventsDeleted": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "sharesDeleted": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "approvalRequestsDeleted": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "approvalDecisionsDeleted": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalDeleted": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "CombinedResult": {
+        "type": "object",
+        "properties": {
+          "cleanResult": {
+            "$ref": "#/components/schemas/CleanResult"
+          },
+          "seedResult": {
+            "$ref": "#/components/schemas/SeedResult"
+          },
+          "summary": {
+            "type": "string"
+          }
+        }
+      },
       "DriftEventUpdateRequest": {
         "type": "object",
         "properties": {
@@ -5181,10 +5371,10 @@
             "description": "Whether the page is empty",
             "example": false
           },
-          "first": {
+          "last": {
             "type": "boolean"
           },
-          "last": {
+          "first": {
             "type": "boolean"
           }
         },

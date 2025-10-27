@@ -184,7 +184,7 @@ public class MockDataGenerator {
     Map<String, List<ServiceInstance>> instancesByService = new HashMap<>();
     for (ServiceInstance instance : instances) {
       instancesByService
-          .computeIfAbsent(instance.getServiceName(), k -> new ArrayList<>())
+          .computeIfAbsent(instance.getServiceId(), k -> new ArrayList<>())
           .add(instance);
     }
 

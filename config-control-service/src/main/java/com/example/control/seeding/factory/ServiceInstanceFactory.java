@@ -111,7 +111,7 @@ public class ServiceInstanceFactory {
         serviceName, instanceId, environment, status, hasDrift);
 
     return ServiceInstance.builder()
-        .id(ServiceInstanceId.of(serviceName, instanceId))
+        .id(ServiceInstanceId.of(instanceId))
         .serviceId(serviceId)
         .teamId(teamId)
         .host(host)

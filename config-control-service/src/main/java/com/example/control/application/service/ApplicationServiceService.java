@@ -1,5 +1,11 @@
 package com.example.control.application.service;
 
+import com.example.control.application.command.applicationservice.CreateOrUpdateServiceCommand;
+import com.example.control.application.command.applicationservice.CreateOrUpdateServiceHandler;
+import com.example.control.application.command.applicationservice.TransferOwnershipCommand;
+import com.example.control.application.command.applicationservice.TransferOwnershipHandler;
+import com.example.control.application.query.ApplicationServiceQueryService;
+import com.example.control.application.query.ServiceShareQueryService;
 import com.example.control.config.security.UserContext;
 import com.example.control.domain.object.ApplicationService;
 import com.example.control.domain.criteria.ApplicationServiceCriteria;
@@ -8,7 +14,6 @@ import com.example.control.domain.port.ApplicationServiceRepositoryPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -33,38 +38,37 @@ import java.util.UUID;
 public class ApplicationServiceService {
 
     private final ApplicationServiceRepositoryPort repository;
-    private final ServiceInstanceService serviceInstanceService;
-    private final DriftEventService driftEventService;
-    private final ServiceShareService serviceShareService;
+    private final ApplicationServiceQueryService queryService;
+    private final ServiceShareQueryService serviceShareQueryService;
+    private final CreateOrUpdateServiceHandler createOrUpdateHandler;
+    private final TransferOwnershipHandler transferOwnershipHandler;
 
     /**
      * Save or update an application service.
      * <p>
-     * Validates ownership and updates timestamps automatically.
+     * Delegates to CreateOrUpdateServiceHandler for write operations.
      *
      * @param service the application service to save
      * @param userContext the current user context
      * @return the saved application service
      */
     @Transactional
-    @CacheEvict(value = "application-services", allEntries = true)
     public ApplicationService save(ApplicationService service, UserContext userContext) {
         log.info("Saving application service: {} by user: {}", service.getId(), userContext.getUserId());
 
-        // Generate UUID if ID is null (new service)
-        if (service.getId() == null) {
-            service.setId(ApplicationServiceId.of(java.util.UUID.randomUUID().toString()));
-        }
+        CreateOrUpdateServiceCommand command = CreateOrUpdateServiceCommand.builder()
+                .id(service.getId() != null ? service.getId().id() : null)
+                .displayName(service.getDisplayName())
+                .ownerTeamId(service.getOwnerTeamId())
+                .environments(service.getEnvironments())
+                .tags(service.getTags())
+                .repoUrl(service.getRepoUrl())
+                .lifecycle(service.getLifecycle())
+                .attributes(service.getAttributes())
+                .createdBy(userContext.getUserId())
+                .build();
 
-        // Validate ownership for updates
-        if (service.getId() != null && !service.getId().id().isBlank()) {
-            Optional<ApplicationService> existing = repository.findById(service.getId());
-            if (existing.isPresent() && !canEditService(userContext, existing.get())) {
-                throw new IllegalStateException("User does not have permission to edit this service");
-            }
-        }
-
-        ApplicationService saved = repository.save(service);
+        ApplicationService saved = createOrUpdateHandler.handle(command);
         log.info("Successfully saved application service: {}", saved.getId());
         return saved;
     }
@@ -72,28 +76,26 @@ public class ApplicationServiceService {
     /**
      * Find an application service by ID.
      * <p>
-     * Application services are public - anyone can view them.
+     * Delegates to ApplicationServiceQueryService for read operations.
      *
      * @param id the service ID
      * @return optional application service
      */
-    @Cacheable(value = "application-services", key = "#id")
     public Optional<ApplicationService> findById(ApplicationServiceId id) {
         log.debug("Finding application service by ID: {}", id);
-        return repository.findById(id);
+        return queryService.findById(id);
     }
 
     /**
      * Find all application services.
      * <p>
-     * Application services are public - anyone can view them.
+     * Delegates to ApplicationServiceQueryService for read operations.
      *
      * @return list of all application services
      */
-    @Cacheable(value = "application-services", key = "'all'")
     public List<ApplicationService> findAll() {
         log.debug("Finding all application services");
-        return repository.findAll(null, Pageable.unpaged()).getContent();
+        return queryService.findAll();
     }
 
     /**
@@ -107,11 +109,10 @@ public class ApplicationServiceService {
      * @return the application service (existing or newly created orphaned)
      */
     @Transactional
-    @CacheEvict(value = "application-services", allEntries = true)
     public ApplicationService findOrCreateByDisplayName(String displayName) {
         log.debug("Finding or creating application service by display name: {}", displayName);
         
-        Optional<ApplicationService> existing = repository.findByDisplayName(displayName);
+        Optional<ApplicationService> existing = queryService.findByDisplayName(displayName);
         if (existing.isPresent()) {
             return existing.get();
         }
@@ -136,16 +137,15 @@ public class ApplicationServiceService {
 
     /**
      * Find application services owned by a specific team.
+     * <p>
+     * Delegates to ApplicationServiceQueryService for read operations.
      *
      * @param ownerTeamId the team ID
      * @return list of services owned by the team
      */
     public List<ApplicationService> findByOwnerTeam(String ownerTeamId) {
         log.debug("Finding application services by owner team: {}", ownerTeamId);
-        ApplicationServiceCriteria criteria = ApplicationServiceCriteria.builder()
-            .ownerTeamId(ownerTeamId)
-            .build();
-        return repository.findAll(criteria, Pageable.unpaged()).getContent();
+        return queryService.findByOwnerTeam(ownerTeamId);
     }
 
     /**
@@ -183,7 +183,7 @@ public class ApplicationServiceService {
         // Users can see: (1) orphaned services, (2) team-owned services, (3) shared services
         
         // Get services shared to user's teams
-        List<String> sharedServiceIds = serviceShareService.getSharedServiceIdsForTeams(userContext.getTeamIds());
+        List<String> sharedServiceIds = serviceShareQueryService.getSharedServiceIdsForTeams(userContext.getTeamIds());
         log.debug("Found {} services shared to user {} teams: {}", 
                 sharedServiceIds.size(), userContext.getUserId(), userContext.getTeamIds());
         
@@ -197,7 +197,7 @@ public class ApplicationServiceService {
         log.debug("Enriched criteria for user {}: includeOrphaned=true, userTeamIds={}, sharedServiceIds={}", 
                 userContext.getUserId(), userContext.getTeamIds(), sharedServiceIds.size());
         
-        Page<ApplicationService> result = repository.findAll(enrichedCriteria, pageable);
+        Page<ApplicationService> result = queryService.findAll(enrichedCriteria, pageable);
         log.debug("Found {} application services for user {}", result.getTotalElements(), userContext.getUserId());
         
         return result;
@@ -231,30 +231,9 @@ public class ApplicationServiceService {
     }
 
     /**
-     * Check if user can edit a service.
-     * <p>
-     * System admins can edit any service, team members can edit services owned by their team.
-     *
-     * @param userContext the user context
-     * @param service the application service
-     * @return true if user can edit the service
-     */
-    private boolean canEditService(UserContext userContext, ApplicationService service) {
-        // System admins can edit any service
-        if (userContext.isSysAdmin()) {
-            return true;
-        }
-        
-        // Team members can edit services owned by their team
-        return userContext.isMemberOfTeam(service.getOwnerTeamId());
-    }
-
-    /**
      * Transfer ownership of an application service and cascade the change to all related entities.
      * <p>
-     * This method updates the ApplicationService ownerTeamId and then synchronizes
-     * the teamId field across all related ServiceInstances and DriftEvents.
-     * This ensures data consistency and proper ABAC filtering.
+     * Delegates to TransferOwnershipHandler which publishes a domain event for cascading updates.
      *
      * @param serviceId the service ID to transfer
      * @param newTeamId the new team ID to assign
@@ -264,39 +243,18 @@ public class ApplicationServiceService {
      * @throws IllegalStateException if user lacks permission
      */
     @Transactional
-    @CacheEvict(value = "application-services", allEntries = true)
     public ApplicationService transferOwnershipWithCascade(String serviceId, String newTeamId, UserContext userContext) {
         log.info("Transferring ownership of service {} to team {} by user {}", 
                 serviceId, newTeamId, userContext.getUserId());
 
-        // Get the service
-        ApplicationService service = repository.findById(ApplicationServiceId.of(serviceId))
-                .orElseThrow(() -> new IllegalArgumentException("Service not found: " + serviceId));
+        TransferOwnershipCommand command = TransferOwnershipCommand.builder()
+                .serviceId(serviceId)
+                .newTeamId(newTeamId)
+                .transferredBy(userContext.getUserId())
+                .build();
 
-        // Check permissions
-        if (!canEditService(userContext, service)) {
-            throw new IllegalStateException("User does not have permission to transfer ownership of this service");
-        }
-
-        // Update the service
-        String oldTeamId = service.getOwnerTeamId();
-        service.setOwnerTeamId(newTeamId);
-        service.setUpdatedAt(Instant.now());
-        
-        ApplicationService updatedService = repository.save(service);
-        log.info("Updated ApplicationService {} ownerTeamId from {} to {}", 
-                serviceId, oldTeamId, newTeamId);
-
-        // Cascade to ServiceInstances
-        long instanceCount = serviceInstanceService.bulkUpdateTeamIdByServiceId(serviceId, newTeamId);
-        log.info("Updated {} service instances for service {}", instanceCount, serviceId);
-
-        // Cascade to DriftEvents
-        long driftEventCount = driftEventService.bulkUpdateTeamIdByServiceId(serviceId, newTeamId);
-        log.info("Updated {} drift events for service {}", driftEventCount, serviceId);
-
-        log.info("Successfully transferred ownership of service {} to team {} (instances: {}, drift events: {})", 
-                serviceId, newTeamId, instanceCount, driftEventCount);
+        ApplicationService updatedService = transferOwnershipHandler.handle(command);
+        log.info("Successfully transferred ownership of service {} to team {}", serviceId, newTeamId);
 
         return updatedService;
     }
