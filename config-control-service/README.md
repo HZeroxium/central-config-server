@@ -27,6 +27,13 @@ The Config Control Service acts as an aggregator and policy enforcement layer fo
 - Creates drift events with severity levels
 - Auto-resolves drift when instances sync
 
+### 6. Automatic Drift Remediation
+
+- Automatically triggers `/actuator/busrefresh` when drift is detected
+- Publishes targeted refresh events to Kafka topic `config-refresh`
+- Instances receive refresh and reconcile configuration within next ping cycle
+- Drift resolution is tracked and logged
+
 ### 3. Service Discovery Integration
 
 - Proxies requests to Consul for service discovery

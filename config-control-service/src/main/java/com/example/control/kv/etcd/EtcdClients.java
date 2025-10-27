@@ -1,14 +1,7 @@
 package com.example.control.kv.etcd;
 
 import com.example.control.kv.KvProperties;
-import io.etcd.jetcd.ByteSequence;
-import io.etcd.jetcd.Client;
-import io.etcd.jetcd.ClientBuilder;
-import io.etcd.jetcd.KV;
-import io.etcd.jetcd.Lease;
-import io.etcd.jetcd.Lock;
-import io.etcd.jetcd.Maintenance;
-import io.etcd.jetcd.Watch;
+import io.etcd.jetcd.*;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 

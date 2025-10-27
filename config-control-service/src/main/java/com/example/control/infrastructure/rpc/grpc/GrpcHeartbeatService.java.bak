@@ -1,0 +1,70 @@
+package com.example.control.rpc.grpc;
+
+import com.example.control.domain.object.HeartbeatPayload;
+import com.example.control.application.service.HeartbeatService;
+import com.example.control.domain.object.ServiceInstance;
+import com.example.control.grpc.ConfigControlServiceGrpc;
+import com.example.control.grpc.HeartbeatRequest;
+import com.example.control.grpc.HeartbeatResponse;
+import io.grpc.stub.StreamObserver;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import net.devh.boot.grpc.server.service.GrpcService;
+
+@Slf4j
+@GrpcService
+@RequiredArgsConstructor
+public class GrpcHeartbeatService extends ConfigControlServiceGrpc.ConfigControlServiceImplBase {
+    
+    private final HeartbeatService heartbeatService;
+    
+    @Override
+    public void recordHeartbeat(HeartbeatRequest request, 
+                                StreamObserver<HeartbeatResponse> responseObserver) {
+        log.debug("Received gRPC heartbeat from {}:{}", 
+            request.getServiceName(), request.getInstanceId());
+        
+        try {
+            // Convert gRPC request to HeartbeatPayload
+            HeartbeatPayload payload = convertToPayload(request);
+            
+            // Process heartbeat
+            ServiceInstance instance = heartbeatService.processHeartbeat(payload);
+            
+            // Build response
+            HeartbeatResponse response = HeartbeatResponse.newBuilder()
+                .setSuccess(true)
+                .setMessage("Heartbeat processed successfully")
+                .setTimestamp(System.currentTimeMillis())
+                .build();
+            
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+            
+        } catch (Exception e) {
+            log.error("Failed to process gRPC heartbeat", e);
+            
+            HeartbeatResponse response = HeartbeatResponse.newBuilder()
+                .setSuccess(false)
+                .setMessage("Failed: " + e.getMessage())
+                .setTimestamp(System.currentTimeMillis())
+                .build();
+            
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+        }
+    }
+    
+    private HeartbeatPayload convertToPayload(HeartbeatRequest request) {
+        return HeartbeatPayload.builder()
+            .serviceName(request.getServiceName())
+            .instanceId(request.getInstanceId())
+            .configHash(request.getConfigHash())
+            .host(request.getHost())
+            .port(request.getPort())
+            .environment(request.getEnvironment())
+            .version(request.getVersion())
+            .metadata(request.getMetadataMap())
+            .build();
+    }
+}
