@@ -23,8 +23,10 @@ import java.util.UUID;
 /**
  * MongoDB document representation of {@link DriftEvent}.
  * <p>
- * Each record corresponds to a configuration drift detection event and is stored in
- * the {@code drift_events} collection with a TTL index for automatic cleanup after 30 days.
+ * Each record corresponds to a configuration drift detection event and is
+ * stored in
+ * the {@code drift_events} collection with a TTL index for automatic cleanup
+ * after 30 days.
  */
 @Data
 @Builder
@@ -124,7 +126,7 @@ public class DriftEventDocument {
         .detectedBy(domain.getDetectedBy())
         .resolvedBy(domain.getResolvedBy())
         .notes(domain.getNotes());
-    
+
     // Set ID if it exists (for updates), otherwise generate UUID
     if (domain.getId() != null && domain.getId().id() != null) {
       builder.id(domain.getId().id());
@@ -132,7 +134,7 @@ public class DriftEventDocument {
       // Generate UUID for new drift events
       builder.id(UUID.randomUUID().toString());
     }
-    
+
     return builder.build();
   }
 

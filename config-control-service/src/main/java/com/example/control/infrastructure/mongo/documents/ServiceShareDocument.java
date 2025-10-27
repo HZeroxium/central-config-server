@@ -24,8 +24,10 @@ import java.util.List;
 /**
  * MongoDB document representation of {@link ServiceShare}.
  * <p>
- * This persistence model is used by Spring Data MongoDB to store service sharing
- * ACL (Access Control List) in the {@code service_shares} collection with optional
+ * This persistence model is used by Spring Data MongoDB to store service
+ * sharing
+ * ACL (Access Control List) in the {@code service_shares} collection with
+ * optional
  * TTL for automatic expiration.
  * </p>
  */
@@ -35,8 +37,8 @@ import java.util.List;
 @AllArgsConstructor
 @Document(collection = "service_shares")
 @CompoundIndexes({
-    @CompoundIndex(name = "share_service_grantee", def = "{'serviceId': 1, 'grantToType': 1, 'grantToId': 1}"),
-    @CompoundIndex(name = "share_grantee_type", def = "{'grantToType': 1, 'grantToId': 1}")
+        @CompoundIndex(name = "share_service_grantee", def = "{'serviceId': 1, 'grantToType': 1, 'grantToId': 1}"),
+        @CompoundIndex(name = "share_grantee_type", def = "{'grantToType': 1, 'grantToId': 1}")
 })
 public class ServiceShareDocument {
 
@@ -103,7 +105,8 @@ public class ServiceShareDocument {
     private Instant updatedAt;
 
     /**
-     * Maps a {@link ServiceShare} domain object to a MongoDB document representation.
+     * Maps a {@link ServiceShare} domain object to a MongoDB document
+     * representation.
      *
      * @param domain domain model
      * @return new {@link ServiceShareDocument} populated from domain
@@ -116,11 +119,11 @@ public class ServiceShareDocument {
                 .instanceId(domain.getInstanceId())
                 .grantToType(domain.getGrantToType() != null ? domain.getGrantToType().name() : null)
                 .grantToId(domain.getGrantToId())
-                .permissions(domain.getPermissions() != null 
-                    ? domain.getPermissions().stream()
-                        .map(Enum::name)
-                        .toList() 
-                    : null)
+                .permissions(domain.getPermissions() != null
+                        ? domain.getPermissions().stream()
+                                .map(Enum::name)
+                                .toList()
+                        : null)
                 .environments(domain.getEnvironments())
                 .grantedBy(domain.getGrantedBy())
                 .createdAt(domain.getCreatedAt())
@@ -136,20 +139,20 @@ public class ServiceShareDocument {
     public ServiceShare toDomain() {
         return ServiceShare.builder()
                 .id(ServiceShareId.of(id != null ? id : null))
-                .resourceLevel(resourceLevel != null 
-                    ? ServiceShare.ResourceLevel.valueOf(resourceLevel) 
-                    : null)
+                .resourceLevel(resourceLevel != null
+                        ? ServiceShare.ResourceLevel.valueOf(resourceLevel)
+                        : null)
                 .serviceId(serviceId)
                 .instanceId(instanceId)
-                .grantToType(grantToType != null 
-                    ? ServiceShare.GranteeType.valueOf(grantToType) 
-                    : null)
+                .grantToType(grantToType != null
+                        ? ServiceShare.GranteeType.valueOf(grantToType)
+                        : null)
                 .grantToId(grantToId)
-                .permissions(permissions != null 
-                    ? permissions.stream()
-                        .map(ServiceShare.SharePermission::valueOf)
-                        .toList() 
-                    : null)
+                .permissions(permissions != null
+                        ? permissions.stream()
+                                .map(ServiceShare.SharePermission::valueOf)
+                                .toList()
+                        : null)
                 .environments(environments)
                 .grantedBy(grantedBy)
                 .createdAt(createdAt)

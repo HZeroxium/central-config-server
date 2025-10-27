@@ -17,8 +17,10 @@ import java.util.Map;
 /**
  * Domain model representing a multi-gate approval workflow request.
  * <p>
- * This entity supports configurable approval gates (e.g., SYS_ADMIN, LINE_MANAGER)
- * with different minimum approval requirements. Uses optimistic locking to prevent
+ * This entity supports configurable approval gates (e.g., SYS_ADMIN,
+ * LINE_MANAGER)
+ * with different minimum approval requirements. Uses optimistic locking to
+ * prevent
  * race conditions during concurrent approvals.
  * </p>
  * 
@@ -76,13 +78,15 @@ public class ApprovalRequest {
     @Builder.Default
     private Integer version = 0;
 
-    /** Optional note from the requester.
+    /**
+     * Optional note from the requester.
      * -- GETTER --
      * Get note.
      */
     private String note;
 
-    /** Reason for cancellation if cancelled.
+    /**
+     * Reason for cancellation if cancelled.
      * -- GETTER --
      * Get cancel reason.
      */
@@ -102,7 +106,7 @@ public class ApprovalRequest {
     public enum RequestType {
         /** Request to assign a service to a team. */
         ASSIGN_SERVICE_TO_TEAM,
-        
+
         /** Request to transfer service ownership. */
         SERVICE_OWNERSHIP_TRANSFER
     }
@@ -113,13 +117,13 @@ public class ApprovalRequest {
     public enum ApprovalStatus {
         /** Request is pending approval. */
         PENDING,
-        
+
         /** Request has been approved. */
         APPROVED,
-        
+
         /** Request has been rejected. */
         REJECTED,
-        
+
         /** Request has been cancelled. */
         CANCELLED
     }
@@ -135,7 +139,7 @@ public class ApprovalRequest {
         /** Gate name (e.g., SYS_ADMIN, LINE_MANAGER). */
         @NotBlank(message = "Gate name is required")
         private String gate;
-        
+
         /** Minimum number of approvals required from this gate. */
         @NotNull(message = "Minimum approvals is required")
         private Integer minApprovals;
@@ -170,7 +174,7 @@ public class ApprovalRequest {
         /** Service ID being requested. */
         @NotBlank(message = "Service ID is required")
         private String serviceId;
-        
+
         /** Target team ID for assignment. */
         @NotBlank(message = "Target team ID is required")
         private String teamId;
@@ -186,10 +190,10 @@ public class ApprovalRequest {
     public static class RequesterSnapshot {
         /** Team IDs the requester belongs to. */
         private List<String> teamIds;
-        
+
         /** Manager ID of the requester. */
         private String managerId;
-        
+
         /** Roles of the requester. */
         private List<String> roles;
     }

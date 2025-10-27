@@ -25,7 +25,8 @@ import java.time.Instant;
  * <p>
  * This persistence model is used by Spring Data MongoDB to store individual
  * approval/rejection decisions in the {@code approval_decisions} collection
- * with compound unique index to enforce one decision per user per request per gate.
+ * with compound unique index to enforce one decision per user per request per
+ * gate.
  * </p>
  */
 @Data
@@ -84,7 +85,8 @@ public class ApprovalDecisionDocument {
     private Instant updatedAt;
 
     /**
-     * Maps a {@link ApprovalDecision} domain object to a MongoDB document representation.
+     * Maps a {@link ApprovalDecision} domain object to a MongoDB document
+     * representation.
      *
      * @param domain domain model
      * @return new {@link ApprovalDecisionDocument} populated from domain
@@ -97,12 +99,12 @@ public class ApprovalDecisionDocument {
                 .decision(domain.getDecision() != null ? domain.getDecision().name() : null)
                 .decidedAt(domain.getDecidedAt())
                 .note(domain.getNote());
-        
+
         // Set ID if it exists (for updates), otherwise use the provided ID
         if (domain.getId() != null && domain.getId().id() != null) {
             builder.id(domain.getId().id());
         }
-        
+
         return builder.build();
     }
 
@@ -117,9 +119,9 @@ public class ApprovalDecisionDocument {
                 .requestId(ApprovalRequestId.of(requestId))
                 .approverUserId(approverUserId)
                 .gate(gate)
-                .decision(decision != null 
-                    ? ApprovalDecision.Decision.valueOf(decision) 
-                    : null)
+                .decision(decision != null
+                        ? ApprovalDecision.Decision.valueOf(decision)
+                        : null)
                 .decidedAt(decidedAt)
                 .note(note)
                 .build();

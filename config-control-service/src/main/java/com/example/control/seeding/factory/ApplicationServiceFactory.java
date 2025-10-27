@@ -245,12 +245,25 @@ public class ApplicationServiceFactory {
   }
 
   /**
-   * Generates creation timestamp between 1-180 days ago.
+   * Generates creation timestamp with mixed distribution for testing.
+   * <p>
+   * Strategy: 50% recent (1-7 days ago), 50% older (30-180 days ago).
+   * This allows testing of time-based filtering and sorting.
+   * </p>
    *
    * @return creation instant
    */
   private Instant generateCreatedAt() {
-    long daysAgo = faker.number().numberBetween(1, 180);
+    long daysAgo;
+
+    if (faker.random().nextBoolean()) {
+      // 50% recent: 1-7 days ago
+      daysAgo = faker.number().numberBetween(1, 8);
+    } else {
+      // 50% older: 30-180 days ago
+      daysAgo = faker.number().numberBetween(30, 181);
+    }
+
     return Instant.now().minus(daysAgo, ChronoUnit.DAYS);
   }
 

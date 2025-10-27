@@ -12,7 +12,8 @@ import org.springframework.stereotype.Repository;
 /**
  * Spring Data MongoDB repository for {@link ApprovalRequestDocument}.
  * <p>
- * Provides basic CRUD operations and custom queries for approval workflow requests
+ * Provides basic CRUD operations and custom queries for approval workflow
+ * requests
  * with optimistic locking support.
  * </p>
  */

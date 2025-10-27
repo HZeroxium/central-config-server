@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.*;
 
 /**
@@ -320,6 +321,12 @@ public class MockDataGenerator {
 
   /**
    * Generates approval decisions for non-pending requests.
+   * 
+   * <p>
+   * Extracts primitive values from ApprovalRequest to avoid passing entity
+   * references,
+   * which prevents OptimisticLockingFailureException when working with versioned
+   * entities.
    *
    * @param approvalRequests list of approval requests
    * @return list of generated decisions
@@ -332,10 +339,17 @@ public class MockDataGenerator {
     for (ApprovalRequest request : approvalRequests) {
       // Only generate decisions for approved/rejected requests
       if (request.getStatus() != ApprovalRequest.ApprovalStatus.PENDING) {
+        // Extract primitive values to avoid passing versioned entity reference
+        String requestId = request.getId().id();
+        ApprovalRequest.ApprovalStatus requestStatus = request.getStatus();
+        Instant requestCreatedAt = request.getCreatedAt();
+        Instant requestUpdatedAt = request.getUpdatedAt();
+
         // Generate decision for each required gate
         for (ApprovalRequest.ApprovalGate gate : request.getRequired()) {
           ApprovalDecision decision = approvalDecisionFactory.generate(
-              request, adminUserId, gate.getGate());
+              requestId, requestStatus, requestCreatedAt, requestUpdatedAt,
+              adminUserId, gate.getGate());
           decisions.add(decision);
         }
       }

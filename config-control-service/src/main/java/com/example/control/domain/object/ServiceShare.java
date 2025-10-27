@@ -79,7 +79,7 @@ public class ServiceShare {
     public enum ResourceLevel {
         /** Share all instances of a service. */
         SERVICE,
-        
+
         /** Share a specific instance. */
         INSTANCE
     }
@@ -90,7 +90,7 @@ public class ServiceShare {
     public enum GranteeType {
         /** Share with a team. */
         TEAM,
-        
+
         /** Share with an individual user. */
         USER
     }
@@ -101,19 +101,19 @@ public class ServiceShare {
     public enum SharePermission {
         /** Can view service metadata. */
         VIEW_SERVICE,
-        
+
         /** Can view service instances and metadata. */
         VIEW_INSTANCE,
-        
+
         /** Can view drift events. */
         VIEW_DRIFT,
-        
+
         /** Can edit service metadata. */
         EDIT_SERVICE,
-        
+
         /** Can edit service instances and configuration. */
         EDIT_INSTANCE,
-        
+
         /** Can trigger instance restarts. */
         RESTART_INSTANCE
     }
@@ -122,7 +122,8 @@ public class ServiceShare {
      * Check if this share applies to the given environment.
      * <p>
      * If environments is null or empty, the share applies to all environments.
-     * If environments has values, the share only applies to those specific environments.
+     * If environments has values, the share only applies to those specific
+     * environments.
      *
      * @param environment the environment to check
      * @return true if the share applies to the environment, false otherwise

@@ -47,7 +47,9 @@ public class ApplicationServiceDocument {
     @Field("displayName")
     private String displayName;
 
-    /** Team that owns this service (Keycloak group ID). Null for orphaned services. */
+    /**
+     * Team that owns this service (Keycloak group ID). Null for orphaned services.
+     */
     @Indexed
     @Field("ownerTeamId")
     private String ownerTeamId;
@@ -94,7 +96,8 @@ public class ApplicationServiceDocument {
     private Map<String, String> attributes;
 
     /**
-     * Maps a {@link ApplicationService} domain object to a MongoDB document representation.
+     * Maps a {@link ApplicationService} domain object to a MongoDB document
+     * representation.
      *
      * @param domain domain model
      * @return new {@link ApplicationServiceDocument} populated from domain
@@ -111,7 +114,7 @@ public class ApplicationServiceDocument {
                 .updatedAt(domain.getUpdatedAt())
                 .createdBy(domain.getCreatedBy())
                 .attributes(domain.getAttributes());
-        
+
         // Set ID if it exists (for updates), otherwise generate UUID
         if (domain.getId() != null && domain.getId().id() != null) {
             builder.id(domain.getId().id());
@@ -119,7 +122,7 @@ public class ApplicationServiceDocument {
             // Generate UUID for new application services
             builder.id(UUID.randomUUID().toString());
         }
-        
+
         return builder.build();
     }
 
@@ -136,9 +139,9 @@ public class ApplicationServiceDocument {
                 .environments(environments)
                 .tags(tags)
                 .repoUrl(repoUrl)
-                .lifecycle(lifecycle != null 
-                    ? ApplicationService.ServiceLifecycle.valueOf(lifecycle) 
-                    : ApplicationService.ServiceLifecycle.ACTIVE)
+                .lifecycle(lifecycle != null
+                        ? ApplicationService.ServiceLifecycle.valueOf(lifecycle)
+                        : ApplicationService.ServiceLifecycle.ACTIVE)
                 .createdAt(createdAt)
                 .updatedAt(updatedAt)
                 .createdBy(createdBy)

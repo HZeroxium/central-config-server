@@ -23,9 +23,9 @@ import java.util.List;
  */
 @Slf4j
 @Component
-public class IamTeamMongoAdapter 
-    extends AbstractMongoAdapter<IamTeam, IamTeamDocument, IamTeamId, IamTeamCriteria, IamTeamMongoRepository>
-    implements IamTeamRepositoryPort {
+public class IamTeamMongoAdapter
+        extends AbstractMongoAdapter<IamTeam, IamTeamDocument, IamTeamId, IamTeamCriteria, IamTeamMongoRepository>
+        implements IamTeamRepositoryPort {
 
     public IamTeamMongoAdapter(IamTeamMongoRepository repository, MongoTemplate mongoTemplate) {
         super(repository, mongoTemplate, IamTeamId::teamId);
@@ -85,10 +85,10 @@ public class IamTeamMongoAdapter
 
     // @Override
     // public void deleteAll() {
-    //     log.debug("Deleting all IAM teams");
+    // log.debug("Deleting all IAM teams");
 
-    //     repository.deleteAll();
-    //     log.debug("Successfully deleted all IAM teams");
+    // repository.deleteAll();
+    // log.debug("Successfully deleted all IAM teams");
     // }
 
     @Override

@@ -5,13 +5,16 @@ import com.example.control.domain.criteria.ApprovalRequestCriteria;
 import com.example.control.domain.id.ApprovalRequestId;
 
 /**
- * Port (hexagonal architecture) for persisting and querying {@link ApprovalRequest}.
+ * Port (hexagonal architecture) for persisting and querying
+ * {@link ApprovalRequest}.
  * <p>
  * Provides CRUD operations for multi-gate approval workflow requests with
- * optimistic locking support to prevent race conditions during concurrent approvals.
+ * optimistic locking support to prevent race conditions during concurrent
+ * approvals.
  * </p>
  */
-public interface ApprovalRequestRepositoryPort extends RepositoryPort<ApprovalRequest, ApprovalRequestId, ApprovalRequestCriteria> {
+public interface ApprovalRequestRepositoryPort
+        extends RepositoryPort<ApprovalRequest, ApprovalRequestId, ApprovalRequestCriteria> {
 
     /**
      * Count approval requests by status.

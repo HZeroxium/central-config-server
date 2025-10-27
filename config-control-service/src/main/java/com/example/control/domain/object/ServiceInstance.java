@@ -12,8 +12,10 @@ import java.util.Map;
 /**
  * Domain model representing a runtime instance of a service within the system.
  * <p>
- * Each instance corresponds to a running process registered in service discovery (e.g., Consul, Eureka).
- * The model includes both configuration and runtime metadata, allowing drift detection and health monitoring.
+ * Each instance corresponds to a running process registered in service
+ * discovery (e.g., Consul, Eureka).
+ * The model includes both configuration and runtime metadata, allowing drift
+ * detection and health monitoring.
  */
 @Data
 @Builder
@@ -24,10 +26,15 @@ public class ServiceInstance {
   /** Composite identifier combining serviceName and instanceId. */
   private ServiceInstanceId id;
 
-  /** Service ID from {@link ApplicationService} (for team-based access control). */
+  /**
+   * Service ID from {@link ApplicationService} (for team-based access control).
+   */
   private String serviceId;
 
-  /** Team ID that owns this service instance (from ApplicationService.ownerTeamId). */
+  /**
+   * Team ID that owns this service instance (from
+   * ApplicationService.ownerTeamId).
+   */
   private String teamId;
 
   /** Hostname or IP address of the instance. */
@@ -42,7 +49,10 @@ public class ServiceInstance {
   /** Service version reported by the instance. */
   private String version;
 
-  /** Current configuration hash reported by the instance (computed via {@code ConfigHashCalculator}). */
+  /**
+   * Current configuration hash reported by the instance (computed via
+   * {@code ConfigHashCalculator}).
+   */
   private String configHash;
 
   /** Expected configuration hash from the source of truth (Config Server). */
@@ -63,7 +73,9 @@ public class ServiceInstance {
   /** Timestamp of the last update. */
   private Instant updatedAt;
 
-  /** Arbitrary metadata associated with the instance (from Consul, Eureka, etc.). */
+  /**
+   * Arbitrary metadata associated with the instance (from Consul, Eureka, etc.).
+   */
   private Map<String, String> metadata;
 
   /** Indicates whether configuration drift has been detected. */
@@ -81,7 +93,6 @@ public class ServiceInstance {
     return id != null ? id.instanceId() : null;
   }
 
-
   /**
    * Enumeration representing the operational state of the instance.
    */
@@ -92,7 +103,10 @@ public class ServiceInstance {
     /** Instance failed ping or health check. */
     UNHEALTHY,
 
-    /** Instance has configuration drift (mismatch between applied and expected hash). */
+    /**
+     * Instance has configuration drift (mismatch between applied and expected
+     * hash).
+     */
     DRIFT,
 
     /** Instance state could not be determined. */
@@ -111,7 +125,8 @@ public class ServiceInstance {
   /**
    * Marks this instance as drifted, recording detection time and updating status.
    *
-   * @param expectedHash the expected configuration hash from the source of truth (Config Server)
+   * @param expectedHash the expected configuration hash from the source of truth
+   *                     (Config Server)
    */
   public void markDrift(String expectedHash) {
     this.hasDrift = true;
@@ -121,7 +136,8 @@ public class ServiceInstance {
   }
 
   /**
-   * Clears the drift flag and resets status to {@link InstanceStatus#HEALTHY} if previously marked as DRIFT.
+   * Clears the drift flag and resets status to {@link InstanceStatus#HEALTHY} if
+   * previously marked as DRIFT.
    */
   public void clearDrift() {
     this.hasDrift = false;

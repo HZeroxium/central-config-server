@@ -21,7 +21,7 @@ public record ServiceShareId(String id) implements Serializable {
      */
     public ServiceShareId {
         Objects.requireNonNull(id, "Service share ID cannot be null");
-        
+
         if (id.isBlank()) {
             throw new IllegalArgumentException("Service share ID cannot be blank");
         }

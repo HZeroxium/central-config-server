@@ -15,47 +15,47 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class ThriftHeartbeatHandler implements ConfigControlService.Iface {
-    
+
     private final HeartbeatService heartbeatService;
-    
+
     @Override
     @Timed("config_control.thrift.heartbeat")
     public HeartbeatResponse recordHeartbeat(HeartbeatRequest request) {
-        log.debug("Received Thrift heartbeat from {}:{}", 
-            request.getServiceName(), request.getInstanceId());
-        
+        log.debug("Received Thrift heartbeat from {}:{}",
+                request.getServiceName(), request.getInstanceId());
+
         try {
             // Convert Thrift request to HeartbeatPayload
             HeartbeatPayload payload = convertToPayload(request);
-            
+
             // Process heartbeat
             ServiceInstance instance = heartbeatService.processHeartbeat(payload);
-            
+
             // Build response
             return new HeartbeatResponse()
-                .setSuccess(true)
-                .setMessage("Heartbeat processed successfully")
-                .setTimestamp(System.currentTimeMillis());
-                
+                    .setSuccess(true)
+                    .setMessage("Heartbeat processed successfully")
+                    .setTimestamp(System.currentTimeMillis());
+
         } catch (Exception e) {
             log.error("Failed to process Thrift heartbeat", e);
             return new HeartbeatResponse()
-                .setSuccess(false)
-                .setMessage("Failed: " + e.getMessage())
-                .setTimestamp(System.currentTimeMillis());
+                    .setSuccess(false)
+                    .setMessage("Failed: " + e.getMessage())
+                    .setTimestamp(System.currentTimeMillis());
         }
     }
-    
+
     private HeartbeatPayload convertToPayload(HeartbeatRequest request) {
         return HeartbeatPayload.builder()
-            .serviceName(request.getServiceName())
-            .instanceId(request.getInstanceId())
-            .configHash(request.getConfigHash())
-            .host(request.getHost())
-            .port(request.getPort())
-            .environment(request.getEnvironment())
-            .version(request.getVersion())
-            .metadata(request.getMetadata())
-            .build();
+                .serviceName(request.getServiceName())
+                .instanceId(request.getInstanceId())
+                .configHash(request.getConfigHash())
+                .host(request.getHost())
+                .port(request.getPort())
+                .environment(request.getEnvironment())
+                .version(request.getVersion())
+                .metadata(request.getMetadata())
+                .build();
     }
 }

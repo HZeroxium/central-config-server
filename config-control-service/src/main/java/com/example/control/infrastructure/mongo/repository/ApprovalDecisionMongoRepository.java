@@ -4,7 +4,6 @@ import com.example.control.infrastructure.mongo.documents.ApprovalDecisionDocume
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;
 
-
 /**
  * Spring Data MongoDB repository for {@link ApprovalDecisionDocument}.
  * <p>

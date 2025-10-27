@@ -21,8 +21,9 @@ import java.time.Instant;
  */
 @Slf4j
 @Component
-public class DriftEventMongoAdapter 
-    extends AbstractMongoAdapter<DriftEvent, DriftEventDocument, DriftEventId, DriftEventCriteria, DriftEventMongoRepository>
+public class DriftEventMongoAdapter
+    extends
+    AbstractMongoAdapter<DriftEvent, DriftEventDocument, DriftEventId, DriftEventCriteria, DriftEventMongoRepository>
     implements DriftEventRepositoryPort {
 
   public DriftEventMongoAdapter(DriftEventMongoRepository repository, MongoTemplate mongoTemplate) {
@@ -42,8 +43,9 @@ public class DriftEventMongoAdapter
   @Override
   protected Query buildQuery(DriftEventCriteria criteria) {
     Query query = new Query();
-    if (criteria == null) return query;
-    
+    if (criteria == null)
+      return query;
+
     // Apply filters
     if (criteria.serviceName() != null && !criteria.serviceName().isBlank()) {
       query.addCriteria(Criteria.where("serviceName").is(criteria.serviceName()));
@@ -66,12 +68,12 @@ public class DriftEventMongoAdapter
     if (Boolean.TRUE.equals(criteria.unresolvedOnly())) {
       query.addCriteria(Criteria.where("status").in("DETECTED", "ACKNOWLEDGED", "RESOLVING"));
     }
-    
+
     // ABAC: Team-based filtering
     if (criteria.userTeamIds() != null && !criteria.userTeamIds().isEmpty()) {
       query.addCriteria(Criteria.where("teamId").in(criteria.userTeamIds()));
     }
-    
+
     return query;
   }
 
@@ -83,24 +85,22 @@ public class DriftEventMongoAdapter
   @Override
   public void resolveForInstance(String serviceName, String instanceId, String resolvedBy) {
     log.debug("Resolving drift events for instance: {}:{}", serviceName, instanceId);
-    
+
     Query query = new Query(
         Criteria.where("serviceName").is(serviceName)
             .and("instanceId").is(instanceId)
             .and("status").in("DETECTED", "ACKNOWLEDGED", "RESOLVING") // Only unresolved events
     );
-    
-    Update update = 
-        new Update()
-            .set("status", DriftEvent.DriftStatus.RESOLVED.name())
-            .set("resolvedAt", Instant.now())
-            .set("resolvedBy", resolvedBy);
-    
+
+    Update update = new Update()
+        .set("status", DriftEvent.DriftStatus.RESOLVED.name())
+        .set("resolvedAt", Instant.now())
+        .set("resolvedBy", resolvedBy);
+
     UpdateResult result = mongoTemplate.updateMulti(
-        query, update, DriftEventDocument.class, getCollectionName()
-    );
-    
-    log.info("Resolved {} drift events for instance {}:{}", 
+        query, update, DriftEventDocument.class, getCollectionName());
+
+    log.info("Resolved {} drift events for instance {}:{}",
         result.getModifiedCount(), serviceName, instanceId);
   }
 
@@ -119,5 +119,3 @@ public class DriftEventMongoAdapter
     return DriftEventDocument.class;
   }
 }
-
-

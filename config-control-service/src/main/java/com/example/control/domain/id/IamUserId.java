@@ -21,7 +21,7 @@ public record IamUserId(String userId) implements Serializable {
      */
     public IamUserId {
         Objects.requireNonNull(userId, "IAM user ID cannot be null");
-        
+
         if (userId.isBlank()) {
             throw new IllegalArgumentException("IAM user ID cannot be blank");
         }

@@ -14,7 +14,8 @@ import java.util.List;
  * audit, reporting, and workflow support.
  * </p>
  * <p>
- * <strong>Note:</strong> The source of truth for team information remains Keycloak groups.
+ * <strong>Note:</strong> The source of truth for team information remains
+ * Keycloak groups.
  * This is only a cached projection that should be synchronized periodically.
  * </p>
  */

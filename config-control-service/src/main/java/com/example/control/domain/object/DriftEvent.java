@@ -11,7 +11,8 @@ import java.time.Instant;
 /**
  * Domain model representing a configuration drift detection event.
  * <p>
- * Drift events are generated when a service instance reports a configuration hash that differs
+ * Drift events are generated when a service instance reports a configuration
+ * hash that differs
  * from the expected value provided by the control service.
  */
 @Data
@@ -82,7 +83,8 @@ public class DriftEvent {
   /**
    * Checks whether this drift event has been fully resolved.
    *
-   * @return {@code true} if status == {@link DriftStatus#RESOLVED}, otherwise {@code false}
+   * @return {@code true} if status == {@link DriftStatus#RESOLVED}, otherwise
+   *         {@code false}
    */
   public boolean isResolved() {
     return status == DriftStatus.RESOLVED;

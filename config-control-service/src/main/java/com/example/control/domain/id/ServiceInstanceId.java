@@ -22,7 +22,7 @@ public record ServiceInstanceId(String instanceId) implements Serializable {
      */
     public ServiceInstanceId {
         Objects.requireNonNull(instanceId, "Instance ID cannot be null");
-        
+
         if (instanceId.isBlank()) {
             throw new IllegalArgumentException("Instance ID cannot be blank");
         }
@@ -60,7 +60,7 @@ public record ServiceInstanceId(String instanceId) implements Serializable {
         if (documentId == null || documentId.isBlank()) {
             throw new IllegalArgumentException("Document ID cannot be null or blank");
         }
-        
+
         return new ServiceInstanceId(documentId);
     }
 

@@ -5,10 +5,12 @@ import com.example.control.domain.criteria.ServiceInstanceCriteria;
 import com.example.control.domain.id.ServiceInstanceId;
 
 /**
- * Port (hexagonal architecture) for persisting and querying {@link ServiceInstance}.
+ * Port (hexagonal architecture) for persisting and querying
+ * {@link ServiceInstance}.
  * Implementations reside in the infrastructure layer (e.g., MongoDB adapter).
  */
-public interface ServiceInstanceRepositoryPort extends RepositoryPort<ServiceInstance, ServiceInstanceId, ServiceInstanceCriteria> {
+public interface ServiceInstanceRepositoryPort
+    extends RepositoryPort<ServiceInstance, ServiceInstanceId, ServiceInstanceCriteria> {
 
   /** Count instances by service ID. */
   long countByServiceId(String serviceId);
@@ -25,5 +27,3 @@ public interface ServiceInstanceRepositoryPort extends RepositoryPort<ServiceIns
    */
   long bulkUpdateTeamIdByServiceId(String serviceId, String newTeamId);
 }
-
-

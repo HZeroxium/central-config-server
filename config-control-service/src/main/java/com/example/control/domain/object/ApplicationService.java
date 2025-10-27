@@ -39,7 +39,10 @@ public class ApplicationService {
     @Size(max = 200, message = "Display name must not exceed 200 characters")
     private String displayName;
 
-    /** Team that owns this service (Keycloak group ID). Null for orphaned services requiring approval. */
+    /**
+     * Team that owns this service (Keycloak group ID). Null for orphaned services
+     * requiring approval.
+     */
     private String ownerTeamId;
 
     /** List of environments where this service is deployed. */
@@ -75,10 +78,10 @@ public class ApplicationService {
     public enum ServiceLifecycle {
         /** Service is actively developed and deployed. */
         ACTIVE,
-        
+
         /** Service is deprecated, no new features, maintenance only. */
         DEPRECATED,
-        
+
         /** Service is retired, no longer in use. */
         RETIRED
     }

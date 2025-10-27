@@ -7,10 +7,13 @@ import com.example.control.domain.id.ServiceShareId;
 import java.util.List;
 
 /**
- * Port (hexagonal architecture) for persisting and querying {@link ServiceShare}.
+ * Port (hexagonal architecture) for persisting and querying
+ * {@link ServiceShare}.
  * <p>
- * Provides CRUD operations for service sharing ACL (Access Control List) to allow
- * teams to share specific permissions with other teams or users without granting
+ * Provides CRUD operations for service sharing ACL (Access Control List) to
+ * allow
+ * teams to share specific permissions with other teams or users without
+ * granting
  * full team membership.
  * </p>
  */
@@ -19,36 +22,38 @@ public interface ServiceShareRepositoryPort extends RepositoryPort<ServiceShare,
     /**
      * Check if a specific share exists (for duplicate prevention).
      *
-     * @param serviceId   the service ID
-     * @param grantToType the grantee type
-     * @param grantToId   the grantee ID
+     * @param serviceId    the service ID
+     * @param grantToType  the grantee type
+     * @param grantToId    the grantee ID
      * @param environments optional environment filter
      * @return true if share exists, false otherwise
      */
-    boolean existsByServiceAndGranteeAndEnvironments(String serviceId, 
-                                                     ServiceShare.GranteeType grantToType, 
-                                                     String grantToId, 
-                                                     List<String> environments);
+    boolean existsByServiceAndGranteeAndEnvironments(String serviceId,
+            ServiceShare.GranteeType grantToType,
+            String grantToId,
+            List<String> environments);
 
     /**
      * Find effective permissions for a user on a service in specific environments.
      *
-     * @param userId      the user ID
-     * @param userTeamIds the team IDs the user belongs to
-     * @param serviceId   the service ID
+     * @param userId       the user ID
+     * @param userTeamIds  the team IDs the user belongs to
+     * @param serviceId    the service ID
      * @param environments the environments to check
      * @return list of effective permissions
      */
-    List<ServiceShare.SharePermission> findEffectivePermissions(String userId, 
-                                                                List<String> userTeamIds, 
-                                                                String serviceId, 
-                                                                List<String> environments);
+    List<ServiceShare.SharePermission> findEffectivePermissions(String userId,
+            List<String> userTeamIds,
+            String serviceId,
+            List<String> environments);
 
     /**
      * Find all service IDs that are shared to specific teams.
      * <p>
-     * Used for filtering ApplicationServices to include services shared to user's teams.
-     * This enables users to see services shared to their teams in addition to owned services.
+     * Used for filtering ApplicationServices to include services shared to user's
+     * teams.
+     * This enables users to see services shared to their teams in addition to owned
+     * services.
      * </p>
      *
      * @param teamIds the team IDs to check (user's team membership)

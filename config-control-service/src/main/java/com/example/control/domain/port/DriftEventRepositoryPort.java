@@ -26,5 +26,3 @@ public interface DriftEventRepositoryPort extends RepositoryPort<DriftEvent, Dri
    */
   long bulkUpdateTeamIdByServiceId(String serviceId, String newTeamId);
 }
-
-

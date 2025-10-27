@@ -21,7 +21,8 @@ import java.util.Map;
 /**
  * MongoDB document representation of {@link ServiceInstance}.
  * <p>
- * This persistence model is used by Spring Data MongoDB to store instance metadata and
+ * This persistence model is used by Spring Data MongoDB to store instance
+ * metadata and
  * health/drift status in the {@code service_instances} collection.
  */
 @Data
@@ -44,7 +45,10 @@ public class ServiceInstanceDocument {
   @Field("serviceId")
   private String serviceId;
 
-  /** Team ID that owns this service instance (from ApplicationService.ownerTeamId). */
+  /**
+   * Team ID that owns this service instance (from
+   * ApplicationService.ownerTeamId).
+   */
   @Indexed
   @Field("teamId")
   private String teamId;
@@ -103,7 +107,8 @@ public class ServiceInstanceDocument {
   private Instant driftDetectedAt;
 
   /**
-   * Maps a {@link ServiceInstance} domain object to a MongoDB document representation.
+   * Maps a {@link ServiceInstance} domain object to a MongoDB document
+   * representation.
    *
    * @param domain domain model
    * @return new {@link ServiceInstanceDocument} populated from domain

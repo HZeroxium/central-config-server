@@ -166,12 +166,25 @@ public class ApprovalRequestFactory {
   }
 
   /**
-   * Generates approval request creation timestamp (1-60 days ago).
+   * Generates approval request creation timestamp with mixed distribution.
+   * <p>
+   * Strategy: 50% recent (1-7 days ago), 50% older (30-60 days ago).
+   * This allows testing of time-based filtering and sorting.
+   * </p>
    *
    * @return creation instant
    */
   private Instant generateCreatedAt() {
-    long daysAgo = faker.number().numberBetween(1, 60);
+    long daysAgo;
+
+    if (faker.random().nextBoolean()) {
+      // 50% recent: 1-7 days ago
+      daysAgo = faker.number().numberBetween(1, 8);
+    } else {
+      // 50% older: 30-60 days ago
+      daysAgo = faker.number().numberBetween(30, 61);
+    }
+
     return Instant.now().minus(daysAgo, ChronoUnit.DAYS);
   }
 

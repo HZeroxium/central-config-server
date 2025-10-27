@@ -21,7 +21,7 @@ public record DriftEventId(String id) implements Serializable {
      */
     public DriftEventId {
         Objects.requireNonNull(id, "Drift event ID cannot be null");
-        
+
         if (id.isBlank()) {
             throw new IllegalArgumentException("Drift event ID cannot be blank");
         }

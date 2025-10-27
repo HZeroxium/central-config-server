@@ -7,13 +7,14 @@ import org.springframework.stereotype.Repository;
 /**
  * Repository interface for managing {@link ServiceInstanceDocument} entities.
  * <p>
- * Provides convenience methods and custom MongoDB queries for instance discovery,
+ * Provides convenience methods and custom MongoDB queries for instance
+ * discovery,
  * drift detection, and lifecycle tracking.
  */
 @Repository
 public interface ServiceInstanceMongoRepository extends MongoRepository<ServiceInstanceDocument, String> {
 
-    /**
+  /**
    * Counts the total number of instances for a specific service.
    *
    * @param serviceId service ID to count

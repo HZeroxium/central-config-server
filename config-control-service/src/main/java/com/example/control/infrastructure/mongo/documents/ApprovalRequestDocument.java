@@ -102,12 +102,24 @@ public class ApprovalRequestDocument {
     private String updatedBy;
 
     /**
-     * Maps a {@link ApprovalRequest} domain object to a MongoDB document representation.
+     * Maps a {@link ApprovalRequest} domain object to a MongoDB document
+     * representation.
+     * <p>
+     * For new entities (version=0 or null), the version field is set to null to allow
+     * Spring Data MongoDB to treat it as a fresh insert. This prevents OptimisticLockingFailureException
+     * when reusing domain objects that were previously saved and returned with incremented version.
+     * </p>
      *
      * @param domain domain model
      * @return new {@link ApprovalRequestDocument} populated from domain
      */
     public static ApprovalRequestDocument fromDomain(ApprovalRequest domain) {
+        // For new entities (version 0 or null), set version to null to ensure fresh insert
+        // Otherwise, copy the version for optimistic locking on updates
+        Integer documentVersion = (domain.getVersion() == null || domain.getVersion() == 0) 
+            ? null 
+            : domain.getVersion();
+        
         ApprovalRequestDocumentBuilder builder = ApprovalRequestDocument.builder()
                 .requesterUserId(domain.getRequesterUserId())
                 .requestType(domain.getRequestType() != null ? domain.getRequestType().name() : null)
@@ -119,15 +131,15 @@ public class ApprovalRequestDocument {
                 .approvalCountsJson(serializeApprovalCounts(domain.getCounts()))
                 .createdAt(domain.getCreatedAt())
                 .updatedAt(domain.getUpdatedAt())
-                .version(domain.getVersion());
-        
+                .version(documentVersion);
+
         // Set ID if it exists (for updates), otherwise generate UUID
         if (domain.getId() != null && domain.getId().id() != null) {
             builder.id(domain.getId().id());
         } else {
             builder.id(UUID.randomUUID().toString());
         }
-        
+
         return builder.build();
     }
 
@@ -140,17 +152,17 @@ public class ApprovalRequestDocument {
         return ApprovalRequest.builder()
                 .id(ApprovalRequestId.of(id != null ? id : null))
                 .requesterUserId(requesterUserId)
-                .requestType(requestType != null 
-                    ? ApprovalRequest.RequestType.valueOf(requestType) 
-                    : null)
+                .requestType(requestType != null
+                        ? ApprovalRequest.RequestType.valueOf(requestType)
+                        : null)
                 .target(ApprovalRequest.ApprovalTarget.builder()
-                    .serviceId(targetServiceId)
-                    .teamId(targetTeamId)
-                    .build())
+                        .serviceId(targetServiceId)
+                        .teamId(targetTeamId)
+                        .build())
                 .required(deserializeRequiredGates(requiredGatesJson))
-                .status(status != null 
-                    ? ApprovalRequest.ApprovalStatus.valueOf(status) 
-                    : ApprovalRequest.ApprovalStatus.PENDING)
+                .status(status != null
+                        ? ApprovalRequest.ApprovalStatus.valueOf(status)
+                        : ApprovalRequest.ApprovalStatus.PENDING)
                 .snapshot(deserializeRequesterSnapshot(requesterSnapshotJson))
                 .counts(deserializeApprovalCounts(approvalCountsJson))
                 .createdAt(createdAt)
@@ -171,8 +183,8 @@ public class ApprovalRequestDocument {
         }
         // Simple serialization - in production, use proper JSON library
         return gates.stream()
-                .map(gate -> String.format("{\"gate\":\"%s\",\"minApprovals\":%d}", 
-                    gate.getGate(), gate.getMinApprovals()))
+                .map(gate -> String.format("{\"gate\":\"%s\",\"minApprovals\":%d}",
+                        gate.getGate(), gate.getMinApprovals()))
                 .reduce((a, b) -> a + "," + b)
                 .map(result -> "[" + result + "]")
                 .orElse("[]");
@@ -199,9 +211,9 @@ public class ApprovalRequestDocument {
         }
         // Simple serialization - in production, use proper JSON library
         return String.format("{\"teamIds\":%s,\"managerId\":\"%s\",\"roles\":%s}",
-            snapshot.getTeamIds() != null ? snapshot.getTeamIds().toString() : "[]",
-            snapshot.getManagerId() != null ? snapshot.getManagerId() : "",
-            snapshot.getRoles() != null ? snapshot.getRoles().toString() : "[]");
+                snapshot.getTeamIds() != null ? snapshot.getTeamIds().toString() : "[]",
+                snapshot.getManagerId() != null ? snapshot.getManagerId() : "",
+                snapshot.getRoles() != null ? snapshot.getRoles().toString() : "[]");
     }
 
     /**

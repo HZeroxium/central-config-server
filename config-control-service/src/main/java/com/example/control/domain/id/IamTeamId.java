@@ -21,7 +21,7 @@ public record IamTeamId(String teamId) implements Serializable {
      */
     public IamTeamId {
         Objects.requireNonNull(teamId, "IAM team ID cannot be null");
-        
+
         if (teamId.isBlank()) {
             throw new IllegalArgumentException("IAM team ID cannot be blank");
         }

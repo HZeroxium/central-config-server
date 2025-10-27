@@ -29,25 +29,27 @@ import java.util.function.Function;
  * @param <T>  the domain entity type
  * @param <D>  the MongoDB document type
  * @param <ID> the entity identifier type
- * @param <F> the filter criteria type
- * @param <R> the MongoDB repository type that extends MongoRepository<D, String>
+ * @param <F>  the filter criteria type
+ * @param <R>  the MongoDB repository type that extends MongoRepository<D,
+ *             String>
  */
 @Slf4j
-public abstract class AbstractMongoAdapter<T, D, ID, F, R extends MongoRepository<D, String>> 
-    implements RepositoryPort<T, ID, F> {
+public abstract class AbstractMongoAdapter<T, D, ID, F, R extends MongoRepository<D, String>>
+        implements RepositoryPort<T, ID, F> {
 
     protected final R repository;
     protected final MongoTemplate mongoTemplate;
-    private final Function<ID,String> idMapper;
+    private final Function<ID, String> idMapper;
 
     /**
      * Constructor for the abstract adapter.
      *
      * @param repository    the MongoDB repository
      * @param mongoTemplate the MongoDB template for complex queries
-     * @param idMapper the function to convert the domain ID to a MongoDB document ID
+     * @param idMapper      the function to convert the domain ID to a MongoDB
+     *                      document ID
      */
-    protected AbstractMongoAdapter(R repository, MongoTemplate mongoTemplate, Function<ID,String> idMapper) {
+    protected AbstractMongoAdapter(R repository, MongoTemplate mongoTemplate, Function<ID, String> idMapper) {
         this.repository = repository;
         this.mongoTemplate = mongoTemplate;
         this.idMapper = idMapper;
@@ -128,7 +130,7 @@ public abstract class AbstractMongoAdapter<T, D, ID, F, R extends MongoRepositor
 
         // Check if MongoDB document exists by ID
         boolean exists = repository.existsById(documentId);
-        
+
         log.debug("Entity exists: {}", exists);
         return exists;
     }
@@ -206,7 +208,8 @@ public abstract class AbstractMongoAdapter<T, D, ID, F, R extends MongoRepositor
      * Convert entity ID to MongoDB document ID.
      * <p>
      * This method handles the conversion from domain ID value objects to
-     * the String format used by MongoDB. All IDs are now String type for consistency.
+     * the String format used by MongoDB. All IDs are now String type for
+     * consistency.
      * Subclasses can override this for custom ID conversion logic.
      *
      * @param id the domain entity ID
@@ -216,7 +219,7 @@ public abstract class AbstractMongoAdapter<T, D, ID, F, R extends MongoRepositor
         if (id == null) {
             return null;
         }
-        
+
         // Use the provided mapper to convert domain ID to String
         return idMapper.apply(id);
     }
@@ -265,7 +268,7 @@ public abstract class AbstractMongoAdapter<T, D, ID, F, R extends MongoRepositor
         Update update = new Update()
                 .set("teamId", newTeamId)
                 .set("updatedAt", Instant.now());
-        
+
         UpdateResult result = mongoTemplate.updateMulti(
                 query, update, getDocumentClass());
 

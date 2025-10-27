@@ -13,11 +13,15 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.core.env.Environment;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Arrays;
 
 /**
  * REST controller for managing mock data seeding operations.
@@ -29,10 +33,11 @@ import org.springframework.web.bind.annotation.RestController;
  * is active (seeding.enabled=true).
  * </p>
  * <p>
- * SECURITY NOTE: These endpoints should be restricted to admin users only via
- * Spring Security.
- * Consider adding @PreAuthorize("hasRole('ADMIN')") or similar annotations in
- * production.
+ * <strong>Security:</strong> All endpoints require SYS_ADMIN role OR execution
+ * in
+ * dev/local/seed-data profiles for development convenience. Production
+ * environments
+ * should NEVER have these profiles active.
  * </p>
  * 
  * @see DataSeederService
@@ -46,6 +51,31 @@ import org.springframework.web.bind.annotation.RestController;
 public class SeederController {
 
   private final DataSeederService seederService;
+  private final Environment environment;
+
+  /**
+   * Check if seeding operations are allowed in current environment.
+   * Allowed if:
+   * - User has SYS_ADMIN role, OR
+   * - Running in dev/local/seed-data profile
+   *
+   * @return true if allowed
+   */
+  private boolean isSeedingAllowed() {
+    // Check if running in development-friendly profiles
+    String[] profiles = environment.getActiveProfiles();
+    boolean isDevProfile = Arrays.stream(profiles)
+        .anyMatch(p -> p.equals("dev") || p.equals("local") || p.equals("seed-data"));
+
+    if (isDevProfile) {
+      log.debug("Seeding allowed: running in dev-friendly profile");
+      return true;
+    }
+
+    // In production, only SYS_ADMIN can seed
+    log.debug("Seeding requires SYS_ADMIN role in production profile");
+    return false; // Will be checked by @PreAuthorize
+  }
 
   /**
    * Clean all mock data from the database.
@@ -66,11 +96,13 @@ public class SeederController {
    * @return CleanResult containing counts of deleted entities for each type
    */
   @DeleteMapping("/clean")
+  @PreAuthorize("hasRole('SYS_ADMIN') or @seederController.isSeedingAllowed()")
   @Operation(summary = "Clean all mock data", description = "Removes all application services, instances, drift events, shares, "
       +
       "approval requests, and decisions. IAM data (users/teams) is preserved.")
   @ApiResponses({
       @ApiResponse(responseCode = "200", description = "Data cleaned successfully", content = @Content(schema = @Schema(implementation = CleanResult.class))),
+      @ApiResponse(responseCode = "403", description = "Forbidden: Requires SYS_ADMIN role or dev profile"),
       @ApiResponse(responseCode = "500", description = "Internal server error during cleaning operation")
   })
   public ResponseEntity<CleanResult> cleanData() {
@@ -112,11 +144,13 @@ public class SeederController {
    * @return SeedResult containing counts of created entities for each type
    */
   @PostMapping("/seed")
+  @PreAuthorize("hasRole('SYS_ADMIN') or @seederController.isSeedingAllowed()")
   @Operation(summary = "Seed new mock data", description = "Generates and saves new mock data (services, instances, drift events, etc.) "
       +
       "based on seeding configuration. Does not clean existing data first.")
   @ApiResponses({
       @ApiResponse(responseCode = "200", description = "Data seeded successfully", content = @Content(schema = @Schema(implementation = SeedResult.class))),
+      @ApiResponse(responseCode = "403", description = "Forbidden: Requires SYS_ADMIN role or dev profile"),
       @ApiResponse(responseCode = "500", description = "Internal server error during seeding operation")
   })
   public ResponseEntity<SeedResult> seedData() {
@@ -154,11 +188,13 @@ public class SeederController {
    * @return CombinedResult containing both clean and seed results
    */
   @PostMapping("/clean-and-seed")
+  @PreAuthorize("hasRole('SYS_ADMIN') or @seederController.isSeedingAllowed()")
   @Operation(summary = "Clean and seed mock data", description = "Atomically removes all existing mock data and generates fresh data. "
       +
       "This is the recommended endpoint for environment resets.")
   @ApiResponses({
       @ApiResponse(responseCode = "200", description = "Data cleaned and seeded successfully", content = @Content(schema = @Schema(implementation = CombinedResult.class))),
+      @ApiResponse(responseCode = "403", description = "Forbidden: Requires SYS_ADMIN role or dev profile"),
       @ApiResponse(responseCode = "500", description = "Internal server error during clean-and-seed operation")
   })
   public ResponseEntity<CombinedResult> cleanAndSeedData() {

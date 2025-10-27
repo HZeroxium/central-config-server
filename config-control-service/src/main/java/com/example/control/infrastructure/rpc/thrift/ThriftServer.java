@@ -18,37 +18,37 @@ import javax.annotation.PreDestroy;
 @Component
 @RequiredArgsConstructor
 public class ThriftServer {
-    
+
     private final ThriftHeartbeatHandler handler;
-    
+
     @Value("${thrift.server.port:9090}")
     private int port;
-    
+
     private TServer server;
-    
+
     @Async
     @EventListener(ApplicationReadyEvent.class)
     public void start() {
         try {
             TServerSocket serverTransport = new TServerSocket(port);
-            ConfigControlService.Processor<ThriftHeartbeatHandler> processor = 
-                new ConfigControlService.Processor<>(handler);
-            
+            ConfigControlService.Processor<ThriftHeartbeatHandler> processor = new ConfigControlService.Processor<>(
+                    handler);
+
             TThreadPoolServer.Args args = new TThreadPoolServer.Args(serverTransport)
-                .processor(processor)
-                .minWorkerThreads(5)
-                .maxWorkerThreads(50);
-            
+                    .processor(processor)
+                    .minWorkerThreads(5)
+                    .maxWorkerThreads(50);
+
             server = new TThreadPoolServer(args);
-            
+
             log.info("Starting Thrift server on port {}", port);
             server.serve();
-            
+
         } catch (Exception e) {
             log.error("Failed to start Thrift server", e);
         }
     }
-    
+
     @PreDestroy
     public void stop() {
         if (server != null && server.isServing()) {
@@ -56,7 +56,7 @@ public class ThriftServer {
             server.stop();
         }
     }
-    
+
     public boolean isServing() {
         return server != null && server.isServing();
     }

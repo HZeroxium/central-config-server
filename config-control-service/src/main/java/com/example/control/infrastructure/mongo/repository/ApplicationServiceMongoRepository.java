@@ -17,7 +17,8 @@ public interface ApplicationServiceMongoRepository extends MongoRepository<Appli
     /**
      * Find application service by exact display name.
      * <p>
-     * This method provides O(1) lookup for service name resolution during heartbeat processing.
+     * This method provides O(1) lookup for service name resolution during heartbeat
+     * processing.
      * Should be indexed for optimal performance.
      *
      * @param displayName the exact display name to search for

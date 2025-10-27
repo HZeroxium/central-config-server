@@ -11,13 +11,14 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Component;
 
-
 /**
- * MongoDB adapter implementing {@link ServiceInstanceRepositoryPort} using Spring Data and MongoTemplate.
+ * MongoDB adapter implementing {@link ServiceInstanceRepositoryPort} using
+ * Spring Data and MongoTemplate.
  */
 @Component
-public class ServiceInstanceMongoAdapter 
-    extends AbstractMongoAdapter<ServiceInstance, ServiceInstanceDocument, ServiceInstanceId, ServiceInstanceCriteria, ServiceInstanceMongoRepository>
+public class ServiceInstanceMongoAdapter
+    extends
+    AbstractMongoAdapter<ServiceInstance, ServiceInstanceDocument, ServiceInstanceId, ServiceInstanceCriteria, ServiceInstanceMongoRepository>
     implements ServiceInstanceRepositoryPort {
 
   public ServiceInstanceMongoAdapter(ServiceInstanceMongoRepository repository, MongoTemplate mongoTemplate) {
@@ -38,8 +39,9 @@ public class ServiceInstanceMongoAdapter
   protected Query buildQuery(ServiceInstanceCriteria criteria) {
     Query query = new Query();
 
-    if (criteria == null) return query;
-    
+    if (criteria == null)
+      return query;
+
     // Apply filters
     if (criteria.serviceId() != null && !criteria.serviceId().isBlank()) {
       query.addCriteria(Criteria.where("serviceId").is(criteria.serviceId()));
@@ -47,7 +49,8 @@ public class ServiceInstanceMongoAdapter
     if (criteria.instanceId() != null && !criteria.instanceId().isBlank()) {
       query.addCriteria(Criteria.where("_id").is(criteria.instanceId()));
     }
-    if (criteria.status() != null) query.addCriteria(Criteria.where("status").is(criteria.status().name()));
+    if (criteria.status() != null)
+      query.addCriteria(Criteria.where("status").is(criteria.status().name()));
     if (criteria.hasDrift() != null) {
       query.addCriteria(Criteria.where("hasDrift").is(criteria.hasDrift()));
     }
@@ -63,12 +66,12 @@ public class ServiceInstanceMongoAdapter
     if (criteria.lastSeenAtTo() != null) {
       query.addCriteria(Criteria.where("lastSeenAt").lte(criteria.lastSeenAtTo()));
     }
-    
+
     // ABAC: Team-based filtering
     if (criteria.userTeamIds() != null && !criteria.userTeamIds().isEmpty()) {
       query.addCriteria(Criteria.where("teamId").in(criteria.userTeamIds()));
     }
-    
+
     return query;
   }
 
@@ -92,5 +95,3 @@ public class ServiceInstanceMongoAdapter
     return ServiceInstanceDocument.class;
   }
 }
-
-

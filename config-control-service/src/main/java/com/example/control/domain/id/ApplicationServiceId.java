@@ -21,7 +21,7 @@ public record ApplicationServiceId(String id) implements Serializable {
      */
     public ApplicationServiceId {
         Objects.requireNonNull(id, "Application service ID cannot be null");
-        
+
         if (id.isBlank()) {
             throw new IllegalArgumentException("Application service ID cannot be blank");
         }

@@ -17,15 +17,17 @@ import java.util.List;
 /**
  * MongoDB adapter implementation for {@link ServiceShareRepositoryPort}.
  * <p>
- * This adapter provides the persistence layer implementation for service sharing
+ * This adapter provides the persistence layer implementation for service
+ * sharing
  * ACL using Spring Data MongoDB.
  * </p>
  */
 @Slf4j
 @Component
-public class ServiceShareMongoAdapter 
-    extends AbstractMongoAdapter<ServiceShare, ServiceShareDocument, ServiceShareId, ServiceShareCriteria, ServiceShareMongoRepository>
-    implements ServiceShareRepositoryPort {
+public class ServiceShareMongoAdapter
+        extends
+        AbstractMongoAdapter<ServiceShare, ServiceShareDocument, ServiceShareId, ServiceShareCriteria, ServiceShareMongoRepository>
+        implements ServiceShareRepositoryPort {
 
     public ServiceShareMongoAdapter(ServiceShareMongoRepository repository, MongoTemplate mongoTemplate) {
         super(repository, mongoTemplate, ServiceShareId::id);
@@ -44,8 +46,9 @@ public class ServiceShareMongoAdapter
     @Override
     protected Query buildQuery(ServiceShareCriteria criteria) {
         Query query = new Query();
-        if (criteria == null) return query;
-        
+        if (criteria == null)
+            return query;
+
         // Apply filters
         if (criteria.serviceId() != null) {
             query.addCriteria(Criteria.where("serviceId").is(criteria.serviceId()));
@@ -62,12 +65,12 @@ public class ServiceShareMongoAdapter
         if (criteria.grantedBy() != null) {
             query.addCriteria(Criteria.where("grantedBy").is(criteria.grantedBy()));
         }
-        
+
         // ABAC: Team-based filtering
         if (criteria.userTeamIds() != null && !criteria.userTeamIds().isEmpty()) {
             query.addCriteria(Criteria.where("grantToId").in(criteria.userTeamIds()));
         }
-        
+
         return query;
     }
 
@@ -82,28 +85,28 @@ public class ServiceShareMongoAdapter
     }
 
     @Override
-    public boolean existsByServiceAndGranteeAndEnvironments(String serviceId, 
-                                                            ServiceShare.GranteeType grantToType, 
-                                                            String grantToId, 
-                                                            List<String> environments) {
-        log.debug("Checking if service share exists: service={}, grantee={}-{}, environments={}", 
+    public boolean existsByServiceAndGranteeAndEnvironments(String serviceId,
+            ServiceShare.GranteeType grantToType,
+            String grantToId,
+            List<String> environments) {
+        log.debug("Checking if service share exists: service={}, grantee={}-{}, environments={}",
                 serviceId, grantToType, grantToId, environments);
-        
+
         return repository.existsByServiceAndGranteeAndEnvironments(
                 serviceId, grantToType.name(), grantToId, environments);
     }
 
     @Override
-    public List<ServiceShare.SharePermission> findEffectivePermissions(String userId, 
-                                                                      List<String> userTeamIds, 
-                                                                      String serviceId, 
-                                                                      List<String> environments) {
-        log.debug("Finding effective permissions for user: {} on service: {} in environments: {}", 
+    public List<ServiceShare.SharePermission> findEffectivePermissions(String userId,
+            List<String> userTeamIds,
+            String serviceId,
+            List<String> environments) {
+        log.debug("Finding effective permissions for user: {} on service: {} in environments: {}",
                 userId, serviceId, environments);
-        
+
         List<ServiceShareDocument> documents = repository.findEffectivePermissions(
                 userId, userTeamIds, serviceId, environments);
-        
+
         // Collect all permissions from matching shares
         return documents.stream()
                 .flatMap(doc -> doc.getPermissions().stream())
@@ -118,26 +121,27 @@ public class ServiceShareMongoAdapter
             log.debug("No team IDs provided, returning empty list");
             return List.of();
         }
-        
+
         log.debug("Finding service IDs shared to teams: {}", teamIds);
-        
+
         // Build query: grantToType = TEAM AND grantToId IN teamIds
         Query query = new Query();
         query.addCriteria(Criteria.where("grantToType").is(ServiceShare.GranteeType.TEAM.name()));
         query.addCriteria(Criteria.where("grantToId").in(teamIds));
-        
+
         // Project only serviceId field for efficiency
         query.fields().include("serviceId");
-        
+
         // Execute query
-        List<ServiceShareDocument> documents = mongoTemplate.find(query, ServiceShareDocument.class, getCollectionName());
-        
+        List<ServiceShareDocument> documents = mongoTemplate.find(query, ServiceShareDocument.class,
+                getCollectionName());
+
         // Extract unique service IDs
         List<String> serviceIds = documents.stream()
                 .map(ServiceShareDocument::getServiceId)
                 .distinct()
                 .toList();
-        
+
         log.debug("Found {} unique service IDs shared to teams: {}", serviceIds.size(), teamIds);
         return serviceIds;
     }

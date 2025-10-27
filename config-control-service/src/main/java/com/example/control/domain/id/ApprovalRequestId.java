@@ -21,7 +21,7 @@ public record ApprovalRequestId(String id) implements Serializable {
      */
     public ApprovalRequestId {
         Objects.requireNonNull(id, "Approval request ID cannot be null");
-        
+
         if (id.isBlank()) {
             throw new IllegalArgumentException("Approval request ID cannot be blank");
         }

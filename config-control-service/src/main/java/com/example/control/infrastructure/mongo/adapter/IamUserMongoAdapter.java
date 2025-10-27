@@ -23,9 +23,9 @@ import java.util.List;
  */
 @Slf4j
 @Component
-public class IamUserMongoAdapter 
-    extends AbstractMongoAdapter<IamUser, IamUserDocument, IamUserId, IamUserCriteria, IamUserMongoRepository>
-    implements IamUserRepositoryPort {
+public class IamUserMongoAdapter
+        extends AbstractMongoAdapter<IamUser, IamUserDocument, IamUserId, IamUserCriteria, IamUserMongoRepository>
+        implements IamUserRepositoryPort {
 
     public IamUserMongoAdapter(IamUserMongoRepository repository, MongoTemplate mongoTemplate) {
         super(repository, mongoTemplate, IamUserId::userId);

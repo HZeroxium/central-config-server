@@ -1,6 +1,7 @@
 package com.example.control.seeding.factory;
 
 import com.example.control.domain.id.ApprovalDecisionId;
+import com.example.control.domain.id.ApprovalRequestId;
 import com.example.control.domain.object.ApprovalDecision;
 import com.example.control.domain.object.ApprovalRequest;
 import lombok.RequiredArgsConstructor;
@@ -65,25 +66,44 @@ public class ApprovalDecisionFactory {
 
   /**
    * Generates an {@link ApprovalDecision} for an approval request.
+   * <p>
+   * <strong>Note on Optimistic Locking:</strong> This method accepts individual
+   * parameters
+   * rather than the full ApprovalRequest object to avoid holding references to
+   * entities
+   * that have been saved and had their version field modified. This prevents
+   * OptimisticLockingFailureException when the same request object is reused
+   * elsewhere.
+   * </p>
    *
-   * @param request     approval request
-   * @param adminUserId admin user ID making the decision
-   * @param gate        gate name for this decision
+   * @param requestId     approval request ID (as string, not the whole object)
+   * @param requestStatus approval request status (to determine APPROVE/REJECT)
+   * @param createdAt     request creation timestamp
+   * @param updatedAt     request update timestamp
+   * @param adminUserId   admin user ID making the decision
+   * @param gate          gate name for this decision
    * @return generated approval decision
    */
-  public ApprovalDecision generate(ApprovalRequest request, String adminUserId, String gate) {
-    ApprovalDecision.Decision decision = determineDecision(request.getStatus());
+  public ApprovalDecision generate(
+      String requestId,
+      ApprovalRequest.ApprovalStatus requestStatus,
+      Instant createdAt,
+      Instant updatedAt,
+      String adminUserId,
+      String gate) {
 
-    Instant decidedAt = generateDecidedAt(request.getCreatedAt(), request.getUpdatedAt());
+    ApprovalDecision.Decision decision = determineDecision(requestStatus);
+
+    Instant decidedAt = generateDecidedAt(createdAt, updatedAt);
 
     String note = generateNote(decision);
 
     log.debug("Generated approval decision: request={} gate={} decision={}",
-        request.getId().id(), gate, decision);
+        requestId, gate, decision);
 
     return ApprovalDecision.builder()
         .id(ApprovalDecisionId.of(UUID.randomUUID().toString()))
-        .requestId(request.getId())
+        .requestId(ApprovalRequestId.of(requestId))
         .approverUserId(adminUserId)
         .gate(gate)
         .decision(decision)

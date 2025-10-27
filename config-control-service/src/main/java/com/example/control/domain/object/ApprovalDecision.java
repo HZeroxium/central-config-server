@@ -63,7 +63,7 @@ public class ApprovalDecision {
     public enum Decision {
         /** Approve the request. */
         APPROVE,
-        
+
         /** Reject the request. */
         REJECT
     }

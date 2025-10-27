@@ -13,19 +13,20 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Component;
 
-
 /**
  * MongoDB adapter implementation for {@link ApprovalDecisionRepositoryPort}.
  * <p>
- * This adapter provides the persistence layer implementation for approval decisions
+ * This adapter provides the persistence layer implementation for approval
+ * decisions
  * using Spring Data MongoDB with compound unique index enforcement.
  * </p>
  */
 @Slf4j
 @Component
-public class ApprovalDecisionMongoAdapter 
-    extends AbstractMongoAdapter<ApprovalDecision, ApprovalDecisionDocument, ApprovalDecisionId, ApprovalDecisionCriteria, ApprovalDecisionMongoRepository>
-    implements ApprovalDecisionRepositoryPort {
+public class ApprovalDecisionMongoAdapter
+        extends
+        AbstractMongoAdapter<ApprovalDecision, ApprovalDecisionDocument, ApprovalDecisionId, ApprovalDecisionCriteria, ApprovalDecisionMongoRepository>
+        implements ApprovalDecisionRepositoryPort {
 
     public ApprovalDecisionMongoAdapter(ApprovalDecisionMongoRepository repository, MongoTemplate mongoTemplate) {
         super(repository, mongoTemplate, ApprovalDecisionId::id);
@@ -44,8 +45,9 @@ public class ApprovalDecisionMongoAdapter
     @Override
     protected Query buildQuery(ApprovalDecisionCriteria criteria) {
         Query query = new Query();
-        if (criteria == null) return query;
-        
+        if (criteria == null)
+            return query;
+
         // Apply filters
         if (criteria.requestId() != null) {
             query.addCriteria(Criteria.where("requestId").is(criteria.requestId()));
@@ -59,12 +61,12 @@ public class ApprovalDecisionMongoAdapter
         if (criteria.decision() != null) {
             query.addCriteria(Criteria.where("decision").is(criteria.decision().name()));
         }
-        
+
         // ABAC: Team-based filtering
         if (criteria.userTeamIds() != null && !criteria.userTeamIds().isEmpty()) {
             query.addCriteria(Criteria.where("approverUserId").in(criteria.userTeamIds()));
         }
-        
+
         return query;
     }
 
@@ -80,24 +82,25 @@ public class ApprovalDecisionMongoAdapter
 
     @Override
     public boolean existsByRequestAndApproverAndGate(ApprovalRequestId requestId, String approverUserId, String gate) {
-        log.debug("Checking if approval decision exists: request={}, approver={}, gate={}", 
+        log.debug("Checking if approval decision exists: request={}, approver={}, gate={}",
                 requestId, approverUserId, gate);
-        
+
         return repository.existsByRequestIdAndApproverUserIdAndGate(requestId.id(), approverUserId, gate);
     }
 
     @Override
     public long countByRequestIdAndGate(ApprovalRequestId requestId, String gate) {
         log.debug("Counting approval decisions by request ID: {} and gate: {}", requestId, gate);
-        
+
         return repository.countByRequestIdAndGate(requestId.id(), gate);
     }
 
     @Override
-    public long countByRequestIdAndGateAndDecision(ApprovalRequestId requestId, String gate, ApprovalDecision.Decision decision) {
-        log.debug("Counting approval decisions by request ID: {}, gate: {}, decision: {}", 
+    public long countByRequestIdAndGateAndDecision(ApprovalRequestId requestId, String gate,
+            ApprovalDecision.Decision decision) {
+        log.debug("Counting approval decisions by request ID: {}, gate: {}, decision: {}",
                 requestId, gate, decision);
-        
+
         return repository.countByRequestIdAndGateAndDecision(requestId.id(), gate, decision.name());
     }
 }
