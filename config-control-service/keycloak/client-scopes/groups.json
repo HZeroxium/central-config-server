@@ -1,0 +1,12 @@
+{
+  "id": "7g8h9i0j-1k2l-3m4n-5o6p-7q8r9s0t1u2v",
+  "name": "groups",
+  "description": "Group membership information",
+  "protocol": "openid-connect",
+  "attributes": {
+    "include.in.token.scope": "true",
+    "display.on.consent.screen": "true",
+    "consent.screen.text": "Group membership"
+  }
+}
+

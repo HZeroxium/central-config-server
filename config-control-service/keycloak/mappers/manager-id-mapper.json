@@ -1,0 +1,17 @@
+{
+  "id": "0j1k2l3m-4n5o-6p7q-8r9s-0t1u2v3w4x5y",
+  "name": "manager_id",
+  "parentScope": "manager_id",
+  "protocol": "openid-connect",
+  "protocolMapper": "oidc-usermodel-attribute-mapper",
+  "consentRequired": false,
+  "config": {
+    "userinfo.token.claim": "true",
+    "user.attribute": "manager_id",
+    "id.token.claim": "true",
+    "access.token.claim": "true",
+    "claim.name": "manager_id",
+    "jsonType.label": "String"
+  }
+}
+

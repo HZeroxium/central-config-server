@@ -1,0 +1,27 @@
+[
+  {
+    "id": "3c8e5d1e-4f2a-4b3c-8d9e-1f2a3b4c5d6e",
+    "name": "SYS_ADMIN",
+    "description": "System administrator with full access",
+    "composite": false,
+    "clientRole": false,
+    "containerId": "config-control"
+  },
+  {
+    "id": "4d9e6f2f-5g3b-5c4d-9e0f-2g3h4i5j6k7f",
+    "name": "USER",
+    "description": "Regular user with basic access",
+    "composite": false,
+    "clientRole": false,
+    "containerId": "config-control"
+  },
+  {
+    "id": "5e0f7g3g-6h4c-6d5e-0f1g-3h4i5j6k7l8m",
+    "name": "TEAM_LEADER",
+    "description": "Team leader role for future use",
+    "composite": false,
+    "clientRole": false,
+    "containerId": "config-control"
+  }
+]
+

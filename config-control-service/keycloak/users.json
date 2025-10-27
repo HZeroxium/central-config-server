@@ -1,0 +1,133 @@
+[
+  {
+    "username": "admin",
+    "email": "admin@example.com",
+    "firstName": "System",
+    "lastName": "Administrator",
+    "enabled": true,
+    "emailVerified": true,
+    "credentials": [
+      {
+        "type": "password",
+        "value": "admin123",
+        "temporary": false
+      }
+    ],
+    "attributes": {},
+    "realmRoles": ["SYS_ADMIN"],
+    "groups": []
+  },
+  {
+    "username": "admin2",
+    "email": "admin2@example.com",
+    "firstName": "System",
+    "lastName": "Administrator 2",
+    "enabled": true,
+    "emailVerified": true,
+    "credentials": [
+      {
+        "type": "password",
+        "value": "admin123",
+        "temporary": false
+      }
+    ],
+    "attributes": {},
+    "realmRoles": ["SYS_ADMIN"],
+    "groups": []
+  },
+  {
+    "username": "user1",
+    "email": "user1@example.com",
+    "firstName": "User",
+    "lastName": "One",
+    "enabled": true,
+    "emailVerified": true,
+    "credentials": [
+      {
+        "type": "password",
+        "value": "user123",
+        "temporary": false
+      }
+    ],
+    "attributes": {},
+    "realmRoles": ["USER"],
+    "groups": ["team1"]
+  },
+  {
+    "username": "user2",
+    "email": "user2@example.com",
+    "firstName": "User",
+    "lastName": "Two",
+    "enabled": true,
+    "emailVerified": true,
+    "credentials": [
+      {
+        "type": "password",
+        "value": "user123",
+        "temporary": false
+      }
+    ],
+    "attributes": {
+      "manager_username": ["user1"]
+    },
+    "realmRoles": ["USER"],
+    "groups": ["team1"]
+  },
+  {
+    "username": "user3",
+    "email": "user3@example.com",
+    "firstName": "User",
+    "lastName": "Three",
+    "enabled": true,
+    "emailVerified": true,
+    "credentials": [
+      {
+        "type": "password",
+        "value": "user123",
+        "temporary": false
+      }
+    ],
+    "attributes": {},
+    "realmRoles": ["USER"],
+    "groups": ["team2"]
+  },
+  {
+    "username": "user4",
+    "email": "user4@example.com",
+    "firstName": "User",
+    "lastName": "Four",
+    "enabled": true,
+    "emailVerified": true,
+    "credentials": [
+      {
+        "type": "password",
+        "value": "user123",
+        "temporary": false
+      }
+    ],
+    "attributes": {
+      "manager_username": ["user3"]
+    },
+    "realmRoles": ["USER"],
+    "groups": ["team2"]
+  },
+  {
+    "username": "user5",
+    "email": "user5@example.com",
+    "firstName": "User",
+    "lastName": "Five",
+    "enabled": true,
+    "emailVerified": true,
+    "credentials": [
+      {
+        "type": "password",
+        "value": "user123",
+        "temporary": false
+      }
+    ],
+    "attributes": {},
+    "realmRoles": ["USER"],
+    "groups": []
+  }
+]
+

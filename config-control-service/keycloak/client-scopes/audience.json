@@ -1,0 +1,12 @@
+{
+  "id": "1k2l3m4n-5o6p-7q8r-9s0t-1u2v3w4x5y6z",
+  "name": "audience",
+  "description": "Audience claim for token validation",
+  "protocol": "openid-connect",
+  "attributes": {
+    "include.in.token.scope": "true",
+    "display.on.consent.screen": "true",
+    "consent.screen.text": "Service access"
+  }
+}
+

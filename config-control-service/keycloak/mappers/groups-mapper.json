@@ -1,0 +1,16 @@
+{
+  "id": "8h9i0j1k-2l3m-4n5o-6p7q-8r9s0t1u2v3w",
+  "name": "groups",
+  "parentScope": "groups",
+  "protocol": "openid-connect",
+  "protocolMapper": "oidc-group-membership-mapper",
+  "consentRequired": false,
+  "config": {
+    "full.path": "false",
+    "id.token.claim": "true",
+    "access.token.claim": "true",
+    "claim.name": "groups",
+    "userinfo.token.claim": "true"
+  }
+}
+

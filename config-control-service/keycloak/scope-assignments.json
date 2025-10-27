@@ -1,0 +1,21 @@
+[
+  {
+    "clientId": "config-control-service",
+    "defaultScopes": [
+      "groups",
+      "manager_id",
+      "audience"
+    ],
+    "optionalScopes": []
+  },
+  {
+    "clientId": "admin-dashboard",
+    "defaultScopes": [
+      "groups",
+      "manager_id",
+      "audience"
+    ],
+    "optionalScopes": []
+  }
+]
+

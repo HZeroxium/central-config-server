@@ -1,0 +1,12 @@
+{
+  "id": "9i0j1k2l-3m4n-5o6p-7q8r-9s0t1u2v3w4x",
+  "name": "manager_id",
+  "description": "User's manager ID for approval workflows",
+  "protocol": "openid-connect",
+  "attributes": {
+    "include.in.token.scope": "true",
+    "display.on.consent.screen": "true",
+    "consent.screen.text": "Manager information"
+  }
+}
+

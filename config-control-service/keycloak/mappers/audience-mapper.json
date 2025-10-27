@@ -1,0 +1,14 @@
+{
+  "id": "2l3m4n5o-6p7q-8r9s-0t1u-2v3w4x5y6z7a",
+  "name": "audience",
+  "parentScope": "audience",
+  "protocol": "openid-connect",
+  "protocolMapper": "oidc-audience-mapper",
+  "consentRequired": false,
+  "config": {
+    "included.client.audience": "config-control-service",
+    "id.token.claim": "true",
+    "access.token.claim": "true"
+  }
+}
+
