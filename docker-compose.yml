@@ -106,6 +106,8 @@ services:
       - KEYCLOAK_ADMIN_URL=http://keycloak:8080
       - KEYCLOAK_CLIENT_ID=config-control-service
       - KEYCLOAK_CLIENT_SECRET=config-control-service-secret
+      # Seeding
+      - SEEDING_ENABLED=true
     networks:
       - infra-network
     healthcheck:

@@ -7,9 +7,18 @@ RUN apk add --no-cache curl jq
 # Copy initialization files
 COPY keycloak-realm-export.json /tmp/
 COPY keycloak-init.sh /tmp/
+COPY keycloak-functions.sh /tmp/
+COPY user-profile-attributes.json /tmp/
+COPY roles.json /tmp/
+COPY groups.json /tmp/
+COPY users.json /tmp/
+COPY scope-assignments.json /tmp/
+COPY client-scopes/ /tmp/client-scopes/
+COPY mappers/ /tmp/mappers/
+COPY clients/ /tmp/clients/
 
-# Make script executable
-RUN chmod +x /tmp/keycloak-init.sh
+# Make scripts executable
+RUN chmod +x /tmp/keycloak-init.sh /tmp/keycloak-functions.sh
 
 # Set working directory
 WORKDIR /tmp

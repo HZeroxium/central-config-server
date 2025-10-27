@@ -1,0 +1,108 @@
+[
+  {
+    "name": "manager_id",
+    "displayName": "Manager ID",
+    "validations": {
+      "pattern": {
+        "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+        "error-message": "Manager ID must be a valid UUID"
+      }
+    },
+    "annotations": {
+      "inputType": "text"
+    },
+    "permissions": {
+      "view": ["admin", "user"],
+      "edit": ["admin"]
+    },
+    "multivalued": false
+  },
+  {
+    "name": "phone",
+    "displayName": "Phone Number",
+    "validations": {
+      "pattern": {
+        "pattern": "^\\+[1-9]\\d{1,14}$",
+        "error-message": "Phone must be in E.164 format (e.g., +84123456789)"
+      }
+    },
+    "annotations": {
+      "inputType": "tel"
+    },
+    "permissions": {
+      "view": ["admin", "user"],
+      "edit": ["admin", "user"]
+    },
+    "multivalued": false
+  },
+  {
+    "name": "employee_id",
+    "displayName": "Employee ID",
+    "validations": {},
+    "annotations": {
+      "inputType": "text"
+    },
+    "permissions": {
+      "view": ["admin", "user"],
+      "edit": ["admin"]
+    },
+    "multivalued": false
+  },
+  {
+    "name": "department",
+    "displayName": "Department",
+    "validations": {},
+    "annotations": {
+      "inputType": "text"
+    },
+    "permissions": {
+      "view": ["admin", "user"],
+      "edit": ["admin"]
+    },
+    "multivalued": false
+  },
+  {
+    "name": "job_title",
+    "displayName": "Job Title",
+    "validations": {},
+    "annotations": {
+      "inputType": "text"
+    },
+    "permissions": {
+      "view": ["admin", "user"],
+      "edit": ["admin"]
+    },
+    "multivalued": false
+  },
+  {
+    "name": "office_location",
+    "displayName": "Office Location",
+    "validations": {},
+    "annotations": {
+      "inputType": "text"
+    },
+    "permissions": {
+      "view": ["admin", "user"],
+      "edit": ["admin"]
+    },
+    "multivalued": false
+  },
+  {
+    "name": "hire_date",
+    "displayName": "Hire Date",
+    "validations": {
+      "pattern": {
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+        "error-message": "Hire date must be in ISO 8601 format (YYYY-MM-DD)"
+      }
+    },
+    "annotations": {
+      "inputType": "date"
+    },
+    "permissions": {
+      "view": ["admin", "user"],
+      "edit": ["admin"]
+    },
+    "multivalued": false
+  }
+]
