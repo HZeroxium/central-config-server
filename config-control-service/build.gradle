@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.spring.boot)
     alias(libs.plugins.spring.dependency.management)
     id 'com.google.protobuf' version '0.9.4'
+    id 'io.qameta.allure' version '2.11.2'
 }
 
 group = 'com.example'
@@ -111,11 +112,36 @@ dependencies {
     testImplementation libs.bundles.testing
     testImplementation libs.spring.boot.testcontainers
     testImplementation libs.bundles.testcontainers
+    testImplementation 'com.tngtech.archunit:archunit-junit5:1.4.1'
+    
+    // E2E Testing Dependencies
+    testImplementation 'io.rest-assured:rest-assured:5.5.0'
+    testImplementation 'io.rest-assured:json-schema-validator:5.5.0'
+    testImplementation 'io.qameta.allure:allure-junit5:2.30.0'
+    testImplementation 'io.qameta.allure:allure-rest-assured:2.30.0'
 }
 
 tasks.named('test') {
     useJUnitPlatform()
 }
+
+// E2E Test task (defined after sourceSets)
+
+// Allure configuration
+allure {
+    version = '2.30.0'
+    adapter {
+        autoconfigure = true
+        aspectjweaver = true
+        frameworks {
+            junit5 {
+                enabled = true
+            }
+        }
+    }
+}
+
+// Allure tasks are automatically created by the plugin
 
 // Thrift generation
 task generateThrift(type: Exec) {
@@ -153,6 +179,52 @@ sourceSets {
             srcDirs += ['build/generated/source/thrift/main/java']
         }
     }
+    e2eTest {
+        java.srcDir 'src/e2eTest/java'
+        resources.srcDir 'src/e2eTest/resources'
+        compileClasspath += main.output + test.output
+        runtimeClasspath += main.output + test.output
+    }
+}
+
+configurations {
+    e2eTestImplementation.extendsFrom testImplementation
+    e2eTestRuntimeOnly.extendsFrom testRuntimeOnly
+    e2eTestCompileOnly.extendsFrom testCompileOnly
+    e2eTestAnnotationProcessor.extendsFrom testAnnotationProcessor
+}
+
+// E2E Test specific dependencies
+dependencies {
+    e2eTestImplementation 'io.rest-assured:rest-assured:5.5.0'
+    e2eTestImplementation 'io.rest-assured:json-schema-validator:5.5.0'
+    e2eTestImplementation 'io.qameta.allure:allure-junit5:2.30.0'
+    e2eTestImplementation 'io.qameta.allure:allure-rest-assured:2.30.0'
+    e2eTestImplementation libs.lombok
+    e2eTestCompileOnly libs.lombok
+    e2eTestAnnotationProcessor libs.lombok
+}
+
+// E2E Test task
+task e2eTest(type: Test) {
+    group = 'verification'
+    description = 'Run E2E tests against running services'
+    useJUnitPlatform()
+    testClassesDirs = sourceSets.e2eTest.output.classesDirs
+    classpath = sourceSets.e2eTest.runtimeClasspath
+    shouldRunAfter test
+    
+    systemProperty 'junit.jupiter.execution.parallel.enabled', 'false'
+    systemProperty 'allure.results.directory', "${buildDir}/allure-results"
+    
+    doFirst {
+        println "Running E2E tests against services at ${System.getProperty('api.base.url', 'http://localhost:8081/api')}"
+    }
+}
+
+// Configure duplicate handling for e2eTest resources
+processE2eTestResources {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
 compileJava.dependsOn generateThrift
