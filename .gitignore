@@ -12,3 +12,4 @@ user-thrift-server-service/*
 user-watcher-service/*
 .cursor/plans/
 docker_images/
+config/deploy/
