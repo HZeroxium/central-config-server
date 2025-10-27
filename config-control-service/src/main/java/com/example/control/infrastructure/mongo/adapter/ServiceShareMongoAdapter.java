@@ -111,4 +111,34 @@ public class ServiceShareMongoAdapter
                 .distinct()
                 .toList();
     }
+
+    @Override
+    public List<String> findServiceIdsByGranteeTeams(List<String> teamIds) {
+        if (teamIds == null || teamIds.isEmpty()) {
+            log.debug("No team IDs provided, returning empty list");
+            return List.of();
+        }
+        
+        log.debug("Finding service IDs shared to teams: {}", teamIds);
+        
+        // Build query: grantToType = TEAM AND grantToId IN teamIds
+        Query query = new Query();
+        query.addCriteria(Criteria.where("grantToType").is(ServiceShare.GranteeType.TEAM.name()));
+        query.addCriteria(Criteria.where("grantToId").in(teamIds));
+        
+        // Project only serviceId field for efficiency
+        query.fields().include("serviceId");
+        
+        // Execute query
+        List<ServiceShareDocument> documents = mongoTemplate.find(query, ServiceShareDocument.class, getCollectionName());
+        
+        // Extract unique service IDs
+        List<String> serviceIds = documents.stream()
+                .map(ServiceShareDocument::getServiceId)
+                .distinct()
+                .toList();
+        
+        log.debug("Found {} unique service IDs shared to teams: {}", serviceIds.size(), teamIds);
+        return serviceIds;
+    }
 }

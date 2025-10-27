@@ -280,6 +280,30 @@ public class ServiceShareService {
     }
 
     /**
+     * Get all service IDs that are shared to specific teams.
+     * <p>
+     * Used for filtering ApplicationServices to include shared services in user's view.
+     * This enables visibility of services shared to user's teams.
+     * </p>
+     *
+     * @param teamIds the team IDs to check (user's team membership)
+     * @return list of unique service IDs shared to any of the specified teams
+     */
+    public List<String> getSharedServiceIdsForTeams(List<String> teamIds) {
+        log.debug("Getting shared service IDs for teams: {}", teamIds);
+        
+        if (teamIds == null || teamIds.isEmpty()) {
+            log.debug("No team IDs provided, returning empty list");
+            return List.of();
+        }
+        
+        List<String> sharedServiceIds = shareRepository.findServiceIdsByGranteeTeams(teamIds);
+        log.debug("Found {} services shared to teams: {}", sharedServiceIds.size(), teamIds);
+        
+        return sharedServiceIds;
+    }
+
+    /**
      * Generate a unique share ID.
      *
      * @return unique share ID

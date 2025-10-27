@@ -137,6 +137,15 @@ public class ApiResponseDto {
   @Builder
   @NoArgsConstructor
   @AllArgsConstructor
+  public static class ServiceInstancesRegistryResponse {
+    private String serviceName;
+    private List<ServiceInstanceSummary> instances;
+  }
+
+  @Data
+  @Builder
+  @NoArgsConstructor
+  @AllArgsConstructor
   public static class ConfigSummary {
     private String application;
     private String profile;

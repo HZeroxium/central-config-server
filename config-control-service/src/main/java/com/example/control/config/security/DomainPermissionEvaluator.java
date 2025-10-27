@@ -28,7 +28,13 @@ public class DomainPermissionEvaluator {
     /**
      * Check if user can view an application service.
      * <p>
-     * Application services are public - anyone can view them.
+     * <strong>Visibility Rules:</strong>
+     * <ul>
+     *   <li>System admins can view all services</li>
+     *   <li>Orphaned services (ownerTeamId=null) are visible to all authenticated users</li>
+     *   <li>Team members can view services owned by their teams</li>
+     *   <li>Users can view services shared to their teams via ServiceShare</li>
+     * </ul>
      *
      * @param userContext the user context
      * @param service the application service
@@ -37,8 +43,37 @@ public class DomainPermissionEvaluator {
     public boolean canViewService(UserContext userContext, ApplicationService service) {
         log.debug("Checking if user {} can view service {}", userContext.getUserId(), service.getId());
         
-        // Application services are public - everyone can view them
-        return true;
+        // System admins can view all services
+        if (userContext.isSysAdmin()) {
+            log.debug("User {} is SYS_ADMIN, can view service {}", userContext.getUserId(), service.getId());
+            return true;
+        }
+        
+        // Orphaned services (ownerTeamId=null) are visible to all authenticated users
+        // This enables users to request ownership of orphaned services
+        if (service.getOwnerTeamId() == null) {
+            log.debug("Service {} is orphaned, visible to user {}", service.getId(), userContext.getUserId());
+            return true;
+        }
+        
+        // Team members can view services owned by their teams
+        if (userContext.isMemberOfTeam(service.getOwnerTeamId())) {
+            log.debug("User {} is member of owning team {}, can view service {}", 
+                    userContext.getUserId(), service.getOwnerTeamId(), service.getId());
+            return true;
+        }
+        
+        // Check if service is shared to user's teams
+        List<String> sharedServiceIds = serviceShareRepository.findServiceIdsByGranteeTeams(userContext.getTeamIds());
+        if (sharedServiceIds.contains(service.getId().id())) {
+            log.debug("Service {} is shared to user {} teams, can view", 
+                    service.getId(), userContext.getUserId());
+            return true;
+        }
+        
+        log.debug("User {} cannot view service {} - not owned, not shared, not orphaned", 
+                userContext.getUserId(), service.getId());
+        return false;
     }
 
     /**

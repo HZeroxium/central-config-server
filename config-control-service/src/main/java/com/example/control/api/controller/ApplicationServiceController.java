@@ -47,6 +47,7 @@ import java.util.Optional;
 public class ApplicationServiceController {
 
     private final ApplicationServiceService applicationServiceService;
+    private final com.example.control.config.security.DomainPermissionEvaluator permissionEvaluator;
 
     /**
      * List all application services (authenticated endpoint).
@@ -59,12 +60,21 @@ public class ApplicationServiceController {
     @Operation(
         summary = "List all application services",
         description = """
-            Retrieve a paginated list of all application services.
+            Retrieve a paginated list of application services visible to the authenticated user.
             
-            **Access Control:**
-            - All authenticated users can view application services
-            - Services are public to authenticated users for discovery
-            - Filtering by team ownership is applied automatically
+            **Access Control & Visibility Rules:**
+            - **Authentication required** - Unauthenticated requests will receive 401
+            - **System admins** see all services (no filtering)
+            - **Regular users** see:
+              - Orphaned services (ownerTeamId=null) - for ownership request workflow
+              - Services owned by their teams
+              - Services shared to their teams via ServiceShare grants
+            - Server-side filtering ensures users only see authorized services
+            
+            **Use Cases:**
+            - Service discovery and catalog browsing
+            - Requesting ownership of orphaned services
+            - Viewing team-owned and shared services
             """,
         security = {
             @SecurityRequirement(name = "oauth2_auth_code"),
@@ -156,9 +166,10 @@ public class ApplicationServiceController {
     }
 
     /**
-     * Get application service by ID (public endpoint).
+     * Get application service by ID (authenticated endpoint).
      *
      * @param id the service ID
+     * @param jwt the JWT token
      * @return the service details
      */
     @Operation(
@@ -167,8 +178,12 @@ public class ApplicationServiceController {
             Retrieve a specific application service by its ID.
             
             **Access Control:**
-            - Public endpoint - no authentication required
-            - Returns service metadata for discovery purposes
+            - **Authentication required** - Unauthenticated requests will receive 401
+            - **Visibility rules apply** - Users can only access:
+              - Orphaned services (ownerTeamId=null)
+              - Services owned by their teams
+              - Services shared to their teams
+            - Returns 404 if service doesn't exist or user lacks permission
             """,
         security = {
             @SecurityRequirement(name = "oauth2_auth_code"),
@@ -179,7 +194,9 @@ public class ApplicationServiceController {
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Application service found",
             content = @Content(schema = @Schema(implementation = ApplicationServiceDtos.Response.class))),
-        @ApiResponse(responseCode = "404", description = "Application service not found",
+        @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+        @ApiResponse(responseCode = "404", description = "Application service not found or access denied",
             content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
         @ApiResponse(responseCode = "500", description = "Internal server error",
             content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
@@ -187,11 +204,21 @@ public class ApplicationServiceController {
     @GetMapping("/{id}")
     public ResponseEntity<ApplicationServiceDtos.Response> findById(
             @Parameter(description = "Application service ID", example = "sample-service")
-            @PathVariable String id) {
+            @PathVariable String id,
+            @AuthenticationPrincipal Jwt jwt) {
         log.debug("Getting application service by ID: {}", id);
         
+        UserContext userContext = UserContext.fromJwt(jwt);
         Optional<ApplicationService> service = applicationServiceService.findById(ApplicationServiceId.of(id));
         if (service.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        
+        // Check if user can view this service (permission check)
+        // Return 404 instead of 403 to avoid leaking service existence
+        if (!permissionEvaluator.canViewService(userContext, service.get())) {
+            log.warn("User {} attempted to access service {} without permission", 
+                    userContext.getUserId(), id);
             return ResponseEntity.notFound().build();
         }
         

@@ -55,7 +55,7 @@ public class DataSeedConfig {
         
         try {
             // Check if data already exists
-            if (applicationServiceService.findAll().size() > 0) {
+            if (!applicationServiceService.findAll().isEmpty()) {
                 log.info("Data already exists, skipping seed");
                 return;
             }
@@ -182,7 +182,6 @@ public class DataSeedConfig {
                 try {
                     ServiceInstance instance = ServiceInstance.builder()
                         .id(ServiceInstanceId.of(
-                            instanceNode.get("serviceName").asText(),
                             instanceNode.get("instanceId").asText()
                         ))
                         .serviceId(instanceNode.has("serviceId") ? instanceNode.get("serviceId").asText() : null)
@@ -195,7 +194,7 @@ public class DataSeedConfig {
                         .status(instanceNode.has("status") 
                             ? ServiceInstance.InstanceStatus.valueOf(instanceNode.get("status").asText())
                             : ServiceInstance.InstanceStatus.UNKNOWN)
-                        .hasDrift(instanceNode.has("hasDrift") ? instanceNode.get("hasDrift").asBoolean() : false)
+                        .hasDrift(instanceNode.has("hasDrift") && instanceNode.get("hasDrift").asBoolean())
                         .lastSeenAt(Instant.now())
                         .createdAt(Instant.now())
                         .updatedAt(Instant.now())

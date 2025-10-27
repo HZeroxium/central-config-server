@@ -43,4 +43,16 @@ public interface ServiceShareRepositoryPort extends RepositoryPort<ServiceShare,
                                                                 List<String> userTeamIds, 
                                                                 String serviceId, 
                                                                 List<String> environments);
+
+    /**
+     * Find all service IDs that are shared to specific teams.
+     * <p>
+     * Used for filtering ApplicationServices to include services shared to user's teams.
+     * This enables users to see services shared to their teams in addition to owned services.
+     * </p>
+     *
+     * @param teamIds the team IDs to check (user's team membership)
+     * @return list of unique service IDs shared to any of the specified teams
+     */
+    List<String> findServiceIdsByGranteeTeams(List<String> teamIds);
 }

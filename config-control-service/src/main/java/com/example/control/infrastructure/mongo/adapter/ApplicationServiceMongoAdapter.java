@@ -49,10 +49,7 @@ public class ApplicationServiceMongoAdapter
         Query query = new Query();
         if (criteria == null) return query;
         
-        // Apply filters
-        if (criteria.ownerTeamId() != null) {
-            query.addCriteria(Criteria.where("ownerTeamId").is(criteria.ownerTeamId()));
-        }
+        // Apply basic filters
         if (criteria.lifecycle() != null) {
             query.addCriteria(Criteria.where("lifecycle").is(criteria.lifecycle().name()));
         }
@@ -64,9 +61,41 @@ public class ApplicationServiceMongoAdapter
             query.addCriteria(Criteria.where("displayName").regex(searchRegex, "i"));
         }
         
-        // ABAC: Team-based filtering
-        if (criteria.userTeamIds() != null && !criteria.userTeamIds().isEmpty()) {
-            query.addCriteria(Criteria.where("ownerTeamId").in(criteria.userTeamIds()));
+        // Build visibility filtering with $or operator
+        // Users can see: (1) orphaned services, (2) team-owned services, (3) shared services
+        boolean hasVisibilityFilters = 
+            (criteria.includeOrphaned() != null && criteria.includeOrphaned()) ||
+            (criteria.userTeamIds() != null && !criteria.userTeamIds().isEmpty()) ||
+            (criteria.sharedServiceIds() != null && !criteria.sharedServiceIds().isEmpty());
+        
+        if (hasVisibilityFilters) {
+            java.util.List<Criteria> orCriteria = new java.util.ArrayList<>();
+            
+            // Include orphaned services (ownerTeamId = null)
+            if (criteria.includeOrphaned() != null && criteria.includeOrphaned()) {
+                orCriteria.add(Criteria.where("ownerTeamId").is(null));
+            }
+            
+            // Include team-owned services (ownerTeamId in userTeamIds)
+            if (criteria.userTeamIds() != null && !criteria.userTeamIds().isEmpty()) {
+                orCriteria.add(Criteria.where("ownerTeamId").in(criteria.userTeamIds()));
+            }
+            
+            // Include shared services (id in sharedServiceIds)
+            if (criteria.sharedServiceIds() != null && !criteria.sharedServiceIds().isEmpty()) {
+                orCriteria.add(Criteria.where("id").in(criteria.sharedServiceIds()));
+            }
+            
+            // Apply $or criteria if we have any visibility filters
+            if (!orCriteria.isEmpty()) {
+                query.addCriteria(new Criteria().orOperator(orCriteria.toArray(new Criteria[0])));
+            }
+        }
+        
+        // Specific ownerTeamId filter (takes precedence over visibility filtering)
+        // This allows admin to filter by specific team even when visibility filters are applied
+        if (criteria.ownerTeamId() != null) {
+            query.addCriteria(Criteria.where("ownerTeamId").is(criteria.ownerTeamId()));
         }
         
         return query;

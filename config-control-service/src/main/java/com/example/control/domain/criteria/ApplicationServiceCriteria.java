@@ -13,12 +13,22 @@ import java.util.List;
  * Provides type-safe filtering with team-based access control enforcement.
  * All queries are automatically filtered by userTeamIds when provided.
  * </p>
+ * <p>
+ * New filtering logic for service visibility:
+ * <ul>
+ *   <li>Orphaned services (ownerTeamId=null) are visible to all authenticated users</li>
+ *   <li>Team-owned services are visible to team members</li>
+ *   <li>Shared services are visible to teams they're shared with</li>
+ * </ul>
+ * </p>
  *
  * @param ownerTeamId filter by owner team ID
  * @param lifecycle filter by service lifecycle
  * @param tags filter by tags (any match)
  * @param search search term for display name
  * @param userTeamIds team IDs for ABAC filtering (null for admin queries)
+ * @param sharedServiceIds service IDs shared to user's teams (for shared service visibility)
+ * @param includeOrphaned whether to include orphaned services (ownerTeamId=null)
  */
 @Builder(toBuilder = true)
 @With
@@ -27,7 +37,9 @@ public record ApplicationServiceCriteria(
         ApplicationService.ServiceLifecycle lifecycle,
         List<String> tags,
         String search,
-        List<String> userTeamIds
+        List<String> userTeamIds,
+        List<String> sharedServiceIds,
+        Boolean includeOrphaned
 ) {
 
     /**

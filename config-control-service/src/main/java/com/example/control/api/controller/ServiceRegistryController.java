@@ -70,43 +70,43 @@ public class ServiceRegistryController {
     return ResponseEntity.ok(services);
   }
 
-  @GetMapping("/services/{serviceName}")
-  @Operation(
-      summary = "Get service details",
-      description = """
-          Retrieves detailed information about a specific service from Consul.
-          This includes all registered instances and their metadata.
-          """,
-      security = {
-        @SecurityRequirement(name = "oauth2_auth_code"),
-        @SecurityRequirement(name = "oauth2_password")
-      },
-      operationId = "getServiceRegistryService"
-  )
-  @ApiResponses(value = {
-      @ApiResponse(responseCode = "200", description = "Service details retrieved successfully",
-          content = @Content(schema = @Schema(implementation = ConsulDto.ConsulServiceResponse.class, type = "array"))),
-      @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
-          content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
-      @ApiResponse(responseCode = "403", description = "Forbidden - Insufficient permissions",
-          content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
-      @ApiResponse(responseCode = "404", description = "Service not found",
-          content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
-      @ApiResponse(responseCode = "500", description = "Internal server error or Consul unreachable",
-          content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
-  })
-  @Timed(value = "api.registry.services.get")
-  public ResponseEntity<List<ConsulDto.ConsulServiceResponse>> getServiceRegistryService(
-      @Parameter(description = "Name of the service", example = "payment-service")
-      @PathVariable String serviceName) {
+//   @GetMapping("/services/{serviceName}")
+//   @Operation(
+//       summary = "Get service details",
+//       description = """
+//           Retrieves detailed information about a specific service from Consul.
+//           This includes all registered instances and their metadata.
+//           """,
+//       security = {
+//         @SecurityRequirement(name = "oauth2_auth_code"),
+//         @SecurityRequirement(name = "oauth2_password")
+//       },
+//       operationId = "getServiceRegistryService"
+//   )
+//   @ApiResponses(value = {
+//       @ApiResponse(responseCode = "200", description = "Service details retrieved successfully",
+//           content = @Content(schema = @Schema(implementation = ConsulDto.ConsulServiceResponse.class, type = "array"))),
+//       @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
+//           content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+//       @ApiResponse(responseCode = "403", description = "Forbidden - Insufficient permissions",
+//           content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+//       @ApiResponse(responseCode = "404", description = "Service not found",
+//           content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+//       @ApiResponse(responseCode = "500", description = "Internal server error or Consul unreachable",
+//           content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+//   })
+//   @Timed(value = "api.registry.services.get")
+//   public ResponseEntity<List<ConsulDto.ConsulServiceResponse>> getServiceRegistryService(
+//       @Parameter(description = "Name of the service", example = "payment-service")
+//       @PathVariable String serviceName) {
 
-    log.debug("Getting service details for: {}", serviceName);
+//     log.debug("Getting service details for: {}", serviceName);
 
-    String response = consulClient.getService(serviceName);
-    List<ConsulDto.ConsulServiceResponse> serviceDetails = ConsulMapper.parseServiceResponse(response, objectMapper);
+//     String response = consulClient.getService(serviceName);
+//     List<ConsulDto.ConsulServiceResponse> serviceDetails = ConsulMapper.parseServiceResponse(response, objectMapper);
 
-    return ResponseEntity.ok(serviceDetails);
-  }
+//     return ResponseEntity.ok(serviceDetails);
+//   }
 
   @GetMapping("/services/{serviceName}/instances")
   @Operation(
@@ -123,7 +123,7 @@ public class ServiceRegistryController {
   )
   @ApiResponses(value = {
       @ApiResponse(responseCode = "200", description = "Service instances retrieved successfully",
-          content = @Content(schema = @Schema(implementation = ApiResponseDto.ServiceInstanceSummary.class, type = "array"))),
+          content = @Content(schema = @Schema(implementation = ApiResponseDto.ServiceInstancesRegistryResponse.class))),
       @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
           content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
       @ApiResponse(responseCode = "403", description = "Forbidden - Insufficient permissions",
@@ -134,7 +134,7 @@ public class ServiceRegistryController {
           content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   })
   @Timed(value = "api.registry.services.instances")
-  public ResponseEntity<List<ApiResponseDto.ServiceInstanceSummary>> getServiceRegistryServiceInstances(
+  public ResponseEntity<ApiResponseDto.ServiceInstancesRegistryResponse> getServiceRegistryServiceInstances(
       @Parameter(description = "Name of the service", example = "payment-service")
       @PathVariable String serviceName,
       @Parameter(description = "Filter to only healthy instances", example = "true")
@@ -146,45 +146,48 @@ public class ServiceRegistryController {
         ? consulClient.getHealthyServiceInstances(serviceName)
         : consulClient.getServiceInstances(serviceName);
     List<ApiResponseDto.ServiceInstanceSummary> summaries = ConsulMapper.toSummariesFromHealthJson(response, objectMapper);
-
-    return ResponseEntity.ok(summaries);
+    ApiResponseDto.ServiceInstancesRegistryResponse responseDto = ApiResponseDto.ServiceInstancesRegistryResponse.builder()
+        .serviceName(serviceName)
+        .instances(summaries)
+        .build();
+    return ResponseEntity.ok(responseDto);
   }
 
-  @GetMapping("/health/{serviceName}")
-  @Operation(
-      summary = "Get service health status",
-      description = """
-          Retrieves the health status of a specific service from Consul.
-          This includes health checks for all instances of the service.
-          """,
-      security = {
-        @SecurityRequirement(name = "oauth2_auth_code"),
-        @SecurityRequirement(name = "oauth2_password")
-      },
-      operationId = "getServiceRegistryServiceHealth"
-  )
-  @ApiResponses(value = {
-      @ApiResponse(responseCode = "200", description = "Service health status retrieved successfully",
-          content = @Content(schema = @Schema(implementation = ConsulDto.ConsulHealthResponse.class, type = "array"))),
-      @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
-          content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
-      @ApiResponse(responseCode = "403", description = "Forbidden - Insufficient permissions",
-          content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
-      @ApiResponse(responseCode = "404", description = "Service not found",
-          content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
-      @ApiResponse(responseCode = "500", description = "Internal server error or Consul unreachable",
-          content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
-  })
-  @Timed(value = "api.registry.health.get")
-  public ResponseEntity<List<ConsulDto.ConsulHealthResponse>> getServiceHealth(
-      @Parameter(description = "Name of the service", example = "payment-service")
-      @PathVariable String serviceName) {
+//   @GetMapping("/health/{serviceName}")
+//   @Operation(
+//       summary = "Get service health status",
+//       description = """
+//           Retrieves the health status of a specific service from Consul.
+//           This includes health checks for all instances of the service.
+//           """,
+//       security = {
+//         @SecurityRequirement(name = "oauth2_auth_code"),
+//         @SecurityRequirement(name = "oauth2_password")
+//       },
+//       operationId = "getServiceRegistryServiceHealth"
+//   )
+//   @ApiResponses(value = {
+//       @ApiResponse(responseCode = "200", description = "Service health status retrieved successfully",
+//           content = @Content(schema = @Schema(implementation = ConsulDto.ConsulHealthResponse.class, type = "array"))),
+//       @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
+//           content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+//       @ApiResponse(responseCode = "403", description = "Forbidden - Insufficient permissions",
+//           content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+//       @ApiResponse(responseCode = "404", description = "Service not found",
+//           content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+//       @ApiResponse(responseCode = "500", description = "Internal server error or Consul unreachable",
+//           content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+//   })
+//   @Timed(value = "api.registry.health.get")
+//   public ResponseEntity<List<ConsulDto.ConsulHealthResponse>> getServiceHealth(
+//       @Parameter(description = "Name of the service", example = "payment-service")
+//       @PathVariable String serviceName) {
 
-    log.debug("Getting health status for service: {}", serviceName);
+//     log.debug("Getting health status for service: {}", serviceName);
 
-    String response = consulClient.getServiceHealth(serviceName);
-    List<ConsulDto.ConsulHealthResponse> healthStatus = ConsulMapper.parseHealthResponse(response, objectMapper);
+//     String response = consulClient.getServiceHealth(serviceName);
+//     List<ConsulDto.ConsulHealthResponse> healthStatus = ConsulMapper.parseHealthResponse(response, objectMapper);
 
-    return ResponseEntity.ok(healthStatus);
-  }
+//     return ResponseEntity.ok(healthStatus);
+//   }
 }

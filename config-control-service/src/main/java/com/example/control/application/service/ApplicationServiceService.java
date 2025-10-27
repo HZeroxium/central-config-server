@@ -35,6 +35,7 @@ public class ApplicationServiceService {
     private final ApplicationServiceRepositoryPort repository;
     private final ServiceInstanceService serviceInstanceService;
     private final DriftEventService driftEventService;
+    private final ServiceShareService serviceShareService;
 
     /**
      * Save or update an application service.
@@ -150,18 +151,56 @@ public class ApplicationServiceService {
     /**
      * List application services with filtering and pagination.
      * <p>
-     * Application services are public - no team filtering required.
+     * <strong>Visibility Rules:</strong>
+     * <ul>
+     *   <li>System admins see all services</li>
+     *   <li>Regular users see:
+     *     <ul>
+     *       <li>Orphaned services (ownerTeamId=null) - for ownership requests</li>
+     *       <li>Services owned by their teams</li>
+     *       <li>Services shared to their teams via ServiceShare</li>
+     *     </ul>
+     *   </li>
+     * </ul>
      *
-     * @param filter the filter criteria
+     * @param criteria the filter criteria (may be enriched with visibility filters)
      * @param pageable pagination information
-     * @param userContext the current user context (for future use)
-     * @return page of application services
+     * @param userContext the current user context for permission filtering
+     * @return page of application services visible to the user
      */
     public Page<ApplicationService> findAll(ApplicationServiceCriteria criteria, 
                                         Pageable pageable, 
                                         UserContext userContext) {
-        log.debug("Listing application services with criteria: {}, pageable: {}", criteria, pageable);
-        return repository.findAll(criteria, pageable);
+        log.debug("Listing application services with criteria: {} for user: {}", criteria, userContext.getUserId());
+        
+        // System admins can see all services - no filtering
+        if (userContext.isSysAdmin()) {
+            log.debug("User {} is SYS_ADMIN, returning all services", userContext.getUserId());
+            return repository.findAll(criteria, pageable);
+        }
+        
+        // For regular users: apply visibility filtering
+        // Users can see: (1) orphaned services, (2) team-owned services, (3) shared services
+        
+        // Get services shared to user's teams
+        List<String> sharedServiceIds = serviceShareService.getSharedServiceIdsForTeams(userContext.getTeamIds());
+        log.debug("Found {} services shared to user {} teams: {}", 
+                sharedServiceIds.size(), userContext.getUserId(), userContext.getTeamIds());
+        
+        // Build enriched criteria with visibility filters
+        ApplicationServiceCriteria enrichedCriteria = (criteria != null ? criteria.toBuilder() : ApplicationServiceCriteria.builder())
+                .includeOrphaned(true)  // Always include orphaned services for ownership requests
+                .userTeamIds(userContext.getTeamIds())  // Include team-owned services
+                .sharedServiceIds(sharedServiceIds.isEmpty() ? null : sharedServiceIds)  // Include shared services
+                .build();
+        
+        log.debug("Enriched criteria for user {}: includeOrphaned=true, userTeamIds={}, sharedServiceIds={}", 
+                userContext.getUserId(), userContext.getTeamIds(), sharedServiceIds.size());
+        
+        Page<ApplicationService> result = repository.findAll(enrichedCriteria, pageable);
+        log.debug("Found {} application services for user {}", result.getTotalElements(), userContext.getUserId());
+        
+        return result;
     }
 
     /**
