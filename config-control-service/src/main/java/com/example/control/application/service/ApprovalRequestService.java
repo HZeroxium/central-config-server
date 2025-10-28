@@ -212,4 +212,11 @@ public class ApprovalRequestService {
         log.debug("Approval request exists: {}", exists);
         return exists;
     }
+
+    /**
+     * Expose repository operations needed by higher-level orchestration.
+     */
+    public ApprovalRequestRepositoryPort getRepository() {
+        return repository;
+    }
 }

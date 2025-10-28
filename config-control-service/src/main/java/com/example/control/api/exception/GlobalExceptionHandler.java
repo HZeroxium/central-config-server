@@ -40,6 +40,7 @@ public class GlobalExceptionHandler {
   private static final String NOT_FOUND_TYPE = "https://api.example.com/problems/not-found";
   private static final String BAD_REQUEST_TYPE = "https://api.example.com/problems/bad-request";
   private static final String EXTERNAL_SERVICE_TYPE = "https://api.example.com/problems/external-service-error";
+  private static final String CONFLICT_TYPE = "https://api.example.com/problems/conflict";
 
   /**
    * Handle ConfigControlException and its subclasses.
@@ -361,6 +362,8 @@ public class GlobalExceptionHandler {
       return HttpStatus.NOT_FOUND;
     } else if (ex instanceof ValidationException) {
       return HttpStatus.BAD_REQUEST;
+    } else if (ex instanceof com.example.control.api.exception.exceptions.ConflictException) {
+      return HttpStatus.CONFLICT;
     } else if (ex instanceof ConfigurationException) {
       return HttpStatus.UNPROCESSABLE_ENTITY;
     } else if (ex instanceof ExternalServiceException) {
@@ -377,6 +380,8 @@ public class GlobalExceptionHandler {
       return NOT_FOUND_TYPE;
     } else if (ex instanceof ValidationException) {
       return VALIDATION_ERROR_TYPE;
+    } else if (ex instanceof com.example.control.api.exception.exceptions.ConflictException) {
+      return CONFLICT_TYPE;
     } else if (ex instanceof ConfigurationException) {
       return BAD_REQUEST_TYPE;
     } else if (ex instanceof ExternalServiceException) {

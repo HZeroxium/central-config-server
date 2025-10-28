@@ -11,7 +11,9 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Service for managing approval decisions with caching.
@@ -132,5 +134,42 @@ public class ApprovalDecisionService {
         log.debug("Deleting approval decision: {}", id);
         repository.deleteById(id);
         log.debug("Deleted approval decision: {}", id);
+    }
+
+    /**
+     * Create a system-generated approval decision.
+     * <p>
+     * Used for cascade operations where the system automatically approves or rejects
+     * requests based on service ownership assignment.
+     * </p>
+     *
+     * @param requestId the approval request ID
+     * @param gate the gate name
+     * @param decision the decision type (APPROVE or REJECT)
+     * @param note the reason/note for the decision
+     * @return the created system decision
+     */
+    @Transactional
+    @CacheEvict(value = "approval-decisions", allEntries = true)
+    public ApprovalDecision createSystemDecision(ApprovalRequestId requestId,
+                                                 String gate,
+                                                 ApprovalDecision.Decision decision,
+                                                 String note) {
+        log.debug("Creating system decision for request: {}, gate: {}, decision: {}",
+                requestId, gate, decision);
+
+        ApprovalDecision systemDecision = ApprovalDecision.builder()
+                .id(ApprovalDecisionId.of(UUID.randomUUID().toString()))
+                .requestId(requestId)
+                .approverUserId("SYSTEM")
+                .gate(gate)
+                .decision(decision)
+                .decidedAt(Instant.now())
+                .note(note)
+                .build();
+
+        ApprovalDecision saved = repository.save(systemDecision);
+        log.info("Created system decision: {} for request: {}", saved.getId(), requestId);
+        return saved;
     }
 }

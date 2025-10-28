@@ -13,6 +13,7 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
+import java.util.List;
 
 /**
  * MongoDB adapter implementation for {@link ApprovalRequestRepositoryPort}.
@@ -117,5 +118,37 @@ public class ApprovalRequestMongoAdapter
             log.error("Error updating approval request: {} to status: {}", id, status, e);
             return false;
         }
+    }
+
+    @Override
+    public boolean existsPendingByRequesterAndService(String requesterUserId, String serviceId) {
+        return repository.existsByRequesterUserIdAndTargetServiceIdAndStatus(requesterUserId, serviceId, "PENDING");
+    }
+
+    @Override
+    public long cascadeApproveSameTeamPending(String serviceId, String teamId) {
+        return repository.cascadeApproveSameTeamPending(serviceId, teamId, Instant.now());
+    }
+
+    @Override
+    public long cascadeRejectOtherTeamsPending(String serviceId, String approvedTeamId, String reason) {
+        return repository.cascadeRejectOtherTeamsPending(serviceId, approvedTeamId, Instant.now(), reason);
+    }
+
+    @Override
+    public List<ApprovalRequest> findAllPendingByServiceId(String serviceId) {
+        log.debug("Finding all PENDING requests for service: {}", serviceId);
+
+        Query query = new Query();
+        query.addCriteria(Criteria.where("targetServiceId").is(serviceId));
+        query.addCriteria(Criteria.where("status").is("PENDING"));
+
+        List<ApprovalRequestDocument> documents = mongoTemplate.find(query, ApprovalRequestDocument.class);
+        List<ApprovalRequest> requests = documents.stream()
+                .map(this::toDomain)
+                .toList();
+
+        log.debug("Found {} PENDING requests for service: {}", requests.size(), serviceId);
+        return requests;
     }
 }

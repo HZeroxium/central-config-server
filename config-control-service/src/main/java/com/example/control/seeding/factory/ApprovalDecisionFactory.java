@@ -160,4 +160,37 @@ public class ApprovalDecisionFactory {
 
     return templates.get(faker.random().nextInt(templates.size()));
   }
+
+  /**
+   * Generates a system-generated approval decision.
+   * <p>
+   * Used for cascade operations where the system automatically approves or rejects
+   * requests based on service ownership assignment.
+   * </p>
+   *
+   * @param requestId approval request ID (as string)
+   * @param gate gate name for this decision
+   * @param decision decision type (APPROVE or REJECT)
+   * @param note the reason/note for the decision
+   * @return generated system decision
+   */
+  public ApprovalDecision generateSystemDecision(
+      String requestId,
+      String gate,
+      ApprovalDecision.Decision decision,
+      String note) {
+
+    log.debug("Generated system decision for request: {}, gate: {}, decision: {}",
+        requestId, gate, decision);
+
+    return ApprovalDecision.builder()
+        .id(ApprovalDecisionId.of(UUID.randomUUID().toString()))
+        .requestId(ApprovalRequestId.of(requestId))
+        .approverUserId("SYSTEM")
+        .gate(gate)
+        .decision(decision)
+        .decidedAt(Instant.now())
+        .note(note)
+        .build();
+  }
 }

@@ -337,7 +337,7 @@ seeding:
     services:
       team1-count: 3
       team2-count: 3
-      orphan-count: 2
+      orphan-count: 8 # Increased to support multi-user approval scenarios
     instances-per-service:
       min: 5
       max: 10
@@ -347,8 +347,8 @@ seeding:
     shares:
       count: 5
     approval-requests:
-      pending: 2
-      approved: 3
-      rejected: 1
+      pending: 3 # Multiple users competing for same services
+      approved: 4 # Including cascade approvals and multi-gate
+      rejected: 2 # Including cascade rejections
   admin:
     user-id: ${SEEDER_ADMIN_USER_ID:admin} # Default admin user ID from Keycloak

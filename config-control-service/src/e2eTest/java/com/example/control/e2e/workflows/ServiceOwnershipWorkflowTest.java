@@ -16,7 +16,6 @@ import org.junit.jupiter.api.Test;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.*;
-import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Service Ownership workflow tests for E2E testing.

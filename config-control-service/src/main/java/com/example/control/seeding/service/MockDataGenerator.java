@@ -263,7 +263,13 @@ public class MockDataGenerator {
   }
 
   /**
-   * Generates approval requests for orphan services.
+   * Generates approval requests for orphan services with multi-user scenarios.
+   * <p>
+   * Creates realistic scenarios including:
+   * - Multiple users requesting the same service (competition)
+   * - User retry patterns (rejected then approved)
+   * - Multi-gate approvals (LINE_MANAGER + SYS_ADMIN)
+   * </p>
    *
    * @param services list of services
    * @return list of generated approval requests
@@ -277,6 +283,7 @@ public class MockDataGenerator {
         .toList();
 
     if (orphanServices.isEmpty()) {
+      log.warn("No orphan services found for approval request generation");
       return requests;
     }
 
@@ -284,38 +291,75 @@ public class MockDataGenerator {
     int approvedCount = config.getData().getApprovalRequests().getApproved();
     int rejectedCount = config.getData().getApprovalRequests().getRejected();
 
-    int requestIndex = 0;
+    log.debug("Generating approval requests: pending={}, approved={}, rejected={}",
+        pendingCount, approvedCount, rejectedCount);
 
-    // Generate PENDING requests
-    for (int i = 0; i < pendingCount && requestIndex < orphanServices.size(); i++) {
-      ApplicationService service = orphanServices.get(requestIndex++);
-      String targetTeamId = config.getTeamId(i % config.getData().getTeams().getCount());
+    // Define test users
+    String[] users = {"user1", "user2", "user3", "user4", "user5"};
+    String team1Id = config.getTeamId(0);
+    String team2Id = config.getTeamId(1);
 
-      ApprovalRequest request = approvalRequestFactory.generate(
-          service, targetTeamId, ApprovalRequest.ApprovalStatus.PENDING);
-      requests.add(request);
+    // Scenario 1: PENDING requests - multiple users competing for same services
+    // Service 0: user1 (team1) and user3 (team2) both pending
+    if (orphanServices.size() > 0 && pendingCount >= 2) {
+      ApplicationService service0 = orphanServices.get(0);
+      
+      // User1 requests for team1 (PENDING)
+      requests.add(approvalRequestFactory.generateForUser(
+          service0, team1Id, users[0], ApprovalRequest.ApprovalStatus.PENDING));
+      
+      // User3 requests for team2 (PENDING) - competition
+      requests.add(approvalRequestFactory.generateForUser(
+          service0, team2Id, users[2], ApprovalRequest.ApprovalStatus.PENDING));
+      
+      pendingCount -= 2;
     }
 
-    // Generate APPROVED requests
-    for (int i = 0; i < approvedCount && requestIndex < orphanServices.size(); i++) {
-      ApplicationService service = orphanServices.get(requestIndex++);
-      String targetTeamId = config.getTeamId(i % config.getData().getTeams().getCount());
-
-      ApprovalRequest request = approvalRequestFactory.generate(
-          service, targetTeamId, ApprovalRequest.ApprovalStatus.APPROVED);
-      requests.add(request);
+    // Add remaining PENDING requests from various users
+    int serviceIdx = 1;
+    for (int i = 0; i < pendingCount && serviceIdx < orphanServices.size(); i++) {
+      ApplicationService service = orphanServices.get(serviceIdx);
+      String userId = users[i % users.length];
+      String targetTeamId = (i % 2 == 0) ? team1Id : team2Id;
+      
+      requests.add(approvalRequestFactory.generateForUser(
+          service, targetTeamId, userId, ApprovalRequest.ApprovalStatus.PENDING));
+      serviceIdx++;
     }
 
-    // Generate REJECTED requests
-    for (int i = 0; i < rejectedCount && requestIndex < orphanServices.size(); i++) {
-      ApplicationService service = orphanServices.get(requestIndex++);
-      String targetTeamId = config.getTeamId(i % config.getData().getTeams().getCount());
-
-      ApprovalRequest request = approvalRequestFactory.generate(
-          service, targetTeamId, ApprovalRequest.ApprovalStatus.REJECTED);
-      requests.add(request);
+    // Scenario 2: APPROVED requests - simulate successful approvals
+    // Include multi-gate approvals (with LINE_MANAGER)
+    for (int i = 0; i < approvedCount && serviceIdx < orphanServices.size(); i++) {
+      ApplicationService service = orphanServices.get(serviceIdx);
+      String userId = users[i % users.length];
+      String targetTeamId = (i % 2 == 0) ? team1Id : team2Id;
+      
+      // Every other approved request has LINE_MANAGER gate
+      if (i % 2 == 0) {
+        // With LINE_MANAGER gate (user2 reports to user1)
+        String managerId = "user1";
+        requests.add(approvalRequestFactory.generateWithManager(
+            service, targetTeamId, users[1], managerId, ApprovalRequest.ApprovalStatus.APPROVED));
+      } else {
+        // SYS_ADMIN only
+        requests.add(approvalRequestFactory.generateForUser(
+            service, targetTeamId, userId, ApprovalRequest.ApprovalStatus.APPROVED));
+      }
+      serviceIdx++;
     }
 
+    // Scenario 3: REJECTED requests - simulate rejections
+    for (int i = 0; i < rejectedCount && serviceIdx < orphanServices.size(); i++) {
+      ApplicationService service = orphanServices.get(serviceIdx);
+      String userId = users[i % users.length];
+      String targetTeamId = (i % 2 == 0) ? team1Id : team2Id;
+      
+      requests.add(approvalRequestFactory.generateForUser(
+          service, targetTeamId, userId, ApprovalRequest.ApprovalStatus.REJECTED));
+      serviceIdx++;
+    }
+
+    log.info("Generated {} approval requests with multi-user scenarios", requests.size());
     return requests;
   }
 

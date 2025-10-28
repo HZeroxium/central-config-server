@@ -67,7 +67,7 @@ public class ApprovalRequestFactory {
 
     List<ApprovalRequest.ApprovalGate> requiredGates = generateRequiredGates();
 
-    ApprovalRequest.RequesterSnapshot snapshot = generateRequesterSnapshot(targetTeamId);
+    ApprovalRequest.RequesterSnapshot snapshot = generateRequesterSnapshot(targetTeamId, null);
 
     Map<String, Integer> approvalCounts = generateApprovalCounts(requiredGates, status);
 
@@ -82,6 +82,101 @@ public class ApprovalRequestFactory {
     return ApprovalRequest.builder()
         .id(ApprovalRequestId.of(UUID.randomUUID().toString()))
         .requesterUserId(requesterId)
+        .requestType(ApprovalRequest.RequestType.ASSIGN_SERVICE_TO_TEAM)
+        .target(target)
+        .required(requiredGates)
+        .status(status)
+        .snapshot(snapshot)
+        .counts(approvalCounts)
+        .createdAt(createdAt)
+        .updatedAt(updatedAt)
+        .version(0)
+        .note(note)
+        .build();
+  }
+
+  /**
+   * Generates an {@link ApprovalRequest} with explicit user control.
+   *
+   * @param service      orphan service to be assigned
+   * @param targetTeamId team requesting ownership
+   * @param userId       specific user ID for the requester
+   * @param status       desired approval status
+   * @return generated approval request
+   */
+  public ApprovalRequest generateForUser(ApplicationService service, String targetTeamId,
+      String userId, ApprovalRequest.ApprovalStatus status) {
+
+    ApprovalRequest.ApprovalTarget target = ApprovalRequest.ApprovalTarget.builder()
+        .serviceId(service.getId().id())
+        .teamId(targetTeamId)
+        .build();
+
+    List<ApprovalRequest.ApprovalGate> requiredGates = generateRequiredGates();
+
+    ApprovalRequest.RequesterSnapshot snapshot = generateRequesterSnapshot(targetTeamId, null);
+
+    Map<String, Integer> approvalCounts = generateApprovalCounts(requiredGates, status);
+
+    Instant createdAt = generateCreatedAt();
+    Instant updatedAt = generateUpdatedAt(createdAt, status);
+
+    String note = generateRequestNote(service, targetTeamId);
+
+    log.debug("Generated approval request for user {}: service={} team={} status={}",
+        userId, service.getId().id(), targetTeamId, status);
+
+    return ApprovalRequest.builder()
+        .id(ApprovalRequestId.of(UUID.randomUUID().toString()))
+        .requesterUserId(userId)
+        .requestType(ApprovalRequest.RequestType.ASSIGN_SERVICE_TO_TEAM)
+        .target(target)
+        .required(requiredGates)
+        .status(status)
+        .snapshot(snapshot)
+        .counts(approvalCounts)
+        .createdAt(createdAt)
+        .updatedAt(updatedAt)
+        .version(0)
+        .note(note)
+        .build();
+  }
+
+  /**
+   * Generates an {@link ApprovalRequest} with manager for multi-gate scenarios.
+   *
+   * @param service      orphan service to be assigned
+   * @param targetTeamId team requesting ownership
+   * @param userId       specific user ID for the requester
+   * @param managerId    manager user ID for LINE_MANAGER gate
+   * @param status       desired approval status
+   * @return generated approval request with LINE_MANAGER gate
+   */
+  public ApprovalRequest generateWithManager(ApplicationService service, String targetTeamId,
+      String userId, String managerId, ApprovalRequest.ApprovalStatus status) {
+
+    ApprovalRequest.ApprovalTarget target = ApprovalRequest.ApprovalTarget.builder()
+        .serviceId(service.getId().id())
+        .teamId(targetTeamId)
+        .build();
+
+    List<ApprovalRequest.ApprovalGate> requiredGates = generateRequiredGatesWithLineManager();
+
+    ApprovalRequest.RequesterSnapshot snapshot = generateRequesterSnapshot(targetTeamId, managerId);
+
+    Map<String, Integer> approvalCounts = generateApprovalCounts(requiredGates, status);
+
+    Instant createdAt = generateCreatedAt();
+    Instant updatedAt = generateUpdatedAt(createdAt, status);
+
+    String note = generateRequestNote(service, targetTeamId);
+
+    log.debug("Generated approval request with manager for user {}: service={} team={} status={}",
+        userId, service.getId().id(), targetTeamId, status);
+
+    return ApprovalRequest.builder()
+        .id(ApprovalRequestId.of(UUID.randomUUID().toString()))
+        .requesterUserId(userId)
         .requestType(ApprovalRequest.RequestType.ASSIGN_SERVICE_TO_TEAM)
         .target(target)
         .required(requiredGates)
@@ -122,15 +217,37 @@ public class ApprovalRequestFactory {
   }
 
   /**
+   * Generates required approval gates including LINE_MANAGER.
+   *
+   * @return list of approval gates (SYS_ADMIN + LINE_MANAGER)
+   */
+  private List<ApprovalRequest.ApprovalGate> generateRequiredGatesWithLineManager() {
+    ApprovalRequest.ApprovalGate sysAdminGate = ApprovalRequest.ApprovalGate.builder()
+        .gate("SYS_ADMIN")
+        .minApprovals(1)
+        .status(ApprovalRequest.ApprovalGate.GateStatus.PENDING)
+        .build();
+
+    ApprovalRequest.ApprovalGate lineManagerGate = ApprovalRequest.ApprovalGate.builder()
+        .gate("LINE_MANAGER")
+        .minApprovals(1)
+        .status(ApprovalRequest.ApprovalGate.GateStatus.PENDING)
+        .build();
+
+    return List.of(sysAdminGate, lineManagerGate);
+  }
+
+  /**
    * Generates requester snapshot with team and role information.
    *
    * @param targetTeamId team the requester belongs to
+   * @param managerId manager ID (null if no manager)
    * @return requester snapshot
    */
-  private ApprovalRequest.RequesterSnapshot generateRequesterSnapshot(String targetTeamId) {
+  private ApprovalRequest.RequesterSnapshot generateRequesterSnapshot(String targetTeamId, String managerId) {
     return ApprovalRequest.RequesterSnapshot.builder()
         .teamIds(List.of(targetTeamId))
-        .managerId("manager-" + targetTeamId)
+        .managerId(managerId)
         .roles(List.of("TEAM_MEMBER"))
         .build();
   }
