@@ -21,6 +21,10 @@ import java.util.UUID;
  */
 public final class ServiceShareApiMapper {
 
+    private ServiceShareApiMapper() {
+        throw new UnsupportedOperationException("Utility class");
+    }
+
     /**
      * Map CreateRequest DTO to domain entity.
      *

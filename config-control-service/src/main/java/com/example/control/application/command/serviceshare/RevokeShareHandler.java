@@ -29,7 +29,7 @@ public class RevokeShareHandler {
      *
      * @param command the revoke share command
      * @throws IllegalArgumentException if share not found
-     * @throws IllegalStateException if user lacks permission to revoke
+     * @throws IllegalStateException    if user lacks permission to revoke
      */
     @CacheEvict(value = "service-shares", allEntries = true)
     public void handle(RevokeShareCommand command) {
@@ -42,7 +42,7 @@ public class RevokeShareHandler {
         UserContext userContext = UserContext.builder()
                 .userId(command.revokedBy())
                 .build();
-        
+
         if (!canRevokeShare(userContext, share)) {
             throw new IllegalStateException("User does not have permission to revoke this share");
         }
@@ -57,7 +57,7 @@ public class RevokeShareHandler {
      * Users can revoke shares they granted, system admins can revoke any share.
      *
      * @param userContext the user context
-     * @param share the service share
+     * @param share       the service share
      * @return true if user can revoke the share
      */
     private boolean canRevokeShare(UserContext userContext, ServiceShare share) {

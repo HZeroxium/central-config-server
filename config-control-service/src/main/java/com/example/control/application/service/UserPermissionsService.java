@@ -1,4 +1,4 @@
-                                                                                                                                                                                                                                                                                                                                                                                                                                    package com.example.control.application.service;
+package com.example.control.application.service;
 
 import com.example.control.application.query.ApplicationServiceQueryService;
 import com.example.control.application.query.ServiceShareQueryService;
@@ -21,7 +21,8 @@ import java.util.Set;
  * Service for managing user permissions and access control discovery.
  * <p>
  * Provides methods to determine what resources and actions a user can access,
- * which is used by the frontend to show/hide UI elements and enable/disable features.
+ * which is used by the frontend to show/hide UI elements and enable/disable
+ * features.
  * </p>
  */
 @Slf4j
@@ -75,14 +76,17 @@ public class UserPermissionsService {
         builder.sharedServiceIds(sharedServiceIds);
 
         UserPermissions permissions = builder.build();
-        log.debug("Generated permissions for user {}: {} API routes, {} UI routes, {} owned services, {} shared services",
-                userContext.getUserId(), accessibleApiRoutes.size(), accessibleUiRoutes.size(), ownedServiceIds.size(), sharedServiceIds.size());
+        log.debug(
+                "Generated permissions for user {}: {} API routes, {} UI routes, {} owned services, {} shared services",
+                userContext.getUserId(), accessibleApiRoutes.size(), accessibleUiRoutes.size(), ownedServiceIds.size(),
+                sharedServiceIds.size());
 
         return permissions;
     }
 
     /**
-     * Determine which API routes the user can access based on their roles and teams.
+     * Determine which API routes the user can access based on their roles and
+     * teams.
      *
      * @param userContext the user context
      * @return set of accessible API route patterns

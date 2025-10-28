@@ -5,10 +5,13 @@ import com.example.control.domain.object.ServiceInstance;
 
 public final class ServiceInstanceMapper {
 
-  private ServiceInstanceMapper() {}
+  private ServiceInstanceMapper() {
+    throw new UnsupportedOperationException("Utility class");
+  }
 
   public static ApiResponseDto.ServiceInstanceSummary toSummary(ServiceInstance instance) {
-    if (instance == null) return null;
+    if (instance == null)
+      return null;
     return ApiResponseDto.ServiceInstanceSummary.builder()
         .serviceName(instance.getServiceId())
         .instanceId(instance.getInstanceId())
@@ -18,14 +21,15 @@ public final class ServiceInstanceMapper {
         .scheme("http")
         .uri(buildUri(instance))
         .healthy(instance.getStatus() == ServiceInstance.InstanceStatus.HEALTHY)
-        .lastSeenAt(instance.getLastSeenAt() != null ? instance.getLastSeenAt().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli() : null)
+        .lastSeenAt(instance.getLastSeenAt() != null
+            ? instance.getLastSeenAt().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+            : null)
         .build();
   }
 
   private static String buildUri(ServiceInstance instance) {
-    if (instance.getHost() == null || instance.getPort() == null) return null;
+    if (instance.getHost() == null || instance.getPort() == null)
+      return null;
     return "http://" + instance.getHost() + ":" + instance.getPort();
   }
 }
-
-

@@ -20,7 +20,8 @@ import java.util.UUID;
 /**
  * Command handler for creating drift events.
  * <p>
- * Validates service existence, sets teamId from ApplicationService, and checks permissions.
+ * Validates service existence, sets teamId from ApplicationService, and checks
+ * permissions.
  * </p>
  */
 @Slf4j
@@ -39,20 +40,22 @@ public class CreateDriftEventHandler {
      * @param command the create command
      * @return the saved drift event
      * @throws IllegalArgumentException if service not found
-     * @throws SecurityException if user lacks permission
+     * @throws SecurityException        if user lacks permission
      */
     @CacheEvict(value = "drift-events", allEntries = true)
     public DriftEvent handle(CreateDriftEventCommand command) {
         log.debug("Creating drift event for service {} by user {}", command.serviceName(), command.detectedBy());
-        
+
         // Validate serviceId exists and get ApplicationService
         if (command.serviceId() == null) {
             throw new IllegalArgumentException("ServiceId is required for drift event creation");
         }
-        
-        ApplicationService service = applicationServiceQueryService.findById(ApplicationServiceId.of(command.serviceId()))
-                .orElseThrow(() -> new IllegalArgumentException("ApplicationService not found: " + command.serviceId()));
-        
+
+        ApplicationService service = applicationServiceQueryService
+                .findById(ApplicationServiceId.of(command.serviceId()))
+                .orElseThrow(
+                        () -> new IllegalArgumentException("ApplicationService not found: " + command.serviceId()));
+
         // Build the drift event
         DriftEvent event = DriftEvent.builder()
                 .id(DriftEventId.of(UUID.randomUUID().toString()))
@@ -66,18 +69,19 @@ public class CreateDriftEventHandler {
                 .detectedAt(Instant.now())
                 .detectedBy(command.detectedBy())
                 .build();
-        
+
         // Check if user can create drift events for this service
         UserContext userContext = UserContext.builder()
                 .userId(command.detectedBy())
                 .build();
-        
+
         if (!permissionEvaluator.canEditDriftEvent(userContext, event)) {
-            log.warn("User {} denied permission to create drift event for service {}", 
+            log.warn("User {} denied permission to create drift event for service {}",
                     command.detectedBy(), command.serviceName());
-            throw new SecurityException("Insufficient permissions to create drift event for service: " + command.serviceName());
+            throw new SecurityException(
+                    "Insufficient permissions to create drift event for service: " + command.serviceName());
         }
-        
+
         DriftEvent saved = repository.save(event);
         log.debug("Successfully saved drift event: {}", saved.getId());
         return saved;

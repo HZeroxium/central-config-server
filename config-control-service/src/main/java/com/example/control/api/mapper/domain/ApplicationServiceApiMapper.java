@@ -23,6 +23,10 @@ import java.util.Map;
 @Component
 public final class ApplicationServiceApiMapper {
 
+    private ApplicationServiceApiMapper() {
+        throw new UnsupportedOperationException("Utility class");
+    }
+
     /**
      * Map CreateRequest DTO to domain entity.
      *
@@ -48,14 +52,16 @@ public final class ApplicationServiceApiMapper {
     /**
      * Apply UpdateRequest to existing domain entity.
      *
-     * @param entity the existing entity
+     * @param entity  the existing entity
      * @param request the update request
      * @return the updated entity
      */
     public static ApplicationService apply(ApplicationService entity, ApplicationServiceDtos.UpdateRequest request) {
         return entity.toBuilder()
                 .displayName(request.displayName() != null ? request.displayName() : entity.getDisplayName())
-                .lifecycle(request.lifecycle() != null ? ApplicationService.ServiceLifecycle.valueOf(request.lifecycle()) : entity.getLifecycle())
+                .lifecycle(
+                        request.lifecycle() != null ? ApplicationService.ServiceLifecycle.valueOf(request.lifecycle())
+                                : entity.getLifecycle())
                 .tags(request.tags() != null ? request.tags() : entity.getTags())
                 .repoUrl(request.repoUrl() != null ? request.repoUrl() : entity.getRepoUrl())
                 .attributes(request.attributes() != null ? request.attributes() : entity.getAttributes())
@@ -81,21 +87,23 @@ public final class ApplicationServiceApiMapper {
                 entity.getCreatedAt(),
                 entity.getUpdatedAt(),
                 entity.getCreatedBy(),
-                entity.getAttributes()
-        );
+                entity.getAttributes());
     }
 
     /**
      * Map QueryFilter to domain criteria with team filtering.
      *
-     * @param filter the query filter
+     * @param filter      the query filter
      * @param userContext the user context for team filtering
      * @return the domain criteria
      */
-    public static ApplicationServiceCriteria toCriteria(ApplicationServiceDtos.QueryFilter filter, UserContext userContext) {
+    public static ApplicationServiceCriteria toCriteria(ApplicationServiceDtos.QueryFilter filter,
+            UserContext userContext) {
         return ApplicationServiceCriteria.builder()
                 .ownerTeamId(filter != null ? filter.ownerTeamId() : null)
-                .lifecycle(filter != null && filter.lifecycle() != null ? ApplicationService.ServiceLifecycle.valueOf(filter.lifecycle()) : null)
+                .lifecycle(filter != null && filter.lifecycle() != null
+                        ? ApplicationService.ServiceLifecycle.valueOf(filter.lifecycle())
+                        : null)
                 .tags(filter != null ? filter.tags() : null)
                 .search(filter != null ? filter.search() : null)
                 .userTeamIds(userContext.getTeamIds())
@@ -112,7 +120,7 @@ public final class ApplicationServiceApiMapper {
         List<ApplicationServiceDtos.Response> items = page.getContent().stream()
                 .map(ApplicationServiceApiMapper::toResponse)
                 .toList();
-        
+
         return ApplicationServiceDtos.ApplicationServicePageResponse.builder()
                 .items(items)
                 .metadata(PageDtos.PageMetadata.from(page))

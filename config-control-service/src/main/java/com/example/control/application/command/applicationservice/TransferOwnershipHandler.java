@@ -18,7 +18,8 @@ import java.time.Instant;
 /**
  * Command handler for transferring service ownership.
  * <p>
- * Updates the service ownerTeamId and publishes a domain event for cascading updates.
+ * Updates the service ownerTeamId and publishes a domain event for cascading
+ * updates.
  * This decouples the ownership transfer from related entity updates.
  * </p>
  */
@@ -38,11 +39,11 @@ public class TransferOwnershipHandler {
      * @param command the transfer ownership command
      * @return the updated application service
      * @throws IllegalArgumentException if service not found
-     * @throws IllegalStateException if user lacks permission
+     * @throws IllegalStateException    if user lacks permission
      */
     @CacheEvict(value = "application-services", allEntries = true)
     public ApplicationService handle(TransferOwnershipCommand command) {
-        log.info("Transferring ownership of service {} to team {} by user {}", 
+        log.info("Transferring ownership of service {} to team {} by user {}",
                 command.serviceId(), command.newTeamId(), command.transferredBy());
 
         // Get the service
@@ -53,7 +54,7 @@ public class TransferOwnershipHandler {
         UserContext userContext = UserContext.builder()
                 .userId(command.transferredBy())
                 .build();
-        
+
         if (!canEditService(userContext, service)) {
             throw new IllegalStateException("User does not have permission to transfer ownership of this service");
         }
@@ -62,9 +63,9 @@ public class TransferOwnershipHandler {
         String oldTeamId = service.getOwnerTeamId();
         service.setOwnerTeamId(command.newTeamId());
         service.setUpdatedAt(Instant.now());
-        
+
         ApplicationService updatedService = repository.save(service);
-        log.info("Updated ApplicationService {} ownerTeamId from {} to {}", 
+        log.info("Updated ApplicationService {} ownerTeamId from {} to {}",
                 command.serviceId(), oldTeamId, command.newTeamId());
 
         // Publish domain event for cascading updates
@@ -75,7 +76,7 @@ public class TransferOwnershipHandler {
                 .transferredBy(command.transferredBy())
                 .transferredAt(Instant.now())
                 .build();
-        
+
         eventPublisher.publishEvent(event);
         log.info("Published ServiceOwnershipTransferred event for service: {}", command.serviceId());
 
@@ -85,10 +86,11 @@ public class TransferOwnershipHandler {
     /**
      * Check if user can edit a service.
      * <p>
-     * System admins can edit any service, team members can edit services owned by their team.
+     * System admins can edit any service, team members can edit services owned by
+     * their team.
      *
      * @param userContext the user context
-     * @param service the application service
+     * @param service     the application service
      * @return true if user can edit the service
      */
     private boolean canEditService(UserContext userContext, ApplicationService service) {
@@ -96,7 +98,7 @@ public class TransferOwnershipHandler {
         if (userContext.isSysAdmin()) {
             return true;
         }
-        
+
         // Team members can edit services owned by their team
         return userContext.isMemberOfTeam(service.getOwnerTeamId());
     }

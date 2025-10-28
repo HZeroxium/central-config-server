@@ -52,8 +52,8 @@ public class ServiceInstanceQueryService {
     public List<ServiceInstance> findByServiceId(String serviceId) {
         log.debug("Finding service instances for service: {}", serviceId);
         ServiceInstanceCriteria criteria = ServiceInstanceCriteria.builder()
-            .serviceId(serviceId)
-            .build();
+                .serviceId(serviceId)
+                .build();
         return repository.findAll(criteria, Pageable.unpaged()).getContent();
     }
 
@@ -82,9 +82,9 @@ public class ServiceInstanceQueryService {
     public List<ServiceInstance> findAllWithDrift() {
         log.debug("Finding all service instances with drift");
         ServiceInstanceCriteria criteria = ServiceInstanceCriteria.builder()
-            .status(ServiceInstance.InstanceStatus.DRIFT)
-            .hasDrift(true)
-            .build();
+                .status(ServiceInstance.InstanceStatus.DRIFT)
+                .hasDrift(true)
+                .build();
         return repository.findAll(criteria, Pageable.unpaged()).getContent();
     }
 
@@ -98,10 +98,10 @@ public class ServiceInstanceQueryService {
     public List<ServiceInstance> findByServiceWithDrift(String serviceId) {
         log.debug("Finding drifted service instances for service: {}", serviceId);
         ServiceInstanceCriteria criteria = ServiceInstanceCriteria.builder()
-            .serviceId(serviceId)
-            .status(ServiceInstance.InstanceStatus.DRIFT)
-            .hasDrift(true)
-            .build();
+                .serviceId(serviceId)
+                .status(ServiceInstance.InstanceStatus.DRIFT)
+                .hasDrift(true)
+                .build();
         return repository.findAll(criteria, Pageable.unpaged()).getContent();
     }
 
@@ -115,8 +115,8 @@ public class ServiceInstanceQueryService {
     public List<ServiceInstance> findStaleInstances(java.time.Instant threshold) {
         log.debug("Finding stale service instances before: {}", threshold);
         ServiceInstanceCriteria criteria = ServiceInstanceCriteria.builder()
-            .lastSeenAtTo(threshold)
-            .build();
+                .lastSeenAtTo(threshold)
+                .build();
         return repository.findAll(criteria, Pageable.unpaged()).getContent();
     }
 
@@ -130,8 +130,8 @@ public class ServiceInstanceQueryService {
     public long countByServiceId(String serviceId) {
         log.debug("Counting service instances for service: {}", serviceId);
         ServiceInstanceCriteria criteria = ServiceInstanceCriteria.builder()
-            .serviceId(serviceId)
-            .build();
+                .serviceId(serviceId)
+                .build();
         return repository.count(criteria);
     }
 }

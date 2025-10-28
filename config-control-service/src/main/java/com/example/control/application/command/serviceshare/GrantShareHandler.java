@@ -16,7 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Command handler for granting service share permissions.
  * <p>
- * Validates service existence, permissions, and duplicate shares before creating a new share.
+ * Validates service existence, permissions, and duplicate shares before
+ * creating a new share.
  * </p>
  */
 @Slf4j
@@ -35,22 +36,24 @@ public class GrantShareHandler {
      * @param command the grant share command
      * @return the created service share
      * @throws IllegalArgumentException if service not found
-     * @throws IllegalStateException if user lacks permission or share already exists
+     * @throws IllegalStateException    if user lacks permission or share already
+     *                                  exists
      */
     @CacheEvict(value = "service-shares", allEntries = true)
     public ServiceShare handle(GrantShareCommand command) {
-        log.info("Granting share for service: {} to {}:{} by user: {}", 
+        log.info("Granting share for service: {} to {}:{} by user: {}",
                 command.serviceId(), command.grantToType(), command.grantToId(), command.grantedBy());
 
         // Validate service exists
-        ApplicationService service = applicationServiceQueryService.findById(ApplicationServiceId.of(command.serviceId()))
+        ApplicationService service = applicationServiceQueryService
+                .findById(ApplicationServiceId.of(command.serviceId()))
                 .orElseThrow(() -> new IllegalArgumentException("Service not found: " + command.serviceId()));
 
         // Check if user can manage shares for this service
         if (!permissionEvaluator.canManageShares(
                 com.example.control.config.security.UserContext.builder()
                         .userId(command.grantedBy())
-                        .build(), 
+                        .build(),
                 service)) {
             throw new IllegalStateException("User does not have permission to manage shares for this service");
         }

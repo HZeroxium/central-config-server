@@ -74,16 +74,16 @@ public class ApprovalDecisionService {
      * This enforces the constraint that each user can only make one decision
      * per request per gate.
      *
-     * @param requestId the approval request ID
+     * @param requestId      the approval request ID
      * @param approverUserId the user ID of the approver
-     * @param gate the gate name
+     * @param gate           the gate name
      * @return true if decision exists, false otherwise
      */
     @Cacheable(value = "approval-decisions", key = "'exists:' + #requestId + ':' + #approverUserId + ':' + #gate")
-    public boolean existsByRequestAndApproverAndGate(ApprovalRequestId requestId, 
-                                                     String approverUserId, 
-                                                     String gate) {
-        log.debug("Checking if decision exists for request: {}, approver: {}, gate: {}", 
+    public boolean existsByRequestAndApproverAndGate(ApprovalRequestId requestId,
+            String approverUserId,
+            String gate) {
+        log.debug("Checking if decision exists for request: {}, approver: {}, gate: {}",
                 requestId, approverUserId, gate);
         boolean exists = repository.existsByRequestAndApproverAndGate(requestId, approverUserId, gate);
         log.debug("Decision exists: {}", exists);
@@ -94,18 +94,18 @@ public class ApprovalDecisionService {
      * Count decisions by decision type for a specific request and gate.
      *
      * @param requestId the approval request ID
-     * @param gate the gate name
-     * @param decision the decision type (APPROVE or REJECT)
+     * @param gate      the gate name
+     * @param decision  the decision type (APPROVE or REJECT)
      * @return number of decisions of the specified type
      */
     @Cacheable(value = "approval-decisions", key = "'count-by-request-gate-decision:' + #requestId + ':' + #gate + ':' + #decision")
-    public long countByRequestIdAndGateAndDecision(ApprovalRequestId requestId, 
-                                                   String gate, 
-                                                   ApprovalDecision.Decision decision) {
-        log.debug("Counting decisions for request: {}, gate: {}, decision: {}", 
+    public long countByRequestIdAndGateAndDecision(ApprovalRequestId requestId,
+            String gate,
+            ApprovalDecision.Decision decision) {
+        log.debug("Counting decisions for request: {}, gate: {}, decision: {}",
                 requestId, gate, decision);
         long count = repository.countByRequestIdAndGateAndDecision(requestId, gate, decision);
-        log.debug("Found {} decisions for request: {}, gate: {}, decision: {}", 
+        log.debug("Found {} decisions for request: {}, gate: {}, decision: {}",
                 count, requestId, gate, decision);
         return count;
     }
@@ -139,22 +139,23 @@ public class ApprovalDecisionService {
     /**
      * Create a system-generated approval decision.
      * <p>
-     * Used for cascade operations where the system automatically approves or rejects
+     * Used for cascade operations where the system automatically approves or
+     * rejects
      * requests based on service ownership assignment.
      * </p>
      *
      * @param requestId the approval request ID
-     * @param gate the gate name
-     * @param decision the decision type (APPROVE or REJECT)
-     * @param note the reason/note for the decision
+     * @param gate      the gate name
+     * @param decision  the decision type (APPROVE or REJECT)
+     * @param note      the reason/note for the decision
      * @return the created system decision
      */
     @Transactional
     @CacheEvict(value = "approval-decisions", allEntries = true)
     public ApprovalDecision createSystemDecision(ApprovalRequestId requestId,
-                                                 String gate,
-                                                 ApprovalDecision.Decision decision,
-                                                 String note) {
+            String gate,
+            ApprovalDecision.Decision decision,
+            String note) {
         log.debug("Creating system decision for request: {}, gate: {}, decision: {}",
                 requestId, gate, decision);
 

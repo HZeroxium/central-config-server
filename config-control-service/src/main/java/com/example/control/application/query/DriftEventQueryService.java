@@ -67,8 +67,8 @@ public class DriftEventQueryService {
     public List<DriftEvent> findUnresolved() {
         log.debug("Finding unresolved drift events");
         DriftEventCriteria criteria = DriftEventCriteria.builder()
-            .status(DriftEvent.DriftStatus.DETECTED)
-            .build();
+                .status(DriftEvent.DriftStatus.DETECTED)
+                .build();
         return repository.findAll(criteria, Pageable.unpaged()).getContent();
     }
 
@@ -82,9 +82,9 @@ public class DriftEventQueryService {
     public List<DriftEvent> findUnresolvedByService(String serviceName) {
         log.debug("Finding unresolved drift events for service: {}", serviceName);
         DriftEventCriteria criteria = DriftEventCriteria.builder()
-            .serviceName(serviceName)
-            .status(DriftEvent.DriftStatus.DETECTED)
-            .build();
+                .serviceName(serviceName)
+                .status(DriftEvent.DriftStatus.DETECTED)
+                .build();
         return repository.findAll(criteria, Pageable.unpaged()).getContent();
     }
 
@@ -98,8 +98,8 @@ public class DriftEventQueryService {
     public List<DriftEvent> findByService(String serviceName) {
         log.debug("Finding drift events for service: {}", serviceName);
         DriftEventCriteria criteria = DriftEventCriteria.builder()
-            .serviceName(serviceName)
-            .build();
+                .serviceName(serviceName)
+                .build();
         return repository.findAll(criteria, Pageable.unpaged()).getContent();
     }
 

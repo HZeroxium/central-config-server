@@ -68,16 +68,18 @@ public class ServiceShareQueryService {
     public List<ServiceShare> findByServiceId(String serviceId) {
         log.debug("Finding service shares for service: {}", serviceId);
         ServiceShareCriteria criteria = ServiceShareCriteria.builder()
-            .serviceId(serviceId)
-            .build();
+                .serviceId(serviceId)
+                .build();
         return repository.findAll(criteria, Pageable.unpaged()).getContent();
     }
 
     /**
      * Get all service IDs that are shared to specific teams.
      * <p>
-     * Used for filtering ApplicationServices to include services shared to user's teams.
-     * This enables users to see services shared to their teams in addition to owned services.
+     * Used for filtering ApplicationServices to include services shared to user's
+     * teams.
+     * This enables users to see services shared to their teams in addition to owned
+     * services.
      *
      * @param teamIds the team IDs to check (user's team membership)
      * @return list of unique service IDs shared to any of the specified teams
@@ -85,64 +87,64 @@ public class ServiceShareQueryService {
     @Cacheable(value = "service-shares", key = "'sharedToTeams:' + #teamIds.hashCode()")
     public List<String> getSharedServiceIdsForTeams(List<String> teamIds) {
         log.debug("Getting shared service IDs for teams: {}", teamIds);
-        
+
         if (teamIds == null || teamIds.isEmpty()) {
             log.debug("No team IDs provided, returning empty list");
             return List.of();
         }
-        
+
         List<String> sharedServiceIds = repository.findServiceIdsByGranteeTeams(teamIds);
         log.debug("Found {} services shared to teams: {}", sharedServiceIds.size(), teamIds);
-        
+
         return sharedServiceIds;
     }
 
     /**
      * Find effective permissions for a user on a service in specific environments.
      *
-     * @param userId the user ID
-     * @param userTeamIds the team IDs the user belongs to
-     * @param serviceId the service ID
+     * @param userId       the user ID
+     * @param userTeamIds  the team IDs the user belongs to
+     * @param serviceId    the service ID
      * @param environments the environments to check
      * @return list of effective permissions
      */
     @Cacheable(value = "service-shares", key = "'permissions:' + #userId + ':' + #serviceId + ':' + #environments.hashCode()")
-    public List<ServiceShare.SharePermission> findEffectivePermissions(String userId, 
-                                                                      List<String> userTeamIds, 
-                                                                      String serviceId, 
-                                                                      List<String> environments) {
-        log.debug("Finding effective permissions for user: {} on service: {} in environments: {}", 
+    public List<ServiceShare.SharePermission> findEffectivePermissions(String userId,
+            List<String> userTeamIds,
+            String serviceId,
+            List<String> environments) {
+        log.debug("Finding effective permissions for user: {} on service: {} in environments: {}",
                 userId, serviceId, environments);
-        
+
         List<ServiceShare.SharePermission> permissions = repository.findEffectivePermissions(
                 userId, userTeamIds, serviceId, environments);
-        
-        log.debug("Found {} effective permissions for user: {} on service: {}", 
+
+        log.debug("Found {} effective permissions for user: {} on service: {}",
                 permissions.size(), userId, serviceId);
-        
+
         return permissions;
     }
 
     /**
      * Check if a specific share exists (for duplicate prevention).
      *
-     * @param serviceId the service ID
-     * @param grantToType the grantee type
-     * @param grantToId the grantee ID
+     * @param serviceId    the service ID
+     * @param grantToType  the grantee type
+     * @param grantToId    the grantee ID
      * @param environments optional environment filter
      * @return true if share exists, false otherwise
      */
     @Cacheable(value = "service-shares", key = "'exists:' + #serviceId + ':' + #grantToType + ':' + #grantToId + ':' + #environments.hashCode()")
-    public boolean existsByServiceAndGranteeAndEnvironments(String serviceId, 
-                                                           ServiceShare.GranteeType grantToType, 
-                                                           String grantToId, 
-                                                           List<String> environments) {
-        log.debug("Checking if share exists for service: {} to {}:{} in environments: {}", 
+    public boolean existsByServiceAndGranteeAndEnvironments(String serviceId,
+            ServiceShare.GranteeType grantToType,
+            String grantToId,
+            List<String> environments) {
+        log.debug("Checking if share exists for service: {} to {}:{} in environments: {}",
                 serviceId, grantToType, grantToId, environments);
-        
+
         boolean exists = repository.existsByServiceAndGranteeAndEnvironments(
                 serviceId, grantToType, grantToId, environments);
-        
+
         log.debug("Share exists: {}", exists);
         return exists;
     }

@@ -220,7 +220,7 @@ public class HeartbeatService {
       driftRetryCount.remove(id);
       driftBackoffPow.remove(id);
 
-    } else if (hasDrift && instance.getHasDrift()) {
+    } else if (hasDrift && Boolean.TRUE.equals(instance.getHasDrift())) {
       /** Case D: Persistent drift — apply exponential backoff strategy */
       int count = driftRetryCount.merge(id, 1, Integer::sum);
       int pow = driftBackoffPow.compute(id, (k, v) -> v == null ? 0 : Math.min(v, 4)); // limit to 16 cycles

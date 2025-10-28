@@ -12,7 +12,9 @@ import java.util.List;
 
 public final class ServiceInstanceApiMapper {
 
-  private ServiceInstanceApiMapper() {}
+  private ServiceInstanceApiMapper() {
+    throw new UnsupportedOperationException("Utility class");
+  }
 
   public static ServiceInstance toDomain(ServiceInstanceDtos.CreateRequest req) {
     return ServiceInstance.builder()
@@ -30,16 +32,26 @@ public final class ServiceInstanceApiMapper {
   }
 
   public static void apply(ServiceInstance entity, ServiceInstanceDtos.UpdateRequest req) {
-    if (req.getHost() != null) entity.setHost(req.getHost());
-    if (req.getPort() != null) entity.setPort(req.getPort());
-    if (req.getEnvironment() != null) entity.setEnvironment(req.getEnvironment());
-    if (req.getVersion() != null) entity.setVersion(req.getVersion());
-    if (req.getConfigHash() != null) entity.setConfigHash(req.getConfigHash());
-    if (req.getLastAppliedHash() != null) entity.setLastAppliedHash(req.getLastAppliedHash());
-    if (req.getExpectedHash() != null) entity.setExpectedHash(req.getExpectedHash());
-    if (req.getHasDrift() != null) entity.setHasDrift(req.getHasDrift());
-    if (req.getStatus() != null) entity.setStatus(req.getStatus());
-    if (req.getMetadata() != null) entity.setMetadata(req.getMetadata());
+    if (req.getHost() != null)
+      entity.setHost(req.getHost());
+    if (req.getPort() != null)
+      entity.setPort(req.getPort());
+    if (req.getEnvironment() != null)
+      entity.setEnvironment(req.getEnvironment());
+    if (req.getVersion() != null)
+      entity.setVersion(req.getVersion());
+    if (req.getConfigHash() != null)
+      entity.setConfigHash(req.getConfigHash());
+    if (req.getLastAppliedHash() != null)
+      entity.setLastAppliedHash(req.getLastAppliedHash());
+    if (req.getExpectedHash() != null)
+      entity.setExpectedHash(req.getExpectedHash());
+    if (req.getHasDrift() != null)
+      entity.setHasDrift(req.getHasDrift());
+    if (req.getStatus() != null)
+      entity.setStatus(req.getStatus());
+    if (req.getMetadata() != null)
+      entity.setMetadata(req.getMetadata());
   }
 
   public static ServiceInstanceDtos.Response toResponse(ServiceInstance si) {
@@ -66,7 +78,7 @@ public final class ServiceInstanceApiMapper {
   /**
    * Map QueryFilter to domain criteria with team filtering.
    *
-   * @param filter the query filter
+   * @param filter      the query filter
    * @param userContext the user context for team filtering
    * @return the domain criteria
    */
@@ -94,12 +106,10 @@ public final class ServiceInstanceApiMapper {
     List<ServiceInstanceDtos.Response> items = page.getContent().stream()
         .map(ServiceInstanceApiMapper::toResponse)
         .toList();
-    
+
     return ServiceInstanceDtos.ServiceInstancePageResponse.builder()
         .items(items)
         .metadata(PageDtos.PageMetadata.from(page))
         .build();
   }
 }
-
-

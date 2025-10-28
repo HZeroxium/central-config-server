@@ -9,7 +9,7 @@ import java.util.List;
  */
 public class ValidationException extends ConfigControlException {
 
-  private final List<ErrorResponse.ValidationError> validationErrors;
+  private final transient List<ErrorResponse.ValidationError> validationErrors;
 
   public ValidationException(String message) {
     super("VALIDATION_ERROR", message);

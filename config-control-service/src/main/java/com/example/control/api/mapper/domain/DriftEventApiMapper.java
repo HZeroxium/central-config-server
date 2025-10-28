@@ -13,6 +13,7 @@ import java.util.List;
 public final class DriftEventApiMapper {
 
   private DriftEventApiMapper() {
+    throw new UnsupportedOperationException("Utility class");
   }
 
   public static DriftEvent toDomain(DriftEventDtos.CreateRequest req) {

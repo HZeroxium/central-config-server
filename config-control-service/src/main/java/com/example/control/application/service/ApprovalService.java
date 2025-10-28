@@ -93,8 +93,10 @@ public class ApprovalService {
             log.debug("Added LINE_MANAGER gate for requester with manager: {}", userContext.getManagerId());
         }
 
-        // Duplicate pending by same user for same service → 409 policy (throw IllegalState for now, mapped later)
-        if (approvalRequestService.getRepository().existsPendingByRequesterAndService(userContext.getUserId(), serviceId)) {
+        // Duplicate pending by same user for same service → 409 policy (throw
+        // IllegalState for now, mapped later)
+        if (approvalRequestService.getRepository().existsPendingByRequesterAndService(userContext.getUserId(),
+                serviceId)) {
             throw new ConflictException(
                     "approval.pending.duplicate",
                     "Requester already has a pending request for this service");
@@ -139,7 +141,7 @@ public class ApprovalService {
      * @return the approval decision
      */
     @Transactional
-    @Retryable(value = { OptimisticLockingFailureException.class }, maxAttempts = 3, backoff = @Backoff(delay = 100))
+    @Retryable(retryFor = { OptimisticLockingFailureException.class }, maxAttempts = 3, backoff = @Backoff(delay = 100))
     public ApprovalDecision submitDecision(String requestId,
             ApprovalDecision.Decision decision,
             String gate,
@@ -251,7 +253,8 @@ public class ApprovalService {
      * Check if all gates are satisfied and update request status if so.
      * <p>
      * This method is called after each decision to automatically approve or reject
-     * requests based on gate decisions. Any REJECT decision immediately rejects the request.
+     * requests based on gate decisions. Any REJECT decision immediately rejects the
+     * request.
      *
      * @param requestId the request ID
      */
@@ -300,7 +303,7 @@ public class ApprovalService {
      * Reject a request by updating its status with reason.
      *
      * @param requestId the request ID
-     * @param reason the rejection reason
+     * @param reason    the rejection reason
      */
     private void rejectRequest(String requestId, String reason) {
         ApprovalRequest request = approvalRequestService.findById(ApprovalRequestId.of(requestId))
@@ -322,7 +325,8 @@ public class ApprovalService {
     /**
      * Approve a request by updating its status and transferring service ownership.
      * <p>
-     * After ownership transfer, cascade approve/reject other pending requests for the same service
+     * After ownership transfer, cascade approve/reject other pending requests for
+     * the same service
      * and create system decisions for all cascaded requests.
      * </p>
      *
@@ -369,7 +373,7 @@ public class ApprovalService {
         long rejectedAuto = approvalRequestService.getRepository().cascadeRejectOtherTeamsPending(
                 request.getTarget().getServiceId(), request.getTarget().getTeamId(),
                 "auto-rejected: service ownership assigned to another team");
-        
+
         log.info("Cascade results for service {}: autoApproved={}, autoRejected={}",
                 request.getTarget().getServiceId(), approvedAuto, rejectedAuto);
 
@@ -392,18 +396,20 @@ public class ApprovalService {
     /**
      * Create system-generated approval decisions for all cascaded requests.
      * <p>
-     * For requests that were cascade-approved (same team), create APPROVE decisions for all gates.
-     * For requests that were cascade-rejected (other teams), create REJECT decision for SYS_ADMIN gate.
+     * For requests that were cascade-approved (same team), create APPROVE decisions
+     * for all gates.
+     * For requests that were cascade-rejected (other teams), create REJECT decision
+     * for SYS_ADMIN gate.
      * </p>
      *
      * @param pendingRequests the list of pending requests before cascade
-     * @param approvedTeamId the team ID that won ownership
+     * @param approvedTeamId  the team ID that won ownership
      */
     private void createSystemDecisionsForCascadedRequests(List<ApprovalRequest> pendingRequests,
-                                                          String approvedTeamId) {
+            String approvedTeamId) {
         for (ApprovalRequest pendingRequest : pendingRequests) {
             String targetTeamId = pendingRequest.getTarget().getTeamId();
-            
+
             if (approvedTeamId.equals(targetTeamId)) {
                 // Same team - cascade approve: create APPROVE decision for all gates
                 for (ApprovalRequest.ApprovalGate gate : pendingRequest.getRequired()) {
@@ -413,7 +419,7 @@ public class ApprovalService {
                             ApprovalDecision.Decision.APPROVE,
                             "Auto-approved: service ownership assigned to team " + approvedTeamId);
                 }
-                log.info("Created system APPROVE decisions for cascaded request: {}", 
+                log.info("Created system APPROVE decisions for cascaded request: {}",
                         pendingRequest.getId());
             } else {
                 // Other team - cascade reject: create REJECT decision for SYS_ADMIN gate
@@ -422,7 +428,7 @@ public class ApprovalService {
                         "SYS_ADMIN",
                         ApprovalDecision.Decision.REJECT,
                         "Auto-rejected: service ownership assigned to team " + approvedTeamId);
-                log.info("Created system REJECT decision for cascaded request: {}", 
+                log.info("Created system REJECT decision for cascaded request: {}",
                         pendingRequest.getId());
             }
         }

@@ -50,24 +50,24 @@ public class ServiceShareService {
      * <p>
      * Delegates to GrantShareHandler for write operations.
      *
-     * @param serviceId the service ID to share
-     * @param grantToType the type of grantee (TEAM or USER)
-     * @param grantToId the grantee ID
-     * @param permissions the permissions to grant
+     * @param serviceId    the service ID to share
+     * @param grantToType  the type of grantee (TEAM or USER)
+     * @param grantToId    the grantee ID
+     * @param permissions  the permissions to grant
      * @param environments optional environment filter
-     * @param expiresAt optional expiration time
-     * @param userContext the current user context
+     * @param expiresAt    optional expiration time
+     * @param userContext  the current user context
      * @return the created service share
      */
     @Transactional
     public ServiceShare grantShare(String serviceId,
-                                 ServiceShare.GranteeType grantToType,
-                                 String grantToId,
-                                 List<ServiceShare.SharePermission> permissions,
-                                 List<String> environments,
-                                 Instant expiresAt,
-                                 UserContext userContext) {
-        log.info("Granting share for service: {} to {}:{} by user: {}", 
+            ServiceShare.GranteeType grantToType,
+            String grantToId,
+            List<ServiceShare.SharePermission> permissions,
+            List<String> environments,
+            Instant expiresAt,
+            UserContext userContext) {
+        log.info("Granting share for service: {} to {}:{} by user: {}",
                 serviceId, grantToType, grantToId, userContext.getUserId());
 
         GrantShareCommand command = GrantShareCommand.builder()
@@ -90,7 +90,7 @@ public class ServiceShareService {
      * <p>
      * Delegates to RevokeShareHandler for write operations.
      *
-     * @param shareId the share ID to revoke
+     * @param shareId     the share ID to revoke
      * @param userContext the current user context
      */
     @Transactional
@@ -111,7 +111,7 @@ public class ServiceShareService {
      * <p>
      * Only service owners can view shares.
      *
-     * @param serviceId the service ID
+     * @param serviceId   the service ID
      * @param userContext the current user context
      * @return list of shares for the service
      */
@@ -127,28 +127,29 @@ public class ServiceShareService {
         }
 
         ServiceShareCriteria criteria = ServiceShareCriteria.builder()
-            .serviceId(serviceId)
-            .userTeamIds(userContext.getTeamIds())
-            .build();
+                .serviceId(serviceId)
+                .userTeamIds(userContext.getTeamIds())
+                .build();
         return shareRepository.findAll(criteria, Pageable.unpaged()).getContent();
     }
 
     /**
      * List service shares with filtering and pagination.
      *
-     * @param filter the filter criteria
-     * @param pageable pagination information
+     * @param filter      the filter criteria
+     * @param pageable    pagination information
      * @param userContext the current user context
      * @return page of service shares
      */
     public Page<ServiceShare> findAll(ServiceShareCriteria criteria,
-                                      Pageable pageable,
-                                      UserContext userContext) {
+            Pageable pageable,
+            UserContext userContext) {
         log.debug("Listing service shares with criteria: {}, pageable: {}", criteria, pageable);
 
         // If filtering by service, check permission to view shares for that service
         if (criteria != null && criteria.serviceId() != null) {
-            ApplicationService service = applicationServiceQueryService.findById(ApplicationServiceId.of(criteria.serviceId()))
+            ApplicationService service = applicationServiceQueryService
+                    .findById(ApplicationServiceId.of(criteria.serviceId()))
                     .orElseThrow(() -> new IllegalArgumentException("Service not found: " + criteria.serviceId()));
 
             if (!permissionEvaluator.canViewShares(userContext, service)) {
@@ -164,7 +165,7 @@ public class ServiceShareService {
      * <p>
      * Delegates to ServiceShareQueryService for read operations.
      *
-     * @param shareId the share ID
+     * @param shareId     the share ID
      * @param userContext the current user context
      * @return optional service share
      */
@@ -172,24 +173,24 @@ public class ServiceShareService {
         log.debug("Finding service share by ID: {} for user: {}", shareId, userContext.getUserId());
 
         Optional<ServiceShare> share = serviceShareQueryService.findById(ServiceShareId.of(shareId));
-        
+
         if (share.isPresent()) {
             ServiceShare shareEntity = share.get();
-            
+
             // Check permission to view this share
             if (!canViewShare(userContext, shareEntity)) {
                 log.warn("User {} does not have permission to view share {}", userContext.getUserId(), shareId);
                 return Optional.empty();
             }
         }
-        
+
         return share;
     }
 
     /**
      * Update a service share.
      *
-     * @param share the updated share
+     * @param share       the updated share
      * @param userContext the current user context
      * @return the saved share
      */
@@ -205,13 +206,11 @@ public class ServiceShareService {
         return shareRepository.save(share);
     }
 
-
-
     /**
      * Check if user can view a specific share.
      *
      * @param userContext the user context
-     * @param share the share to check
+     * @param share       the share to check
      * @return true if user can view the share
      */
     private boolean canViewShare(UserContext userContext, ServiceShare share) {
@@ -238,7 +237,7 @@ public class ServiceShareService {
      * Check if user can update a specific share.
      *
      * @param userContext the user context
-     * @param share the share to check
+     * @param share       the share to check
      * @return true if user can update the share
      */
     private boolean canUpdateShare(UserContext userContext, ServiceShare share) {

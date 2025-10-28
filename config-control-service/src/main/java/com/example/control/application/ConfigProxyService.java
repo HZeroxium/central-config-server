@@ -48,7 +48,7 @@ public class ConfigProxyService {
   @Cacheable(value = "config-hashes", key = "#serviceName + ':' + #profile")
   @NewSpan("config.get_effective_hash")
   public String getEffectiveConfigHash(
-      @SpanTag("service.name") String serviceName, 
+      @SpanTag("service.name") String serviceName,
       @SpanTag("profile") String profile) {
     if (serviceName == null || serviceName.trim().isEmpty()) {
       throw new IllegalArgumentException("Service name cannot be null or empty");
@@ -56,22 +56,22 @@ public class ConfigProxyService {
 
     try {
       log.debug("Fetching effective config from Config Server for {}:{}", serviceName, profile);
-      
+
       // Call Config Server: GET /serviceName/profile
-      String configUrl = normalizeUrl(configServerProperties.getUrl()) + "/" + serviceName + "/" + 
-                        (profile != null && !profile.trim().isEmpty() ? profile : "default");
-      
+      String configUrl = normalizeUrl(configServerProperties.getUrl()) + "/" + serviceName + "/" +
+          (profile != null && !profile.trim().isEmpty() ? profile : "default");
+
       String configJson = restClient.get()
           .uri(configUrl)
           .accept(MediaType.APPLICATION_JSON)
           .retrieve()
           .body(String.class);
-      
+
       if (configJson == null || configJson.trim().isEmpty()) {
         log.warn("Empty config response from Config Server for {}:{}", serviceName, profile);
         return null;
       }
-      
+
       JsonNode configNode = objectMapper.readTree(configJson);
       ConfigSnapshot snapshot = snapshotBuilder.build(serviceName, profile, null, configNode);
       String hash = ConfigHashCalculator.hash(snapshot.toCanonicalString());
@@ -114,10 +114,10 @@ public class ConfigProxyService {
    * 
    * @param serviceName service name
    * @return list of service instances
-   */                                                                     
+   */
   @Cacheable(value = "consul-services", key = "#serviceName")
   public List<ServiceInstance> getServiceInstances(String serviceName) {
-    if (serviceName == null || serviceName.trim().isEmpty()) {                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              
+    if (serviceName == null || serviceName.trim().isEmpty()) {
       throw new IllegalArgumentException("Service name cannot be null or empty");
     }
 
@@ -156,30 +156,31 @@ public class ConfigProxyService {
    * Trigger config refresh via Config Server's /busrefresh endpoint.
    * This uses Spring Cloud Bus to broadcast refresh events.
    * 
-   * @param destination optional destination pattern (service:instance or service:** for all)
+   * @param destination optional destination pattern (service:instance or
+   *                    service:** for all)
    * @return response from Config Server
    */
   public String triggerBusRefresh(String destination) {
     try {
       log.info("Triggering bus refresh via Config Server for destination: {}", destination);
-      
+
       String base = normalizeUrl(configServerProperties.getUrl()) + "/actuator/busrefresh";
       // String busRefreshUrl = (destination != null && !destination.trim().isEmpty())
-      //     ? base + "/" + destination
-      //     : base;
+      // ? base + "/" + destination
+      // : base;
 
       String busRefreshUrl = base;
-      
+
       String response;
       response = restClient.post()
           .uri(busRefreshUrl)
           .contentType(MediaType.APPLICATION_JSON)
           .retrieve()
           .body(String.class);
-      
+
       log.info("Bus refresh triggered successfully for destination: {}", destination);
       return response;
-      
+
     } catch (Exception e) {
       log.error("Failed to trigger bus refresh for destination: {}", destination, e);
       throw new ExternalServiceException("config-server",

@@ -19,6 +19,10 @@ import java.util.List;
  */
 public final class ApprovalRequestApiMapper {
 
+    private ApprovalRequestApiMapper() {
+        throw new UnsupportedOperationException("Utility class");
+    }
+
     /**
      * Map domain entity to Response DTO.
      *

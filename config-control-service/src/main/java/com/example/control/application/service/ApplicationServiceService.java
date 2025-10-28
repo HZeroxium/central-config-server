@@ -48,7 +48,7 @@ public class ApplicationServiceService {
      * <p>
      * Delegates to CreateOrUpdateServiceHandler for write operations.
      *
-     * @param service the application service to save
+     * @param service     the application service to save
      * @param userContext the current user context
      * @return the saved application service
      */
@@ -101,8 +101,10 @@ public class ApplicationServiceService {
     /**
      * Find or create application service by display name.
      * <p>
-     * If service exists, returns it. If not, creates an orphaned service with ownerTeamId=null.
-     * This is used during heartbeat processing when a service instance registers but no
+     * If service exists, returns it. If not, creates an orphaned service with
+     * ownerTeamId=null.
+     * This is used during heartbeat processing when a service instance registers
+     * but no
      * ApplicationService exists yet.
      *
      * @param displayName the exact display name to search for
@@ -111,27 +113,28 @@ public class ApplicationServiceService {
     @Transactional
     public ApplicationService findOrCreateByDisplayName(String displayName) {
         log.debug("Finding or creating application service by display name: {}", displayName);
-        
+
         Optional<ApplicationService> existing = queryService.findByDisplayName(displayName);
         if (existing.isPresent()) {
             return existing.get();
         }
-        
+
         // Create orphaned service (no owner team) - generate UUID
         ApplicationService orphanedService = ApplicationService.builder()
-            .id(ApplicationServiceId.of(UUID.randomUUID().toString()))
-            .displayName(displayName)
-            .ownerTeamId(null) // Orphaned - requires approval workflow
-            .environments(List.of("dev", "staging", "prod")) // Default environments
-            .lifecycle(ApplicationService.ServiceLifecycle.ACTIVE)
-            .createdAt(Instant.now())
-            .createdBy("system") // System-created
-            .build();
-        
+                .id(ApplicationServiceId.of(UUID.randomUUID().toString()))
+                .displayName(displayName)
+                .ownerTeamId(null) // Orphaned - requires approval workflow
+                .environments(List.of("dev", "staging", "prod")) // Default environments
+                .lifecycle(ApplicationService.ServiceLifecycle.ACTIVE)
+                .createdAt(Instant.now())
+                .createdBy("system") // System-created
+                .build();
+
         ApplicationService saved = repository.save(orphanedService);
-        log.warn("Auto-created orphaned ApplicationService: {} (displayName: {}) - requires approval workflow for team assignment", 
-                 saved.getId(), displayName);
-        
+        log.warn(
+                "Auto-created orphaned ApplicationService: {} (displayName: {}) - requires approval workflow for team assignment",
+                saved.getId(), displayName);
+
         return saved;
     }
 
@@ -153,53 +156,56 @@ public class ApplicationServiceService {
      * <p>
      * <strong>Visibility Rules:</strong>
      * <ul>
-     *   <li>System admins see all services</li>
-     *   <li>Regular users see:
-     *     <ul>
-     *       <li>Orphaned services (ownerTeamId=null) - for ownership requests</li>
-     *       <li>Services owned by their teams</li>
-     *       <li>Services shared to their teams via ServiceShare</li>
-     *     </ul>
-     *   </li>
+     * <li>System admins see all services</li>
+     * <li>Regular users see:
+     * <ul>
+     * <li>Orphaned services (ownerTeamId=null) - for ownership requests</li>
+     * <li>Services owned by their teams</li>
+     * <li>Services shared to their teams via ServiceShare</li>
+     * </ul>
+     * </li>
      * </ul>
      *
-     * @param criteria the filter criteria (may be enriched with visibility filters)
-     * @param pageable pagination information
+     * @param criteria    the filter criteria (may be enriched with visibility
+     *                    filters)
+     * @param pageable    pagination information
      * @param userContext the current user context for permission filtering
      * @return page of application services visible to the user
      */
-    public Page<ApplicationService> findAll(ApplicationServiceCriteria criteria, 
-                                        Pageable pageable, 
-                                        UserContext userContext) {
+    public Page<ApplicationService> findAll(ApplicationServiceCriteria criteria,
+            Pageable pageable,
+            UserContext userContext) {
         log.debug("Listing application services with criteria: {} for user: {}", criteria, userContext.getUserId());
-        
+
         // System admins can see all services - no filtering
         if (userContext.isSysAdmin()) {
             log.debug("User {} is SYS_ADMIN, returning all services", userContext.getUserId());
             return repository.findAll(criteria, pageable);
         }
-        
+
         // For regular users: apply visibility filtering
-        // Users can see: (1) orphaned services, (2) team-owned services, (3) shared services
-        
+        // Users can see: (1) orphaned services, (2) team-owned services, (3) shared
+        // services
+
         // Get services shared to user's teams
         List<String> sharedServiceIds = serviceShareQueryService.getSharedServiceIdsForTeams(userContext.getTeamIds());
-        log.debug("Found {} services shared to user {} teams: {}", 
+        log.debug("Found {} services shared to user {} teams: {}",
                 sharedServiceIds.size(), userContext.getUserId(), userContext.getTeamIds());
-        
+
         // Build enriched criteria with visibility filters
-        ApplicationServiceCriteria enrichedCriteria = (criteria != null ? criteria.toBuilder() : ApplicationServiceCriteria.builder())
-                .includeOrphaned(true)  // Always include orphaned services for ownership requests
-                .userTeamIds(userContext.getTeamIds())  // Include team-owned services
-                .sharedServiceIds(sharedServiceIds.isEmpty() ? null : sharedServiceIds)  // Include shared services
+        ApplicationServiceCriteria enrichedCriteria = (criteria != null ? criteria.toBuilder()
+                : ApplicationServiceCriteria.builder())
+                .includeOrphaned(true) // Always include orphaned services for ownership requests
+                .userTeamIds(userContext.getTeamIds()) // Include team-owned services
+                .sharedServiceIds(sharedServiceIds.isEmpty() ? null : sharedServiceIds) // Include shared services
                 .build();
-        
-        log.debug("Enriched criteria for user {}: includeOrphaned=true, userTeamIds={}, sharedServiceIds={}", 
+
+        log.debug("Enriched criteria for user {}: includeOrphaned=true, userTeamIds={}, sharedServiceIds={}",
                 userContext.getUserId(), userContext.getTeamIds(), sharedServiceIds.size());
-        
+
         Page<ApplicationService> result = queryService.findAll(enrichedCriteria, pageable);
         log.debug("Found {} application services for user {}", result.getTotalElements(), userContext.getUserId());
-        
+
         return result;
     }
 
@@ -208,7 +214,7 @@ public class ApplicationServiceService {
      * <p>
      * Only system admins can delete services.
      *
-     * @param id the service ID to delete
+     * @param id          the service ID to delete
      * @param userContext the current user context
      */
     @Transactional
@@ -231,20 +237,23 @@ public class ApplicationServiceService {
     }
 
     /**
-     * Transfer ownership of an application service and cascade the change to all related entities.
+     * Transfer ownership of an application service and cascade the change to all
+     * related entities.
      * <p>
-     * Delegates to TransferOwnershipHandler which publishes a domain event for cascading updates.
+     * Delegates to TransferOwnershipHandler which publishes a domain event for
+     * cascading updates.
      *
-     * @param serviceId the service ID to transfer
-     * @param newTeamId the new team ID to assign
+     * @param serviceId   the service ID to transfer
+     * @param newTeamId   the new team ID to assign
      * @param userContext the user context for audit purposes
      * @return the updated application service
      * @throws IllegalArgumentException if service not found
-     * @throws IllegalStateException if user lacks permission
+     * @throws IllegalStateException    if user lacks permission
      */
     @Transactional
-    public ApplicationService transferOwnershipWithCascade(String serviceId, String newTeamId, UserContext userContext) {
-        log.info("Transferring ownership of service {} to team {} by user {}", 
+    public ApplicationService transferOwnershipWithCascade(String serviceId, String newTeamId,
+            UserContext userContext) {
+        log.info("Transferring ownership of service {} to team {} by user {}",
                 serviceId, newTeamId, userContext.getUserId());
 
         TransferOwnershipCommand command = TransferOwnershipCommand.builder()

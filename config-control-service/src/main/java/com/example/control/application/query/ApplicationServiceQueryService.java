@@ -45,7 +45,8 @@ public class ApplicationServiceQueryService {
     /**
      * Find application service by exact display name.
      * <p>
-     * This method provides O(1) lookup for service name resolution during heartbeat processing.
+     * This method provides O(1) lookup for service name resolution during heartbeat
+     * processing.
      *
      * @param displayName the exact display name to search for
      * @return the application service if found, empty otherwise
@@ -66,8 +67,8 @@ public class ApplicationServiceQueryService {
     public List<ApplicationService> findByOwnerTeam(String ownerTeamId) {
         log.debug("Finding application services by owner team: {}", ownerTeamId);
         ApplicationServiceCriteria criteria = ApplicationServiceCriteria.builder()
-            .ownerTeamId(ownerTeamId)
-            .build();
+                .ownerTeamId(ownerTeamId)
+                .build();
         return repository.findAll(criteria, Pageable.unpaged()).getContent();
     }
 

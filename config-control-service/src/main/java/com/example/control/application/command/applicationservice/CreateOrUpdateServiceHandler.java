@@ -41,9 +41,8 @@ public class CreateOrUpdateServiceHandler {
     public ApplicationService handle(CreateOrUpdateServiceCommand command) {
         log.info("Creating/updating application service: {} by user: {}", command.id(), command.createdBy());
 
-        ApplicationServiceId serviceId = command.id() != null ? 
-                ApplicationServiceId.of(command.id()) : 
-                ApplicationServiceId.of(UUID.randomUUID().toString());
+        ApplicationServiceId serviceId = command.id() != null ? ApplicationServiceId.of(command.id())
+                : ApplicationServiceId.of(UUID.randomUUID().toString());
 
         // Validate ownership for updates
         if (command.id() != null && !command.id().isBlank()) {
@@ -52,7 +51,7 @@ public class CreateOrUpdateServiceHandler {
                 UserContext userContext = UserContext.builder()
                         .userId(command.createdBy())
                         .build();
-                
+
                 if (!canEditService(userContext, existing.get())) {
                     throw new IllegalStateException("User does not have permission to edit this service");
                 }
@@ -82,10 +81,11 @@ public class CreateOrUpdateServiceHandler {
     /**
      * Check if user can edit a service.
      * <p>
-     * System admins can edit any service, team members can edit services owned by their team.
+     * System admins can edit any service, team members can edit services owned by
+     * their team.
      *
      * @param userContext the user context
-     * @param service the application service
+     * @param service     the application service
      * @return true if user can edit the service
      */
     private boolean canEditService(UserContext userContext, ApplicationService service) {
@@ -93,7 +93,7 @@ public class CreateOrUpdateServiceHandler {
         if (userContext.isSysAdmin()) {
             return true;
         }
-        
+
         // Team members can edit services owned by their team
         return userContext.isMemberOfTeam(service.getOwnerTeamId());
     }

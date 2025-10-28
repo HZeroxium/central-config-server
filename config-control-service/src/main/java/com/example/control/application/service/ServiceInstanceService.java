@@ -20,9 +20,11 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Application service layer responsible for managing {@link ServiceInstance} entities.
+ * Application service layer responsible for managing {@link ServiceInstance}
+ * entities.
  * <p>
- * Provides business logic for persistence, drift tracking, and lifecycle operations.
+ * Provides business logic for persistence, drift tracking, and lifecycle
+ * operations.
  */
 @Slf4j
 @Service
@@ -36,7 +38,8 @@ public class ServiceInstanceService {
   /**
    * Saves or updates a {@link ServiceInstance} record in MongoDB.
    * <p>
-   * If the instance does not exist, it initializes creation and update timestamps.
+   * If the instance does not exist, it initializes creation and update
+   * timestamps.
    *
    * @param instance the instance to save or update
    * @return persisted {@link ServiceInstance}
@@ -47,7 +50,7 @@ public class ServiceInstanceService {
       instance.setCreatedAt(Instant.now());
     }
     instance.setUpdatedAt(Instant.now());
-        return repository.save(instance);
+    return repository.save(instance);
   }
 
   /**
@@ -61,7 +64,7 @@ public class ServiceInstanceService {
     ServiceInstanceCriteria criteria = ServiceInstanceCriteria.builder()
         .serviceId(serviceId)
         .build();
-        Page<ServiceInstance> page = repository.findAll(criteria, Pageable.unpaged());
+    Page<ServiceInstance> page = repository.findAll(criteria, Pageable.unpaged());
     return page.getContent();
   }
 
@@ -125,20 +128,20 @@ public class ServiceInstanceService {
    * Results are filtered by user permissions - users can only see instances
    * for services they own or have been granted access to via service shares.
    *
-   * @param criteria optional filter parameters encapsulated in a record
-   * @param pageable pagination and sorting information
+   * @param criteria    optional filter parameters encapsulated in a record
+   * @param pageable    pagination and sorting information
    * @param userContext the user context for permission filtering
    * @return a page of {@link ServiceInstance}
    */
   @Cacheable(value = "service-instances", key = "'list:' + #criteria.hashCode() + ':' + #pageable + ':' + #userContext.userId")
   public Page<ServiceInstance> findAll(ServiceInstanceCriteria criteria, Pageable pageable, UserContext userContext) {
     log.debug("Listing service instances with criteria: {} for user: {}", criteria, userContext.getUserId());
-    
+
     // System admins can see all instances
     if (userContext.isSysAdmin()) {
       return repository.findAll(criteria, pageable);
     }
-    
+
     // Apply team-based filtering
     ServiceInstanceCriteria filteredCriteria = applyUserFilter(criteria, userContext);
     return repository.findAll(filteredCriteria, pageable);
@@ -147,10 +150,12 @@ public class ServiceInstanceService {
   /**
    * Applies user-based team filtering to criteria.
    * <p>
-   * This method ensures that team-based access control is enforced at the service layer.
-   * If userContext is null or user has no teams, returns criteria as-is (admin access).
+   * This method ensures that team-based access control is enforced at the service
+   * layer.
+   * If userContext is null or user has no teams, returns criteria as-is (admin
+   * access).
    *
-   * @param criteria the base criteria
+   * @param criteria    the base criteria
    * @param userContext the user context for team filtering
    * @return criteria with team filtering applied
    */
@@ -160,7 +165,7 @@ public class ServiceInstanceService {
     }
     List<String> teams = userContext.getTeamIds();
     if (teams == null || teams.isEmpty()) {
-        return criteria.toBuilder().userTeamIds(List.of("__none__")).build(); // yields empty result
+      return criteria.toBuilder().userTeamIds(List.of("__none__")).build(); // yields empty result
     }
     return criteria.toBuilder().userTeamIds(teams).build();
   }
@@ -190,7 +195,7 @@ public class ServiceInstanceService {
         .build();
     return repository.count(criteria);
   }
-  
+
   /**
    * Deletes a service instance by ID.
    *
@@ -216,22 +221,21 @@ public class ServiceInstanceService {
    */
   @CacheEvict(value = "service-instances", allEntries = true)
   public ServiceInstance updateStatusAndDrift(String instanceId,
-                                              ServiceInstance.InstanceStatus status,
-                                              boolean hasDrift,
-                                              String expectedHash,
-                                              String lastAppliedHash) {
+      ServiceInstance.InstanceStatus status,
+      boolean hasDrift,
+      String expectedHash,
+      String lastAppliedHash) {
     ServiceInstance instance = repository.findById(ServiceInstanceId.of(instanceId)).orElse(
         ServiceInstance.builder()
             .id(ServiceInstanceId.of(instanceId))
             .createdAt(Instant.now())
-            .build()
-    );
+            .build());
     instance.setStatus(status);
     instance.setHasDrift(hasDrift);
     instance.setExpectedHash(expectedHash);
     instance.setLastAppliedHash(lastAppliedHash);
     instance.setUpdatedAt(Instant.now());
-        return repository.save(instance);
+    return repository.save(instance);
   }
 
   /**
@@ -256,41 +260,47 @@ public class ServiceInstanceService {
    * Validates that the user can create instances for the specified service
    * and sets the teamId from the ApplicationService.
    *
-   * @param instance the instance to create
+   * @param instance    the instance to create
    * @param userContext the user context for permission checking
    * @return the created instance
    * @throws SecurityException if user lacks permission to create instance
    */
   // @Transactional
   // @CacheEvict(value = "service-instances", allEntries = true)
-  // public ServiceInstance create(ServiceInstance instance, UserContext userContext) {
-  //   log.debug("Creating service instance {} for user {}", instance.getId(), userContext.getUserId());
-    
-  //   // Validate serviceId exists and get ApplicationService
-  //   if (instance.getServiceId() == null) {
-  //     throw new IllegalArgumentException("ServiceId is required for instance creation");
-  //   }
-    
-  //   ApplicationService service = applicationServiceService.findById(ApplicationServiceId.of(instance.getServiceId()))
-  //       .orElseThrow(() -> new IllegalArgumentException("ApplicationService not found: " + instance.getServiceId()));
-    
-  //   // Set teamId from ApplicationService
-  //   instance.setTeamId(service.getOwnerTeamId());
-    
-  //   // Check if user can edit instances for this service
-  //   if (!permissionEvaluator.canEditInstance(userContext, instance)) {
-  //     log.warn("User {} denied permission to create instance for service {}", 
-  //         userContext.getUserId(), instance.getServiceId());
-  //     throw new SecurityException("Insufficient permissions to create instance for service: " + instance.getServiceId());
-  //   }
-    
-  //   // Initialize timestamps
-  //   if (instance.getCreatedAt() == null) {
-  //     instance.setCreatedAt(Instant.now());
-  //   }
-  //   instance.setUpdatedAt(Instant.now());
-    
-  //   return repository.save(instance);
+  // public ServiceInstance create(ServiceInstance instance, UserContext
+  // userContext) {
+  // log.debug("Creating service instance {} for user {}", instance.getId(),
+  // userContext.getUserId());
+
+  // // Validate serviceId exists and get ApplicationService
+  // if (instance.getServiceId() == null) {
+  // throw new IllegalArgumentException("ServiceId is required for instance
+  // creation");
+  // }
+
+  // ApplicationService service =
+  // applicationServiceService.findById(ApplicationServiceId.of(instance.getServiceId()))
+  // .orElseThrow(() -> new IllegalArgumentException("ApplicationService not
+  // found: " + instance.getServiceId()));
+
+  // // Set teamId from ApplicationService
+  // instance.setTeamId(service.getOwnerTeamId());
+
+  // // Check if user can edit instances for this service
+  // if (!permissionEvaluator.canEditInstance(userContext, instance)) {
+  // log.warn("User {} denied permission to create instance for service {}",
+  // userContext.getUserId(), instance.getServiceId());
+  // throw new SecurityException("Insufficient permissions to create instance for
+  // service: " + instance.getServiceId());
+  // }
+
+  // // Initialize timestamps
+  // if (instance.getCreatedAt() == null) {
+  // instance.setCreatedAt(Instant.now());
+  // }
+  // instance.setUpdatedAt(Instant.now());
+
+  // return repository.save(instance);
   // }
 
   /**
@@ -298,8 +308,8 @@ public class ServiceInstanceService {
    * <p>
    * Validates that the user can edit the instance before applying updates.
    *
-   * @param id the instance ID
-   * @param updates the updates to apply
+   * @param id          the instance ID
+   * @param updates     the updates to apply
    * @param userContext the user context for permission checking
    * @return the updated instance
    * @throws SecurityException if user lacks permission to edit instance
@@ -308,23 +318,23 @@ public class ServiceInstanceService {
   @CacheEvict(value = "service-instances", allEntries = true)
   public ServiceInstance update(ServiceInstanceId id, ServiceInstance updates, UserContext userContext) {
     log.debug("Updating service instance {} for user {}", id, userContext.getUserId());
-    
+
     // Fetch existing instance
     ServiceInstance existing = repository.findById(id)
         .orElseThrow(() -> new IllegalArgumentException("ServiceInstance not found: " + id));
-    
+
     // Check if user can edit this instance
     if (!permissionEvaluator.canEditInstance(userContext, existing)) {
       log.warn("User {} denied permission to edit instance {}", userContext.getUserId(), id);
       throw new SecurityException("Insufficient permissions to edit instance: " + id);
     }
-    
+
     // Apply updates (preserve ID and teamId)
     updates.setId(id);
     updates.setTeamId(existing.getTeamId());
     updates.setServiceId(existing.getServiceId());
     updates.setUpdatedAt(Instant.now());
-    
+
     return repository.save(updates);
   }
 
@@ -333,7 +343,7 @@ public class ServiceInstanceService {
    * <p>
    * Validates that the user can edit the instance before deletion.
    *
-   * @param id the instance ID
+   * @param id          the instance ID
    * @param userContext the user context for permission checking
    * @throws SecurityException if user lacks permission to delete instance
    */
@@ -341,17 +351,17 @@ public class ServiceInstanceService {
   @CacheEvict(value = "service-instances", allEntries = true)
   public void delete(ServiceInstanceId id, UserContext userContext) {
     log.debug("Deleting service instance {} for user {}", id, userContext.getUserId());
-    
+
     // Fetch existing instance
     ServiceInstance existing = repository.findById(id)
         .orElseThrow(() -> new IllegalArgumentException("ServiceInstance not found: " + id));
-    
+
     // Check if user can edit this instance
     if (!permissionEvaluator.canEditInstance(userContext, existing)) {
       log.warn("User {} denied permission to delete instance {}", userContext.getUserId(), id);
       throw new SecurityException("Insufficient permissions to delete instance: " + id);
     }
-    
+
     repository.deleteById(id);
   }
 
@@ -360,21 +370,21 @@ public class ServiceInstanceService {
    * <p>
    * Returns the instance only if the user has permission to view it.
    *
-   * @param id the instance ID
+   * @param id          the instance ID
    * @param userContext the user context for permission checking
    * @return the instance if found and user has permission, empty otherwise
    */
   @Cacheable(value = "service-instances", key = "#id + ':' + #userContext.userId")
   public Optional<ServiceInstance> findById(ServiceInstanceId id, UserContext userContext) {
     log.debug("Finding service instance {} for user {}", id, userContext.getUserId());
-    
+
     Optional<ServiceInstance> instance = repository.findById(id);
-    
+
     if (instance.isPresent() && !permissionEvaluator.canViewInstance(userContext, instance.get())) {
       log.warn("User {} does not have permission to view instance {}", userContext.getUserId(), id);
       return Optional.empty();
     }
-    
+
     return instance;
   }
 }

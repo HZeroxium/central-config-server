@@ -2,7 +2,6 @@ package com.example.control.api.mapper.domain;
 
 import com.example.control.api.dto.domain.UserDtos;
 import com.example.control.config.security.UserContext;
-import org.springframework.stereotype.Component;
 
 /**
  * Mapper for User API operations.
@@ -11,7 +10,6 @@ import org.springframework.stereotype.Component;
  * proper JSON serialization.
  * </p>
  */
-@Component
 public class UserApiMapper {
 
     /**
@@ -29,7 +27,6 @@ public class UserApiMapper {
                 userContext.getLastName(),
                 userContext.getTeamIds(),
                 userContext.getRoles(),
-                userContext.getManagerId()
-        );
+                userContext.getManagerId());
     }
 }

@@ -22,7 +22,8 @@ import java.util.UUID;
 /**
  * Application service for managing {@link DriftEvent} lifecycle operations.
  * <p>
- * Provides high-level operations for persistence, retrieval, and auto-resolution logic.
+ * Provides high-level operations for persistence, retrieval, and
+ * auto-resolution logic.
  */
 @Slf4j
 @Service
@@ -52,7 +53,7 @@ public class DriftEventService {
    * <p>
    * Validates that the user can create drift events for the specified service.
    *
-   * @param event the drift event to save
+   * @param event       the drift event to save
    * @param userContext the user context for permission checking
    * @return the saved drift event
    * @throws SecurityException if user lacks permission to create drift event
@@ -61,14 +62,15 @@ public class DriftEventService {
   @CacheEvict(value = "drift-events", allEntries = true)
   public DriftEvent save(DriftEvent event, UserContext userContext) {
     log.debug("Saving drift event {} for user {}", event.getId(), userContext.getUserId());
-    
+
     // Check if user can create drift events for this service
     if (!permissionEvaluator.canEditDriftEvent(userContext, event)) {
-      log.warn("User {} denied permission to create drift event for service {}", 
+      log.warn("User {} denied permission to create drift event for service {}",
           userContext.getUserId(), event.getServiceName());
-      throw new SecurityException("Insufficient permissions to create drift event for service: " + event.getServiceName());
+      throw new SecurityException(
+          "Insufficient permissions to create drift event for service: " + event.getServiceName());
     }
-    
+
     // Generate UUID if ID is null (new event)
     if (event.getId() == null) {
       event.setId(DriftEventId.of(java.util.UUID.randomUUID().toString()));
@@ -85,32 +87,32 @@ public class DriftEventService {
    * Results are filtered by user permissions - users can only see drift events
    * for services they own or have been granted access to via service shares.
    *
-   * @param criteria optional filter parameters encapsulated in a record
-   * @param pageable pagination and sorting information
+   * @param criteria    optional filter parameters encapsulated in a record
+   * @param pageable    pagination and sorting information
    * @param userContext the user context for permission filtering
    * @return a page of {@link DriftEvent}
    */
   @Cacheable(value = "drift-events", key = "'list:' + #criteria.hashCode() + ':' + #pageable + ':' + #userContext.userId")
   public Page<DriftEvent> findAll(DriftEventCriteria criteria, Pageable pageable, UserContext userContext) {
-        log.debug("Listing drift events with criteria: {} for user: {}", criteria, userContext.getUserId());
-        
-        // System admins can see all events
-        if (userContext.isSysAdmin()) {
-            return repository.findAll(criteria, pageable);
-        }
-        
-        // Build enriched criteria with team filtering
-        DriftEventCriteria enrichedCriteria = criteria.toBuilder()
-                .userTeamIds(userContext.getTeamIds())
-                .build();
-        
-        // Query with team-based filtering (repository handles team filtering)
-        Page<DriftEvent> events = repository.findAll(enrichedCriteria, pageable);
-        
-        log.debug("Found {} drift events for user: {} (team-owned)", 
-                events.getContent().size(), userContext.getUserId());
-        
-        return events;
+    log.debug("Listing drift events with criteria: {} for user: {}", criteria, userContext.getUserId());
+
+    // System admins can see all events
+    if (userContext.isSysAdmin()) {
+      return repository.findAll(criteria, pageable);
+    }
+
+    // Build enriched criteria with team filtering
+    DriftEventCriteria enrichedCriteria = criteria.toBuilder()
+        .userTeamIds(userContext.getTeamIds())
+        .build();
+
+    // Query with team-based filtering (repository handles team filtering)
+    Page<DriftEvent> events = repository.findAll(enrichedCriteria, pageable);
+
+    log.debug("Found {} drift events for user: {} (team-owned)",
+        events.getContent().size(), userContext.getUserId());
+
+    return events;
   }
 
   /**
@@ -118,20 +120,20 @@ public class DriftEventService {
    * <p>
    * Returns the drift event only if the user has permission to view it.
    *
-   * @param id event identifier
+   * @param id          event identifier
    * @param userContext the user context for permission checking
    * @return optional {@link DriftEvent} if found and user has permission
    */
   public Optional<DriftEvent> findById(DriftEventId id, UserContext userContext) {
     log.debug("Finding drift event by ID: {} for user: {}", id, userContext.getUserId());
-    
+
     Optional<DriftEvent> event = repository.findById(id);
-    
+
     if (event.isPresent() && !permissionEvaluator.canViewDriftEvent(userContext, event.get())) {
       log.warn("User {} does not have permission to view drift event {}", userContext.getUserId(), id);
       return Optional.empty();
     }
-    
+
     return event;
   }
 
@@ -177,7 +179,7 @@ public class DriftEventService {
     return repository.findAll(criteria, Pageable.unpaged()).getContent();
   }
 
-    /**
+  /**
    * Counts all drift events.
    *
    * @return total drift event count
