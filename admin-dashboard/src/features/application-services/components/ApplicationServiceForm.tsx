@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect } from "react";
 import {
   Box,
   Button,
@@ -12,35 +12,40 @@ import {
   Divider,
   Autocomplete,
   Stack,
-} from '@mui/material';
-import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Save as SaveIcon, Close as CloseIcon } from '@mui/icons-material';
+} from "@mui/material";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Save as SaveIcon, Close as CloseIcon } from "@mui/icons-material";
 import {
   useCreateApplicationService,
   useUpdateApplicationService,
-} from '@lib/api/hooks';
-import { toast } from '@lib/toast/toast';
-import { handleApiError } from '@lib/api/errorHandler';
-import { applicationServiceCreateSchema, applicationServiceUpdateSchema, type ApplicationServiceCreateInput, type ApplicationServiceUpdateInput } from '@lib/forms/schemas';
-import type { ApplicationServiceResponse } from '@lib/api/models';
+} from "@lib/api/hooks";
+import { toast } from "@lib/toast/toast";
+import { handleApiError } from "@lib/api/errorHandler";
+import {
+  applicationServiceCreateSchema,
+  applicationServiceUpdateSchema,
+  type ApplicationServiceCreateInput,
+  type ApplicationServiceUpdateInput,
+} from "@lib/forms/schemas";
+import type { ApplicationServiceResponse } from "@lib/api/models";
 
 interface ApplicationServiceFormProps {
-  mode: 'create' | 'edit';
+  mode: "create" | "edit";
   initialData?: ApplicationServiceResponse;
   onSuccess: () => void;
   onCancel: () => void;
 }
 
-const ENVIRONMENT_OPTIONS = ['dev', 'staging', 'prod'];
-const LIFECYCLE_OPTIONS = ['ACTIVE', 'DEPRECATED', 'RETIRED'];
+const ENVIRONMENT_OPTIONS = ["dev", "staging", "prod"];
+const LIFECYCLE_OPTIONS = ["ACTIVE", "DEPRECATED", "RETIRED"];
 
 export function ApplicationServiceForm({
   mode,
   initialData,
   onSuccess,
   onCancel,
-}: ApplicationServiceFormProps) {
+}: Readonly<ApplicationServiceFormProps>) {
   const createMutation = useCreateApplicationService();
   const updateMutation = useUpdateApplicationService();
 
@@ -50,46 +55,53 @@ export function ApplicationServiceForm({
     reset,
     formState: { errors, isSubmitting },
   } = useForm<ApplicationServiceCreateInput | ApplicationServiceUpdateInput>({
-    resolver: zodResolver(mode === 'create' ? applicationServiceCreateSchema : applicationServiceUpdateSchema),
-    defaultValues: mode === 'create'
-      ? {
-          id: '',
-          displayName: '',
-          ownerTeamId: '',
-          environments: ['dev'],
-          tags: [],
-          repoUrl: '',
-          attributes: {},
-        }
-      : {
-          displayName: initialData?.displayName || '',
-          lifecycle: initialData?.lifecycle || 'ACTIVE',
-          tags: initialData?.tags || [],
-          repoUrl: initialData?.repoUrl || '',
-          attributes: initialData?.attributes || {},
-        },
+    resolver: zodResolver(
+      mode === "create"
+        ? applicationServiceCreateSchema
+        : applicationServiceUpdateSchema
+    ),
+    defaultValues:
+      mode === "create"
+        ? {
+            id: "",
+            displayName: "",
+            ownerTeamId: "",
+            environments: ["dev"],
+            tags: [],
+            repoUrl: "",
+            attributes: {},
+          }
+        : {
+            displayName: initialData?.displayName || "",
+            lifecycle: initialData?.lifecycle || "ACTIVE",
+            tags: initialData?.tags || [],
+            repoUrl: initialData?.repoUrl || "",
+            attributes: initialData?.attributes || {},
+          },
   });
 
   useEffect(() => {
-    if (initialData && mode === 'edit') {
+    if (initialData && mode === "edit") {
       reset({
-        displayName: initialData.displayName || '',
-        lifecycle: initialData.lifecycle || 'ACTIVE',
+        displayName: initialData.displayName || "",
+        lifecycle: initialData.lifecycle || "ACTIVE",
         tags: initialData.tags || [],
-        repoUrl: initialData.repoUrl || '',
+        repoUrl: initialData.repoUrl || "",
         attributes: initialData.attributes || {},
       });
     }
   }, [initialData, mode, reset]);
 
-  const onSubmit = async (data: ApplicationServiceCreateInput | ApplicationServiceUpdateInput) => {
-    if (mode === 'create') {
+  const onSubmit = async (
+    data: ApplicationServiceCreateInput | ApplicationServiceUpdateInput
+  ) => {
+    if (mode === "create") {
       const createData = data as ApplicationServiceCreateInput;
       createMutation.mutate(
         { data: createData },
         {
           onSuccess: () => {
-            toast.success('Service created successfully');
+            toast.success("Service created successfully");
             onSuccess();
           },
           onError: (error) => {
@@ -103,7 +115,7 @@ export function ApplicationServiceForm({
         { id: initialData!.id!, data: updateData },
         {
           onSuccess: () => {
-            toast.success('Service updated successfully');
+            toast.success("Service updated successfully");
             onSuccess();
           },
           onError: (error) => {
@@ -114,28 +126,33 @@ export function ApplicationServiceForm({
     }
   };
 
-  const isLoading = createMutation.isPending || updateMutation.isPending || isSubmitting;
+  const isLoading =
+    createMutation.isPending || updateMutation.isPending || isSubmitting;
 
   return (
-    <Box sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <Box
+      sx={{ p: 3, height: "100%", display: "flex", flexDirection: "column" }}
+    >
       <Typography variant="h5" gutterBottom>
-        {mode === 'create' ? 'Create Application Service' : 'Edit Application Service'}
+        {mode === "create"
+          ? "Create Application Service"
+          : "Edit Application Service"}
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        {mode === 'create'
-          ? 'Register a new application service in the system'
-          : 'Update the application service details'}
+        {mode === "create"
+          ? "Register a new application service in the system"
+          : "Update the application service details"}
       </Typography>
       <Divider sx={{ mb: 3 }} />
 
       <Box
         component="form"
         onSubmit={handleSubmit(onSubmit)}
-        sx={{ flex: 1, overflow: 'auto' }}
+        sx={{ flex: 1, overflow: "auto" }}
       >
         <Stack spacing={3}>
           {/* Service ID - Only for create */}
-          {mode === 'create' && (
+          {mode === "create" && (
             <Controller
               name="id"
               control={control}
@@ -144,8 +161,24 @@ export function ApplicationServiceForm({
                   {...field}
                   label="Service ID *"
                   fullWidth
-                  error={!!(errors as any).id}
-                  helperText={(errors as any).id?.message || 'Unique identifier for the service (e.g., user-service)'}
+                  error={
+                    !!(
+                      errors as Partial<
+                        Record<keyof ApplicationServiceCreateInput, unknown>
+                      >
+                    ).id
+                  }
+                  helperText={
+                    (
+                      errors as Partial<
+                        Record<
+                          keyof ApplicationServiceCreateInput,
+                          { message?: string }
+                        >
+                      >
+                    ).id?.message ||
+                    "Unique identifier for the service (e.g., user-service)"
+                  }
                 />
               )}
             />
@@ -161,13 +194,16 @@ export function ApplicationServiceForm({
                 label="Display Name *"
                 fullWidth
                 error={!!errors.displayName}
-                helperText={(errors as any).displayName?.message || 'Human-readable name for the service'}
+                helperText={
+                  (errors.displayName as { message?: string } | undefined)
+                    ?.message || "Human-readable name for the service"
+                }
               />
             )}
           />
 
           {/* Owner Team ID - Only for create */}
-          {mode === 'create' && (
+          {mode === "create" && (
             <Controller
               name="ownerTeamId"
               control={control}
@@ -176,20 +212,45 @@ export function ApplicationServiceForm({
                   {...field}
                   label="Owner Team ID *"
                   fullWidth
-                  error={!!(errors as any).ownerTeamId}
-                  helperText={(errors as any).ownerTeamId?.message || 'ID of the team that owns this service'}
+                  error={
+                    !!(
+                      errors as Partial<
+                        Record<keyof ApplicationServiceCreateInput, unknown>
+                      >
+                    ).ownerTeamId
+                  }
+                  helperText={
+                    (
+                      errors as Partial<
+                        Record<
+                          keyof ApplicationServiceCreateInput,
+                          { message?: string }
+                        >
+                      >
+                    ).ownerTeamId?.message ||
+                    "ID of the team that owns this service"
+                  }
                 />
               )}
             />
           )}
 
           {/* Lifecycle - Only for edit */}
-          {mode === 'edit' && (
+          {mode === "edit" && (
             <Controller
               name="lifecycle"
               control={control}
               render={({ field }) => (
-                <FormControl fullWidth error={!!(errors as any).lifecycle}>
+                <FormControl
+                  fullWidth
+                  error={
+                    !!(
+                      errors as Partial<
+                        Record<keyof ApplicationServiceUpdateInput, unknown>
+                      >
+                    ).lifecycle
+                  }
+                >
                   <InputLabel>Lifecycle</InputLabel>
                   <Select {...field} label="Lifecycle">
                     {LIFECYCLE_OPTIONS.map((option) => (
@@ -198,9 +259,29 @@ export function ApplicationServiceForm({
                       </MenuItem>
                     ))}
                   </Select>
-                  {(errors as any).lifecycle && (
-                    <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 2 }}>
-                      {(errors as any).lifecycle.message}
+                  {(
+                    errors as Partial<
+                      Record<
+                        keyof ApplicationServiceUpdateInput,
+                        { message?: string }
+                      >
+                    >
+                  ).lifecycle && (
+                    <Typography
+                      variant="caption"
+                      color="error"
+                      sx={{ mt: 0.5, ml: 2 }}
+                    >
+                      {
+                        (
+                          errors as Partial<
+                            Record<
+                              keyof ApplicationServiceUpdateInput,
+                              { message?: string }
+                            >
+                          >
+                        ).lifecycle?.message
+                      }
                     </Typography>
                   )}
                 </FormControl>
@@ -209,7 +290,7 @@ export function ApplicationServiceForm({
           )}
 
           {/* Environments - Only for create */}
-          {mode === 'create' && (
+          {mode === "create" && (
             <Controller
               name="environments"
               control={control}
@@ -224,17 +305,39 @@ export function ApplicationServiceForm({
                     <TextField
                       {...params}
                       label="Environments *"
-                      error={!!(errors as any).environments}
-                      helperText={(errors as any).environments?.message || 'Select deployment environments'}
+                      error={
+                        !!(
+                          errors as Partial<
+                            Record<keyof ApplicationServiceCreateInput, unknown>
+                          >
+                        ).environments
+                      }
+                      helperText={
+                        (
+                          errors as Partial<
+                            Record<
+                              keyof ApplicationServiceCreateInput,
+                              { message?: string }
+                            >
+                          >
+                        ).environments?.message ||
+                        "Select deployment environments"
+                      }
                     />
                   )}
-                  renderTags={(value, getTagProps) =>
+                  renderValue={(value, getTagProps) =>
                     value.map((option, index) => (
                       <Chip
                         {...getTagProps({ index })}
                         key={option}
                         label={option.toUpperCase()}
-                        color={option === 'prod' ? 'error' : option === 'staging' ? 'warning' : 'info'}
+                        color={
+                          option === "prod"
+                            ? "error"
+                            : option === "staging"
+                            ? "warning"
+                            : "info"
+                        }
                         size="small"
                       />
                     ))
@@ -260,13 +363,21 @@ export function ApplicationServiceForm({
                   <TextField
                     {...params}
                     label="Tags"
-                    error={!!(errors as any).tags}
-                    helperText={(errors as any).tags?.message || 'Add custom tags (press Enter to add)'}
+                    error={!!errors.tags}
+                    helperText={
+                      (errors.tags as { message?: string } | undefined)
+                        ?.message || "Add custom tags (press Enter to add)"
+                    }
                   />
                 )}
-                renderTags={(value, getTagProps) =>
+                renderValue={(value, getTagProps) =>
                   value.map((option, index) => (
-                    <Chip {...getTagProps({ index })} key={option} label={option} size="small" />
+                    <Chip
+                      {...getTagProps({ index })}
+                      key={option}
+                      label={option}
+                      size="small"
+                    />
                   ))
                 }
               />
@@ -282,8 +393,11 @@ export function ApplicationServiceForm({
                 {...field}
                 label="Repository URL"
                 fullWidth
-                error={!!(errors as any).repoUrl}
-                helperText={(errors as any).repoUrl?.message || 'Git repository URL'}
+                error={!!errors.repoUrl}
+                helperText={
+                  (errors.repoUrl as { message?: string } | undefined)
+                    ?.message || "Git repository URL"
+                }
               />
             )}
           />
@@ -291,9 +405,14 @@ export function ApplicationServiceForm({
       </Box>
 
       {/* Actions */}
-      <Box sx={{ mt: 3, pt: 2, borderTop: 1, borderColor: 'divider' }}>
+      <Box sx={{ mt: 3, pt: 2, borderTop: 1, borderColor: "divider" }}>
         <Stack direction="row" spacing={2} justifyContent="flex-end">
-          <Button variant="outlined" onClick={onCancel} disabled={isLoading} startIcon={<CloseIcon />}>
+          <Button
+            variant="outlined"
+            onClick={onCancel}
+            disabled={isLoading}
+            startIcon={<CloseIcon />}
+          >
             Cancel
           </Button>
           <Button
@@ -302,7 +421,7 @@ export function ApplicationServiceForm({
             disabled={isLoading}
             startIcon={<SaveIcon />}
           >
-            {mode === 'create' ? 'Create' : 'Update'}
+            {mode === "create" ? "Create" : "Update"}
           </Button>
         </Stack>
       </Box>

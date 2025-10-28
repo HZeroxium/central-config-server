@@ -1,4 +1,4 @@
-import { keycloak } from './keycloakConfig';
+import { keycloak } from "./keycloakConfig";
 
 // This file is deprecated - use features/auth/authContext instead
 // Kept for backward compatibility
@@ -26,4 +26,4 @@ export const getAuthToken = (): string | undefined => {
 };
 
 // Re-export the new useAuth hook from authContext
-export { useAuth } from '@features/auth/authContext';
+export { useAuth } from "@features/auth/context";

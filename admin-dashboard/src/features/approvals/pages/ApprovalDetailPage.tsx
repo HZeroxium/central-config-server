@@ -21,7 +21,7 @@ import {
   useFindApprovalRequestById,
   useSubmitApprovalDecision,
 } from "@lib/api/hooks";
-import { useAuth } from "@features/auth/authContext";
+import { useAuth } from "@features/auth/context";
 import { toast } from "@lib/toast/toast";
 import { handleApiError } from "@lib/api/errorHandler";
 import { DecisionDialog } from "../components/DecisionDialog";
@@ -47,8 +47,8 @@ export default function ApprovalDetailPage() {
       staleTime: 10_000,
     },
   });
-  
-  const { canApprove } = useCanApprove(request);
+
+  const { canApprove, eligibleGates = [] } = useCanApprove(request);
 
   // Note: requesterUser fetch removed - manager logic now in useCanApprove hook
 
@@ -99,6 +99,8 @@ export default function ApprovalDetailPage() {
   }
 
   if (error || !request) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
     return (
       <Box>
         <PageHeader
@@ -115,9 +117,7 @@ export default function ApprovalDetailPage() {
         />
         <Alert severity="error" sx={{ m: 3 }}>
           {error
-            ? `Failed to load approval request: ${
-                error instanceof Error ? error.message : "Unknown error"
-              }`
+            ? `Failed to load approval request: ${errorMessage}`
             : "The requested approval could not be found."}
         </Alert>
       </Box>
@@ -150,8 +150,12 @@ export default function ApprovalDetailPage() {
               </Button>
             )}
             {canApprove && eligibleGates.length > 0 && (
-              <Typography variant="caption" color="text.secondary" sx={{ alignSelf: 'center', ml: 1 }}>
-                Eligible for: {eligibleGates.join(', ')}
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ alignSelf: "center", ml: 1 }}
+              >
+                Eligible for: {eligibleGates.join(", ")}
               </Typography>
             )}
           </Box>

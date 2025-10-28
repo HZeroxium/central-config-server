@@ -49,7 +49,7 @@ import {
   useRevokeServiceShare,
   useCreateApprovalRequest,
 } from "@lib/api/hooks";
-import { useAuth } from "@features/auth/authContext";
+import { useAuth } from "@features/auth/context";
 import { toast } from "@lib/toast/toast";
 import { handleApiError } from "@lib/api/errorHandler";
 import { ApplicationServiceForm } from "../components/ApplicationServiceForm";
@@ -107,22 +107,20 @@ export default function ApplicationServiceDetailPage() {
     );
 
   // Fetch service shares
-  const {
-    data: _sharesDataRaw,
-    refetch: refetchShares,
-  } = useFindAllServiceShares(
-    {
-      serviceId: id,
-      page: 0,
-      size: 100,
-    },
-    {
-      query: {
-        enabled: !!id && tabValue === 2,
-        staleTime: 15_000,
+  const { data: _sharesDataRaw, refetch: refetchShares } =
+    useFindAllServiceShares(
+      {
+        serviceId: id,
+        page: 0,
+        size: 100,
       },
-    }
-  );
+      {
+        query: {
+          enabled: !!id && tabValue === 2,
+          staleTime: 15_000,
+        },
+      }
+    );
 
   // Type assertion for shares data (unused for now - ServiceSharesTab fetches its own)
   // const sharesData = (
@@ -150,7 +148,7 @@ export default function ApplicationServiceDetailPage() {
 
   const canEdit =
     isSysAdmin || (id && permissions?.ownedServiceIds?.includes(id));
-    
+
   const isOrphan = !service?.ownerTeamId;
   const canClaim = isOrphan && userInfo?.teamIds && userInfo.teamIds.length > 0;
   const canTransfer = canEdit && !isOrphan;
@@ -288,13 +286,11 @@ export default function ApplicationServiceDetailPage() {
   // 404 from backend could mean service doesn't exist OR user lacks permission
   if (error || !service) {
     const errorMessage = error
-      ? (error as any).detail ||
-        (error as any).message ||
-        "Service not found or access denied."
+      ? error.detail || "Service not found or access denied."
       : "Service not found or access denied.";
 
     const isUnauthorized =
-      error && ((error as any).status === 403 || (error as any).status === 404);
+      error && (error.status === 403 || error.status === 404);
 
     return (
       <Box>
@@ -714,9 +710,7 @@ export default function ApplicationServiceDetailPage() {
       )}
 
       {/* Shares Tab */}
-      {tabValue === 2 && (
-        <ServiceSharesTab serviceId={id || ''} />
-      )}
+      {tabValue === 2 && <ServiceSharesTab serviceId={id || ""} />}
 
       {/* Approvals Tab - Placeholder */}
       {tabValue === 3 && (

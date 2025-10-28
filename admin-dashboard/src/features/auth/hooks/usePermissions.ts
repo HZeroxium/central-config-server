@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useAuth } from "../authContext";
+import { useAuth } from "../context";
 
 export const usePermissions = () => {
   const { userInfo, permissions, isSysAdmin: isSysAdminFromAuth } = useAuth();

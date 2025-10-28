@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Box,
   Button,
@@ -15,23 +15,30 @@ import {
   Drawer,
   FormControlLabel,
   Switch,
-} from '@mui/material';
-import Grid from '@mui/material/Grid';
-import { Add as AddIcon, Search as SearchIcon, Refresh as RefreshIcon } from '@mui/icons-material';
-import PageHeader from '@components/common/PageHeader';
-import Loading from '@components/common/Loading';
-import ConfirmDialog from '@components/common/ConfirmDialog';
+} from "@mui/material";
+import Grid from "@mui/material/Grid";
+import {
+  Add as AddIcon,
+  Search as SearchIcon,
+  Refresh as RefreshIcon,
+} from "@mui/icons-material";
+import PageHeader from "@components/common/PageHeader";
+import Loading from "@components/common/Loading";
+import ConfirmDialog from "@components/common/ConfirmDialog";
 import {
   useFindAllApplicationServices,
   useDeleteApplicationService,
-} from '@lib/api/hooks';
-import { useAuth } from '@features/auth/authContext';
-import { toast } from '@lib/toast/toast';
-import { handleApiError } from '@lib/api/errorHandler';
-import { ApplicationServiceTable } from '../components/ApplicationServiceTable';
-import { ApplicationServiceForm } from '../components/ApplicationServiceForm';
-import { ClaimOwnershipDialog } from '../components/ClaimOwnershipDialog';
-import type { ApplicationServiceResponse, FindAllApplicationServicesParams} from '@lib/api/models';
+} from "@lib/api/hooks";
+import { useAuth } from "@features/auth/context";
+import { toast } from "@lib/toast/toast";
+import { handleApiError } from "@lib/api/errorHandler";
+import { ApplicationServiceTable } from "../components/ApplicationServiceTable";
+import { ApplicationServiceForm } from "../components/ApplicationServiceForm";
+import { ClaimOwnershipDialog } from "../components/ClaimOwnershipDialog";
+import type {
+  ApplicationServiceResponse,
+  FindAllApplicationServicesParams,
+} from "@lib/api/models";
 
 export default function ApplicationServiceListPage() {
   const navigate = useNavigate();
@@ -39,22 +46,26 @@ export default function ApplicationServiceListPage() {
 
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(20);
-  const [search, setSearch] = useState('');
-  const [lifecycleFilter, setLifecycleFilter] = useState<FindAllApplicationServicesParams['lifecycle'] | ''>('');
-  const [ownerTeamFilter, setOwnerTeamFilter] = useState('');
-  const [environmentFilter, setEnvironmentFilter] = useState('');
+  const [search, setSearch] = useState("");
+  const [lifecycleFilter, setLifecycleFilter] = useState<
+    FindAllApplicationServicesParams["lifecycle"] | ""
+  >("");
+  const [ownerTeamFilter, setOwnerTeamFilter] = useState("");
+  const [environmentFilter, setEnvironmentFilter] = useState("");
   const [showUnassignedOnly, setShowUnassignedOnly] = useState(false);
-  
+
   const [formDrawerOpen, setFormDrawerOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [claimDialogOpen, setClaimDialogOpen] = useState(false);
-  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
-  const [selectedServiceName, setSelectedServiceName] = useState<string>('');
+  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(
+    null
+  );
+  const [selectedServiceName, setSelectedServiceName] = useState<string>("");
 
   const { data, isLoading, error, refetch } = useFindAllApplicationServices(
     {
       search: search || undefined,
-      ownerTeamId: showUnassignedOnly ? 'null' : (ownerTeamFilter || undefined),
+      ownerTeamId: showUnassignedOnly ? "null" : ownerTeamFilter || undefined,
       lifecycle: lifecycleFilter || undefined,
       page,
       size: pageSize,
@@ -73,7 +84,9 @@ export default function ApplicationServiceListPage() {
   const services: ApplicationServiceResponse[] = data?.items || [];
   const metadata = data?.metadata;
 
-  const canCreate = isSysAdmin || permissions?.actions?.['APPLICATION_SERVICE']?.includes('CREATE');
+  const canCreate =
+    isSysAdmin ||
+    permissions?.actions?.["APPLICATION_SERVICE"]?.includes("CREATE");
 
   const handleDeleteService = async () => {
     if (!selectedServiceId) return;
@@ -82,7 +95,7 @@ export default function ApplicationServiceListPage() {
       { id: selectedServiceId },
       {
         onSuccess: () => {
-          toast.success('Service deleted successfully');
+          toast.success("Service deleted successfully");
           setDeleteDialogOpen(false);
           setSelectedServiceId(null);
           refetch();
@@ -105,22 +118,22 @@ export default function ApplicationServiceListPage() {
   };
 
   const handleFilterReset = () => {
-    setSearch('');
-    setLifecycleFilter('');
-    setOwnerTeamFilter('');
-    setEnvironmentFilter('');
+    setSearch("");
+    setLifecycleFilter("");
+    setOwnerTeamFilter("");
+    setEnvironmentFilter("");
     setShowUnassignedOnly(false);
     setPage(0);
   };
 
   const handleCreateSuccess = () => {
-    toast.success('Service created successfully');
+    toast.success("Service created successfully");
     setFormDrawerOpen(false);
     refetch();
   };
 
   const handleRequestOwnership = (serviceId: string) => {
-    const service = services.find(s => s.id === serviceId);
+    const service = services.find((s) => s.id === serviceId);
     setSelectedServiceId(serviceId);
     setSelectedServiceName(service?.displayName || serviceId);
     setClaimDialogOpen(true);
@@ -129,11 +142,11 @@ export default function ApplicationServiceListPage() {
   const handleCloseClaimDialog = () => {
     setClaimDialogOpen(false);
     setSelectedServiceId(null);
-    setSelectedServiceName('');
+    setSelectedServiceName("");
   };
 
   const handleClaimSuccess = (_requestId: string) => {
-    toast.success('Ownership request submitted successfully');
+    toast.success("Ownership request submitted successfully");
     refetch();
   };
 
@@ -196,7 +209,11 @@ export default function ApplicationServiceListPage() {
                   value={lifecycleFilter}
                   label="Lifecycle"
                   onChange={(e) => {
-                    setLifecycleFilter(e.target.value as FindAllApplicationServicesParams['lifecycle'] | '');
+                    setLifecycleFilter(
+                      e.target.value as
+                        | FindAllApplicationServicesParams["lifecycle"]
+                        | ""
+                    );
                     setPage(0);
                   }}
                 >
@@ -248,14 +265,14 @@ export default function ApplicationServiceListPage() {
                     onChange={(e) => {
                       setShowUnassignedOnly(e.target.checked);
                       if (e.target.checked) {
-                        setOwnerTeamFilter('');
+                        setOwnerTeamFilter("");
                       }
                       setPage(0);
                     }}
                   />
                 }
                 label="Orphans Only"
-                sx={{ height: '56px', display: 'flex', alignItems: 'center' }}
+                sx={{ height: "56px", display: "flex", alignItems: "center" }}
               />
             </Grid>
 
@@ -264,7 +281,7 @@ export default function ApplicationServiceListPage() {
                 fullWidth
                 variant="outlined"
                 onClick={handleFilterReset}
-                sx={{ height: '56px' }}
+                sx={{ height: "56px" }}
               >
                 Reset
               </Button>
@@ -273,7 +290,10 @@ export default function ApplicationServiceListPage() {
 
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
-              Failed to load services: {error && typeof error === 'object' && 'detail' in error ? (error as { detail?: string }).detail : 'Unknown error'}
+              Failed to load services:{" "}
+              {error && typeof error === "object" && "detail" in error
+                ? (error as { detail?: string }).detail
+                : "Unknown error"}
             </Alert>
           )}
 
@@ -291,7 +311,9 @@ export default function ApplicationServiceListPage() {
                 setPageSize(newPageSize);
                 setPage(0);
               }}
-              onRowClick={(serviceId: string) => navigate(`/application-services/${serviceId}`)}
+              onRowClick={(serviceId: string) =>
+                navigate(`/application-services/${serviceId}`)
+              }
               onDelete={handleOpenDeleteDialog}
               onRequestOwnership={handleRequestOwnership}
             />
@@ -305,7 +327,7 @@ export default function ApplicationServiceListPage() {
         open={formDrawerOpen}
         onClose={() => setFormDrawerOpen(false)}
         PaperProps={{
-          sx: { width: { xs: '100%', sm: 600 } },
+          sx: { width: { xs: "100%", sm: 600 } },
         }}
       >
         <ApplicationServiceForm
@@ -330,7 +352,7 @@ export default function ApplicationServiceListPage() {
       {/* Claim Ownership Dialog */}
       <ClaimOwnershipDialog
         open={claimDialogOpen}
-        serviceId={selectedServiceId || ''}
+        serviceId={selectedServiceId || ""}
         serviceName={selectedServiceName}
         onClose={handleCloseClaimDialog}
         onSuccess={handleClaimSuccess}

@@ -5,12 +5,12 @@ import CheckIcon from '@mui/icons-material/Check';
 import { useState, useMemo } from 'react';
 
 interface PropertySource {
-  name?: string;
-  source?: Record<string, unknown>;
+  readonly name?: string;
+  readonly source?: Record<string, unknown>;
 }
 
 interface PropertySourceViewerProps {
-  propertySource: PropertySource;
+  readonly propertySource: PropertySource;
 }
 
 export default function PropertySourceViewer({ propertySource }: PropertySourceViewerProps) {

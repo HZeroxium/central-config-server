@@ -1,4 +1,4 @@
-import { useAuth } from '../authContext';
+import { useAuth } from "../context";
 
 /**
  * Hook for auth initialization state

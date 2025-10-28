@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -14,18 +14,18 @@ import {
   Typography,
   Alert,
   CircularProgress,
-} from '@mui/material';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { useFindAllIamTeams } from '@lib/api/generated/iam-teams/iam-teams';
-import { useCreateApprovalRequest } from '@lib/api/generated/approval-requests/approval-requests';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@features/auth/authContext';
-import type { IamTeamResponse } from '@lib/api/models';
+} from "@mui/material";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useFindAllIamTeams } from "@lib/api/generated/iam-teams/iam-teams";
+import { useCreateApprovalRequest } from "@lib/api/generated/approval-requests/approval-requests";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@features/auth/context";
+import type { IamTeamResponse } from "@lib/api/models";
 
 const claimOwnershipSchema = z.object({
-  targetTeamId: z.string().min(1, 'Please select a team'),
+  targetTeamId: z.string().min(1, "Please select a team"),
   note: z.string().optional(),
 });
 
@@ -61,26 +61,30 @@ export const ClaimOwnershipDialog: React.FC<ClaimOwnershipDialogProps> = ({
   });
 
   // Fetch teams that user belongs to
-  const { data: teamsData, isLoading: teamsLoading } = useFindAllIamTeams(undefined, {
-    query: {
-      enabled: open && !!userInfo?.teamIds?.length,
+  const { data: teamsData, isLoading: teamsLoading } = useFindAllIamTeams(
+    undefined,
+    {
+      query: {
+        enabled: open && !!userInfo?.teamIds?.length,
+      },
     }
-  });
+  );
 
   // Filter teams to only show user's teams
-  const userTeams = teamsData?.items?.filter((team: IamTeamResponse) => 
-    userInfo?.teamIds?.includes(team.teamId || '')
-  ) || [];
+  const userTeams =
+    teamsData?.items?.filter((team: IamTeamResponse) =>
+      userInfo?.teamIds?.includes(team.teamId || "")
+    ) || [];
 
   // Create approval request mutation
   const createApprovalRequestMutation = useCreateApprovalRequest({
     mutation: {
       onSuccess: (data) => {
-        const requestId = data.id || '';
+        const requestId = data.id || "";
         reset();
         setError(null);
         onClose();
-        
+
         if (onSuccess && requestId) {
           onSuccess(requestId);
         } else if (requestId) {
@@ -89,18 +93,18 @@ export const ClaimOwnershipDialog: React.FC<ClaimOwnershipDialogProps> = ({
         }
       },
       onError: (error) => {
-        setError(error.detail || 'Failed to create ownership request');
+        setError(error.detail || "Failed to create ownership request");
       },
     },
   });
 
   const onSubmit = (data: ClaimOwnershipFormData) => {
     setError(null);
-    
+
     createApprovalRequestMutation.mutate({
-      serviceId: serviceId || '',
+      serviceId: serviceId || "",
       data: {
-        serviceId: serviceId || '',
+        serviceId: serviceId || "",
         targetTeamId: data.targetTeamId,
         note: data.note || `Request ownership of service "${serviceName}"`,
       },
@@ -116,13 +120,13 @@ export const ClaimOwnershipDialog: React.FC<ClaimOwnershipDialogProps> = ({
   const isLoading = createApprovalRequestMutation.isPending;
 
   return (
-    <Dialog 
-      open={open} 
+    <Dialog
+      open={open}
       onClose={handleClose}
       maxWidth="sm"
       fullWidth
       PaperProps={{
-        sx: { borderRadius: 2 }
+        sx: { borderRadius: 2 },
       }}
     >
       <DialogTitle>
@@ -145,7 +149,7 @@ export const ClaimOwnershipDialog: React.FC<ClaimOwnershipDialogProps> = ({
           <FormControl fullWidth margin="normal" error={!!errors.targetTeamId}>
             <InputLabel>Select Team</InputLabel>
             <Select
-              {...register('targetTeamId')}
+              {...register("targetTeamId")}
               label="Select Team"
               disabled={teamsLoading || isLoading}
             >
@@ -160,14 +164,18 @@ export const ClaimOwnershipDialog: React.FC<ClaimOwnershipDialogProps> = ({
               ))}
             </Select>
             {errors.targetTeamId && (
-              <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.5 }}>
+              <Typography
+                variant="caption"
+                color="error"
+                sx={{ mt: 0.5, ml: 1.5 }}
+              >
                 {errors.targetTeamId.message}
               </Typography>
             )}
           </FormControl>
 
           <TextField
-            {...register('note')}
+            {...register("note")}
             label="Note (Optional)"
             multiline
             rows={3}
@@ -191,18 +199,18 @@ export const ClaimOwnershipDialog: React.FC<ClaimOwnershipDialogProps> = ({
       </DialogContent>
 
       <DialogActions sx={{ p: 3, pt: 1 }}>
-        <Button 
+        <Button
           onClick={handleClose}
           disabled={isLoading}
-          sx={{ textTransform: 'none' }}
+          sx={{ textTransform: "none" }}
         >
           Cancel
         </Button>
         <Button
           onClick={handleSubmit(onSubmit)}
           variant="contained"
-          disabled={isLoading || teamsLoading || !watch('targetTeamId')}
-          sx={{ textTransform: 'none' }}
+          disabled={isLoading || teamsLoading || !watch("targetTeamId")}
+          sx={{ textTransform: "none" }}
         >
           {isLoading ? (
             <>
@@ -210,7 +218,7 @@ export const ClaimOwnershipDialog: React.FC<ClaimOwnershipDialogProps> = ({
               Submitting...
             </>
           ) : (
-            'Submit Request'
+            "Submit Request"
           )}
         </Button>
       </DialogActions>

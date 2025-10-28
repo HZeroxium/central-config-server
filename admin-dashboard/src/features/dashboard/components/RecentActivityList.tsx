@@ -1,18 +1,26 @@
-import React from 'react';
-import { Card, CardContent, Typography, List, ListItem, ListItemText, ListItemIcon, Box } from '@mui/material';
-import { 
-  CheckCircle as CheckCircleIcon,
+import React from "react";
+import {
+  Card,
+  CardContent,
+  Typography,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemIcon,
+  Box,
+} from "@mui/material";
+import {
   Warning as WarningIcon,
   Info as InfoIcon,
   Schedule as ScheduleIcon,
-} from '@mui/icons-material';
+} from "@mui/icons-material";
 
 interface ActivityItem {
   id: string;
-  type: 'approval' | 'drift' | 'service' | 'user';
+  type: "approval" | "drift" | "service" | "user";
   message: string;
   timestamp: string;
-  severity?: 'low' | 'medium' | 'high' | 'critical';
+  severity?: "low" | "medium" | "high" | "critical";
 }
 
 interface RecentActivityListProps {
@@ -20,16 +28,26 @@ interface RecentActivityListProps {
   title?: string;
 }
 
-const getActivityIcon = (type: ActivityItem['type'], severity?: ActivityItem['severity']) => {
+const getDriftColor = (
+  severity?: ActivityItem["severity"]
+): "error" | "warning" | "info" => {
+  if (severity === "critical") return "error";
+  if (severity === "high") return "warning";
+  return "info";
+};
+
+const getActivityIcon = (
+  type: ActivityItem["type"],
+  severity?: ActivityItem["severity"]
+) => {
   switch (type) {
-    case 'approval':
-      return <CheckCircleIcon color="success" />;
-    case 'drift':
-      const driftColor = severity === 'critical' ? 'error' : severity === 'high' ? 'warning' : 'info';
-      return <WarningIcon color={driftColor as any} />;
-    case 'service':
+    case "drift": {
+      const driftColor = getDriftColor(severity);
+      return <WarningIcon color={driftColor} />;
+    }
+    case "service":
       return <InfoIcon color="primary" />;
-    case 'user':
+    case "user":
       return <ScheduleIcon color="action" />;
     default:
       return <InfoIcon color="action" />;
@@ -39,10 +57,12 @@ const getActivityIcon = (type: ActivityItem['type'], severity?: ActivityItem['se
 const formatTimestamp = (timestamp: string) => {
   const date = new Date(timestamp);
   const now = new Date();
-  const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-  
+  const diffInHours = Math.floor(
+    (now.getTime() - date.getTime()) / (1000 * 60 * 60)
+  );
+
   if (diffInHours < 1) {
-    return 'Just now';
+    return "Just now";
   } else if (diffInHours < 24) {
     return `${diffInHours}h ago`;
   } else {
@@ -51,12 +71,12 @@ const formatTimestamp = (timestamp: string) => {
   }
 };
 
-export const RecentActivityList: React.FC<RecentActivityListProps> = ({ 
-  activities, 
-  title = 'Recent Activity' 
+export const RecentActivityList: React.FC<RecentActivityListProps> = ({
+  activities,
+  title = "Recent Activity",
 }) => {
   return (
-    <Card sx={{ height: '100%' }}>
+    <Card sx={{ height: "100%" }}>
       <CardContent>
         <Typography variant="h6" gutterBottom>
           {title}
@@ -70,18 +90,18 @@ export const RecentActivityList: React.FC<RecentActivityListProps> = ({
               <ListItemText
                 primary={activity.message}
                 secondary={
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                     <Typography variant="caption" color="text.secondary">
                       {formatTimestamp(activity.timestamp)}
                     </Typography>
                     {activity.severity && (
-                      <Typography 
-                        variant="caption" 
+                      <Typography
+                        variant="caption"
                         color={`${activity.severity}.main`}
-                        sx={{ 
-                          textTransform: 'uppercase', 
+                        sx={{
+                          textTransform: "uppercase",
                           fontWeight: 500,
-                          fontSize: '0.7rem'
+                          fontSize: "0.7rem",
                         }}
                       >
                         {activity.severity}

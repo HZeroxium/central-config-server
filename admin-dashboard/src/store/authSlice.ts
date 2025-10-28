@@ -1,5 +1,5 @@
-import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { UserInfo, UserPermissions } from '@features/auth/authContext';
+import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
+import type { UserInfo, UserPermissions } from "@features/auth/context";
 
 interface AuthState {
   userInfo: UserInfo | null;
@@ -14,7 +14,7 @@ const initialState: AuthState = {
 };
 
 const authSlice = createSlice({
-  name: 'auth',
+  name: "auth",
   initialState,
   reducers: {
     setUserInfo: (state, action: PayloadAction<UserInfo | null>) => {
@@ -33,5 +33,6 @@ const authSlice = createSlice({
   },
 });
 
-export const { setUserInfo, setPermissions, setInitialized, clearAuth } = authSlice.actions;
+export const { setUserInfo, setPermissions, setInitialized, clearAuth } =
+  authSlice.actions;
 export default authSlice.reducer;

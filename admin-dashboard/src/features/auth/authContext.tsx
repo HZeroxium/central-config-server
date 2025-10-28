@@ -1,65 +1,43 @@
-import React, { createContext, useContext, useMemo, useEffect } from 'react';
-import { useKeycloak } from '@react-keycloak/web';
-import { useDispatch, useSelector } from 'react-redux';
-import { useFindCurrentUserPermissions, useFindCurrentUserInformation } from '@lib/api/hooks';
-import type { MeResponse, PermissionsResponse } from '@lib/api/models';
-import { setUserInfo, setPermissions, setInitialized, clearAuth } from '@store/authSlice';
-import type { RootState } from '@store/index';
-
-export interface UserInfo {
-  userId: string;
-  username: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  teamIds: string[];
-  roles: string[];
-  managerId?: string;
-}
-
-export interface UserPermissions {
-  allowedApiRoutes: string[];
-  allowedUiRoutes: string[];
-  roles: string[];
-  teams: string[];
-  features: Record<string, boolean>;
-  actions: Record<string, string[]>;
-  ownedServiceIds: string[];
-  sharedServiceIds: string[];
-}
-
-interface AuthContextType {
-  initialized: boolean;
-  isAuthenticated: boolean;
-  token: string | undefined;
-  userInfo: UserInfo | null;
-  permissions: UserPermissions | null;
-  permissionsLoading: boolean;
-  hasRole: (role: string) => boolean;
-  isSysAdmin: boolean;
-  login: () => void;
-  logout: () => void;
-  refetchUserInfo: () => void;
-  refetchPermissions: () => void;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+import React, { useMemo, useEffect } from "react";
+import { useKeycloak } from "@react-keycloak/web";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  useFindCurrentUserPermissions,
+  useFindCurrentUserInformation,
+} from "@lib/api/hooks";
+import type { MeResponse, PermissionsResponse } from "@lib/api/models";
+import {
+  setUserInfo,
+  setPermissions,
+  setInitialized,
+  clearAuth,
+} from "@store/authSlice";
+import type { RootState } from "@store/index";
+import AuthContext, {
+  type UserInfo,
+  type UserPermissions,
+  type AuthContextType,
+} from "./context";
 
 /**
  * Parse Keycloak token to UserInfo
  */
-function parseKeycloakToken(tokenParsed: any): UserInfo | null {
+function parseKeycloakToken(
+  tokenParsed: Record<string, unknown> | undefined
+): UserInfo | null {
   if (!tokenParsed) return null;
-  
+
   return {
-    userId: tokenParsed.sub || '',
-    username: tokenParsed.preferred_username || '',
-    email: tokenParsed.email || '',
-    firstName: tokenParsed.given_name || '',
-    lastName: tokenParsed.family_name || '',
-    teamIds: tokenParsed.groups || [],
-    roles: tokenParsed.realm_access?.roles || [],
-    managerId: tokenParsed.manager_id,
+    userId: (tokenParsed.sub as string) || "",
+    username: (tokenParsed.preferred_username as string) || "",
+    email: (tokenParsed.email as string) || "",
+    firstName: (tokenParsed.given_name as string) || "",
+    lastName: (tokenParsed.family_name as string) || "",
+    teamIds: (tokenParsed.groups as string[]) || [],
+    roles:
+      ((tokenParsed.realm_access as Record<string, unknown>)
+        ?.roles as string[]) || [],
+    managerId: tokenParsed.manager_id as string | undefined,
   };
 }
 
@@ -68,13 +46,13 @@ function parseKeycloakToken(tokenParsed: any): UserInfo | null {
  */
 function parseMeResponse(meResponse: MeResponse | undefined): UserInfo | null {
   if (!meResponse) return null;
-  
+
   return {
-    userId: meResponse.userId || '',
-    username: meResponse.username || '',
-    email: meResponse.email || '',
-    firstName: meResponse.firstName || '',
-    lastName: meResponse.lastName || '',
+    userId: meResponse.userId || "",
+    username: meResponse.username || "",
+    email: meResponse.email || "",
+    firstName: meResponse.firstName || "",
+    lastName: meResponse.lastName || "",
     teamIds: meResponse.teamIds || [],
     roles: meResponse.roles || [],
     managerId: meResponse.managerId,
@@ -84,9 +62,11 @@ function parseMeResponse(meResponse: MeResponse | undefined): UserInfo | null {
 /**
  * Parse PermissionsResponse to UserPermissions
  */
-function parsePermissionsResponse(permissionsResponse: PermissionsResponse | undefined): UserPermissions | null {
+function parsePermissionsResponse(
+  permissionsResponse: PermissionsResponse | undefined
+): UserPermissions | null {
   if (!permissionsResponse) return null;
-  
+
   return {
     allowedApiRoutes: permissionsResponse.allowedApiRoutes || [],
     allowedUiRoutes: permissionsResponse.allowedUiRoutes || [],
@@ -99,7 +79,9 @@ function parsePermissionsResponse(permissionsResponse: PermissionsResponse | und
   };
 }
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const { keycloak, initialized } = useKeycloak();
   const dispatch = useDispatch();
   const authState = useSelector((state: RootState) => state.auth);
@@ -119,21 +101,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [isAuthenticated, authState.userInfo, dispatch]);
 
   // Fetch user info from backend (more reliable than token parsing)
-  const { data: meData, isLoading: meLoading, refetch: refetchUserInfo } = useFindCurrentUserInformation({
+  const {
+    data: meData,
+    isLoading: meLoading,
+    refetch: refetchUserInfo,
+  } = useFindCurrentUserInformation({
     query: {
       enabled: isAuthenticated,
       staleTime: Infinity, // Cache indefinitely - user info rarely changes
       refetchOnWindowFocus: false,
-    }
+    },
   });
 
   // Fetch user permissions from backend
-  const { data: permissionsData, isLoading: permissionsLoading, refetch: refetchPermissions } = useFindCurrentUserPermissions({
+  const {
+    data: permissionsData,
+    isLoading: permissionsLoading,
+    refetch: refetchPermissions,
+  } = useFindCurrentUserPermissions({
     query: {
       enabled: isAuthenticated,
       staleTime: Infinity, // Cache indefinitely - permissions change rarely, refetch manually when needed
       refetchOnWindowFocus: false,
-    }
+    },
   });
 
   // Update Redux store when data changes
@@ -154,7 +144,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Parse user info - prefer Redux store over token
   const userInfo = useMemo(() => {
     if (authState.userInfo) return authState.userInfo;
-    
+
     // Fallback to token parsing if Redux data not available yet
     return parseKeycloakToken(keycloak?.tokenParsed);
   }, [authState.userInfo, keycloak?.tokenParsed]);
@@ -165,45 +155,78 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return null;
   }, [authState.permissions]);
 
-  const hasRole = (role: string): boolean => {
-    return keycloak?.hasRealmRole(role) ?? false;
-  };
+  const hasRole = useMemo(
+    () =>
+      (role: string): boolean => {
+        return keycloak?.hasRealmRole(role) ?? false;
+      },
+    [keycloak]
+  );
 
   const isSysAdmin = useMemo(() => {
-    return hasRole('SYS_ADMIN');
-  }, [keycloak?.authenticated]); // eslint-disable-line react-hooks/exhaustive-deps
+    return keycloak?.hasRealmRole("SYS_ADMIN") ?? false;
+  }, [keycloak]);
 
-  const login = () => {
-    keycloak?.login();
-  };
+  const login = useMemo(
+    () => () => {
+      keycloak?.login();
+    },
+    [keycloak]
+  );
 
-  const logout = () => {
-    keycloak?.logout();
-  };
+  const logout = useMemo(
+    () => () => {
+      keycloak?.logout();
+    },
+    [keycloak]
+  );
 
-  const value: AuthContextType = {
-    initialized,
-    isAuthenticated,
-    token: keycloak?.token,
-    userInfo,
-    permissions,
-    permissionsLoading: permissionsLoading || meLoading,
-    hasRole,
-    isSysAdmin,
-    login,
-    logout,
-    refetchUserInfo: () => { refetchUserInfo(); },
-    refetchPermissions: () => { refetchPermissions(); },
-  };
+  const handleRefetchUserInfo = useMemo(
+    () => () => {
+      refetchUserInfo();
+    },
+    [refetchUserInfo]
+  );
+
+  const handleRefetchPermissions = useMemo(
+    () => () => {
+      refetchPermissions();
+    },
+    [refetchPermissions]
+  );
+
+  // Memoize context value to prevent unnecessary re-renders
+  const value: AuthContextType = useMemo(
+    () => ({
+      initialized,
+      isAuthenticated,
+      token: keycloak?.token,
+      userInfo,
+      permissions,
+      permissionsLoading: permissionsLoading || meLoading,
+      hasRole,
+      isSysAdmin,
+      login,
+      logout,
+      refetchUserInfo: handleRefetchUserInfo,
+      refetchPermissions: handleRefetchPermissions,
+    }),
+    [
+      initialized,
+      isAuthenticated,
+      keycloak?.token,
+      userInfo,
+      permissions,
+      permissionsLoading,
+      meLoading,
+      hasRole,
+      isSysAdmin,
+      login,
+      logout,
+      handleRefetchUserInfo,
+      handleRefetchPermissions,
+    ]
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
-
-export const useAuth = (): AuthContextType => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
-

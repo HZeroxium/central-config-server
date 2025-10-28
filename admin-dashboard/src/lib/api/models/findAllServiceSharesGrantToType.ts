@@ -19,6 +19,12 @@
 
  * OpenAPI spec version: 1.0.0
  */
-import type { ServiceSharePageResponse } from './serviceSharePageResponse';
 
-export type FindAllServiceSharesForService1200 = string | ServiceSharePageResponse;
+export type FindAllServiceSharesGrantToType = typeof FindAllServiceSharesGrantToType[keyof typeof FindAllServiceSharesGrantToType];
+
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const FindAllServiceSharesGrantToType = {
+  TEAM: 'TEAM',
+  USER: 'USER',
+} as const;

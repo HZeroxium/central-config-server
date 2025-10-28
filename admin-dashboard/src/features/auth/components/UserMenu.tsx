@@ -1,5 +1,5 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Avatar,
   IconButton,
@@ -9,13 +9,13 @@ import {
   ListItemText,
   Divider,
   Typography,
-} from '@mui/material';
+} from "@mui/material";
 import {
   Person as PersonIcon,
   Settings as SettingsIcon,
   Logout as LogoutIcon,
-} from '@mui/icons-material';
-import { useAuth } from '@features/auth/authContext';
+} from "@mui/icons-material";
+import { useAuth } from "@features/auth/context";
 
 export const UserMenu: React.FC = () => {
   const navigate = useNavigate();
@@ -37,7 +37,7 @@ export const UserMenu: React.FC = () => {
 
   const handleProfile = () => {
     handleMenuClose();
-    navigate('/profile');
+    navigate("/profile");
   };
 
   const handleSettings = () => {
@@ -48,17 +48,15 @@ export const UserMenu: React.FC = () => {
   if (!userInfo) return null;
 
   const getInitials = (firstName: string, lastName: string) => {
-    return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase();
+    return `${firstName?.charAt(0) || ""}${
+      lastName?.charAt(0) || ""
+    }`.toUpperCase();
   };
 
   return (
     <>
-      <IconButton
-        onClick={handleMenuOpen}
-        size="small"
-        sx={{ ml: 2 }}
-      >
-        <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main' }}>
+      <IconButton onClick={handleMenuOpen} size="small" sx={{ ml: 2 }}>
+        <Avatar sx={{ width: 32, height: 32, bgcolor: "primary.main" }}>
           {getInitials(userInfo.firstName, userInfo.lastName)}
         </Avatar>
       </IconButton>
@@ -67,12 +65,12 @@ export const UserMenu: React.FC = () => {
         open={Boolean(anchorEl)}
         onClose={handleMenuClose}
         anchorOrigin={{
-          vertical: 'bottom',
-          horizontal: 'right',
+          vertical: "bottom",
+          horizontal: "right",
         }}
         transformOrigin={{
-          vertical: 'top',
-          horizontal: 'right',
+          vertical: "top",
+          horizontal: "right",
         }}
       >
         <MenuItem disabled>

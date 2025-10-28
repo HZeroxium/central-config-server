@@ -95,9 +95,7 @@ export default function ServiceInstanceDetailPage() {
         />
         <Alert severity="error">
           Failed to load service instance.{" "}
-          {error
-            ? (error as any).detail || "Please try again."
-            : "Instance not found."}
+          {error ? error.detail || "Please try again." : "Instance not found."}
         </Alert>
       </Box>
     );

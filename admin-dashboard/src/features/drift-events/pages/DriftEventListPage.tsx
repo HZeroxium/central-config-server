@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Box,
   Button,
@@ -14,43 +14,51 @@ import {
   Alert,
   Switch,
   FormControlLabel,
-} from '@mui/material';
-import Grid from '@mui/material/Grid';
-import { Search as SearchIcon, Refresh as RefreshIcon } from '@mui/icons-material';
-import PageHeader from '@components/common/PageHeader';
-import Loading from '@components/common/Loading';
-import { useFindAllDriftEvents, useUpdateDriftEvent } from '@lib/api/hooks';
-import { DriftEventTable } from '../components/DriftEventTable';
-import { ResolveDialog } from '../components/ResolveDialog';
-import { toast } from '@lib/toast/toast';
-import { handleApiError } from '@lib/api/errorHandler';
-import type { 
-  FindAllDriftEventsStatus, 
+} from "@mui/material";
+import Grid from "@mui/material/Grid";
+import {
+  Search as SearchIcon,
+  Refresh as RefreshIcon,
+} from "@mui/icons-material";
+import PageHeader from "@components/common/PageHeader";
+import Loading from "@components/common/Loading";
+import { useFindAllDriftEvents, useUpdateDriftEvent } from "@lib/api/hooks";
+import { DriftEventTable } from "../components/DriftEventTable";
+import { ResolveDialog } from "../components/ResolveDialog";
+import { toast } from "@lib/toast/toast";
+import { handleApiError } from "@lib/api/errorHandler";
+import type {
+  FindAllDriftEventsStatus,
   FindAllDriftEventsSeverity,
   DriftEventUpdateRequest,
-  DriftEventUpdateRequestStatus
-} from '@lib/api/models';
+  DriftEventUpdateRequestStatus,
+} from "@lib/api/models";
 
 export default function DriftEventListPage() {
   const navigate = useNavigate();
 
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(20);
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<FindAllDriftEventsStatus | ''>('');
-  const [severityFilter, setSeverityFilter] = useState<FindAllDriftEventsSeverity | ''>('');
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<
+    FindAllDriftEventsStatus | ""
+  >("");
+  const [severityFilter, setSeverityFilter] = useState<
+    FindAllDriftEventsSeverity | ""
+  >("");
   const [unresolvedOnly, setUnresolvedOnly] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [resolveDialogOpen, setResolveDialogOpen] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
-  const [resolveAction, setResolveAction] = useState<DriftEventUpdateRequestStatus>('RESOLVED');
+  const [resolveAction, setResolveAction] =
+    useState<DriftEventUpdateRequestStatus>("RESOLVED");
 
   const { data, isLoading, error, refetch } = useFindAllDriftEvents(
     {
       serviceName: search || undefined,
       status: statusFilter || undefined,
       severity: severityFilter || undefined,
-      unresolvedOnly: unresolvedOnly ? 'true' : undefined,
+      unresolvedOnly: unresolvedOnly ? "true" : undefined,
       page,
       size: pageSize,
     },
@@ -70,13 +78,13 @@ export default function DriftEventListPage() {
 
   const handleResolve = (eventId: string) => {
     setSelectedEventId(eventId);
-    setResolveAction('RESOLVED');
+    setResolveAction("RESOLVED");
     setResolveDialogOpen(true);
   };
 
   const handleIgnore = (eventId: string) => {
     setSelectedEventId(eventId);
-    setResolveAction('IGNORED');
+    setResolveAction("IGNORED");
     setResolveDialogOpen(true);
   };
 
@@ -93,7 +101,11 @@ export default function DriftEventListPage() {
       },
       {
         onSuccess: () => {
-          toast.success(`Drift event ${resolveAction?.toLowerCase() || 'updated'} successfully`);
+          toast.success(
+            `Drift event ${
+              resolveAction?.toLowerCase() || "updated"
+            } successfully`
+          );
           setResolveDialogOpen(false);
           setSelectedEventId(null);
           refetch();
@@ -106,9 +118,9 @@ export default function DriftEventListPage() {
   };
 
   const handleFilterReset = () => {
-    setSearch('');
-    setStatusFilter('');
-    setSeverityFilter('');
+    setSearch("");
+    setStatusFilter("");
+    setSeverityFilter("");
     setUnresolvedOnly(false);
     setPage(0);
   };
@@ -129,7 +141,11 @@ export default function DriftEventListPage() {
               }
               label="Auto-refresh"
             />
-            <Button variant="outlined" startIcon={<RefreshIcon />} onClick={() => refetch()}>
+            <Button
+              variant="outlined"
+              startIcon={<RefreshIcon />}
+              onClick={() => refetch()}
+            >
               Refresh
             </Button>
           </>
@@ -149,12 +165,14 @@ export default function DriftEventListPage() {
                   setSearch(e.target.value);
                   setPage(0);
                 }}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon />
-                    </InputAdornment>
-                  ),
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon />
+                      </InputAdornment>
+                    ),
+                  },
                 }}
               />
             </Grid>
@@ -164,10 +182,10 @@ export default function DriftEventListPage() {
                 <InputLabel>Status</InputLabel>
                 <Select
                   value={statusFilter}
-                  label="Status"
                   onChange={(e) => {
-                    setStatusFilter(e.target.value as FindAllDriftEventsStatus | '');
-                    setPage(0);
+                    setStatusFilter(
+                      e.target.value as FindAllDriftEventsStatus | ""
+                    );
                   }}
                 >
                   <MenuItem value="">All</MenuItem>
@@ -185,7 +203,31 @@ export default function DriftEventListPage() {
                   value={severityFilter}
                   label="Severity"
                   onChange={(e) => {
-                    setSeverityFilter(e.target.value as FindAllDriftEventsSeverity | '');
+                    setSeverityFilter(
+                      e.target.value as FindAllDriftEventsSeverity | ""
+                    );
+                    setPage(0);
+                  }}
+                >
+                  <MenuItem value="">All</MenuItem>
+                  <MenuItem value="LOW">Low</MenuItem>
+                  <MenuItem value="MEDIUM">Medium</MenuItem>
+                  <MenuItem value="HIGH">High</MenuItem>
+                  <MenuItem value="CRITICAL">Critical</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid size={{ xs: 12, md: 2 }}>
+              <FormControl fullWidth>
+                <InputLabel>Severity</InputLabel>
+                <Select
+                  value={severityFilter}
+                  label="Severity"
+                  onChange={(e) => {
+                    setSeverityFilter(
+                      e.target.value as FindAllDriftEventsSeverity | ""
+                    );
                     setPage(0);
                   }}
                 >
@@ -219,7 +261,7 @@ export default function DriftEventListPage() {
                 fullWidth
                 variant="outlined"
                 onClick={handleFilterReset}
-                sx={{ height: '56px' }}
+                sx={{ height: "56px" }}
               >
                 Reset Filters
               </Button>
@@ -228,7 +270,7 @@ export default function DriftEventListPage() {
 
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
-              Failed to load drift events: {(error as any).detail || 'Unknown error'}
+              Failed to load drift events: {error.detail || "Unknown error"}
             </Alert>
           )}
 
@@ -246,7 +288,9 @@ export default function DriftEventListPage() {
                 setPageSize(newPageSize);
                 setPage(0);
               }}
-              onRowClick={(eventId: string) => navigate(`/drift-events/${eventId}`)}
+              onRowClick={(eventId: string) =>
+                navigate(`/drift-events/${eventId}`)
+              }
               onResolve={handleResolve}
               onIgnore={handleIgnore}
             />
@@ -263,7 +307,7 @@ export default function DriftEventListPage() {
         }}
         onSubmit={handleSubmitResolution}
         loading={updateMutation.isPending}
-        eventTitle={selectedEventId || ''}
+        eventTitle={selectedEventId || ""}
       />
     </Box>
   );

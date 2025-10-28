@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Box,
   Button,
@@ -17,14 +17,18 @@ import {
   FormControlLabel,
   Switch,
   Badge,
-} from '@mui/material';
-import Grid from '@mui/material/Grid';
-import { Search as SearchIcon, Refresh as RefreshIcon, CheckCircle as ApprovalIcon } from '@mui/icons-material';
-import PageHeader from '@components/common/PageHeader';
-import Loading from '@components/common/Loading';
-import { useFindAllApprovalRequests } from '@lib/api/hooks';
-import { ApprovalRequestTable } from '../components/ApprovalRequestTable';
-import { useAuth } from '@features/auth/authContext';
+} from "@mui/material";
+import Grid from "@mui/material/Grid";
+import {
+  Search as SearchIcon,
+  Refresh as RefreshIcon,
+  CheckCircle as ApprovalIcon,
+} from "@mui/icons-material";
+import PageHeader from "@components/common/PageHeader";
+import Loading from "@components/common/Loading";
+import { useFindAllApprovalRequests } from "@lib/api/hooks";
+import { ApprovalRequestTable } from "../components/ApprovalRequestTable";
+import { useAuth } from "@features/auth/context";
 
 export default function ApprovalListPage() {
   const navigate = useNavigate();
@@ -32,19 +36,19 @@ export default function ApprovalListPage() {
 
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(20);
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [requestTypeFilter, setRequestTypeFilter] = useState('');
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [requestTypeFilter, setRequestTypeFilter] = useState("");
   const [activeTab, setActiveTab] = useState(0);
   const [showMyApprovalsOnly, setShowMyApprovalsOnly] = useState(false);
 
   // Map tab to status filter
   const tabToStatus: Record<number, string | undefined> = {
     0: undefined, // All
-    1: 'PENDING',
-    2: 'APPROVED',
-    3: 'REJECTED',
-    4: 'CANCELLED',
+    1: "PENDING",
+    2: "APPROVED",
+    3: "REJECTED",
+    4: "CANCELLED",
   };
 
   const currentStatus = statusFilter || tabToStatus[activeTab];
@@ -65,7 +69,7 @@ export default function ApprovalListPage() {
     }
   );
 
-  const allRequests = data?.items || [];
+  const allRequests = useMemo(() => data?.items || [], [data?.items]);
   const metadata = data?.metadata;
 
   // Filter requests for "Pending My Approval"
@@ -74,7 +78,7 @@ export default function ApprovalListPage() {
 
     return allRequests.filter((request) => {
       // Only show pending requests
-      if (request.status !== 'PENDING') return false;
+      if (request.status !== "PENDING") return false;
 
       // SYS_ADMIN can approve everything
       if (isSysAdmin) return true;
@@ -90,7 +94,7 @@ export default function ApprovalListPage() {
   const pendingMyApprovalCount = useMemo(() => {
     if (!allRequests) return 0;
     return allRequests.filter((request) => {
-      if (request.status !== 'PENDING') return false;
+      if (request.status !== "PENDING") return false;
       if (isSysAdmin) return true;
       if (request.snapshot?.managerId === userInfo?.userId) return true;
       return false;
@@ -103,9 +107,9 @@ export default function ApprovalListPage() {
   };
 
   const handleFilterReset = () => {
-    setSearch('');
-    setStatusFilter('');
-    setRequestTypeFilter('');
+    setSearch("");
+    setStatusFilter("");
+    setRequestTypeFilter("");
     setShowMyApprovalsOnly(false);
     setPage(0);
   };
@@ -118,11 +122,19 @@ export default function ApprovalListPage() {
         actions={
           <>
             {pendingMyApprovalCount > 0 && (
-              <Badge badgeContent={pendingMyApprovalCount} color="warning" sx={{ mr: 2 }}>
+              <Badge
+                badgeContent={pendingMyApprovalCount}
+                color="warning"
+                sx={{ mr: 2 }}
+              >
                 <ApprovalIcon color="action" />
               </Badge>
             )}
-            <Button variant="outlined" startIcon={<RefreshIcon />} onClick={() => refetch()}>
+            <Button
+              variant="outlined"
+              startIcon={<RefreshIcon />}
+              onClick={() => refetch()}
+            >
               Refresh
             </Button>
           </>
@@ -132,7 +144,7 @@ export default function ApprovalListPage() {
       <Card>
         <CardContent>
           {/* Status Tabs */}
-          <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+          <Box sx={{ borderBottom: 1, borderColor: "divider", mb: 3 }}>
             <Tabs value={activeTab} onChange={handleTabChange}>
               <Tab label="All" />
               <Tab label="Pending" />
@@ -156,11 +168,14 @@ export default function ApprovalListPage() {
                 />
               }
               label={
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                   <ApprovalIcon fontSize="small" />
                   Show Pending My Approval Only
                   {pendingMyApprovalCount > 0 && (
-                    <Badge badgeContent={pendingMyApprovalCount} color="warning" />
+                    <Badge
+                      badgeContent={pendingMyApprovalCount}
+                      color="warning"
+                    />
                   )}
                 </Box>
               }
@@ -181,11 +196,11 @@ export default function ApprovalListPage() {
                 disabled={showMyApprovalsOnly}
                 slotProps={{
                   input: {
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon />
-                    </InputAdornment>
-                  ),
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon />
+                      </InputAdornment>
+                    ),
                   },
                 }}
               />
@@ -237,7 +252,7 @@ export default function ApprovalListPage() {
                 fullWidth
                 variant="outlined"
                 onClick={handleFilterReset}
-                sx={{ height: '56px' }}
+                sx={{ height: "56px" }}
               >
                 Reset
               </Button>
@@ -246,7 +261,8 @@ export default function ApprovalListPage() {
 
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
-              Failed to load approval requests: {(error as any).detail || 'Unknown error'}
+              Failed to load approval requests:{" "}
+              {error.detail || "Unknown error"}
             </Alert>
           )}
 
@@ -264,7 +280,9 @@ export default function ApprovalListPage() {
                 setPageSize(newPageSize);
                 setPage(0);
               }}
-              onRowClick={(requestId: string) => navigate(`/approvals/${requestId}`)}
+              onRowClick={(requestId: string) =>
+                navigate(`/approvals/${requestId}`)
+              }
             />
           )}
         </CardContent>

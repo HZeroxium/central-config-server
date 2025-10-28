@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   Box,
   Button,
@@ -16,40 +16,52 @@ import {
   IconButton,
   Tooltip,
   Alert,
-} from '@mui/material';
-import { Share as ShareIcon, Delete as RevokeIcon } from '@mui/icons-material';
-import { useFindAllServiceSharesForService1, useRevokeServiceShare } from '@lib/api/generated/service-shares/service-shares';
-import { useAuth } from '@features/auth/authContext';
-import { toast } from '@lib/toast/toast';
-import { handleApiError } from '@lib/api/errorHandler';
-import Loading from '@components/common/Loading';
-import ConfirmDialog from '@components/common/ConfirmDialog';
-import { GrantShareDrawer } from './GrantShareDrawer';
+} from "@mui/material";
+import { Share as ShareIcon, Delete as RevokeIcon } from "@mui/icons-material";
+import {
+  useFindAllServiceShares,
+  useRevokeServiceShare,
+} from "@lib/api/generated/service-shares/service-shares";
+import { useAuth } from "@features/auth/context";
+import { toast } from "@lib/toast/toast";
+import { handleApiError } from "@lib/api/errorHandler";
+import Loading from "@components/common/Loading";
+import ConfirmDialog from "@components/common/ConfirmDialog";
+import { GrantShareDrawer } from "./GrantShareDrawer";
 
 interface ServiceSharesTabProps {
   serviceId: string;
 }
 
-export const ServiceSharesTab: React.FC<ServiceSharesTabProps> = ({ serviceId }) => {
+export const ServiceSharesTab: React.FC<ServiceSharesTabProps> = ({
+  serviceId,
+}) => {
   const { isSysAdmin, permissions } = useAuth();
   const [shareDrawerOpen, setShareDrawerOpen] = useState(false);
   const [revokeDialogOpen, setRevokeDialogOpen] = useState(false);
   const [selectedShareId, setSelectedShareId] = useState<string | null>(null);
 
   // Fetch service shares
-  const { data: sharesData, isLoading: sharesLoading, refetch: refetchShares } = useFindAllServiceSharesForService1({
-    serviceId,
-  }, {
-    query: {
-      staleTime: 30_000,
+  const {
+    data: sharesData,
+    isLoading: sharesLoading,
+    refetch: refetchShares,
+  } = useFindAllServiceShares(
+    {
+      serviceId,
     },
-  });
+    {
+      query: {
+        staleTime: 30_000,
+      },
+    }
+  );
 
   // Revoke share mutation
   const revokeShareMutation = useRevokeServiceShare({
     mutation: {
       onSuccess: () => {
-        toast.success('Service share revoked successfully');
+        toast.success("Service share revoked successfully");
         setRevokeDialogOpen(false);
         setSelectedShareId(null);
         refetchShares();
@@ -60,7 +72,8 @@ export const ServiceSharesTab: React.FC<ServiceSharesTabProps> = ({ serviceId })
     },
   });
 
-  const canManageShares = isSysAdmin || permissions?.actions?.['SERVICE_SHARE']?.includes('MANAGE');
+  const canManageShares =
+    isSysAdmin || permissions?.actions?.["SERVICE_SHARE"]?.includes("MANAGE");
 
   const handleRevokeShare = (shareId: string) => {
     setSelectedShareId(shareId);
@@ -78,7 +91,7 @@ export const ServiceSharesTab: React.FC<ServiceSharesTabProps> = ({ serviceId })
   };
 
   const handleShareSuccess = () => {
-    toast.success('Service share granted successfully');
+    toast.success("Service share granted successfully");
     setShareDrawerOpen(false);
     refetchShares();
   };
@@ -91,9 +104,9 @@ export const ServiceSharesTab: React.FC<ServiceSharesTabProps> = ({ serviceId })
         <CardContent>
           <Box
             sx={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
               mb: 3,
             }}
           >
@@ -124,18 +137,17 @@ export const ServiceSharesTab: React.FC<ServiceSharesTabProps> = ({ serviceId })
                     <TableCell>Granted By</TableCell>
                     <TableCell>Created At</TableCell>
                     <TableCell>Expires At</TableCell>
-                    {canManageShares && <TableCell align="right">Actions</TableCell>}
+                    {canManageShares && (
+                      <TableCell align="right">Actions</TableCell>
+                    )}
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {shares.map((share: any) => (
+                  {shares.map((share) => (
                     <TableRow key={share.id} hover>
                       <TableCell>
                         <Box>
                           <Typography variant="body2" fontWeight="medium">
-                            {share.grantToName || share.grantToId}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
                             {share.grantToId}
                           </Typography>
                         </Box>
@@ -145,15 +157,21 @@ export const ServiceSharesTab: React.FC<ServiceSharesTabProps> = ({ serviceId })
                           label={share.grantToType}
                           size="small"
                           variant="outlined"
-                          color={share.grantToType === 'TEAM' ? 'primary' : 'secondary'}
+                          color={
+                            share.grantToType === "TEAM"
+                              ? "primary"
+                              : "secondary"
+                          }
                         />
                       </TableCell>
                       <TableCell>
-                        <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-                          {share.permissions?.map((perm: any) => (
+                        <Box
+                          sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}
+                        >
+                          {share.permissions?.map((perm) => (
                             <Chip
                               key={perm}
-                              label={perm.replace('_', ' ')}
+                              label={perm.replace("_", " ")}
                               size="small"
                               color="primary"
                               variant="outlined"
@@ -163,16 +181,20 @@ export const ServiceSharesTab: React.FC<ServiceSharesTabProps> = ({ serviceId })
                       </TableCell>
                       <TableCell>
                         {share.environments && share.environments.length > 0 ? (
-                          <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-                            {share.environments.map((env: any) => (
+                          <Box
+                            sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}
+                          >
+                            {share.environments.map((env) => (
                               <Chip
                                 key={env}
                                 label={env.toUpperCase()}
                                 size="small"
                                 color={
-                                  env === 'prod' ? 'error' : 
-                                  env === 'staging' ? 'warning' : 
-                                  'info'
+                                  env === "prod"
+                                    ? "error"
+                                    : env === "staging"
+                                    ? "warning"
+                                    : "info"
                                 }
                                 variant="outlined"
                               />
@@ -186,17 +208,16 @@ export const ServiceSharesTab: React.FC<ServiceSharesTabProps> = ({ serviceId })
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2">
-                          {share.createdBy || 'Unknown'}
+                          {share.createdAt
+                            ? new Date(share.createdAt).toLocaleDateString()
+                            : "-"}
                         </Typography>
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2">
-                          {share.createdAt ? new Date(share.createdAt).toLocaleDateString() : '-'}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2">
-                          {share.expiresAt ? new Date(share.expiresAt).toLocaleDateString() : 'Never'}
+                          {share.expiresAt
+                            ? new Date(share.expiresAt).toLocaleDateString()
+                            : "Never"}
                         </Typography>
                       </TableCell>
                       {canManageShares && (
@@ -219,7 +240,8 @@ export const ServiceSharesTab: React.FC<ServiceSharesTabProps> = ({ serviceId })
             </TableContainer>
           ) : (
             <Alert severity="info">
-              No shares found for this service. Grant shares to allow other teams or users to access this service.
+              No shares found for this service. Grant shares to allow other
+              teams or users to access this service.
             </Alert>
           )}
         </CardContent>

@@ -1,13 +1,19 @@
-import { useForm, type UseFormProps, type UseFormReturn, type FieldValues, type Path } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { AxiosError } from 'axios';
-import type { ErrorResponse } from '@lib/api/models';
+import {
+  useForm,
+  type UseFormProps,
+  type UseFormReturn,
+  type FieldValues,
+  type Path,
+  type Resolver,
+} from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { AxiosError } from "axios";
+import type { ErrorResponse } from "@lib/api/models";
+import type { FormSchema } from "@lib/api/types";
 
- 
 interface UseFormWithValidationProps<TFormValues extends FieldValues>
-  extends Omit<UseFormProps<TFormValues>, 'resolver'> {
-  // Using any here to avoid zodResolver type complexity
-  schema: any;
+  extends Omit<UseFormProps<TFormValues>, "resolver"> {
+  schema: FormSchema;
 }
 
 interface UseFormWithValidationReturn<TFormValues extends FieldValues>
@@ -26,9 +32,37 @@ export function useFormWithValidation<TFormValues extends FieldValues>(
 
   const form = useForm<TFormValues>({
     ...formProps,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resolver: zodResolver(schema) as any,
+    resolver: zodResolver(schema) as Resolver<TFormValues>,
   });
+
+  /**
+   * Handle validation errors from backend
+   */
+  const handleValidationErrors = (errorData: ErrorResponse) => {
+    if (!errorData?.validationErrors) return;
+
+    for (const validationError of errorData.validationErrors) {
+      if (validationError.field) {
+        const fieldName = validationError.field as Path<TFormValues>;
+        form.setError(fieldName, {
+          type: "server",
+          message: validationError.message || "Invalid value",
+        });
+      }
+    }
+  };
+
+  /**
+   * Handle generic error message from backend
+   */
+  const handleGenericError = (errorData: ErrorResponse) => {
+    if (errorData?.detail && !errorData?.validationErrors?.length) {
+      form.setError("root", {
+        type: "server",
+        message: errorData.detail,
+      });
+    }
+  };
 
   /**
    * Set server-side validation errors on form fields
@@ -36,32 +70,16 @@ export function useFormWithValidation<TFormValues extends FieldValues>(
   const setServerErrors = (error: unknown) => {
     if (error instanceof AxiosError && error.response?.status === 400) {
       const errorData = error.response.data as ErrorResponse;
-
-      // Handle validation errors from backend
-      if (errorData?.validationErrors) {
-        errorData.validationErrors.forEach((validationError) => {
-          if (validationError.field) {
-            const fieldName = validationError.field as Path<TFormValues>;
-            form.setError(fieldName, {
-              type: 'server',
-              message: validationError.message || 'Invalid value',
-            });
-          }
-        });
-      }
-
-      // Handle generic error message
-      if (errorData?.detail && !errorData?.validationErrors?.length) {
-        form.setError('root', {
-          type: 'server',
-          message: errorData.detail,
-        });
-      }
+      handleValidationErrors(errorData);
+      handleGenericError(errorData);
     } else {
       // For non-validation errors, set a generic root error
-      form.setError('root', {
-        type: 'server',
-        message: error instanceof Error ? error.message : 'An unexpected error occurred',
+      form.setError("root", {
+        type: "server",
+        message:
+          error instanceof Error
+            ? error.message
+            : "An unexpected error occurred",
       });
     }
   };
@@ -79,7 +97,7 @@ export function hasServerErrors<TFormValues extends FieldValues>(
   form: UseFormReturn<TFormValues>
 ): boolean {
   const errors = form.formState.errors;
-  return Object.values(errors).some((error) => error?.type === 'server');
+  return Object.values(errors).some((error) => error?.type === "server");
 }
 
 /**
@@ -90,7 +108,7 @@ export function getServerErrorMessages<TFormValues extends FieldValues>(
 ): string[] {
   const errors = form.formState.errors;
   return Object.values(errors)
-    .filter((error) => error && error.type === 'server')
-    .map((error) => error?.message || 'Server error')
+    .filter((error) => error && error.type === "server")
+    .map((error) => error?.message || "Server error")
     .filter((msg): msg is string => Boolean(msg));
 }

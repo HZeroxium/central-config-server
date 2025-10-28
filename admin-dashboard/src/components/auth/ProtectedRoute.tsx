@@ -1,7 +1,7 @@
-import React from 'react';
-import { Navigate } from 'react-router-dom';
-import { useAuth } from '@features/auth/authContext';
-import { CircularProgress, Box } from '@mui/material';
+import React from "react";
+import { Navigate } from "react-router-dom";
+import { useAuth } from "@features/auth/context";
+import { CircularProgress, Box } from "@mui/material";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -29,13 +29,13 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   requiredPermissions = [],
   requiredRoute,
 }) => {
-  const { 
-    initialized, 
-    isAuthenticated, 
-    permissions, 
+  const {
+    initialized,
+    isAuthenticated,
+    permissions,
     permissionsLoading,
     userInfo,
-    isSysAdmin
+    isSysAdmin,
   } = useAuth();
 
   // Show loading while initializing or fetching permissions
@@ -69,7 +69,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   // Check role requirements
   if (requiredRoles.length > 0 && userInfo) {
-    const hasRequiredRole = requiredRoles.some(role => 
+    const hasRequiredRole = requiredRoles.some((role) =>
       userInfo.roles.includes(role)
     );
     if (!hasRequiredRole) {
@@ -79,7 +79,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   // Check team requirements
   if (requiredTeams.length > 0 && userInfo) {
-    const hasRequiredTeam = requiredTeams.some(team => 
+    const hasRequiredTeam = requiredTeams.some((team) =>
       userInfo.teamIds.includes(team)
     );
     if (!hasRequiredTeam) {
@@ -90,7 +90,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   // Check granular permissions (actions)
   if (requiredPermissions.length > 0 && permissions) {
     const allActions = Object.values(permissions.actions).flat();
-    const hasAllPermissions = requiredPermissions.every(perm =>
+    const hasAllPermissions = requiredPermissions.every((perm) =>
       allActions.includes(perm)
     );
     if (!hasAllPermissions) {

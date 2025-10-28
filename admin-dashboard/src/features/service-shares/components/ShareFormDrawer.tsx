@@ -57,7 +57,7 @@ export function ShareFormDrawer({
   open,
   onClose,
   onSuccess,
-}: ShareFormDrawerProps) {
+}: Readonly<ShareFormDrawerProps>) {
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
   const [selectedEnvironments, setSelectedEnvironments] = useState<string[]>(
     []
@@ -163,8 +163,10 @@ export function ShareFormDrawer({
       anchor="right"
       open={open}
       onClose={onClose}
-      PaperProps={{
-        sx: { width: { xs: "100%", sm: 600 } },
+      slotProps={{
+        paper: {
+          sx: { width: { xs: "100%", sm: 600 } },
+        },
       }}
     >
       <Box
@@ -238,13 +240,15 @@ export function ShareFormDrawer({
                   {...field}
                   options={
                     grantToType === "TEAM"
-                      ? teams.map((t) => t.id || "")
+                      ? teams.map((t) => t.teamId || "")
                       : users.map((u) => u.userId || "")
                   }
                   getOptionLabel={(option) => {
                     if (grantToType === "TEAM") {
-                      const team = teams.find((t) => t.id === option);
-                      return team ? `${team.name} (${team.id})` : option;
+                      const team = teams.find((t) => t.teamId === option);
+                      return team
+                        ? `${team.displayName} (${team.teamId})`
+                        : option;
                     } else {
                       const user = users.find((u) => u.userId === option);
                       return user ? `${user.username} (${user.email})` : option;

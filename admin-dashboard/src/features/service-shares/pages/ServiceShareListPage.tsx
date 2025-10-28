@@ -23,7 +23,7 @@ import PageHeader from "@components/common/PageHeader";
 import Loading from "@components/common/Loading";
 import ConfirmDialog from "@components/common/ConfirmDialog";
 import { useFindAllServiceShares, useRevokeServiceShare } from "@lib/api/hooks";
-import { useAuth } from "@features/auth/authContext";
+import { useAuth } from "@features/auth/context";
 import { toast } from "@lib/toast/toast";
 import { handleApiError } from "@lib/api/errorHandler";
 import { ServiceShareTable } from "../components/ServiceShareTable";

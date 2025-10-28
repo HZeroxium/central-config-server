@@ -21,12 +21,18 @@ import {
   ViewList,
   Code,
   GitHub,
-  Info,
+  Edit,
+  Save,
+  Cancel,
 } from "@mui/icons-material";
 import { useState, useMemo } from "react";
 import { Highlight, themes } from "prism-react-renderer";
+import Editor from "@monaco-editor/react";
 import * as yaml from "yaml";
-import type { ConfigEnvironmentResponse } from "@lib/api/types";
+import type {
+  ConfigEnvironmentResponse,
+  PropertySourceMap,
+} from "@lib/api/types";
 import ConfigMergeInfo from "./ConfigMergeInfo";
 import ConfigStats from "./ConfigStats";
 
@@ -34,9 +40,9 @@ type ViewMode = "accordion" | "yaml";
 
 export default function ConfigDetailCard({
   env,
-}: {
+}: Readonly<{
   env: ConfigEnvironmentResponse;
-}) {
+}>) {
   const [copiedProperty, setCopiedProperty] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("accordion");
 
@@ -44,7 +50,7 @@ export default function ConfigDetailCard({
   const finalProperties = useMemo(() => {
     if (!env.propertySources) return {};
 
-    const merged: Record<string, any> = {};
+    const merged: PropertySourceMap = {};
 
     // Merge from bottom to top (propertySources[0] has highest priority)
     // Spring Cloud Config merge order: application.yml -> application-{profile}.yml -> {service}/application.yml -> {service}/application-{profile}.yml
@@ -73,8 +79,8 @@ export default function ConfigDetailCard({
   const extractGitUrl = (sourceName: string): string | null => {
     // Try matching the pattern: https://github.com/OWNER/REPO.git + optional path
     // We use a regex with capture groups to split the base repo and the path.
-    const regex = /^https:\/\/github\.com\/([^\/]+)\/([^\/]+)\.git(?:\/(.+))?$/;
-    const match = sourceName.match(regex);
+    const regex = /^https:\/\/github\.com\/([^/]+)\/([^/]+)\.git(?:\/(.+))?$/;
+    const match = new RegExp(regex).exec(sourceName);
     if (!match) {
       return null;
     }
@@ -93,7 +99,7 @@ export default function ConfigDetailCard({
     }
   };
 
-  const renderPropertyValue = (value: any, key: string) => {
+  const renderPropertyValue = (value: unknown, key: string) => {
     const jsonString = JSON.stringify(value, null, 2);
     const isCopied = copiedProperty === key;
 
@@ -108,9 +114,12 @@ export default function ConfigDetailCard({
               style={style}
             >
               {tokens.map((line, i) => (
-                <div key={i} {...getLineProps({ line })}>
-                  {line.map((token, key) => (
-                    <span key={key} {...getTokenProps({ token })} />
+                <div key={`${key}-line-${i}`} {...getLineProps({ line })}>
+                  {line.map((token, tokenIdx) => (
+                    <span
+                      key={`${key}-token-${tokenIdx}`}
+                      {...getTokenProps({ token })}
+                    />
                   ))}
                 </div>
               ))}
@@ -249,7 +258,7 @@ export default function ConfigDetailCard({
               <Chip
                 label={env.state || "unknown"}
                 size="small"
-                color={env.state === "success" ? "success" : "default"}
+                color={env.state ? "success" : "default"}
               />
             </Box>
           </Box>
@@ -385,9 +394,12 @@ export default function ConfigDetailCard({
                     style={style}
                   >
                     {tokens.map((line, i) => (
-                      <div key={i} {...getLineProps({ line })}>
-                        {line.map((token, key) => (
-                          <span key={key} {...getTokenProps({ token })} />
+                      <div key={`final-line-${i}`} {...getLineProps({ line })}>
+                        {line.map((token, tokenIdx) => (
+                          <span
+                            key={`final-token-${i}-${tokenIdx}`}
+                            {...getTokenProps({ token })}
+                          />
                         ))}
                       </div>
                     ))}
@@ -442,7 +454,7 @@ export default function ConfigDetailCard({
           {viewMode === "accordion" ? (
             <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
               {env.propertySources?.map((ps, index) => {
-                const gitUrl = extractGitUrl(ps.name);
+                const gitUrl = ps.name ? extractGitUrl(ps.name) : null;
                 return (
                   <Accordion
                     key={ps.name}
@@ -488,7 +500,7 @@ export default function ConfigDetailCard({
                               textOverflow: "ellipsis",
                             }}
                           >
-                            {ps.name.split("/").pop()}
+                            {ps.name?.split("/").pop() || "Unknown"}
                           </Typography>
                           {gitUrl && (
                             <Tooltip title="Open in GitHub">
@@ -584,7 +596,7 @@ export default function ConfigDetailCard({
           ) : (
             <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
               {env.propertySources?.map((ps, index) => {
-                const gitUrl = extractGitUrl(ps.name);
+                const gitUrl = ps.name ? extractGitUrl(ps.name) : null;
                 return (
                   <Card
                     key={ps.name}
@@ -617,7 +629,7 @@ export default function ConfigDetailCard({
                               textOverflow: "ellipsis",
                             }}
                           >
-                            {ps.name.split("/").pop()}
+                            {ps.name?.split("/").pop() || "Unknown"}
                           </Typography>
                           {gitUrl && (
                             <Tooltip title="Open in GitHub">
@@ -686,10 +698,13 @@ export default function ConfigDetailCard({
                               style={style}
                             >
                               {tokens.map((line, i) => (
-                                <div key={i} {...getLineProps({ line })}>
-                                  {line.map((token, key) => (
+                                <div
+                                  key={`source-${index}-line-${i}`}
+                                  {...getLineProps({ line })}
+                                >
+                                  {line.map((token, tokenIdx) => (
                                     <span
-                                      key={key}
+                                      key={`source-${index}-token-${i}-${tokenIdx}`}
                                       {...getTokenProps({ token })}
                                     />
                                   ))}

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Box,
   Button,
@@ -8,14 +8,17 @@ import {
   TextField,
   InputAdornment,
   Alert,
-} from '@mui/material';
-import Grid from '@mui/material/Grid';
-import { Search as SearchIcon, Refresh as RefreshIcon } from '@mui/icons-material';
-import PageHeader from '@components/common/PageHeader';
-import Loading from '@components/common/Loading';
-import { useFindAllIamTeams } from '@lib/api/hooks';
-import { useAuth } from '@features/auth/authContext';
-import { IamTeamTable } from '../components/IamTeamTable';
+} from "@mui/material";
+import Grid from "@mui/material/Grid";
+import {
+  Search as SearchIcon,
+  Refresh as RefreshIcon,
+} from "@mui/icons-material";
+import PageHeader from "@components/common/PageHeader";
+import Loading from "@components/common/Loading";
+import { useFindAllIamTeams } from "@lib/api/hooks";
+import { useAuth } from "@lib/keycloak/useAuth";
+import { IamTeamTable } from "../components/IamTeamTable";
 
 export default function IamTeamListPage() {
   const navigate = useNavigate();
@@ -23,20 +26,9 @@ export default function IamTeamListPage() {
 
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(20);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
 
-  // Only SYS_ADMIN can access IAM pages
-  if (!isSysAdmin) {
-    return (
-      <Box>
-        <PageHeader title="Access Denied" />
-        <Alert severity="error" sx={{ m: 3 }}>
-          You do not have permission to access this page. This feature is restricted to system administrators.
-        </Alert>
-      </Box>
-    );
-  }
-
+  // Always call hooks, but control with enabled option
   const { data, isLoading, error, refetch } = useFindAllIamTeams(
     {
       displayName: search || undefined,
@@ -45,16 +37,30 @@ export default function IamTeamListPage() {
     },
     {
       query: {
+        enabled: isSysAdmin,
         staleTime: 30_000,
       },
     }
   );
 
+  // Only SYS_ADMIN can access IAM pages
+  if (!isSysAdmin) {
+    return (
+      <Box>
+        <PageHeader title="Access Denied" />
+        <Alert severity="error" sx={{ m: 3 }}>
+          You do not have permission to access this page. This feature is
+          restricted to system administrators.
+        </Alert>
+      </Box>
+    );
+  }
+
   const teams = data?.items || [];
   const metadata = data?.metadata;
 
   const handleFilterReset = () => {
-    setSearch('');
+    setSearch("");
     setPage(0);
   };
 
@@ -64,7 +70,11 @@ export default function IamTeamListPage() {
         title="IAM Teams"
         subtitle="Manage teams and their members"
         actions={
-          <Button variant="outlined" startIcon={<RefreshIcon />} onClick={() => refetch()}>
+          <Button
+            variant="outlined"
+            startIcon={<RefreshIcon />}
+            onClick={() => refetch()}
+          >
             Refresh
           </Button>
         }
@@ -83,12 +93,14 @@ export default function IamTeamListPage() {
                   setSearch(e.target.value);
                   setPage(0);
                 }}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon />
-                    </InputAdornment>
-                  ),
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon />
+                      </InputAdornment>
+                    ),
+                  },
                 }}
               />
             </Grid>
@@ -98,7 +110,7 @@ export default function IamTeamListPage() {
                 fullWidth
                 variant="outlined"
                 onClick={handleFilterReset}
-                sx={{ height: '56px' }}
+                sx={{ height: "56px" }}
               >
                 Reset Filters
               </Button>
@@ -107,7 +119,8 @@ export default function IamTeamListPage() {
 
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
-              Failed to load teams: {(error as any).detail || 'Unknown error'}
+              Failed to load teams:{" "}
+              {(error as Error).message || "Unknown error"}
             </Alert>
           )}
 

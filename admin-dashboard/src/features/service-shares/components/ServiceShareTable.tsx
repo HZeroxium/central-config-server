@@ -1,10 +1,18 @@
-import { DataGrid, type GridColDef, GridActionsCellItem } from '@mui/x-data-grid';
-import { Visibility as ViewIcon, Cancel as RevokeIcon } from '@mui/icons-material';
-import { Box, Chip } from '@mui/material';
-import { format } from 'date-fns';
+import {
+  DataGrid,
+  type GridColDef,
+  GridActionsCellItem,
+} from "@mui/x-data-grid";
+import {
+  Visibility as ViewIcon,
+  Cancel as RevokeIcon,
+} from "@mui/icons-material";
+import { Box, Chip } from "@mui/material";
+import { format } from "date-fns";
+import type { ServiceShareResponse } from "@/lib/api/models";
 
 interface ServiceShareTableProps {
-  shares: any[];
+  shares: ServiceShareResponse[];
   loading: boolean;
   page: number;
   pageSize: number;
@@ -28,95 +36,114 @@ export function ServiceShareTable({
 }: ServiceShareTableProps) {
   const columns: GridColDef[] = [
     {
-      field: 'serviceId',
-      headerName: 'Service ID',
+      field: "serviceId",
+      headerName: "Service ID",
       flex: 1,
       minWidth: 150,
       renderCell: (params) => (
-        <Box sx={{ fontFamily: 'monospace', fontWeight: 600 }}>{params.value}</Box>
+        <Box sx={{ fontFamily: "monospace", fontWeight: 600 }}>
+          {params.value}
+        </Box>
       ),
     },
     {
-      field: 'grantToType',
-      headerName: 'Grant To Type',
+      field: "grantToType",
+      headerName: "Grant To Type",
       width: 120,
       renderCell: (params) => (
-        <Chip label={params.value} size="small" color={params.value === 'TEAM' ? 'primary' : 'default'} />
+        <Chip
+          label={params.value}
+          size="small"
+          color={params.value === "TEAM" ? "primary" : "default"}
+        />
       ),
     },
     {
-      field: 'grantToId',
-      headerName: 'Grant To',
+      field: "grantToId",
+      headerName: "Grant To",
       flex: 1,
       minWidth: 150,
     },
     {
-      field: 'permissions',
-      headerName: 'Permissions',
+      field: "permissions",
+      headerName: "Permissions",
       flex: 1,
       minWidth: 200,
       renderCell: (params) => {
         const perms = params.value as string[] | undefined;
-        if (!perms || perms.length === 0) return '-';
+        if (!perms || perms.length === 0) return "-";
         return (
-          <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+          <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
             {perms.slice(0, 2).map((perm) => (
               <Chip key={perm} label={perm} size="small" variant="outlined" />
             ))}
-            {perms.length > 2 && <Chip label={`+${perms.length - 2}`} size="small" variant="outlined" />}
+            {perms.length > 2 && (
+              <Chip
+                label={`+${perms.length - 2}`}
+                size="small"
+                variant="outlined"
+              />
+            )}
           </Box>
         );
       },
     },
     {
-      field: 'environments',
-      headerName: 'Environments',
+      field: "environments",
+      headerName: "Environments",
       flex: 1,
       minWidth: 150,
       renderCell: (params) => {
         const envs = params.value as string[] | undefined;
-        if (!envs || envs.length === 0) return 'All';
+        if (!envs || envs.length === 0) return "All";
         return (
-          <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+          <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
             {envs.slice(0, 2).map((env) => (
-              <Chip key={env} label={env.toUpperCase()} size="small" variant="filled" />
+              <Chip
+                key={env}
+                label={env.toUpperCase()}
+                size="small"
+                variant="filled"
+              />
             ))}
-            {envs.length > 2 && <Chip label={`+${envs.length - 2}`} size="small" />}
+            {envs.length > 2 && (
+              <Chip label={`+${envs.length - 2}`} size="small" />
+            )}
           </Box>
         );
       },
     },
     {
-      field: 'createdAt',
-      headerName: 'Created At',
+      field: "createdAt",
+      headerName: "Created At",
       width: 160,
       renderCell: (params) => {
-        if (!params.value) return '-';
+        if (!params.value) return "-";
         try {
-          return format(new Date(params.value), 'MMM dd, yyyy HH:mm');
+          return format(new Date(params.value), "MMM dd, yyyy HH:mm");
         } catch {
           return params.value;
         }
       },
     },
     {
-      field: 'actions',
-      type: 'actions',
-      headerName: 'Actions',
+      field: "actions",
+      type: "actions",
+      headerName: "Actions",
       width: 100,
       getActions: (params) => [
         <GridActionsCellItem
           key="view"
           icon={<ViewIcon />}
           label="View"
-          onClick={() => onRowClick(params.row.id || '')}
+          onClick={() => onRowClick(params.row.id || "")}
           showInMenu={false}
         />,
         <GridActionsCellItem
           key="revoke"
           icon={<RevokeIcon />}
           label="Revoke"
-          onClick={() => onRevoke(params.row.id || '')}
+          onClick={() => onRevoke(params.row.id || "")}
           showInMenu={false}
         />,
       ],
@@ -130,7 +157,7 @@ export function ServiceShareTable({
   }));
 
   return (
-    <Box sx={{ height: 600, width: '100%' }}>
+    <Box sx={{ height: 600, width: "100%" }}>
       <DataGrid
         rows={rows}
         columns={columns}
@@ -149,8 +176,8 @@ export function ServiceShareTable({
         pageSizeOptions={[10, 20, 50, 100]}
         disableRowSelectionOnClick
         sx={{
-          '& .MuiDataGrid-row': {
-            cursor: 'pointer',
+          "& .MuiDataGrid-row": {
+            cursor: "pointer",
           },
         }}
       />

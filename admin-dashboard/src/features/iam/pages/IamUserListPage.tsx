@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Box,
   Button,
@@ -8,14 +8,17 @@ import {
   TextField,
   InputAdornment,
   Alert,
-} from '@mui/material';
-import Grid from '@mui/material/Grid';
-import { Search as SearchIcon, Refresh as RefreshIcon } from '@mui/icons-material';
-import PageHeader from '@components/common/PageHeader';
-import Loading from '@components/common/Loading';
-import { useFindAllIamUsers } from '@lib/api/hooks';
-import { useAuth } from '@features/auth/authContext';
-import { IamUserTable } from '../components/IamUserTable';
+} from "@mui/material";
+import Grid from "@mui/material/Grid";
+import {
+  Search as SearchIcon,
+  Refresh as RefreshIcon,
+} from "@mui/icons-material";
+import PageHeader from "@components/common/PageHeader";
+import Loading from "@components/common/Loading";
+import { useFindAllIamUsers } from "@lib/api/hooks";
+import { useAuth } from "@lib/keycloak/useAuth";
+import { IamUserTable } from "../components/IamUserTable";
 
 export default function IamUserListPage() {
   const navigate = useNavigate();
@@ -23,21 +26,10 @@ export default function IamUserListPage() {
 
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(20);
-  const [search, setSearch] = useState('');
-  const [emailSearch, setEmailSearch] = useState('');
+  const [search, setSearch] = useState("");
+  const [emailSearch, setEmailSearch] = useState("");
 
-  // Only SYS_ADMIN can access IAM pages
-  if (!isSysAdmin) {
-    return (
-      <Box>
-        <PageHeader title="Access Denied" />
-        <Alert severity="error" sx={{ m: 3 }}>
-          You do not have permission to access this page. This feature is restricted to system administrators.
-        </Alert>
-      </Box>
-    );
-  }
-
+  // Always call hooks, but control with enabled option
   const { data, isLoading, error, refetch } = useFindAllIamUsers(
     {
       username: search || undefined,
@@ -47,17 +39,31 @@ export default function IamUserListPage() {
     },
     {
       query: {
+        enabled: isSysAdmin,
         staleTime: 30_000,
       },
     }
   );
 
+  // Only SYS_ADMIN can access IAM pages
+  if (!isSysAdmin) {
+    return (
+      <Box>
+        <PageHeader title="Access Denied" />
+        <Alert severity="error" sx={{ m: 3 }}>
+          You do not have permission to access this page. This feature is
+          restricted to system administrators.
+        </Alert>
+      </Box>
+    );
+  }
+
   const users = data?.items || [];
   const metadata = data?.metadata;
 
   const handleFilterReset = () => {
-    setSearch('');
-    setEmailSearch('');
+    setSearch("");
+    setEmailSearch("");
     setPage(0);
   };
 
@@ -67,7 +73,11 @@ export default function IamUserListPage() {
         title="IAM Users"
         subtitle="Manage users and their permissions"
         actions={
-          <Button variant="outlined" startIcon={<RefreshIcon />} onClick={() => refetch()}>
+          <Button
+            variant="outlined"
+            startIcon={<RefreshIcon />}
+            onClick={() => refetch()}
+          >
             Refresh
           </Button>
         }
@@ -86,12 +96,14 @@ export default function IamUserListPage() {
                   setSearch(e.target.value);
                   setPage(0);
                 }}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon />
-                    </InputAdornment>
-                  ),
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon />
+                      </InputAdornment>
+                    ),
+                  },
                 }}
               />
             </Grid>
@@ -105,12 +117,14 @@ export default function IamUserListPage() {
                   setEmailSearch(e.target.value);
                   setPage(0);
                 }}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon />
-                    </InputAdornment>
-                  ),
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon />
+                      </InputAdornment>
+                    ),
+                  },
                 }}
               />
             </Grid>
@@ -120,7 +134,7 @@ export default function IamUserListPage() {
                 fullWidth
                 variant="outlined"
                 onClick={handleFilterReset}
-                sx={{ height: '56px' }}
+                sx={{ height: "56px" }}
               >
                 Reset Filters
               </Button>
@@ -129,7 +143,8 @@ export default function IamUserListPage() {
 
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
-              Failed to load users: {(error as any).detail || 'Unknown error'}
+              Failed to load users:{" "}
+              {(error as Error).message || "Unknown error"}
             </Alert>
           )}
 

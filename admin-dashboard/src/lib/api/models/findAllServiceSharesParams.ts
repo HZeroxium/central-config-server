@@ -19,9 +19,9 @@
 
  * OpenAPI spec version: 1.0.0
  */
-import type { FindAllServiceSharesForService1GrantToType } from './findAllServiceSharesForService1GrantToType';
+import type { FindAllServiceSharesGrantToType } from './findAllServiceSharesGrantToType';
 
-export type FindAllServiceSharesForService1Params = {
+export type FindAllServiceSharesParams = {
 /**
  * Filter by service ID
  * @minLength 0
@@ -33,7 +33,7 @@ serviceId?: string;
  * @minLength 0
  * @maxLength 20
  */
-grantToType?: FindAllServiceSharesForService1GrantToType;
+grantToType?: FindAllServiceSharesGrantToType;
 /**
  * Filter by grantee ID
  * @minLength 0

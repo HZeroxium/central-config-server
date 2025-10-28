@@ -1,11 +1,18 @@
-import { DataGrid, type GridColDef, GridActionsCellItem } from '@mui/x-data-grid';
-import { Delete as DeleteIcon, Visibility as ViewIcon } from '@mui/icons-material';
-import { Box, Chip } from '@mui/material';
-import type { ServiceInstanceResponse } from '@lib/api/models';
-import { useAuth } from '@features/auth/authContext';
-import InstanceStatusChip from './InstanceStatusChip';
-import DriftIndicator from './DriftIndicator';
-import { format } from 'date-fns';
+import {
+  DataGrid,
+  type GridColDef,
+  GridActionsCellItem,
+} from "@mui/x-data-grid";
+import {
+  Delete as DeleteIcon,
+  Visibility as ViewIcon,
+} from "@mui/icons-material";
+import { Box, Chip } from "@mui/material";
+import type { ServiceInstanceResponse } from "@lib/api/models";
+import { useAuth } from "@features/auth/context";
+import InstanceStatusChip from "./InstanceStatusChip";
+import DriftIndicator from "./DriftIndicator";
+import { format } from "date-fns";
 
 interface ServiceInstanceTableProps {
   instances: ServiceInstanceResponse[];
@@ -41,35 +48,40 @@ export function ServiceInstanceTable({
 
   const columns: GridColDef<ServiceInstanceResponse>[] = [
     {
-      field: 'serviceName',
-      headerName: 'Service Name',
+      field: "serviceName",
+      headerName: "Service Name",
       flex: 1,
       minWidth: 180,
       renderCell: (params) => (
-        <Box sx={{ fontWeight: 600, color: 'primary.main' }}>{params.value}</Box>
+        <Box sx={{ fontWeight: 600, color: "primary.main" }}>
+          {params.value}
+        </Box>
       ),
     },
     {
-      field: 'instanceId',
-      headerName: 'Instance ID',
+      field: "instanceId",
+      headerName: "Instance ID",
       flex: 1,
       minWidth: 200,
     },
     {
-      field: 'environment',
-      headerName: 'Environment',
+      field: "environment",
+      headerName: "Environment",
       width: 120,
       renderCell: (params) => {
-        const envColors: Record<string, string> = {
-          dev: 'info',
-          staging: 'warning',
-          prod: 'error',
+        const envColors: Record<
+          string,
+          "info" | "warning" | "error" | "default"
+        > = {
+          dev: "info",
+          staging: "warning",
+          prod: "error",
         };
-        const color = envColors[params.value as string] || 'default';
+        const color = envColors[params.value as string] || "default";
         return (
           <Chip
             label={params.value?.toUpperCase()}
-            color={color as any}
+            color={color}
             size="small"
             variant="outlined"
           />
@@ -77,19 +89,19 @@ export function ServiceInstanceTable({
       },
     },
     {
-      field: 'status',
-      headerName: 'Status',
+      field: "status",
+      headerName: "Status",
       width: 120,
       renderCell: (params) => <InstanceStatusChip status={params.value} />,
     },
     {
-      field: 'hasDrift',
-      headerName: 'Drift',
+      field: "hasDrift",
+      headerName: "Drift",
       width: 100,
-      align: 'center',
+      align: "center",
       renderCell: (params) => (
-        <DriftIndicator 
-          hasDrift={params.value} 
+        <DriftIndicator
+          hasDrift={params.value}
           driftDetectedAt={params.row.driftDetectedAt}
           serviceId={params.row.serviceName}
           instanceId={params.row.instanceId}
@@ -97,37 +109,37 @@ export function ServiceInstanceTable({
       ),
     },
     {
-      field: 'version',
-      headerName: 'Version',
+      field: "version",
+      headerName: "Version",
       width: 100,
     },
     {
-      field: 'host',
-      headerName: 'Host',
+      field: "host",
+      headerName: "Host",
       width: 150,
     },
     {
-      field: 'port',
-      headerName: 'Port',
+      field: "port",
+      headerName: "Port",
       width: 80,
     },
     {
-      field: 'lastSeenAt',
-      headerName: 'Last Seen',
+      field: "lastSeenAt",
+      headerName: "Last Seen",
       width: 160,
       renderCell: (params) => {
-        if (!params.value) return '-';
+        if (!params.value) return "-";
         try {
-          return format(new Date(params.value), 'MMM dd, yyyy HH:mm');
+          return format(new Date(params.value), "MMM dd, yyyy HH:mm");
         } catch {
           return params.value;
         }
       },
     },
     {
-      field: 'actions',
-      type: 'actions',
-      headerName: 'Actions',
+      field: "actions",
+      type: "actions",
+      headerName: "Actions",
       width: 100,
       getActions: (params) => {
         const actions = [
@@ -135,7 +147,7 @@ export function ServiceInstanceTable({
             key="view"
             icon={<ViewIcon />}
             label="View"
-            onClick={() => onRowClick(params.row.instanceId || '')}
+            onClick={() => onRowClick(params.row.instanceId || "")}
             showInMenu={false}
           />,
         ];
@@ -146,7 +158,7 @@ export function ServiceInstanceTable({
               key="delete"
               icon={<DeleteIcon />}
               label="Delete"
-              onClick={() => onDelete(params.row.instanceId || '')}
+              onClick={() => onDelete(params.row.instanceId || "")}
               showInMenu={false}
             />
           );
@@ -164,7 +176,7 @@ export function ServiceInstanceTable({
   }));
 
   return (
-    <Box sx={{ height: 600, width: '100%' }}>
+    <Box sx={{ height: 600, width: "100%" }}>
       <DataGrid
         rows={rows}
         columns={columns}
@@ -183,8 +195,8 @@ export function ServiceInstanceTable({
         pageSizeOptions={[10, 20, 50, 100]}
         disableRowSelectionOnClick
         sx={{
-          '& .MuiDataGrid-row': {
-            cursor: 'pointer',
+          "& .MuiDataGrid-row": {
+            cursor: "pointer",
           },
         }}
       />

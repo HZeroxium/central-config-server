@@ -4,7 +4,6 @@ import { useGetEnvironmentConfigServer } from "@lib/api/hooks";
 import Loading from "@components/common/Loading";
 import ErrorFallback from "@components/common/ErrorFallback";
 import ConfigDetailCard from "@features/configs/components/ConfigDetailCard";
-import type { ConfigServerEnvironmentResponse } from "@lib/api/models";
 
 export default function ConfigDetailPage() {
   const { application = "", profile = "" } = useParams();
@@ -27,9 +26,7 @@ export default function ConfigDetailPage() {
     }
   );
 
-  const configData = configResponse as
-    | ConfigServerEnvironmentResponse
-    | undefined;
+  const configData = configResponse;
 
   if (isLoading) return <Loading />;
   if (error || !configData)

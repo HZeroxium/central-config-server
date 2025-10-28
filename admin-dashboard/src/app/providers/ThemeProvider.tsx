@@ -1,28 +1,12 @@
-import { createContext, useContext, useMemo, type ReactNode, useCallback } from 'react';
-import { ThemeProvider as MuiThemeProvider } from '@mui/material/styles';
-import { createAppTheme } from '@theme/theme';
-import { useAppDispatch, useAppSelector } from '@store/hooks';
-import { toggleTheme } from '@store/uiSlice';
-
-type ThemeMode = 'light' | 'dark';
-
-interface ThemeContextType {
-  mode: ThemeMode;
-  toggleMode: () => void;
-}
-
-const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
-
-export const useTheme = () => {
-  const context = useContext(ThemeContext);
-  if (!context) {
-    throw new Error('useTheme must be used within a ThemeProvider');
-  }
-  return context;
-};
+import { useMemo, type ReactNode, useCallback } from "react";
+import { ThemeProvider as MuiThemeProvider } from "@mui/material/styles";
+import { createAppTheme } from "@theme/theme";
+import { ColorModeContext } from "@theme/colorModeContext";
+import { useAppDispatch, useAppSelector } from "@store/hooks";
+import { toggleTheme } from "@store/uiSlice";
 
 interface ThemeProviderProps {
-  children: ReactNode;
+  readonly children: ReactNode;
 }
 
 export default function ThemeProvider({ children }: ThemeProviderProps) {
@@ -36,9 +20,15 @@ export default function ThemeProvider({ children }: ThemeProviderProps) {
   // Create theme based on current mode
   const theme = useMemo(() => createAppTheme(mode), [mode]);
 
+  // Memoize context value to prevent unnecessary re-renders
+  const contextValue = useMemo(
+    () => ({ mode, toggleMode }),
+    [mode, toggleMode]
+  );
+
   return (
-    <ThemeContext.Provider value={{ mode, toggleMode }}>
+    <ColorModeContext.Provider value={contextValue}>
       <MuiThemeProvider theme={theme}>{children}</MuiThemeProvider>
-    </ThemeContext.Provider>
+    </ColorModeContext.Provider>
   );
 }
