@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import {
   Box,
   TextField,
@@ -9,8 +9,8 @@ import {
   MenuItem,
   Button,
   Chip,
-} from '@mui/material';
-import { Search as SearchIcon, Clear as ClearIcon } from '@mui/icons-material';
+} from "@mui/material";
+import { Search as SearchIcon, Clear as ClearIcon } from "@mui/icons-material";
 
 interface DriftFilterBarProps {
   serviceName: string;
@@ -38,21 +38,31 @@ export const DriftFilterBar: React.FC<DriftFilterBarProps> = ({
   const hasActiveFilters = serviceName || status || severity || environment;
 
   return (
-    <Box sx={{ mb: 3, display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+    <Box
+      sx={{
+        mb: 3,
+        display: "flex",
+        gap: 2,
+        flexWrap: "wrap",
+        alignItems: "center",
+      }}
+    >
       <TextField
         placeholder="Search by service name..."
         value={serviceName}
         onChange={(e) => onServiceNameChange(e.target.value)}
-        InputProps={{
-          startAdornment: (
-            <InputAdornment position="start">
-              <SearchIcon />
-            </InputAdornment>
-          ),
+        slotProps={{
+          input: {
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon />
+              </InputAdornment>
+            ),
+          },
         }}
         sx={{ minWidth: 250 }}
       />
-      
+
       <FormControl sx={{ minWidth: 120 }}>
         <InputLabel>Status</InputLabel>
         <Select
@@ -98,7 +108,7 @@ export const DriftFilterBar: React.FC<DriftFilterBarProps> = ({
       </FormControl>
 
       {hasActiveFilters && (
-        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+        <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
           <Button
             variant="outlined"
             size="small"
@@ -107,11 +117,35 @@ export const DriftFilterBar: React.FC<DriftFilterBarProps> = ({
           >
             Clear Filters
           </Button>
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            {serviceName && <Chip label={`Service: ${serviceName}`} size="small" onDelete={() => onServiceNameChange('')} />}
-            {status && <Chip label={`Status: ${status}`} size="small" onDelete={() => onStatusChange('')} />}
-            {severity && <Chip label={`Severity: ${severity}`} size="small" onDelete={() => onSeverityChange('')} />}
-            {environment && <Chip label={`Env: ${environment}`} size="small" onDelete={() => onEnvironmentChange('')} />}
+          <Box sx={{ display: "flex", gap: 1 }}>
+            {serviceName && (
+              <Chip
+                label={`Service: ${serviceName}`}
+                size="small"
+                onDelete={() => onServiceNameChange("")}
+              />
+            )}
+            {status && (
+              <Chip
+                label={`Status: ${status}`}
+                size="small"
+                onDelete={() => onStatusChange("")}
+              />
+            )}
+            {severity && (
+              <Chip
+                label={`Severity: ${severity}`}
+                size="small"
+                onDelete={() => onSeverityChange("")}
+              />
+            )}
+            {environment && (
+              <Chip
+                label={`Env: ${environment}`}
+                size="small"
+                onDelete={() => onEnvironmentChange("")}
+              />
+            )}
           </Box>
         </Box>
       )}

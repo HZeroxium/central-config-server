@@ -1,17 +1,21 @@
-import { DataGrid, type GridColDef, GridActionsCellItem } from '@mui/x-data-grid';
-import { Visibility as ViewIcon } from '@mui/icons-material';
-import { Box, Chip } from '@mui/material';
-import type { IamTeamResponse } from '@lib/api/models';
+import {
+  DataGrid,
+  type GridColDef,
+  GridActionsCellItem,
+} from "@mui/x-data-grid";
+import { Visibility as ViewIcon } from "@mui/icons-material";
+import { Box, Chip } from "@mui/material";
+import type { IamTeamResponse } from "@lib/api/models";
 
 interface IamTeamTableProps {
-  teams: IamTeamResponse[];
-  loading: boolean;
-  page: number;
-  pageSize: number;
-  totalElements: number;
-  onPageChange: (page: number) => void;
-  onPageSizeChange: (pageSize: number) => void;
-  onRowClick: (teamId: string) => void;
+  readonly teams: IamTeamResponse[];
+  readonly loading: boolean;
+  readonly page: number;
+  readonly pageSize: number;
+  readonly totalElements: number;
+  readonly onPageChange: (page: number) => void;
+  readonly onPageSizeChange: (pageSize: number) => void;
+  readonly onRowClick: (teamId: string) => void;
 }
 
 export function IamTeamTable({
@@ -26,23 +30,25 @@ export function IamTeamTable({
 }: IamTeamTableProps) {
   const columns: GridColDef<IamTeamResponse>[] = [
     {
-      field: 'id',
-      headerName: 'Team ID',
+      field: "id",
+      headerName: "Team ID",
       flex: 1,
       minWidth: 200,
       renderCell: (params) => (
-        <Box sx={{ fontFamily: 'monospace', fontWeight: 600 }}>{params.value}</Box>
+        <Box sx={{ fontFamily: "monospace", fontWeight: 600 }}>
+          {params.value}
+        </Box>
       ),
     },
     {
-      field: 'displayName',
-      headerName: 'Display Name',
+      field: "displayName",
+      headerName: "Display Name",
       flex: 1.5,
       minWidth: 200,
     },
     {
-      field: 'members',
-      headerName: 'Members',
+      field: "members",
+      headerName: "Members",
       width: 120,
       renderCell: (params) => {
         const members = params.value as string[] | undefined;
@@ -52,38 +58,39 @@ export function IamTeamTable({
             label={`${count} members`}
             size="small"
             variant="outlined"
-            color={count > 0 ? 'primary' : 'default'}
+            color={count > 0 ? "primary" : "default"}
           />
         );
       },
     },
     {
-      field: 'syncStatus',
-      headerName: 'Sync Status',
+      field: "syncStatus",
+      headerName: "Sync Status",
       width: 120,
       renderCell: (params) => {
         const status = params.value as string | undefined;
-        const color = status === 'SYNCED' ? 'success' : status === 'PENDING' ? 'warning' : 'default';
-        return (
-          <Chip
-            label={status || 'Unknown'}
-            size="small"
-            color={color}
-          />
-        );
+        const getSyncStatusColor = (
+          syncStatus: string | undefined
+        ): "success" | "warning" | "default" => {
+          if (syncStatus === "SYNCED") return "success";
+          if (syncStatus === "PENDING") return "warning";
+          return "default";
+        };
+        const color = getSyncStatusColor(status);
+        return <Chip label={status || "Unknown"} size="small" color={color} />;
       },
     },
     {
-      field: 'actions',
-      type: 'actions',
-      headerName: 'Actions',
+      field: "actions",
+      type: "actions",
+      headerName: "Actions",
       width: 80,
       getActions: (params) => [
         <GridActionsCellItem
           key="view"
           icon={<ViewIcon />}
-          label="View"
-          onClick={() => onRowClick(params.row.teamId || '')}
+          label="View team details"
+          onClick={() => onRowClick(params.row.teamId || "")}
           showInMenu={false}
         />,
       ],
@@ -94,7 +101,7 @@ export function IamTeamTable({
   const rows = teams;
 
   return (
-    <Box sx={{ height: 600, width: '100%' }}>
+    <Box sx={{ height: 600, width: "100%" }}>
       <DataGrid
         rows={rows}
         columns={columns}
@@ -113,8 +120,29 @@ export function IamTeamTable({
         pageSizeOptions={[10, 20, 50, 100]}
         disableRowSelectionOnClick
         sx={{
-          '& .MuiDataGrid-row': {
-            cursor: 'pointer',
+          "& .MuiDataGrid-cell": {
+            display: "flex",
+            alignItems: "center",
+            py: 1.5,
+          },
+          "& .MuiDataGrid-row": {
+            cursor: "pointer",
+            "&:hover": {
+              backgroundColor: (theme) =>
+                theme.palette.mode === "light"
+                  ? "rgba(37, 99, 235, 0.04)"
+                  : "rgba(96, 165, 250, 0.08)",
+            },
+          },
+          "& .MuiDataGrid-columnHeader": {
+            backgroundColor: (theme) =>
+              theme.palette.mode === "light"
+                ? "rgba(37, 99, 235, 0.04)"
+                : "rgba(96, 165, 250, 0.08)",
+            fontWeight: 600,
+          },
+          "& .MuiDataGrid-columnHeaderTitle": {
+            fontWeight: 600,
           },
         }}
       />

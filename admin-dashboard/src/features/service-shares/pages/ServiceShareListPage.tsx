@@ -12,6 +12,7 @@ import {
   Select,
   MenuItem,
   Alert,
+  Tooltip,
 } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import {
@@ -113,28 +114,32 @@ export default function ServiceShareListPage() {
         subtitle="Manage service access shares"
         actions={
           <>
-            <Button
-              variant="outlined"
-              startIcon={<RefreshIcon />}
-              onClick={() => refetch()}
-            >
-              Refresh
-            </Button>
-            {isSysAdmin && (
+            <Tooltip title="Refresh service shares list" placement="bottom">
               <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={() => setFormDrawerOpen(true)}
+                variant="outlined"
+                startIcon={<RefreshIcon />}
+                onClick={() => refetch()}
               >
-                Create Share
+                Refresh
               </Button>
+            </Tooltip>
+            {isSysAdmin && (
+              <Tooltip title="Create a new service share" placement="bottom">
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={() => setFormDrawerOpen(true)}
+                >
+                  Create Share
+                </Button>
+              </Tooltip>
             )}
           </>
         }
       />
 
-      <Card>
-        <CardContent>
+      <Card sx={{ boxShadow: 2 }}>
+        <CardContent sx={{ p: 3 }}>
           {/* Filters */}
           <Grid container spacing={2} sx={{ mb: 3 }}>
             <Grid size={{ xs: 12, md: 4 }}>
@@ -146,12 +151,14 @@ export default function ServiceShareListPage() {
                   setSearch(e.target.value);
                   setPage(0);
                 }}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon />
-                    </InputAdornment>
-                  ),
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon />
+                      </InputAdornment>
+                    ),
+                  },
                 }}
               />
             </Grid>

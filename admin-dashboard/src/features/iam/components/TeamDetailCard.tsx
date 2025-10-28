@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import {
   Card,
   CardContent,
@@ -12,28 +12,31 @@ import {
   ListItemIcon,
   IconButton,
   Paper,
-} from '@mui/material';
-import Grid from '@mui/material/Grid'
+} from "@mui/material";
+import Grid from "@mui/material/Grid";
 import {
   Close as CloseIcon,
   Group as GroupIcon,
   Person as PersonIcon,
   Business as BusinessIcon,
   Schedule as ScheduleIcon,
-} from '@mui/icons-material';
-import type { IamTeam } from '../types';
+} from "@mui/icons-material";
+import type { IamTeam } from "../types";
 
 interface TeamDetailCardProps {
   team: IamTeam;
   onClose: () => void;
 }
 
-export const TeamDetailCard: React.FC<TeamDetailCardProps> = ({ team, onClose }) => {
+export const TeamDetailCard: React.FC<TeamDetailCardProps> = ({
+  team,
+  onClose,
+}) => {
   return (
-    <Card sx={{ height: 'fit-content', position: 'sticky', top: 20 }}>
+    <Card sx={{ height: "fit-content", position: "sticky", top: 20 }}>
       <CardHeader
         title={
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <GroupIcon color="primary" />
             <Typography variant="h6">{team.name}</Typography>
           </Box>
@@ -50,8 +53,8 @@ export const TeamDetailCard: React.FC<TeamDetailCardProps> = ({ team, onClose })
           <Typography variant="subtitle2" gutterBottom color="text.secondary">
             Description
           </Typography>
-          <Typography variant="body2" paragraph>
-            {team.description || 'No description provided'}
+          <Typography variant="body2">
+            {team.description || "No description provided"}
           </Typography>
         </Box>
 
@@ -64,8 +67,16 @@ export const TeamDetailCard: React.FC<TeamDetailCardProps> = ({ team, onClose })
           </Typography>
           <Grid container spacing={2}>
             <Grid size={{ xs: 6 }}>
-              <Paper sx={{ p: 2, textAlign: 'center' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mb: 1 }}>
+              <Paper sx={{ p: 2, textAlign: "center" }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 1,
+                    mb: 1,
+                  }}
+                >
                   <PersonIcon color="primary" />
                   <Typography variant="h6">{team.memberCount}</Typography>
                 </Box>
@@ -75,10 +86,20 @@ export const TeamDetailCard: React.FC<TeamDetailCardProps> = ({ team, onClose })
               </Paper>
             </Grid>
             <Grid size={{ xs: 6 }}>
-              <Paper sx={{ p: 2, textAlign: 'center' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mb: 1 }}>
+              <Paper sx={{ p: 2, textAlign: "center" }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 1,
+                    mb: 1,
+                  }}
+                >
                   <BusinessIcon color="secondary" />
-                  <Typography variant="h6">{team.ownedServiceIds.length}</Typography>
+                  <Typography variant="h6">
+                    {team.ownedServiceIds.length}
+                  </Typography>
                 </Box>
                 <Typography variant="caption" color="text.secondary">
                   Services
@@ -96,7 +117,7 @@ export const TeamDetailCard: React.FC<TeamDetailCardProps> = ({ team, onClose })
             Manager
           </Typography>
           {team.managerName ? (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
               <PersonIcon fontSize="small" color="action" />
               <Typography variant="body2">{team.managerName}</Typography>
             </Box>
@@ -131,7 +152,7 @@ export const TeamDetailCard: React.FC<TeamDetailCardProps> = ({ team, onClose })
                 <ListItem sx={{ px: 0 }}>
                   <ListItemText
                     primary={`... and ${team.ownedServiceIds.length - 5} more`}
-                    sx={{ fontStyle: 'italic', color: 'text.secondary' }}
+                    sx={{ fontStyle: "italic", color: "text.secondary" }}
                   />
                 </ListItem>
               )}

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo } from "react";
 import {
   DataGrid,
   type GridColDef,
@@ -11,46 +11,58 @@ import {
   type GridPaginationModel,
   type GridSortModel,
   type GridFilterModel,
-} from '@mui/x-data-grid';
-import { Box, TextField, InputAdornment, Menu, MenuItem, Checkbox, FormControlLabel, IconButton, Tooltip } from '@mui/material';
-import SearchIcon from '@mui/icons-material/Search';
-import ViewColumnIcon from '@mui/icons-material/ViewColumn';
-import type { ReactNode } from 'react';
+} from "@mui/x-data-grid";
+import {
+  Box,
+  TextField,
+  InputAdornment,
+  Menu,
+  MenuItem,
+  Checkbox,
+  FormControlLabel,
+  IconButton,
+  Tooltip,
+} from "@mui/material";
+import SearchIcon from "@mui/icons-material/Search";
+import ViewColumnIcon from "@mui/icons-material/ViewColumn";
+import type { ReactNode } from "react";
 
 interface CustomToolbarProps {
-  searchable?: boolean;
-  searchValue?: string;
-  onSearchChange?: (value: string) => void;
-  exportable?: boolean;
-  exportFilename?: string;
-  columns?: GridColDef[];
-  visibleColumns?: string[];
-  onColumnVisibilityChange?: (columns: string[]) => void;
-  customActions?: ReactNode;
+  readonly searchable?: boolean;
+  readonly searchValue?: string;
+  readonly onSearchChange?: (value: string) => void;
+  readonly exportable?: boolean;
+  readonly exportFilename?: string;
+  readonly columns?: GridColDef[];
+  readonly visibleColumns?: string[];
+  readonly onColumnVisibilityChange?: (columns: string[]) => void;
+  readonly customActions?: ReactNode;
 }
 
 function CustomToolbar({
   searchable,
-  searchValue = '',
+  searchValue = "",
   onSearchChange,
   exportable,
-  exportFilename = 'data',
+  exportFilename = "data",
   columns = [],
   visibleColumns = [],
   onColumnVisibilityChange,
   customActions,
 }: CustomToolbarProps) {
-  const [columnMenuAnchor, setColumnMenuAnchor] = useState<null | HTMLElement>(null);
+  const [columnMenuAnchor, setColumnMenuAnchor] = useState<null | HTMLElement>(
+    null
+  );
 
   const handleColumnToggle = (field: string) => {
     const newVisibleColumns = visibleColumns.includes(field)
-      ? visibleColumns.filter(col => col !== field)
+      ? visibleColumns.filter((col) => col !== field)
       : [...visibleColumns, field];
     onColumnVisibilityChange?.(newVisibleColumns);
   };
 
   return (
-    <GridToolbarContainer sx={{ p: 2, gap: 2, flexWrap: 'wrap' }}>
+    <GridToolbarContainer sx={{ p: 2, gap: 2, flexWrap: "wrap" }}>
       {searchable && (
         <TextField
           placeholder="Search..."
@@ -58,26 +70,28 @@ function CustomToolbar({
           onChange={(e) => onSearchChange?.(e.target.value)}
           size="small"
           sx={{ minWidth: 250 }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon />
-              </InputAdornment>
-            ),
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon />
+                </InputAdornment>
+              ),
+            },
           }}
         />
       )}
-      
+
       <Box sx={{ flexGrow: 1 }} />
 
       {customActions}
-      
+
       <GridToolbarColumnsButton />
       <GridToolbarFilterButton />
       <GridToolbarDensitySelector />
 
       {exportable && (
-        <GridToolbarExport 
+        <GridToolbarExport
           csvOptions={{ fileName: exportFilename }}
           printOptions={{ disableToolbarButton: true }}
         />
@@ -86,8 +100,8 @@ function CustomToolbar({
       {columns.length > 0 && (
         <>
           <Tooltip title="Toggle columns">
-            <IconButton 
-              size="small" 
+            <IconButton
+              size="small"
               onClick={(e) => setColumnMenuAnchor(e.currentTarget)}
             >
               <ViewColumnIcon />
@@ -120,21 +134,21 @@ function CustomToolbar({
 }
 
 interface DataTableProps {
-  rows: GridRowsProp;
-  columns: GridColDef[];
-  loading?: boolean;
-  searchable?: boolean;
-  exportable?: boolean;
-  exportFilename?: string;
-  onPaginationModelChange?: (model: GridPaginationModel) => void;
-  onSortModelChange?: (model: GridSortModel) => void;
-  onFilterModelChange?: (model: GridFilterModel) => void;
-  paginationModel?: GridPaginationModel;
-  rowCount?: number;
-  paginationMode?: 'client' | 'server';
-  customActions?: ReactNode;
-  autoHeight?: boolean;
-  getRowId?: (row: unknown) => string | number;
+  readonly rows: GridRowsProp;
+  readonly columns: GridColDef[];
+  readonly loading?: boolean;
+  readonly searchable?: boolean;
+  readonly exportable?: boolean;
+  readonly exportFilename?: string;
+  readonly onPaginationModelChange?: (model: GridPaginationModel) => void;
+  readonly onSortModelChange?: (model: GridSortModel) => void;
+  readonly onFilterModelChange?: (model: GridFilterModel) => void;
+  readonly paginationModel?: GridPaginationModel;
+  readonly rowCount?: number;
+  readonly paginationMode?: "client" | "server";
+  readonly customActions?: ReactNode;
+  readonly autoHeight?: boolean;
+  readonly getRowId?: (row: unknown) => string | number;
 }
 
 export default function DataTable({
@@ -143,20 +157,20 @@ export default function DataTable({
   loading = false,
   searchable = true,
   exportable = true,
-  exportFilename = 'export',
+  exportFilename = "export",
   onPaginationModelChange,
   onSortModelChange,
   onFilterModelChange,
   paginationModel,
   rowCount,
-  paginationMode = 'client',
+  paginationMode = "client",
   customActions,
   autoHeight = false,
   getRowId,
 }: DataTableProps) {
-  const [searchValue, setSearchValue] = useState('');
+  const [searchValue, setSearchValue] = useState("");
   const [visibleColumns, setVisibleColumns] = useState<string[]>(
-    columns.map(col => col.field)
+    columns.map((col) => col.field)
   );
 
   // Filter rows based on search
@@ -166,21 +180,24 @@ export default function DataTable({
     return rows.filter((row) => {
       return columns.some((col) => {
         const value = row[col.field];
-        return value && String(value).toLowerCase().includes(searchValue.toLowerCase());
+        return (
+          value &&
+          String(value).toLowerCase().includes(searchValue.toLowerCase())
+        );
       });
     });
   }, [rows, searchValue, columns, searchable]);
 
   // Filter columns based on visibility
   const visibleColumnsConfig = useMemo(() => {
-    return columns.map(col => ({
+    return columns.map((col) => ({
       ...col,
       hide: !visibleColumns.includes(col.field),
     }));
   }, [columns, visibleColumns]);
 
   return (
-    <Box sx={{ width: '100%', height: autoHeight ? 'auto' : 600 }}>
+    <Box sx={{ width: "100%", height: autoHeight ? "auto" : 600 }}>
       <DataGrid
         rows={filteredRows}
         columns={visibleColumnsConfig}
@@ -196,7 +213,8 @@ export default function DataTable({
         autoHeight={autoHeight}
         getRowId={getRowId}
         slots={{
-          toolbar: CustomToolbar as unknown as React.JSXElementConstructor<object>,
+          toolbar:
+            CustomToolbar as unknown as React.JSXElementConstructor<object>,
         }}
         slotProps={{
           toolbar: {
@@ -212,11 +230,35 @@ export default function DataTable({
           } as unknown as object,
         }}
         sx={{
-          '& .MuiDataGrid-cell:focus': {
-            outline: 'none',
+          "& .MuiDataGrid-cell": {
+            display: "flex",
+            alignItems: "center",
+            py: 1.5,
           },
-          '& .MuiDataGrid-cell:focus-within': {
-            outline: 'none',
+          "& .MuiDataGrid-cell:focus": {
+            outline: "none",
+          },
+          "& .MuiDataGrid-cell:focus-within": {
+            outline: "none",
+          },
+          "& .MuiDataGrid-row": {
+            "&:hover": {
+              backgroundColor: (theme) =>
+                theme.palette.mode === "light"
+                  ? "rgba(37, 99, 235, 0.04)"
+                  : "rgba(96, 165, 250, 0.08)",
+              cursor: "pointer",
+            },
+          },
+          "& .MuiDataGrid-columnHeader": {
+            backgroundColor: (theme) =>
+              theme.palette.mode === "light"
+                ? "rgba(37, 99, 235, 0.04)"
+                : "rgba(96, 165, 250, 0.08)",
+            fontWeight: 600,
+          },
+          "& .MuiDataGrid-columnHeaderTitle": {
+            fontWeight: 600,
           },
         }}
       />

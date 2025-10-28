@@ -135,14 +135,14 @@ export function ServiceShareTable({
         <GridActionsCellItem
           key="view"
           icon={<ViewIcon />}
-          label="View"
+          label="View details"
           onClick={() => onRowClick(params.row.id || "")}
           showInMenu={false}
         />,
         <GridActionsCellItem
           key="revoke"
-          icon={<RevokeIcon />}
-          label="Revoke"
+          icon={<RevokeIcon color="error" />}
+          label="Revoke this share"
           onClick={() => onRevoke(params.row.id || "")}
           showInMenu={false}
         />,
@@ -176,8 +176,29 @@ export function ServiceShareTable({
         pageSizeOptions={[10, 20, 50, 100]}
         disableRowSelectionOnClick
         sx={{
+          "& .MuiDataGrid-cell": {
+            display: "flex",
+            alignItems: "center",
+            py: 1.5,
+          },
           "& .MuiDataGrid-row": {
             cursor: "pointer",
+            "&:hover": {
+              backgroundColor: (theme) =>
+                theme.palette.mode === "light"
+                  ? "rgba(37, 99, 235, 0.04)"
+                  : "rgba(96, 165, 250, 0.08)",
+            },
+          },
+          "& .MuiDataGrid-columnHeader": {
+            backgroundColor: (theme) =>
+              theme.palette.mode === "light"
+                ? "rgba(37, 99, 235, 0.04)"
+                : "rgba(96, 165, 250, 0.08)",
+            fontWeight: 600,
+          },
+          "& .MuiDataGrid-columnHeaderTitle": {
+            fontWeight: 600,
           },
         }}
       />

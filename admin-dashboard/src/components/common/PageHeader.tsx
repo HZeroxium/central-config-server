@@ -1,6 +1,14 @@
-import React from 'react';
-import { Box, Typography, Breadcrumbs, Link, Stack, type SxProps, type Theme } from '@mui/material';
-import { NavigateNext as NavigateNextIcon } from '@mui/icons-material';
+import React from "react";
+import {
+  Box,
+  Typography,
+  Breadcrumbs,
+  Link,
+  Stack,
+  type SxProps,
+  type Theme,
+} from "@mui/material";
+import { NavigateNext as NavigateNextIcon } from "@mui/icons-material";
 
 interface BreadcrumbItem {
   label: string;
@@ -32,17 +40,11 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
           {breadcrumbs.map((item, index) => (
             <React.Fragment key={index}>
               {item.href ? (
-                <Link
-                  href={item.href}
-                  color="text.secondary"
-                  underline="hover"
-                >
+                <Link href={item.href} color="text.secondary" underline="hover">
                   {item.label}
                 </Link>
               ) : (
-                <Typography color="text.secondary">
-                  {item.label}
-                </Typography>
+                <Typography color="text.secondary">{item.label}</Typography>
               )}
             </React.Fragment>
           ))}
@@ -51,7 +53,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
           </Typography>
         </Breadcrumbs>
       )}
-      
+
       <Stack
         direction="row"
         justifyContent="space-between"
@@ -69,9 +71,9 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
           )}
         </Box>
         {actions && (
-          <Box sx={{ ml: 2 }}>
+          <Stack direction="row" spacing={2} sx={{ ml: 2 }}>
             {actions}
-          </Box>
+          </Stack>
         )}
       </Stack>
     </Box>

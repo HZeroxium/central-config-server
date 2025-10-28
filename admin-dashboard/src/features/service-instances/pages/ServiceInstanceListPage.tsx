@@ -1,42 +1,54 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { 
-  Box, 
-  Card, 
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  Box,
+  Card,
   CardContent,
-  TextField, 
-  InputAdornment, 
-  FormControl, 
-  InputLabel, 
-  Select, 
-  MenuItem, 
+  TextField,
+  InputAdornment,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
   Button,
   Alert,
-} from '@mui/material';
-import Grid from '@mui/material/Grid';
-import { Search as SearchIcon, Refresh as RefreshIcon } from '@mui/icons-material';
-import PageHeader from '@components/common/PageHeader';
-import ConfirmDialog from '@components/common/ConfirmDialog';
-import Loading from '@components/common/Loading';
+} from "@mui/material";
+import Grid from "@mui/material/Grid";
+import {
+  Search as SearchIcon,
+  Refresh as RefreshIcon,
+} from "@mui/icons-material";
+import PageHeader from "@components/common/PageHeader";
+import ConfirmDialog from "@components/common/ConfirmDialog";
+import Loading from "@components/common/Loading";
 import {
   useFindAllServiceInstances,
   useDeleteServiceInstance,
-} from '@lib/api/hooks';
-import { ServiceInstanceTable } from '../components/ServiceInstanceTable';
-import type { FindAllServiceInstancesStatus, FindAllServiceInstancesEnvironment } from '@lib/api/models';
-import { toast } from '@lib/toast/toast';
-import { handleApiError } from '@lib/api/errorHandler';
+} from "@lib/api/hooks";
+import { ServiceInstanceTable } from "../components/ServiceInstanceTable";
+import type {
+  FindAllServiceInstancesStatus,
+  FindAllServiceInstancesEnvironment,
+} from "@lib/api/models";
+import { toast } from "@lib/toast/toast";
+import { handleApiError } from "@lib/api/errorHandler";
 
 export default function ServiceInstanceListPage() {
   const navigate = useNavigate();
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(20);
-  const [search, setSearch] = useState('');
-  const [environmentFilter, setEnvironmentFilter] = useState<FindAllServiceInstancesEnvironment | ''>('');
-  const [statusFilter, setStatusFilter] = useState<FindAllServiceInstancesStatus | ''>('');
-  const [driftFilter, setDriftFilter] = useState<'true' | 'false' | ''>('');
+  const [search, setSearch] = useState("");
+  const [environmentFilter, setEnvironmentFilter] = useState<
+    FindAllServiceInstancesEnvironment | ""
+  >("");
+  const [statusFilter, setStatusFilter] = useState<
+    FindAllServiceInstancesStatus | ""
+  >("");
+  const [driftFilter, setDriftFilter] = useState<"true" | "false" | "">("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null);
+  const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(
+    null
+  );
 
   const { data, isLoading, error, refetch } = useFindAllServiceInstances(
     {
@@ -63,12 +75,12 @@ export default function ServiceInstanceListPage() {
 
   const handleDeleteInstance = async () => {
     if (!selectedInstanceId) return;
-    
+
     deleteMutation.mutate(
       { instanceId: selectedInstanceId },
       {
         onSuccess: () => {
-          toast.success('Instance deleted successfully');
+          toast.success("Instance deleted successfully");
           setDeleteDialogOpen(false);
           setSelectedInstanceId(null);
           refetch();
@@ -91,10 +103,10 @@ export default function ServiceInstanceListPage() {
   };
 
   const handleFilterReset = () => {
-    setSearch('');
-    setEnvironmentFilter('');
-    setStatusFilter('');
-    setDriftFilter('');
+    setSearch("");
+    setEnvironmentFilter("");
+    setStatusFilter("");
+    setDriftFilter("");
     setPage(0);
   };
 
@@ -127,12 +139,14 @@ export default function ServiceInstanceListPage() {
                   setSearch(e.target.value);
                   setPage(0);
                 }}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon />
-                    </InputAdornment>
-                  ),
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon />
+                      </InputAdornment>
+                    ),
+                  },
                 }}
               />
             </Grid>
@@ -144,7 +158,9 @@ export default function ServiceInstanceListPage() {
                   value={environmentFilter}
                   label="Environment"
                   onChange={(e) => {
-                    setEnvironmentFilter(e.target.value as FindAllServiceInstancesEnvironment | '');
+                    setEnvironmentFilter(
+                      e.target.value as FindAllServiceInstancesEnvironment | ""
+                    );
                     setPage(0);
                   }}
                 >
@@ -163,7 +179,9 @@ export default function ServiceInstanceListPage() {
                   value={statusFilter}
                   label="Status"
                   onChange={(e) => {
-                    setStatusFilter(e.target.value as FindAllServiceInstancesStatus | '');
+                    setStatusFilter(
+                      e.target.value as FindAllServiceInstancesStatus | ""
+                    );
                     setPage(0);
                   }}
                 >
@@ -183,7 +201,7 @@ export default function ServiceInstanceListPage() {
                   value={driftFilter}
                   label="Drift Status"
                   onChange={(e) => {
-                    setDriftFilter(e.target.value as 'true' | 'false' | '');
+                    setDriftFilter(e.target.value as "true" | "false" | "");
                     setPage(0);
                   }}
                 >
@@ -199,7 +217,7 @@ export default function ServiceInstanceListPage() {
                 fullWidth
                 variant="outlined"
                 onClick={handleFilterReset}
-                sx={{ height: '56px' }}
+                sx={{ height: "56px" }}
               >
                 Reset Filters
               </Button>
@@ -208,7 +226,8 @@ export default function ServiceInstanceListPage() {
 
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
-              Failed to load service instances: {error instanceof Error ? error.message : 'Unknown error'}
+              Failed to load service instances:{" "}
+              {error instanceof Error ? error.message : "Unknown error"}
             </Alert>
           )}
 
@@ -227,9 +246,13 @@ export default function ServiceInstanceListPage() {
                 setPage(0);
               }}
               onRowClick={(instanceId: string) => {
-                const instance = instances.find((i) => i.instanceId === instanceId);
+                const instance = instances.find(
+                  (i) => i.instanceId === instanceId
+                );
                 if (instance) {
-                  navigate(`/service-instances/${instance.serviceName}/${instance.instanceId}`);
+                  navigate(
+                    `/service-instances/${instance.serviceName}/${instance.instanceId}`
+                  );
                 }
               }}
               onDelete={handleOpenDeleteDialog}

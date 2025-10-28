@@ -15,6 +15,7 @@ import {
   Drawer,
   FormControlLabel,
   Switch,
+  Tooltip,
 } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import {
@@ -157,21 +158,28 @@ export default function ApplicationServiceListPage() {
         subtitle="Manage registered application services"
         actions={
           <>
-            <Button
-              variant="outlined"
-              startIcon={<RefreshIcon />}
-              onClick={() => refetch()}
-            >
-              Refresh
-            </Button>
-            {canCreate && (
+            <Tooltip title="Refresh services list" placement="bottom">
               <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={() => setFormDrawerOpen(true)}
+                variant="outlined"
+                startIcon={<RefreshIcon />}
+                onClick={() => refetch()}
               >
-                Create Service
+                Refresh
               </Button>
+            </Tooltip>
+            {canCreate && (
+              <Tooltip
+                title="Create a new application service"
+                placement="bottom"
+              >
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={() => setFormDrawerOpen(true)}
+                >
+                  Create Service
+                </Button>
+              </Tooltip>
             )}
           </>
         }

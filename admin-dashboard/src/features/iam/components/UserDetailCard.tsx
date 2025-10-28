@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import {
   Card,
   CardContent,
@@ -14,8 +14,8 @@ import {
   IconButton,
   Paper,
   Avatar,
-} from '@mui/material';
-import Grid from '@mui/material/Grid'
+} from "@mui/material";
+import Grid from "@mui/material/Grid";
 import {
   Close as CloseIcon,
   Person as PersonIcon,
@@ -25,34 +25,45 @@ import {
   Schedule as ScheduleIcon,
   CheckCircle as CheckCircleIcon,
   Cancel as CancelIcon,
-} from '@mui/icons-material';
-import type { IamUser, UserRole } from '../types';
-import { ROLE_LABELS, ROLE_COLORS } from '../types';
+} from "@mui/icons-material";
+import type { IamUser, UserRole } from "../types";
+import { ROLE_LABELS, ROLE_COLORS } from "../types";
 
 interface UserDetailCardProps {
   user: IamUser;
   onClose: () => void;
 }
 
-export const UserDetailCard: React.FC<UserDetailCardProps> = ({ user, onClose }) => {
+export const UserDetailCard: React.FC<UserDetailCardProps> = ({
+  user,
+  onClose,
+}) => {
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
   };
 
   const getRoleColor = (role: UserRole) => {
-    return ROLE_COLORS[role] as 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning';
+    return ROLE_COLORS[role] as
+      | "primary"
+      | "secondary"
+      | "error"
+      | "info"
+      | "success"
+      | "warning";
   };
 
   return (
-    <Card sx={{ height: 'fit-content', position: 'sticky', top: 20 }}>
+    <Card sx={{ height: "fit-content", position: "sticky", top: 20 }}>
       <CardHeader
         title={
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
             <Avatar sx={{ width: 40, height: 40 }}>
               {getInitials(user.firstName, user.lastName)}
             </Avatar>
             <Box>
-              <Typography variant="h6">{user.firstName} {user.lastName}</Typography>
+              <Typography variant="h6">
+                {user.firstName} {user.lastName}
+              </Typography>
               <Typography variant="body2" color="text.secondary">
                 @{user.username}
               </Typography>
@@ -71,7 +82,7 @@ export const UserDetailCard: React.FC<UserDetailCardProps> = ({ user, onClose })
           <Typography variant="subtitle2" gutterBottom color="text.secondary">
             Contact Information
           </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
             <EmailIcon fontSize="small" color="action" />
             <Typography variant="body2">{user.email}</Typography>
           </Box>
@@ -84,20 +95,20 @@ export const UserDetailCard: React.FC<UserDetailCardProps> = ({ user, onClose })
           <Typography variant="subtitle2" gutterBottom color="text.secondary">
             Status & Roles
           </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
             {user.isActive ? (
               <CheckCircleIcon color="success" fontSize="small" />
             ) : (
               <CancelIcon color="error" fontSize="small" />
             )}
             <Chip
-              label={user.isActive ? 'Active' : 'Inactive'}
+              label={user.isActive ? "Active" : "Inactive"}
               size="small"
-              color={user.isActive ? 'success' : 'default'}
-              variant={user.isActive ? 'filled' : 'outlined'}
+              color={user.isActive ? "success" : "default"}
+              variant={user.isActive ? "filled" : "outlined"}
             />
           </Box>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
             {user.roles.map((role) => (
               <Chip
                 key={role}
@@ -118,7 +129,7 @@ export const UserDetailCard: React.FC<UserDetailCardProps> = ({ user, onClose })
             Team Memberships ({user.teamNames.length})
           </Typography>
           {user.teamNames.length > 0 ? (
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
               {user.teamNames.map((teamName, index) => (
                 <Chip
                   key={index}
@@ -144,7 +155,7 @@ export const UserDetailCard: React.FC<UserDetailCardProps> = ({ user, onClose })
             Manager
           </Typography>
           {user.managerName ? (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
               <PersonIcon fontSize="small" color="action" />
               <Typography variant="body2">{user.managerName}</Typography>
             </Box>
@@ -169,7 +180,11 @@ export const UserDetailCard: React.FC<UserDetailCardProps> = ({ user, onClose })
               </ListItemIcon>
               <ListItemText
                 primary="Last Login"
-                secondary={user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString() : 'Never'}
+                secondary={
+                  user.lastLoginAt
+                    ? new Date(user.lastLoginAt).toLocaleString()
+                    : "Never"
+                }
               />
             </ListItem>
             <ListItem sx={{ px: 0 }}>
@@ -202,8 +217,16 @@ export const UserDetailCard: React.FC<UserDetailCardProps> = ({ user, onClose })
           </Typography>
           <Grid container spacing={1}>
             <Grid size={{ xs: 6 }}>
-              <Paper sx={{ p: 1.5, textAlign: 'center' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5, mb: 0.5 }}>
+              <Paper sx={{ p: 1.5, textAlign: "center" }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 0.5,
+                    mb: 0.5,
+                  }}
+                >
                   <GroupIcon fontSize="small" color="primary" />
                   <Typography variant="h6">{user.teamIds.length}</Typography>
                 </Box>
@@ -213,8 +236,16 @@ export const UserDetailCard: React.FC<UserDetailCardProps> = ({ user, onClose })
               </Paper>
             </Grid>
             <Grid size={{ xs: 6 }}>
-              <Paper sx={{ p: 1.5, textAlign: 'center' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5, mb: 0.5 }}>
+              <Paper sx={{ p: 1.5, textAlign: "center" }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 0.5,
+                    mb: 0.5,
+                  }}
+                >
                   <BusinessIcon fontSize="small" color="secondary" />
                   <Typography variant="h6">{user.roles.length}</Typography>
                 </Box>

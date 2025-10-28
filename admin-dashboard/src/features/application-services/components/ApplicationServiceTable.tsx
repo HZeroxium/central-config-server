@@ -208,7 +208,7 @@ export function ApplicationServiceTable({
           <GridActionsCellItem
             key="view"
             icon={<ViewIcon />}
-            label="View"
+            label="View details"
             onClick={() => onRowClick(params.row.id || "")}
             showInMenu={false}
           />,
@@ -224,7 +224,7 @@ export function ApplicationServiceTable({
                   style={{ color: "var(--mui-palette-warning-main)" }}
                 />
               }
-              label="Request Ownership"
+              label="Request ownership of this service"
               onClick={() => onRequestOwnership(params.row.id || "")}
               showInMenu={false}
             />
@@ -235,8 +235,8 @@ export function ApplicationServiceTable({
           actions.push(
             <GridActionsCellItem
               key="delete"
-              icon={<DeleteIcon />}
-              label="Delete"
+              icon={<DeleteIcon color="error" />}
+              label="Delete this service"
               onClick={() => onDelete(params.row.id || "")}
               showInMenu={false}
             />
@@ -274,13 +274,40 @@ export function ApplicationServiceTable({
           return isOrphaned(params.row) ? "orphaned-service-row" : "";
         }}
         sx={{
+          "& .MuiDataGrid-cell": {
+            display: "flex",
+            alignItems: "center",
+            py: 1.5,
+          },
           "& .MuiDataGrid-row": {
             cursor: "pointer",
+            "&:hover": {
+              backgroundColor: (theme) =>
+                theme.palette.mode === "light"
+                  ? "rgba(37, 99, 235, 0.04)"
+                  : "rgba(96, 165, 250, 0.08)",
+            },
+          },
+          "& .MuiDataGrid-columnHeader": {
+            backgroundColor: (theme) =>
+              theme.palette.mode === "light"
+                ? "rgba(37, 99, 235, 0.04)"
+                : "rgba(96, 165, 250, 0.08)",
+            fontWeight: 600,
+          },
+          "& .MuiDataGrid-columnHeaderTitle": {
+            fontWeight: 600,
           },
           "& .orphaned-service-row": {
-            backgroundColor: "warning.lighter",
+            backgroundColor: (theme) =>
+              theme.palette.mode === "light"
+                ? "rgba(245, 158, 11, 0.08)"
+                : "rgba(251, 191, 36, 0.12)",
             "&:hover": {
-              backgroundColor: "warning.light",
+              backgroundColor: (theme) =>
+                theme.palette.mode === "light"
+                  ? "rgba(245, 158, 11, 0.12)"
+                  : "rgba(251, 191, 36, 0.16)",
             },
           },
         }}
