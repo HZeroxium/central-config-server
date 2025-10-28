@@ -88,7 +88,12 @@ export function ServiceInstanceTable({
       width: 100,
       align: 'center',
       renderCell: (params) => (
-        <DriftIndicator hasDrift={params.value} driftDetectedAt={params.row.driftDetectedAt} />
+        <DriftIndicator 
+          hasDrift={params.value} 
+          driftDetectedAt={params.row.driftDetectedAt}
+          serviceId={params.row.serviceName}
+          instanceId={params.row.instanceId}
+        />
       ),
     },
     {

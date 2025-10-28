@@ -13,7 +13,8 @@ export default function ServiceRegistryListPage() {
   const { data, isLoading, error } = useListServiceRegistryServices({
     query: {
       staleTime: 30_000, // 30 seconds
-      refetchInterval: 60_000, // Refresh every 60 seconds
+      refetchInterval: 30000, // Refresh every 30 seconds
+      refetchIntervalInBackground: false,
     },
   });
 

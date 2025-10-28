@@ -20,10 +20,11 @@ const LoadingComponent: React.FC = () => (
 
 const KeycloakProvider: React.FC<KeycloakProviderProps> = ({ children }) => {
   const initOptions = {
-    onLoad: "check-sso",
-    silentCheckSsoRedirectUri:
-      window.location.origin + "/silent-check-sso.html",
+    onLoad: "login-required",
+    // Avoid iframe polling and reduce double-init issues in dev
     checkLoginIframe: false,
+    pkceMethod: "S256",
+    enableLogging: true,
   };
 
   return (
@@ -31,6 +32,12 @@ const KeycloakProvider: React.FC<KeycloakProviderProps> = ({ children }) => {
       authClient={keycloak}
       initOptions={initOptions}
       LoadingComponent={<LoadingComponent />}
+      onEvent={(event, error) => {
+        console.log('Keycloak event:', event, error);
+        if (event === 'onAuthError') {
+          console.error('Keycloak auth error:', error);
+        }
+      }}
     >
       {children}
     </ReactKeycloakProvider>

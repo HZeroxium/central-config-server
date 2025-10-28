@@ -35,7 +35,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     permissions, 
     permissionsLoading,
     userInfo,
-    isSysAdmin 
+    isSysAdmin
   } = useAuth();
 
   // Show loading while initializing or fetching permissions
@@ -43,9 +43,10 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <LoadingComponent />;
   }
 
-  // Redirect to login if not authenticated
+  // Authentication is enforced by KeycloakProvider via onLoad: 'login-required'.
+  // If for some reason we're unauthenticated, just show loading (provider will redirect).
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return <LoadingComponent />;
   }
 
   // Wait for permissions to load

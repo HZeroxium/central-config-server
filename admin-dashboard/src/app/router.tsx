@@ -17,6 +17,7 @@ const ServiceInstanceDetailPage = lazy(() => import('@features/service-instances
 const ApprovalListPage = lazy(() => import('@features/approvals/pages/ApprovalListPage'))
 const ApprovalDetailPage = lazy(() => import('@features/approvals/pages/ApprovalDetailPage'))
 const DriftEventListPage = lazy(() => import('@features/drift-events/pages/DriftEventListPage'))
+const DriftEventDetailPage = lazy(() => import('@features/drift-events/pages/DriftEventDetailPage'))
 const ServiceShareListPage = lazy(() => import('@features/service-shares/pages/ServiceShareListPage'))
 const ServiceShareDetailPage = lazy(() => import('@features/service-shares/pages/ServiceShareDetailPage'))
 const IamUserListPage = lazy(() => import('@features/iam/pages/IamUserListPage'))
@@ -25,6 +26,7 @@ const ServiceRegistryListPage = lazy(() => import('@features/service-registry/pa
 const ServiceRegistryDetailPage = lazy(() => import('@features/service-registry/pages/ServiceRegistryDetailPage'))
 const ProfilePage = lazy(() => import('@features/auth/pages/ProfilePage'))
 const LoginCallbackPage = lazy(() => import('@features/auth/pages/LoginCallbackPage'))
+const UnauthorizedPage = lazy(() => import('../pages/UnauthorizedPage'))
 
 export const router = createBrowserRouter([
   {
@@ -163,6 +165,16 @@ export const router = createBrowserRouter([
         ),
       },
       {
+        path: 'drift-events/:id',
+        element: (
+          <ProtectedRoute>
+            <Suspense fallback={<Loading />}> 
+              <DriftEventDetailPage />
+            </Suspense>
+          </ProtectedRoute>
+        ),
+      },
+      {
         path: 'service-shares',
         children: [
           {
@@ -252,6 +264,14 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={<Loading />}> 
             <LoginCallbackPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'unauthorized',
+        element: (
+          <Suspense fallback={<Loading />}> 
+            <UnauthorizedPage />
           </Suspense>
         ),
       },

@@ -35,7 +35,6 @@ import {
   Delete as DeleteIcon,
   Share as ShareIcon,
   Visibility as ViewIcon,
-  Delete as RevokeIcon,
   Assignment as ClaimIcon,
   SwapHoriz as TransferIcon,
 } from "@mui/icons-material";
@@ -55,7 +54,7 @@ import { toast } from "@lib/toast/toast";
 import { handleApiError } from "@lib/api/errorHandler";
 import { ApplicationServiceForm } from "../components/ApplicationServiceForm";
 import { ServiceShareDrawer } from "../components/ServiceShareDrawer";
-import { format } from "date-fns";
+import { ServiceSharesTab } from "../components/ServiceSharesTab";
 import type { FindAllServiceInstancesEnvironment } from "@lib/api/models";
 
 export default function ApplicationServiceDetailPage() {
@@ -109,8 +108,7 @@ export default function ApplicationServiceDetailPage() {
 
   // Fetch service shares
   const {
-    data: sharesDataRaw,
-    isLoading: sharesLoading,
+    data: _sharesDataRaw,
     refetch: refetchShares,
   } = useFindAllServiceShares(
     {
@@ -126,21 +124,21 @@ export default function ApplicationServiceDetailPage() {
     }
   );
 
-  // Type assertion for shares data
-  const sharesData = (
-    typeof sharesDataRaw === "object" ? sharesDataRaw : undefined
-  ) as
-    | {
-        items?: Array<{
-          id?: string;
-          grantToType?: string;
-          grantToId?: string;
-          permissions?: string[];
-          environments?: string[];
-          createdAt?: string;
-        }>;
-      }
-    | undefined;
+  // Type assertion for shares data (unused for now - ServiceSharesTab fetches its own)
+  // const sharesData = (
+  //   typeof sharesDataRaw === "object" ? sharesDataRaw : undefined
+  // ) as
+  //   | {
+  //       items?: Array<{
+  //         id?: string;
+  //         grantToType?: string;
+  //         grantToId?: string;
+  //         permissions?: string[];
+  //         environments?: string[];
+  //         createdAt?: string;
+  //       }>;
+  //     }
+  //   | undefined;
 
   const deleteMutation = useDeleteApplicationService();
   const revokeShareMutation = useRevokeServiceShare();
@@ -150,12 +148,12 @@ export default function ApplicationServiceDetailPage() {
     navigate("/application-services");
   };
 
+  const canEdit =
+    isSysAdmin || (id && permissions?.ownedServiceIds?.includes(id));
+    
   const isOrphan = !service?.ownerTeamId;
   const canClaim = isOrphan && userInfo?.teamIds && userInfo.teamIds.length > 0;
   const canTransfer = canEdit && !isOrphan;
-
-  const canEdit =
-    isSysAdmin || (id && permissions?.ownedServiceIds?.includes(id));
 
   const handleDelete = async () => {
     if (!id) return;
@@ -180,7 +178,7 @@ export default function ApplicationServiceDetailPage() {
     refetch();
   };
 
-  const handleRevokeShare = (shareId: string) => {
+  const _handleRevokeShare = (shareId: string) => {
     setSelectedShareId(shareId);
     setRevokeShareDialogOpen(true);
   };
@@ -717,140 +715,7 @@ export default function ApplicationServiceDetailPage() {
 
       {/* Shares Tab */}
       {tabValue === 2 && (
-        <Card>
-          <CardContent>
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                mb: 3,
-              }}
-            >
-              <Typography variant="h6">Service Shares</Typography>
-              {canEdit && (
-                <Button
-                  variant="contained"
-                  size="small"
-                  startIcon={<ShareIcon />}
-                  onClick={() => setShareDrawerOpen(true)}
-                >
-                  Grant Share
-                </Button>
-              )}
-            </Box>
-
-            {sharesLoading ? (
-              <Loading />
-            ) : sharesData?.items && sharesData.items.length > 0 ? (
-              <TableContainer component={Paper} variant="outlined">
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Share ID</TableCell>
-                      <TableCell>Grantee Type</TableCell>
-                      <TableCell>Grantee ID</TableCell>
-                      <TableCell>Permissions</TableCell>
-                      <TableCell>Environments</TableCell>
-                      <TableCell>Created At</TableCell>
-                      <TableCell align="right">Actions</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {sharesData.items.map((share) => (
-                      <TableRow key={share.id} hover>
-                        <TableCell
-                          sx={{ fontFamily: "monospace", fontSize: "0.85rem" }}
-                        >
-                          {share.id}
-                        </TableCell>
-                        <TableCell>
-                          <Chip
-                            label={share.grantToType}
-                            size="small"
-                            variant="outlined"
-                          />
-                        </TableCell>
-                        <TableCell>{share.grantToId}</TableCell>
-                        <TableCell>
-                          <Box
-                            sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}
-                          >
-                            {share.permissions?.map((perm) => (
-                              <Chip
-                                key={perm}
-                                label={perm}
-                                size="small"
-                                color="primary"
-                              />
-                            ))}
-                          </Box>
-                        </TableCell>
-                        <TableCell>
-                          {share.environments &&
-                          share.environments.length > 0 ? (
-                            <Box
-                              sx={{
-                                display: "flex",
-                                gap: 0.5,
-                                flexWrap: "wrap",
-                              }}
-                            >
-                              {share.environments.map((env) => (
-                                <Chip
-                                  key={env}
-                                  label={env.toUpperCase()}
-                                  size="small"
-                                  color={
-                                    env === "prod"
-                                      ? "error"
-                                      : env === "staging"
-                                      ? "warning"
-                                      : "info"
-                                  }
-                                />
-                              ))}
-                            </Box>
-                          ) : (
-                            <Typography variant="body2" color="text.secondary">
-                              All
-                            </Typography>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {share.createdAt
-                            ? format(new Date(share.createdAt), "MMM dd, yyyy")
-                            : "N/A"}
-                        </TableCell>
-                        <TableCell align="right">
-                          {canEdit && (
-                            <Tooltip title="Revoke Share">
-                              <IconButton
-                                size="small"
-                                color="error"
-                                onClick={() =>
-                                  handleRevokeShare(share.id || "")
-                                }
-                              >
-                                <RevokeIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            ) : (
-              <Alert severity="info">
-                No shares configured for this service.
-                {canEdit &&
-                  ' Click "Grant Share" to share this service with other teams.'}
-              </Alert>
-            )}
-          </CardContent>
-        </Card>
+        <ServiceSharesTab serviceId={id || ''} />
       )}
 
       {/* Approvals Tab - Placeholder */}

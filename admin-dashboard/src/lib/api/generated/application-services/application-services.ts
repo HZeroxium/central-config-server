@@ -58,8 +58,12 @@ type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
  * Retrieve a specific application service by its ID.
 
 **Access Control:**
-- Public endpoint - no authentication required
-- Returns service metadata for discovery purposes
+- **Authentication required** - Unauthenticated requests will receive 401
+- **Visibility rules apply** - Users can only access:
+  - Orphaned services (ownerTeamId=null)
+  - Services owned by their teams
+  - Services shared to their teams
+- Returns 404 if service doesn't exist or user lacks permission
 
  * @summary Get application service by ID
  */
@@ -85,7 +89,7 @@ export const getFindApplicationServiceByIdQueryKey = (id?: string,) => {
     }
 
     
-export const getFindApplicationServiceByIdQueryOptions = <TData = Awaited<ReturnType<typeof findApplicationServiceById>>, TError = ErrorResponse | ErrorResponse>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findApplicationServiceById>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getFindApplicationServiceByIdQueryOptions = <TData = Awaited<ReturnType<typeof findApplicationServiceById>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findApplicationServiceById>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -104,10 +108,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type FindApplicationServiceByIdQueryResult = NonNullable<Awaited<ReturnType<typeof findApplicationServiceById>>>
-export type FindApplicationServiceByIdQueryError = ErrorResponse | ErrorResponse
+export type FindApplicationServiceByIdQueryError = ErrorResponse | ErrorResponse | ErrorResponse
 
 
-export function useFindApplicationServiceById<TData = Awaited<ReturnType<typeof findApplicationServiceById>>, TError = ErrorResponse | ErrorResponse>(
+export function useFindApplicationServiceById<TData = Awaited<ReturnType<typeof findApplicationServiceById>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
  id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof findApplicationServiceById>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof findApplicationServiceById>>,
@@ -117,7 +121,7 @@ export function useFindApplicationServiceById<TData = Awaited<ReturnType<typeof 
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useFindApplicationServiceById<TData = Awaited<ReturnType<typeof findApplicationServiceById>>, TError = ErrorResponse | ErrorResponse>(
+export function useFindApplicationServiceById<TData = Awaited<ReturnType<typeof findApplicationServiceById>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findApplicationServiceById>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof findApplicationServiceById>>,
@@ -127,7 +131,7 @@ export function useFindApplicationServiceById<TData = Awaited<ReturnType<typeof 
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useFindApplicationServiceById<TData = Awaited<ReturnType<typeof findApplicationServiceById>>, TError = ErrorResponse | ErrorResponse>(
+export function useFindApplicationServiceById<TData = Awaited<ReturnType<typeof findApplicationServiceById>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findApplicationServiceById>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
@@ -135,7 +139,7 @@ export function useFindApplicationServiceById<TData = Awaited<ReturnType<typeof 
  * @summary Get application service by ID
  */
 
-export function useFindApplicationServiceById<TData = Awaited<ReturnType<typeof findApplicationServiceById>>, TError = ErrorResponse | ErrorResponse>(
+export function useFindApplicationServiceById<TData = Awaited<ReturnType<typeof findApplicationServiceById>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof findApplicationServiceById>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
@@ -290,12 +294,21 @@ export const useDeleteApplicationService = <TError = ErrorResponse | ErrorRespon
       return useMutation(mutationOptions, queryClient);
     }
     /**
- * Retrieve a paginated list of all application services.
+ * Retrieve a paginated list of application services visible to the authenticated user.
 
-**Access Control:**
-- All authenticated users can view application services
-- Services are public to authenticated users for discovery
-- Filtering by team ownership is applied automatically
+**Access Control & Visibility Rules:**
+- **Authentication required** - Unauthenticated requests will receive 401
+- **System admins** see all services (no filtering)
+- **Regular users** see:
+  - Orphaned services (ownerTeamId=null) - for ownership request workflow
+  - Services owned by their teams
+  - Services shared to their teams via ServiceShare grants
+- Server-side filtering ensures users only see authorized services
+
+**Use Cases:**
+- Service discovery and catalog browsing
+- Requesting ownership of orphaned services
+- Viewing team-owned and shared services
 
  * @summary List all application services
  */

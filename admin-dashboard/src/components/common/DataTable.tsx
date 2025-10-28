@@ -196,7 +196,7 @@ export default function DataTable({
         autoHeight={autoHeight}
         getRowId={getRowId}
         slots={{
-          toolbar: CustomToolbar as any,
+          toolbar: CustomToolbar as unknown as React.JSXElementConstructor<object>,
         }}
         slotProps={{
           toolbar: {
@@ -209,7 +209,7 @@ export default function DataTable({
             visibleColumns,
             onColumnVisibilityChange: setVisibleColumns,
             customActions,
-          } as any,
+          } as unknown as object,
         }}
         sx={{
           '& .MuiDataGrid-cell:focus': {

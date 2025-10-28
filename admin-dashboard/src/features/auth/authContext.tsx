@@ -1,7 +1,10 @@
-import React, { createContext, useContext, useMemo } from 'react';
+import React, { createContext, useContext, useMemo, useEffect } from 'react';
 import { useKeycloak } from '@react-keycloak/web';
+import { useDispatch, useSelector } from 'react-redux';
 import { useFindCurrentUserPermissions, useFindCurrentUserInformation } from '@lib/api/hooks';
 import type { MeResponse, PermissionsResponse } from '@lib/api/models';
+import { setUserInfo, setPermissions, setInitialized, clearAuth } from '@store/authSlice';
+import type { RootState } from '@store/index';
 
 export interface UserInfo {
   userId: string;
@@ -78,10 +81,42 @@ function parseMeResponse(meResponse: MeResponse | undefined): UserInfo | null {
   };
 }
 
+/**
+ * Parse PermissionsResponse to UserPermissions
+ */
+function parsePermissionsResponse(permissionsResponse: PermissionsResponse | undefined): UserPermissions | null {
+  if (!permissionsResponse) return null;
+  
+  return {
+    allowedApiRoutes: permissionsResponse.allowedApiRoutes || [],
+    allowedUiRoutes: permissionsResponse.allowedUiRoutes || [],
+    roles: permissionsResponse.roles || [],
+    teams: permissionsResponse.teams || [],
+    features: permissionsResponse.features || {},
+    actions: permissionsResponse.actions || {},
+    ownedServiceIds: permissionsResponse.ownedServiceIds || [],
+    sharedServiceIds: permissionsResponse.sharedServiceIds || [],
+  };
+}
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { keycloak, initialized } = useKeycloak();
+  const dispatch = useDispatch();
+  const authState = useSelector((state: RootState) => state.auth);
 
   const isAuthenticated = keycloak?.authenticated ?? false;
+
+  // Update Redux store when Keycloak initialization state changes
+  useEffect(() => {
+    dispatch(setInitialized(initialized));
+  }, [initialized, dispatch]);
+
+  // Clear auth data when user logs out
+  useEffect(() => {
+    if (!isAuthenticated && authState.userInfo) {
+      dispatch(clearAuth());
+    }
+  }, [isAuthenticated, authState.userInfo, dispatch]);
 
   // Fetch user info from backend (more reliable than token parsing)
   const { data: meData, isLoading: meLoading, refetch: refetchUserInfo } = useFindCurrentUserInformation({
@@ -101,32 +136,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   });
 
-  // Parse user info - prefer backend data over token
-  const userInfo = useMemo(() => {
-    const backendUserInfo = parseMeResponse(meData);
-    if (backendUserInfo) return backendUserInfo;
-    
-    // Fallback to token parsing if backend data not available yet
-    return parseKeycloakToken(keycloak?.tokenParsed);
-  }, [meData, keycloak?.tokenParsed]);
+  // Update Redux store when data changes
+  useEffect(() => {
+    if (meData) {
+      const userInfo = parseMeResponse(meData);
+      dispatch(setUserInfo(userInfo));
+    }
+  }, [meData, dispatch]);
 
-  // Parse permissions
+  useEffect(() => {
+    if (permissionsData) {
+      const permissions = parsePermissionsResponse(permissionsData);
+      dispatch(setPermissions(permissions));
+    }
+  }, [permissionsData, dispatch]);
+
+  // Parse user info - prefer Redux store over token
+  const userInfo = useMemo(() => {
+    if (authState.userInfo) return authState.userInfo;
+    
+    // Fallback to token parsing if Redux data not available yet
+    return parseKeycloakToken(keycloak?.tokenParsed);
+  }, [authState.userInfo, keycloak?.tokenParsed]);
+
+  // Parse permissions - prefer Redux store
   const permissions = useMemo((): UserPermissions | null => {
-    if (!permissionsData) return null;
-    
-    const data = permissionsData as PermissionsResponse;
-    
-    return {
-      allowedApiRoutes: data.allowedApiRoutes || [],
-      allowedUiRoutes: data.allowedUiRoutes || [],
-      roles: data.roles || [],
-      teams: data.teams || [],
-      features: data.features || {},
-      actions: data.actions || {},
-      ownedServiceIds: data.ownedServiceIds || [],
-      sharedServiceIds: data.sharedServiceIds || [],
-    };
-  }, [permissionsData]);
+    if (authState.permissions) return authState.permissions;
+    return null;
+  }, [authState.permissions]);
 
   const hasRole = (role: string): boolean => {
     return keycloak?.hasRealmRole(role) ?? false;

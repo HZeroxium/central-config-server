@@ -179,12 +179,14 @@ export default function ApprovalListPage() {
                   setPage(0);
                 }}
                 disabled={showMyApprovalsOnly}
-                InputProps={{
+                slotProps={{
+                  input: {
                   startAdornment: (
                     <InputAdornment position="start">
                       <SearchIcon />
                     </InputAdornment>
                   ),
+                  },
                 }}
               />
             </Grid>

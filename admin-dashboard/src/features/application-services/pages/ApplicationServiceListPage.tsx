@@ -15,11 +15,6 @@ import {
   Drawer,
   FormControlLabel,
   Switch,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogContentText,
-  DialogActions,
 } from '@mui/material';
 import Grid from '@mui/material/Grid';
 import { Add as AddIcon, Search as SearchIcon, Refresh as RefreshIcon } from '@mui/icons-material';
@@ -29,18 +24,18 @@ import ConfirmDialog from '@components/common/ConfirmDialog';
 import {
   useFindAllApplicationServices,
   useDeleteApplicationService,
-  useCreateApprovalRequest,
 } from '@lib/api/hooks';
 import { useAuth } from '@features/auth/authContext';
 import { toast } from '@lib/toast/toast';
 import { handleApiError } from '@lib/api/errorHandler';
 import { ApplicationServiceTable } from '../components/ApplicationServiceTable';
 import { ApplicationServiceForm } from '../components/ApplicationServiceForm';
-import type { FindAllApplicationServicesParams } from '@lib/api/models';
+import { ClaimOwnershipDialog } from '../components/ClaimOwnershipDialog';
+import type { ApplicationServiceResponse, FindAllApplicationServicesParams} from '@lib/api/models';
 
 export default function ApplicationServiceListPage() {
   const navigate = useNavigate();
-  const { isSysAdmin, permissions, userInfo } = useAuth();
+  const { isSysAdmin, permissions } = useAuth();
 
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(20);
@@ -52,14 +47,14 @@ export default function ApplicationServiceListPage() {
   
   const [formDrawerOpen, setFormDrawerOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [ownershipRequestDialogOpen, setOwnershipRequestDialogOpen] = useState(false);
+  const [claimDialogOpen, setClaimDialogOpen] = useState(false);
   const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
-  const [ownershipNote, setOwnershipNote] = useState('');
+  const [selectedServiceName, setSelectedServiceName] = useState<string>('');
 
   const { data, isLoading, error, refetch } = useFindAllApplicationServices(
     {
       search: search || undefined,
-      ownerTeamId: ownerTeamFilter || undefined,
+      ownerTeamId: showUnassignedOnly ? 'null' : (ownerTeamFilter || undefined),
       lifecycle: lifecycleFilter || undefined,
       page,
       size: pageSize,
@@ -72,11 +67,10 @@ export default function ApplicationServiceListPage() {
   );
 
   const deleteMutation = useDeleteApplicationService();
-  const createApprovalRequestMutation = useCreateApprovalRequest();
 
   // Server-side filtering handles visibility (orphaned + team-owned + shared services)
   // No client-side filtering needed - trust server response
-  const services = data?.items || [];
+  const services: ApplicationServiceResponse[] = data?.items || [];
   const metadata = data?.metadata;
 
   const canCreate = isSysAdmin || permissions?.actions?.['APPLICATION_SERVICE']?.includes('CREATE');
@@ -126,45 +120,21 @@ export default function ApplicationServiceListPage() {
   };
 
   const handleRequestOwnership = (serviceId: string) => {
+    const service = services.find(s => s.id === serviceId);
     setSelectedServiceId(serviceId);
-    setOwnershipRequestDialogOpen(true);
-    setOwnershipNote('');
+    setSelectedServiceName(service?.displayName || serviceId);
+    setClaimDialogOpen(true);
   };
 
-  const handleSubmitOwnershipRequest = async () => {
-    if (!selectedServiceId || !userInfo?.teamIds?.[0]) {
-      toast.error('Cannot submit ownership request: No team found');
-      return;
-    }
-
-    createApprovalRequestMutation.mutate(
-      {
-        serviceId: selectedServiceId,
-        data: {
-          serviceId: selectedServiceId,
-          targetTeamId: userInfo.teamIds[0],
-          note: ownershipNote || undefined,
-        },
-      },
-      {
-        onSuccess: () => {
-          toast.success('Ownership request submitted successfully');
-          setOwnershipRequestDialogOpen(false);
-          setSelectedServiceId(null);
-          setOwnershipNote('');
-          refetch();
-        },
-        onError: (error) => {
-          handleApiError(error);
-        },
-      }
-    );
-  };
-
-  const handleCancelOwnershipRequest = () => {
-    setOwnershipRequestDialogOpen(false);
+  const handleCloseClaimDialog = () => {
+    setClaimDialogOpen(false);
     setSelectedServiceId(null);
-    setOwnershipNote('');
+    setSelectedServiceName('');
+  };
+
+  const handleClaimSuccess = (_requestId: string) => {
+    toast.success('Ownership request submitted successfully');
+    refetch();
   };
 
   return (
@@ -207,12 +177,14 @@ export default function ApplicationServiceListPage() {
                   setSearch(e.target.value);
                   setPage(0);
                 }}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon />
-                    </InputAdornment>
-                  ),
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon />
+                      </InputAdornment>
+                    ),
+                  },
                 }}
               />
             </Grid>
@@ -282,7 +254,7 @@ export default function ApplicationServiceListPage() {
                     }}
                   />
                 }
-                label="Unassigned Only"
+                label="Orphans Only"
                 sx={{ height: '56px', display: 'flex', alignItems: 'center' }}
               />
             </Grid>
@@ -301,7 +273,7 @@ export default function ApplicationServiceListPage() {
 
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
-              Failed to load services: {(error as any).detail || 'Unknown error'}
+              Failed to load services: {error && typeof error === 'object' && 'detail' in error ? (error as { detail?: string }).detail : 'Unknown error'}
             </Alert>
           )}
 
@@ -355,43 +327,14 @@ export default function ApplicationServiceListPage() {
         loading={deleteMutation.isPending}
       />
 
-      {/* Ownership Request Dialog */}
-      <Dialog
-        open={ownershipRequestDialogOpen}
-        onClose={handleCancelOwnershipRequest}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>Request Service Ownership</DialogTitle>
-        <DialogContent>
-          <DialogContentText sx={{ mb: 2 }}>
-            Submit a request to claim ownership of this service for your team. The request will need approval from system administrators.
-          </DialogContentText>
-          <TextField
-            autoFocus
-            margin="dense"
-            label="Note (Optional)"
-            placeholder="Explain why your team should own this service..."
-            fullWidth
-            multiline
-            rows={4}
-            value={ownershipNote}
-            onChange={(e) => setOwnershipNote(e.target.value)}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCancelOwnershipRequest} disabled={createApprovalRequestMutation.isPending}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSubmitOwnershipRequest}
-            variant="contained"
-            disabled={createApprovalRequestMutation.isPending}
-          >
-            Submit Request
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {/* Claim Ownership Dialog */}
+      <ClaimOwnershipDialog
+        open={claimDialogOpen}
+        serviceId={selectedServiceId || ''}
+        serviceName={selectedServiceName}
+        onClose={handleCloseClaimDialog}
+        onSuccess={handleClaimSuccess}
+      />
     </Box>
   );
 }

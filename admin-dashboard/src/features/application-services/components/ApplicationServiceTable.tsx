@@ -1,5 +1,5 @@
 import { DataGrid, type GridColDef, GridActionsCellItem } from '@mui/x-data-grid';
-import { Delete as DeleteIcon, Visibility as ViewIcon, PersonAdd as RequestOwnershipIcon } from '@mui/icons-material';
+import { Delete as DeleteIcon, Visibility as ViewIcon, PersonAdd as RequestOwnershipIcon, Warning as WarningIcon } from '@mui/icons-material';
 import { Box, Chip } from '@mui/material';
 import type { ApplicationServiceResponse } from '@lib/api/models';
 import { useAuth } from '@features/auth/authContext';
@@ -77,9 +77,10 @@ export function ApplicationServiceTable({
         if (!params.value) {
           return (
             <Chip 
-              label="UNASSIGNED" 
+              label="Orphan" 
               color="warning" 
               size="small"
+              icon={<WarningIcon />}
               sx={{ fontWeight: 600 }}
             />
           );

@@ -11,6 +11,7 @@ export const TabPanel: React.FC<TabPanelProps> = ({
   children,
   value,
   index,
+  sx,
   ...other
 }) => {
   return (
@@ -19,10 +20,10 @@ export const TabPanel: React.FC<TabPanelProps> = ({
       hidden={value !== index}
       id={`simple-tabpanel-${index}`}
       aria-labelledby={`simple-tab-${index}`}
-      {...(other as any)}
+      {...(other as React.HTMLAttributes<HTMLDivElement>)}
     >
       {value === index && (
-        <Box sx={{ p: 3 }}>
+        <Box sx={sx || { p: 3 }}>
           {children}
         </Box>
       )}

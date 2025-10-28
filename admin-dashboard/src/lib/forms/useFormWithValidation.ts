@@ -3,9 +3,11 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { AxiosError } from 'axios';
 import type { ErrorResponse } from '@lib/api/models';
 
+ 
 interface UseFormWithValidationProps<TFormValues extends FieldValues>
   extends Omit<UseFormProps<TFormValues>, 'resolver'> {
-  schema: any; // Simplified to avoid zodResolver generic complexity
+  // Using any here to avoid zodResolver type complexity
+  schema: any;
 }
 
 interface UseFormWithValidationReturn<TFormValues extends FieldValues>
@@ -24,7 +26,8 @@ export function useFormWithValidation<TFormValues extends FieldValues>(
 
   const form = useForm<TFormValues>({
     ...formProps,
-    resolver: zodResolver(schema) as any, // Type assertion needed due to zodResolver generics complexity
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(schema) as any,
   });
 
   /**

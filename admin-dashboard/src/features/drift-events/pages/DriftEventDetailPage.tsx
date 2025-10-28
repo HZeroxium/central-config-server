@@ -1,94 +1,132 @@
-import React, { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import {
-  Box,
-  Button,
-  Typography,
-  Alert,
-  Divider,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogContentText,
-  DialogActions,
-  TextField,
-} from "@mui/material";
-import Grid from "@mui/material/Grid";
+import React, { useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Box, Button, Card, CardContent, Typography, Chip, Divider, TextField, Alert, Paper } from '@mui/material';
+import Grid from '@mui/material/Grid';
 import {
   ArrowBack as BackIcon,
   CheckCircle as ResolveIcon,
-} from "@mui/icons-material";
-import { PageHeader } from "@components/common/PageHeader";
-import { SkeletonLoader } from "@components/common/SkeletonLoader";
-import { DetailCard } from "@components/common/DetailCard";
-import { DriftSeverityChip } from "../components/DriftSeverityChip";
-import { ChipStatus } from "@components/common/ChipStatus";
-import { useFindDriftEventById, useUpdateDriftEvent } from "@lib/api/hooks";
-import { useAuth } from "@features/auth/authContext";
-import { toast } from "@lib/toast/toast";
-import { handleApiError } from "@lib/api/errorHandler";
+  Warning as WarningIcon,
+  Code as CodeIcon,
+} from '@mui/icons-material';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import PageHeader from '@components/common/PageHeader';
+import Loading from '@components/common/Loading';
+import { useFindDriftEventById, useUpdateDriftEvent } from '@lib/api/hooks';
+import { useAuth } from '@features/auth/authContext';
+import { toast } from '@lib/toast/toast';
+import { handleApiError } from '@lib/api/errorHandler';
+import { format } from 'date-fns';
 
-export const DriftEventDetailPage: React.FC = () => {
+const resolveSchema = z.object({
+  note: z.string().min(1, 'Resolution note is required'),
+});
+
+type ResolveFormData = z.infer<typeof resolveSchema>;
+
+export default function DriftEventDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { userInfo } = useAuth();
+  const { isSysAdmin, permissions } = useAuth();
   const [resolveDialogOpen, setResolveDialogOpen] = useState(false);
-  const [resolutionNotes, setResolutionNotes] = useState("");
 
   const {
-    data: event,
+    data: driftEvent,
     isLoading,
     error,
     refetch,
   } = useFindDriftEventById(id!, {
     query: {
       enabled: !!id,
+      staleTime: 10_000,
     },
   });
 
-  const updateDriftEventMutation = useUpdateDriftEvent();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset,
+  } = useForm<ResolveFormData>({
+    resolver: zodResolver(resolveSchema),
+  });
+
+  const updateDriftEventMutation = useUpdateDriftEvent({
+    mutation: {
+      onSuccess: () => {
+        toast.success('Drift event resolved successfully');
+        setResolveDialogOpen(false);
+        reset();
+        refetch();
+      },
+      onError: (error) => {
+        handleApiError(error);
+      },
+    },
+  });
+
+  const canResolve = isSysAdmin || permissions?.actions?.['DRIFT_EVENT']?.includes('UPDATE');
 
   const handleBack = () => {
-    navigate("/drift-events");
+    navigate('/drift-events');
   };
 
   const handleResolve = () => {
     setResolveDialogOpen(true);
-    setResolutionNotes("");
   };
 
-  const handleSubmitResolve = async () => {
-    if (!id || !event) return;
+  const onSubmitResolve = (data: ResolveFormData) => {
+    if (!id) return;
 
-    updateDriftEventMutation.mutate(
-      {
-        id,
-        data: {
-          status: "RESOLVED",
-          resolvedBy: userInfo?.username || "Unknown",
-          notes: resolutionNotes || undefined,
-        },
+    updateDriftEventMutation.mutate({
+      id,
+      data: {
+        status: 'RESOLVED',
+        note: data.note,
       },
-      {
-        onSuccess: () => {
-          toast.success("Drift event marked as resolved");
-          setResolveDialogOpen(false);
-          refetch();
-        },
-        onError: (error) => {
-          handleApiError(error);
-        },
-      }
-    );
+    });
   };
 
-  const canResolve = event?.status === "DETECTED";
+  const getSeverityColor = (severity: string) => {
+    switch (severity?.toUpperCase()) {
+      case 'CRITICAL':
+        return 'error';
+      case 'HIGH':
+        return 'warning';
+      case 'MEDIUM':
+        return 'info';
+      case 'LOW':
+        return 'default';
+      default:
+        return 'default';
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status?.toUpperCase()) {
+      case 'DETECTED':
+        return 'warning';
+      case 'RESOLVED':
+        return 'success';
+      case 'IGNORED':
+        return 'default';
+      default:
+        return 'default';
+    }
+  };
 
   if (isLoading) {
-    return <SkeletonLoader variant="page" />;
+    return <Loading />;
   }
 
-  if (error || !event) {
+  if (error || !driftEvent) {
+    const errorMessage = error
+      ? (error as any).detail ||
+        (error as any).message ||
+        'Drift event not found or access denied.'
+      : 'Drift event not found or access denied.';
+
     return (
       <Box>
         <PageHeader
@@ -103,89 +141,26 @@ export const DriftEventDetailPage: React.FC = () => {
             </Button>
           }
         />
-        <Alert severity="error">
-          Failed to load drift event.{" "}
-          {error ? "Please try again." : "Event not found."}
+        <Alert severity="error" action={
+          <Button color="inherit" size="small" onClick={handleBack}>
+            Go Back
+          </Button>
+        }>
+          <strong>Drift Event Not Found</strong>
+          <br />
+          {errorMessage}
         </Alert>
       </Box>
     );
   }
 
-  const formatDateTime = (dateTime: string) => {
-    return new Date(dateTime).toLocaleString();
-  };
-
-  const renderHashComparison = () => {
-    if (!event.expectedHash || !event.appliedHash) {
-      return (
-        <Typography variant="body2" color="text.secondary">
-          Hash information not available
-        </Typography>
-      );
-    }
-
-    return (
-      <Box>
-        <Grid container spacing={2}>
-          <Grid size={{ xs: 12, md: 6 }}>
-            <Box>
-              <Typography
-                variant="subtitle2"
-                color="text.secondary"
-                gutterBottom
-              >
-                Expected Hash
-              </Typography>
-              <Typography
-                variant="body2"
-                fontFamily="monospace"
-                sx={{
-                  backgroundColor: "success.light",
-                  p: 1,
-                  borderRadius: 1,
-                  wordBreak: "break-all",
-                }}
-              >
-                {event.expectedHash}
-              </Typography>
-            </Box>
-          </Grid>
-          <Grid size={{ xs: 12, md: 6 }}>
-            <Box>
-              <Typography
-                variant="subtitle2"
-                color="text.secondary"
-                gutterBottom
-              >
-                Applied Hash
-              </Typography>
-              <Typography
-                variant="body2"
-                fontFamily="monospace"
-                sx={{
-                  backgroundColor: "error.light",
-                  p: 1,
-                  borderRadius: 1,
-                  wordBreak: "break-all",
-                }}
-              >
-                {event.appliedHash}
-              </Typography>
-            </Box>
-          </Grid>
-        </Grid>
-      </Box>
-    );
-  };
-
   return (
     <Box>
       <PageHeader
-        title={`Drift Event: ${
-          event.id ? event.id.substring(0, 8) + "..." : "Details"
-        }`}
+        title={`Drift Event: ${driftEvent.serviceId}`}
+        subtitle={`${driftEvent.severity} severity - ${driftEvent.status}`}
         actions={
-          <>
+          <Box sx={{ display: 'flex', gap: 1 }}>
             <Button
               variant="outlined"
               startIcon={<BackIcon />}
@@ -193,192 +168,235 @@ export const DriftEventDetailPage: React.FC = () => {
             >
               Back
             </Button>
-            {canResolve && (
+            {canResolve && driftEvent.status === 'DETECTED' && (
               <Button
                 variant="contained"
                 color="success"
                 startIcon={<ResolveIcon />}
                 onClick={handleResolve}
               >
-                Mark as Resolved
+                Resolve
               </Button>
             )}
-          </>
+          </Box>
         }
       />
 
-      <Grid container spacing={3}>
-        <Grid size={{ xs: 12, md: 8 }}>
-          <DetailCard title="Event Information">
-            <Grid container spacing={3}>
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <Box>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Service Name
-                  </Typography>
-                  <Typography variant="h6" fontWeight={500}>
-                    {event.serviceName}
-                  </Typography>
-                </Box>
-              </Grid>
+      {/* Event Information */}
+      <Card>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>
+            Event Information
+          </Typography>
+          <Divider sx={{ mb: 2 }} />
 
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <Box>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Instance ID
-                  </Typography>
-                  <Typography variant="body1" fontFamily="monospace">
-                    {event.instanceId}
-                  </Typography>
-                </Box>
-              </Grid>
-
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <Box>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Severity
-                  </Typography>
-                  {event.severity ? (
-                    <DriftSeverityChip severity={event.severity as any} />
-                  ) : (
-                    <Typography variant="body2" color="text.secondary">
-                      N/A
-                    </Typography>
-                  )}
-                </Box>
-              </Grid>
-
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <Box>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Status
-                  </Typography>
-                  {event.status ? (
-                    <ChipStatus status={event.status as string} />
-                  ) : (
-                    <Typography variant="body2" color="text.secondary">
-                      N/A
-                    </Typography>
-                  )}
-                </Box>
-              </Grid>
-
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <Box>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Detected At
-                  </Typography>
-                  {event.detectedAt ? (
-                    <Typography variant="body1">
-                      {formatDateTime(event.detectedAt)}
-                    </Typography>
-                  ) : (
-                    <Typography variant="body2" color="text.secondary">
-                      N/A
-                    </Typography>
-                  )}
-                </Box>
-              </Grid>
-
-              {event.resolvedAt && (
-                <Grid size={{ xs: 12, sm: 6 }}>
-                  <Box>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      Resolved At
-                    </Typography>
-                    <Typography variant="body1">
-                      {formatDateTime(event.resolvedAt)}
-                    </Typography>
-                  </Box>
-                </Grid>
-              )}
-
-              {event.notes && (
-                <Grid size={{ xs: 12 }}>
-                  <Box>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      Notes
-                    </Typography>
-                    <Typography variant="body1">{event.notes}</Typography>
-                  </Box>
-                </Grid>
-              )}
+          <Grid container spacing={3}>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                Event ID
+              </Typography>
+              <Typography variant="body1" fontFamily="monospace">
+                {driftEvent.id}
+              </Typography>
             </Grid>
-          </DetailCard>
 
-          <DetailCard title="Configuration Hash Comparison">
-            {renderHashComparison()}
-          </DetailCard>
-        </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                Service ID
+              </Typography>
+              <Typography variant="body1" fontFamily="monospace">
+                {driftEvent.serviceId}
+              </Typography>
+            </Grid>
 
-        <Grid size={{ xs: 12, md: 4 }}>
-          <DetailCard title="Resolution Information">
-            <Box>
-              <Typography variant="subtitle2" color="text.secondary">
-                Detected By
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                Instance ID
+              </Typography>
+              <Typography variant="body1" fontFamily="monospace">
+                {driftEvent.instanceId}
+              </Typography>
+            </Grid>
+
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                Environment
+              </Typography>
+              <Chip
+                label={driftEvent.environment?.toUpperCase() || 'N/A'}
+                color={
+                  driftEvent.environment === 'prod' ? 'error' :
+                  driftEvent.environment === 'staging' ? 'warning' :
+                  'info'
+                }
+              />
+            </Grid>
+
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                Severity
+              </Typography>
+              <Chip
+                label={driftEvent.severity}
+                color={getSeverityColor(driftEvent.severity)}
+                icon={<WarningIcon />}
+              />
+            </Grid>
+
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                Status
+              </Typography>
+              <Chip
+                label={driftEvent.status}
+                color={getStatusColor(driftEvent.status)}
+              />
+            </Grid>
+
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                Detected At
               </Typography>
               <Typography variant="body1">
-                {event.detectedBy || "Unknown"}
+                {driftEvent.detectedAt
+                  ? format(new Date(driftEvent.detectedAt), 'MMM dd, yyyy HH:mm:ss')
+                  : 'N/A'}
               </Typography>
-            </Box>
+            </Grid>
 
-            {event.resolvedBy && (
-              <>
-                <Divider sx={{ my: 2 }} />
-                <Box>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Resolved By
-                  </Typography>
-                  <Typography variant="body1">{event.resolvedBy}</Typography>
-                </Box>
-              </>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                Resolved At
+              </Typography>
+              <Typography variant="body1">
+                {driftEvent.resolvedAt
+                  ? format(new Date(driftEvent.resolvedAt), 'MMM dd, yyyy HH:mm:ss')
+                  : 'Not resolved'}
+              </Typography>
+            </Grid>
+
+            {driftEvent.description && (
+              <Grid size={{ xs: 12 }}>
+                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                  Description
+                </Typography>
+                <Typography variant="body1">{driftEvent.description}</Typography>
+              </Grid>
             )}
-          </DetailCard>
-        </Grid>
-      </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
 
-      {/* Resolve Dialog */}
-      <Dialog
-        open={resolveDialogOpen}
-        onClose={() => setResolveDialogOpen(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>Mark Drift Event as Resolved</DialogTitle>
-        <DialogContent>
-          <DialogContentText sx={{ mb: 2 }}>
-            You are about to mark this drift event as resolved. Optionally, you
-            can add notes about the resolution.
-          </DialogContentText>
-          <TextField
-            label="Resolution Notes (Optional)"
-            multiline
-            rows={4}
-            fullWidth
-            value={resolutionNotes}
-            onChange={(e) => setResolutionNotes(e.target.value)}
-            placeholder="Describe how the drift was resolved..."
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={() => setResolveDialogOpen(false)}
-            disabled={updateDriftEventMutation.isPending}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSubmitResolve}
-            variant="contained"
-            color="success"
-            disabled={updateDriftEventMutation.isPending}
-          >
-            {updateDriftEventMutation.isPending
-              ? "Resolving..."
-              : "Mark as Resolved"}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {/* Hash Comparison */}
+      <Card sx={{ mt: 3 }}>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>
+            Configuration Hash Comparison
+          </Typography>
+          <Divider sx={{ mb: 2 }} />
+
+          <Grid container spacing={3}>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                Expected Hash
+              </Typography>
+              <Paper
+                variant="outlined"
+                sx={{
+                  p: 2,
+                  backgroundColor: 'success.light',
+                  backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                }}
+              >
+                <Typography
+                  variant="body2"
+                  fontFamily="monospace"
+                  sx={{ wordBreak: 'break-all' }}
+                >
+                  {driftEvent.expectedHash || 'N/A'}
+                </Typography>
+              </Paper>
+            </Grid>
+
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                Applied Hash
+              </Typography>
+              <Paper
+                variant="outlined"
+                sx={{
+                  p: 2,
+                  backgroundColor: 'error.light',
+                  backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                }}
+              >
+                <Typography
+                  variant="body2"
+                  fontFamily="monospace"
+                  sx={{ wordBreak: 'break-all' }}
+                >
+                  {driftEvent.appliedHash || 'N/A'}
+                </Typography>
+              </Paper>
+            </Grid>
+          </Grid>
+
+          {driftEvent.expectedHash && driftEvent.appliedHash && (
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                Hash Difference
+              </Typography>
+              <Alert severity="warning" icon={<CodeIcon />}>
+                Configuration hashes do not match. This indicates a configuration drift.
+              </Alert>
+            </Box>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Resolution Form Dialog */}
+      {resolveDialogOpen && (
+        <Card sx={{ mt: 3 }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Resolve Drift Event
+            </Typography>
+            <Divider sx={{ mb: 2 }} />
+
+            <Box component="form" onSubmit={handleSubmit(onSubmitResolve)}>
+              <TextField
+                {...register('note')}
+                label="Resolution Note"
+                multiline
+                rows={4}
+                fullWidth
+                margin="normal"
+                placeholder="Describe how this drift was resolved..."
+                error={!!errors.note}
+                helperText={errors.note?.message}
+                disabled={updateDriftEventMutation.isPending}
+              />
+
+              <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', mt: 2 }}>
+                <Button
+                  onClick={() => setResolveDialogOpen(false)}
+                  disabled={updateDriftEventMutation.isPending}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  variant="contained"
+                  color="success"
+                  disabled={updateDriftEventMutation.isPending}
+                >
+                  {updateDriftEventMutation.isPending ? 'Resolving...' : 'Mark as Resolved'}
+                </Button>
+              </Box>
+            </Box>
+          </CardContent>
+        </Card>
+      )}
     </Box>
   );
-};
+}

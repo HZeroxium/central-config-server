@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Box,
@@ -20,18 +20,20 @@ import Loading from "@components/common/Loading";
 import {
   useFindApprovalRequestById,
   useSubmitApprovalDecision,
-  useFindByIdIamUser,
 } from "@lib/api/hooks";
 import { useAuth } from "@features/auth/authContext";
 import { toast } from "@lib/toast/toast";
 import { handleApiError } from "@lib/api/errorHandler";
 import { DecisionDialog } from "../components/DecisionDialog";
+import { ApprovalStepper } from "../components/ApprovalStepper";
+import { DecisionTimeline } from "../components/DecisionTimeline";
+import { useCanApprove } from "../hooks/useCanApprove";
 import { format } from "date-fns";
 
 export default function ApprovalDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { isSysAdmin, userInfo } = useAuth();
+  const { isSysAdmin } = useAuth();
   const [decisionDialogOpen, setDecisionDialogOpen] = useState(false);
 
   const {
@@ -45,17 +47,10 @@ export default function ApprovalDetailPage() {
       staleTime: 10_000,
     },
   });
+  
+  const { canApprove } = useCanApprove(request);
 
-  // Fetch requester user info to check manager relationship
-  const { data: requesterUser } = useFindByIdIamUser(
-    request?.requesterUserId || "",
-    {
-      query: {
-        enabled: !!request?.requesterUserId,
-        staleTime: 30_000,
-      },
-    }
-  );
+  // Note: requesterUser fetch removed - manager logic now in useCanApprove hook
 
   const submitDecisionMutation = useSubmitApprovalDecision();
 
@@ -80,22 +75,7 @@ export default function ApprovalDetailPage() {
     );
   };
 
-  // Check if user can approve - SYS_ADMIN OR is LINE_MANAGER of requester
-  const canApprove = useMemo(() => {
-    if (!request || request.status !== "PENDING") return false;
-
-    // SYS_ADMIN can always approve
-    if (isSysAdmin) return true;
-
-    // Check if user is the manager of the requester (from snapshot or fetched user)
-    const requesterManagerId =
-      request.snapshot?.managerId || requesterUser?.managerId;
-    if (requesterManagerId && userInfo?.userId === requesterManagerId) {
-      return true;
-    }
-
-    return false;
-  }, [isSysAdmin, userInfo?.userId, request, requesterUser?.managerId]);
+  // Note: canApprove logic is now handled by useCanApprove hook
 
   const getStatusColor = (
     status?: string
@@ -168,6 +148,11 @@ export default function ApprovalDetailPage() {
               >
                 Make Decision
               </Button>
+            )}
+            {canApprove && eligibleGates.length > 0 && (
+              <Typography variant="caption" color="text.secondary" sx={{ alignSelf: 'center', ml: 1 }}>
+                Eligible for: {eligibleGates.join(', ')}
+              </Typography>
             )}
           </Box>
         }
@@ -287,34 +272,11 @@ export default function ApprovalDetailPage() {
         </CardContent>
       </Card>
 
-      {/* Required Approval Gates */}
-      {request.required && request.required.length > 0 && (
-        <Card sx={{ mt: 3 }}>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
-              Required Approval Gates
-            </Typography>
-            <Divider sx={{ mb: 2 }} />
+      {/* Approval Progress Stepper */}
+      <ApprovalStepper request={request} />
 
-            <Grid container spacing={2}>
-              {request.required.map((gate, index) => (
-                <Grid key={index} size={{ xs: 12, md: 6 }}>
-                  <Card variant="outlined">
-                    <CardContent>
-                      <Typography variant="subtitle1" gutterBottom>
-                        {gate.gate || `Gate ${index + 1}`}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Minimum Approvals Required: {gate.minApprovals || 1}
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              ))}
-            </Grid>
-          </CardContent>
-        </Card>
-      )}
+      {/* Decision Timeline */}
+      <DecisionTimeline request={request} />
 
       {/* Decision Dialog */}
       <DecisionDialog

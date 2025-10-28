@@ -21,6 +21,7 @@ import {
   useFindAllDriftEvents,
   useFindAllApprovalRequests,
 } from "@lib/api/hooks";
+import type { ActivityItem, ServiceDistributionData, InstanceStatusData, DriftEventsData } from "../types";
 
 export default function DashboardPage() {
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
@@ -97,7 +98,7 @@ export default function DashboardPage() {
   }, [servicesData, instancesData, approvalsData, driftsData]);
 
   // Calculate chart data from real data
-  const serviceDistributionData = useMemo(() => {
+  const serviceDistributionData = useMemo((): ServiceDistributionData[] => {
     const services = servicesData?.items || [];
     const teamCounts: Record<string, number> = {};
 
@@ -117,7 +118,7 @@ export default function DashboardPage() {
       .slice(0, 5); // Top 5 teams
   }, [servicesData]);
 
-  const instanceStatusData = useMemo(() => {
+  const instanceStatusData = useMemo((): InstanceStatusData[] => {
     const instances = instancesData?.items || [];
     const statusCounts: Record<string, number> = {};
 
@@ -138,7 +139,7 @@ export default function DashboardPage() {
     ].filter((item) => item.value > 0);
   }, [instancesData]);
 
-  const driftEventsData = useMemo(() => {
+  const driftEventsData = useMemo((): DriftEventsData[] => {
     const drifts = driftsData?.items || [];
 
     // Group by date (last 7 days) and severity
@@ -181,30 +182,31 @@ export default function DashboardPage() {
     }));
   }, [driftsData]);
 
-  const recentActivityData = useMemo(() => {
-    const activities: any[] = [];
+  const recentActivityData = useMemo((): ActivityItem[] => {
+    const activities: ActivityItem[] = [];
 
     // Add recent approvals
     (approvalsData?.items || []).slice(0, 3).forEach((approval) => {
       activities.push({
+        id: approval.id || `approval-${Date.now()}`,
         type: "approval",
         message: `Approval request for ${
           approval.target?.serviceId || "service"
         } - ${approval.status}`,
         timestamp: approval.createdAt || new Date().toISOString(),
-        icon: "assignment",
       });
     });
 
     // Add recent drift events
     (driftsData?.items || []).slice(0, 3).forEach((drift) => {
       activities.push({
+        id: drift.id || `drift-${Date.now()}`,
         type: "drift",
         message: `Drift detected on ${
           drift.serviceName
         } instance ${drift.instanceId?.substring(0, 8)}`,
         timestamp: drift.detectedAt || new Date().toISOString(),
-        icon: "warning",
+        severity: drift.severity?.toLowerCase() as ActivityItem['severity'],
       });
     });
 

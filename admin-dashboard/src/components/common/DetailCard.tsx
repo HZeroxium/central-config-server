@@ -1,12 +1,12 @@
 import React from 'react';
-import { Card, CardContent, CardHeader, Typography, Box, Divider } from '@mui/material';
+import { Card, CardContent, CardHeader, Typography, Box, Divider, type SxProps, type Theme } from '@mui/material';
 
 interface DetailCardProps {
   title?: string;
   subtitle?: string;
   children: React.ReactNode;
   actions?: React.ReactNode;
-  sx?: any;
+  sx?: SxProps<Theme>;
 }
 
 export const DetailCard: React.FC<DetailCardProps> = ({

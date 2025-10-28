@@ -57,7 +57,8 @@ export default function DriftEventListPage() {
     {
       query: {
         staleTime: 10_000,
-        refetchInterval: autoRefresh ? 30_000 : false,
+        refetchInterval: 30000, // 30 seconds
+        refetchIntervalInBackground: false,
       },
     }
   );

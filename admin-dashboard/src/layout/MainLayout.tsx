@@ -12,7 +12,8 @@ import {
   Typography,
   useMediaQuery,
   useTheme,
-  Badge
+  Badge,
+  Collapse,
 } from '@mui/material'
 import MenuIcon from '@mui/icons-material/Menu'
 import SettingsIcon from '@mui/icons-material/Settings'
@@ -23,9 +24,13 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import TrendingUpIcon from '@mui/icons-material/TrendingUp'
 import ShareIcon from '@mui/icons-material/Share'
 import PeopleIcon from '@mui/icons-material/People'
+import PersonIcon from '@mui/icons-material/Person'
+import GroupIcon from '@mui/icons-material/Group'
 import MemoryIcon from '@mui/icons-material/Memory'
 import LightModeIcon from '@mui/icons-material/LightMode'
 import DarkModeIcon from '@mui/icons-material/DarkMode'
+import ExpandLessIcon from '@mui/icons-material/ExpandLess'
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import Breadcrumbs from '@components/common/Breadcrumbs'
 import { useTheme as useCustomTheme } from '@app/providers/ThemeProvider'
 import UserMenu from '@features/auth/components/UserMenu'
@@ -33,7 +38,7 @@ import { usePermissions } from '@features/auth/hooks/usePermissions'
 import { usePendingApprovalCount } from '@features/approvals/hooks/usePendingApprovalCount'
 import { useAppDispatch, useAppSelector } from '@store/hooks'
 import { toggleSidebar } from '@store/uiSlice'
-import { useCallback } from 'react'
+import { useCallback, useState } from 'react'
 
 export default function MainLayout() {
   const theme = useTheme()
@@ -45,6 +50,7 @@ export default function MainLayout() {
   const dispatch = useAppDispatch()
   const open = useAppSelector((state) => state.ui.sidebarOpen)
   const location = useLocation()
+  const [iamMenuOpen, setIamMenuOpen] = useState(false)
   
   const handleToggleSidebar = useCallback(() => {
     dispatch(toggleSidebar())
@@ -65,13 +71,11 @@ export default function MainLayout() {
     { path: '/service-shares', label: 'Service Shares', icon: <ShareIcon />, badge: undefined },
   ]
 
-  // Add admin-only items
-  if (isSysAdmin) {
-    navigationItems.push(
-      { path: '/iam/users', label: 'Users', icon: <PeopleIcon />, badge: undefined },
-      { path: '/iam/teams', label: 'Teams', icon: <PeopleIcon />, badge: undefined }
-    )
-  }
+  // Add admin-only IAM section
+  const iamItems = isSysAdmin ? [
+    { path: '/iam/users', label: 'Users', icon: <PersonIcon />, badge: undefined },
+    { path: '/iam/teams', label: 'Teams', icon: <GroupIcon />, badge: undefined },
+  ] : []
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh' }}>
@@ -188,6 +192,85 @@ export default function MainLayout() {
               </ListItemButton>
             )
           })}
+
+          {/* IAM Section */}
+          {isSysAdmin && (
+            <>
+              <ListItemButton
+                onClick={() => setIamMenuOpen(!iamMenuOpen)}
+                sx={{
+                  minHeight: 48,
+                  justifyContent: open ? 'initial' : 'center',
+                  px: 2.5,
+                }}
+              >
+                <ListItemIcon
+                  sx={{
+                    minWidth: 0,
+                    mr: open ? 2 : 'auto',
+                    justifyContent: 'center',
+                    color: 'text.secondary',
+                  }}
+                >
+                  <PeopleIcon />
+                </ListItemIcon>
+                {open && (
+                  <>
+                    <ListItemText
+                      primary="IAM"
+                      sx={{
+                        opacity: open ? 1 : 0,
+                        transition: 'opacity 0.3s',
+                        fontWeight: 500,
+                      }}
+                    />
+                    {iamMenuOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                  </>
+                )}
+              </ListItemButton>
+              
+              <Collapse in={iamMenuOpen && open} timeout="auto" unmountOnExit>
+                <List component="div" disablePadding>
+                  {iamItems.map((item) => {
+                    const isActive =
+                      location.pathname === item.path ||
+                      (item.path !== '/' && location.pathname.startsWith(item.path))
+
+                    return (
+                      <ListItemButton
+                        key={item.path}
+                        component={NavLink}
+                        to={item.path}
+                        sx={{
+                          minHeight: 40,
+                          pl: 6,
+                          pr: 2.5,
+                          '&.Mui-selected': {},
+                        }}
+                      >
+                        <ListItemIcon
+                          sx={{
+                            minWidth: 0,
+                            mr: 2,
+                            justifyContent: 'center',
+                            color: isActive ? 'primary.600' : 'text.secondary',
+                          }}
+                        >
+                          {item.icon}
+                        </ListItemIcon>
+                        <ListItemText
+                          primary={item.label}
+                          sx={{
+                            fontWeight: isActive ? 500 : 400,
+                          }}
+                        />
+                      </ListItemButton>
+                    )
+                  })}
+                </List>
+              </Collapse>
+            </>
+          )}
         </List>
       </Drawer>
 

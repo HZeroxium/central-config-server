@@ -3,7 +3,7 @@ import axios, { type AxiosRequestConfig, type AxiosResponse } from 'axios';
 import { keycloak } from '@lib/keycloak/keycloakConfig';
 
 const axiosInstance = axios.create({
-  baseURL: '/api',
+  // baseURL: '/api',
   headers: {
     'Content-Type': 'application/json',
   },

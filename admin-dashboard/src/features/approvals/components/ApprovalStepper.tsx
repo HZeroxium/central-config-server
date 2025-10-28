@@ -1,160 +1,152 @@
-import { Stepper, Step, StepLabel, StepContent, Typography, Box, Chip, Avatar } from '@mui/material';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import ErrorIcon from '@mui/icons-material/Error';
-import PendingIcon from '@mui/icons-material/Pending';
-// Using inline types since they're not exported from @lib/api/models
-interface ApprovalGate {
-  name: string;
-  description?: string;
-  minApprovals: number;
-  allowedApprovers?: string[];
-}
+import React from 'react';
+import {
+  Card,
+  CardContent,
+  Typography,
+  Box,
+  Stepper,
+  Step,
+  StepLabel,
+  StepContent,
+  Chip,
+  Divider,
+} from '@mui/material';
+import { CheckCircle, Cancel, AccessTime } from '@mui/icons-material';
+import type { ApprovalRequestResponse, ApprovalRequestApprovalGate } from '@lib/api/models';
 
-interface GateDecision {
-  gateName: string;
-  decision: 'APPROVE' | 'REJECT';
-  approverUserId: string;
-  timestamp?: string;
-  notes?: string;
+interface ApprovalDecision {
+  gate?: string;
+  decision: 'APPROVED' | 'REJECTED' | string;
+  decidedBy?: string;
+  note?: string;
+  decidedAt?: string;
 }
 
 interface ApprovalStepperProps {
-  gates: ApprovalGate[];
-  decisions?: GateDecision[];
-  currentStep?: number;
+  request: ApprovalRequestResponse;
 }
 
-export default function ApprovalStepper({ gates, decisions = [], currentStep = 0 }: ApprovalStepperProps) {
-  const getGateStatus = (gate: ApprovalGate): 'pending' | 'approved' | 'rejected' => {
-    const gateDecisions = decisions.filter(d => d.gateName === gate.name);
-    const approvedCount = gateDecisions.filter(d => d.decision === 'APPROVE').length;
-    const rejectedCount = gateDecisions.filter(d => d.decision === 'REJECT').length;
-
-    if (rejectedCount > 0) return 'rejected';
-    if (approvedCount >= gate.minApprovals) return 'approved';
-    return 'pending';
-  };
-
-  const getApprovalCount = (gateName: string): { approved: number; required: number } => {
-    const gate = gates.find(g => g.name === gateName);
-    if (!gate) return { approved: 0, required: 0 };
+export const ApprovalStepper: React.FC<ApprovalStepperProps> = ({ request }) => {
+  // Extract decisions from request metadata or empty array
+  const decisions: ApprovalDecision[] = (request && typeof request === 'object' && 'decisions' in request 
+    ? (request as { decisions?: ApprovalDecision[] }).decisions 
+    : []) || [];
     
-    const approvedCount = decisions.filter(
-      d => d.gateName === gateName && d.decision === 'APPROVE'
-    ).length;
-
-    return { approved: approvedCount, required: gate.minApprovals };
-  };
-
-  const getStepIcon = (status: 'pending' | 'approved' | 'rejected') => {
-    switch (status) {
-      case 'approved':
-        return (
-          <Avatar sx={{ bgcolor: 'success.main', width: 32, height: 32 }}>
-            <CheckCircleIcon fontSize="small" />
-          </Avatar>
-        );
-      case 'rejected':
-        return (
-          <Avatar sx={{ bgcolor: 'error.main', width: 32, height: 32 }}>
-            <ErrorIcon fontSize="small" />
-          </Avatar>
-        );
-      default:
-        return (
-          <Avatar sx={{ bgcolor: 'grey.400', width: 32, height: 32 }}>
-            <PendingIcon fontSize="small" />
-          </Avatar>
-        );
+  const getStepIcon = (gate: ApprovalRequestApprovalGate) => {
+    // Check if this gate has been completed
+    const gateDecisions = decisions.filter(d => d.gate === gate.gate) || [];
+    const isCompleted = gateDecisions.length >= (gate.minApprovals || 1);
+    const hasRejection = gateDecisions.some(d => d.decision === 'REJECTED');
+    
+    if (hasRejection) {
+      return <Cancel color="error" />;
     }
+    if (isCompleted) {
+      return <CheckCircle color="success" />;
+    }
+    return <AccessTime color="action" />;
   };
+
+  const getGateStatus = (gate: ApprovalRequestApprovalGate): 'APPROVED' | 'REJECTED' | 'PENDING' => {
+    const gateDecisions = decisions.filter(d => d.gate === gate.gate) || [];
+    const isCompleted = gateDecisions.length >= (gate.minApprovals || 1);
+    const hasRejection = gateDecisions.some(d => d.decision === 'REJECTED');
+    
+    if (hasRejection) return 'REJECTED';
+    if (isCompleted) return 'APPROVED';
+    return 'PENDING';
+  };
+
+  if (!request.required || request.required.length === 0) {
+    return (
+      <Card sx={{ mt: 3 }}>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>
+            Approval Progress
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            No approval gates required for this request.
+          </Typography>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
-    <Stepper activeStep={currentStep} orientation="vertical">
-      {gates.map((gate) => {
-        const status = getGateStatus(gate);
-        const { approved, required } = getApprovalCount(gate.name);
-        const gateDecisions = decisions.filter(d => d.gateName === gate.name);
-
-        return (
-          <Step key={gate.name} completed={status === 'approved'}>
-            <StepLabel
-              StepIconComponent={() => getStepIcon(status)}
-              error={status === 'rejected'}
-            >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Typography variant="subtitle1" fontWeight="medium">
-                  {gate.name}
-                </Typography>
-                <Chip 
-                  label={`${approved}/${required} approvals`}
-                  size="small"
-                  color={status === 'approved' ? 'success' : status === 'rejected' ? 'error' : 'default'}
-                />
-              </Box>
-            </StepLabel>
-            <StepContent>
-              {gate.description && (
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  {gate.description}
-                </Typography>
-              )}
-
-              {gate.allowedApprovers && gate.allowedApprovers.length > 0 && (
-                <Box sx={{ mb: 2 }}>
-                  <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
-                    Allowed Approvers:
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                    {gate.allowedApprovers.map((approver: string) => (
-                      <Chip key={approver} label={approver} size="small" variant="outlined" />
-                    ))}
+    <Card sx={{ mt: 3 }}>
+      <CardContent>
+        <Typography variant="h6" gutterBottom>
+          Approval Progress
+        </Typography>
+        <Divider sx={{ mb: 2 }} />
+        
+        <Stepper orientation="vertical">
+          {request.required.map((gate, index) => {
+            const gateDecisions = decisions.filter(d => d.gate === gate.gate) || [];
+            const status = getGateStatus(gate);
+            
+            return (
+              <Step key={index} active={status === 'PENDING'} completed={status === 'APPROVED'}>
+                <StepLabel
+                  StepIconComponent={() => getStepIcon(gate)}
+                  error={status === 'REJECTED'}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography variant="subtitle1">
+                      {gate.gate || `Gate ${index + 1}`}
+                    </Typography>
+                    <Chip
+                      label={status}
+                      size="small"
+                      color={
+                        status === 'APPROVED' ? 'success' :
+                        status === 'REJECTED' ? 'error' :
+                        'warning'
+                      }
+                    />
                   </Box>
-                </Box>
-              )}
-
-              {gateDecisions.length > 0 && (
-                <Box>
-                  <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
-                    Decisions ({gateDecisions.length}):
-                  </Typography>
-                  {gateDecisions.map((decision, idx) => (
-                    <Box 
-                      key={idx} 
-                      sx={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: 1, 
-                        mb: 1,
-                        p: 1,
-                        bgcolor: 'background.paper',
-                        borderRadius: 1,
-                        border: '1px solid',
-                        borderColor: 'divider'
-                      }}
-                    >
-                      <Chip 
-                        label={decision.decision}
-                        size="small"
-                        color={decision.decision === 'APPROVE' ? 'success' : 'error'}
-                      />
-                      <Typography variant="body2">
-                        by <strong>{decision.approverUserId}</strong>
-                      </Typography>
-                      {decision.notes && (
-                        <Typography variant="caption" color="text.secondary" sx={{ ml: 'auto' }}>
-                          "{decision.notes}"
+                </StepLabel>
+                <StepContent>
+                  <Box sx={{ mt: 1 }}>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      Minimum Approvals Required: {gate.minApprovals || 1}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      Current Approvals: {gateDecisions.filter(d => d.decision === 'APPROVED').length}
+                    </Typography>
+                    
+                    {gateDecisions.length > 0 && (
+                      <Box sx={{ mt: 2 }}>
+                        <Typography variant="subtitle2" gutterBottom>
+                          Decisions:
                         </Typography>
-                      )}
-                    </Box>
-                  ))}
-                </Box>
-              )}
-            </StepContent>
-          </Step>
-        );
-      })}
-    </Stepper>
+                        {gateDecisions.map((decision, decisionIndex) => (
+                          <Box key={decisionIndex} sx={{ ml: 2, mb: 1 }}>
+                            <Typography variant="body2">
+                              <Chip
+                                label={decision.decision}
+                                size="small"
+                                color={decision.decision === 'APPROVED' ? 'success' : 'error'}
+                                sx={{ mr: 1 }}
+                              />
+                              by {decision.decidedBy}
+                              {decision.note && (
+                                <Typography variant="caption" color="text.secondary" display="block">
+                                  Note: {decision.note}
+                                </Typography>
+                              )}
+                            </Typography>
+                          </Box>
+                        ))}
+                      </Box>
+                    )}
+                  </Box>
+                </StepContent>
+              </Step>
+            );
+          })}
+        </Stepper>
+      </CardContent>
+    </Card>
   );
-}
-
+};

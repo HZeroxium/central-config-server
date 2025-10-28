@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Breadcrumbs, Link, Stack } from '@mui/material';
+import { Box, Typography, Breadcrumbs, Link, Stack, type SxProps, type Theme } from '@mui/material';
 import { NavigateNext as NavigateNextIcon } from '@mui/icons-material';
 
 interface BreadcrumbItem {
@@ -12,7 +12,7 @@ interface PageHeaderProps {
   subtitle?: string;
   breadcrumbs?: BreadcrumbItem[];
   actions?: React.ReactNode;
-  sx?: any;
+  sx?: SxProps<Theme>;
 }
 
 export const PageHeader: React.FC<PageHeaderProps> = ({

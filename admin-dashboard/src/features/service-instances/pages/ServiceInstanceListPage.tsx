@@ -50,6 +50,8 @@ export default function ServiceInstanceListPage() {
     {
       query: {
         staleTime: 30_000,
+        refetchInterval: 30000, // 30 seconds
+        refetchIntervalInBackground: false,
       },
     }
   );
