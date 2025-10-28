@@ -1,103 +1,113 @@
-import { Card, CardContent, Typography, Box, Button, Chip, IconButton, Tooltip, Accordion, AccordionSummary, AccordionDetails, ToggleButton, ToggleButtonGroup, Link } from '@mui/material'
-import { ContentCopy as Copy, Check, ExpandMore, ViewList, Code, Edit, Save, Cancel, GitHub } from '@mui/icons-material'
-import { useState, useMemo } from 'react'
-import { Highlight, themes } from 'prism-react-renderer'
-import Editor from '@monaco-editor/react'
-import * as yaml from 'yaml'
-import type { ConfigEnvironmentResponse } from '@lib/api/types'
-import ConfigMergeInfo from './ConfigMergeInfo'
-import ConfigStats from './ConfigStats'
+import {
+  Card,
+  CardContent,
+  Typography,
+  Box,
+  Button,
+  Chip,
+  IconButton,
+  Tooltip,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  ToggleButton,
+  ToggleButtonGroup,
+  Link,
+  Alert,
+} from "@mui/material";
+import {
+  ContentCopy as Copy,
+  Check,
+  ExpandMore,
+  ViewList,
+  Code,
+  GitHub,
+  Info,
+} from "@mui/icons-material";
+import { useState, useMemo } from "react";
+import { Highlight, themes } from "prism-react-renderer";
+import * as yaml from "yaml";
+import type { ConfigEnvironmentResponse } from "@lib/api/types";
+import ConfigMergeInfo from "./ConfigMergeInfo";
+import ConfigStats from "./ConfigStats";
 
-type ViewMode = 'accordion' | 'yaml'
+type ViewMode = "accordion" | "yaml";
 
-export default function ConfigDetailCard({ env }: { env: ConfigEnvironmentResponse }) {
-  const [copiedProperty, setCopiedProperty] = useState<string | null>(null)
-  const [viewMode, setViewMode] = useState<ViewMode>('accordion')
-  const [isEditingFinal, setIsEditingFinal] = useState(false)
-  const [editedFinalYaml, setEditedFinalYaml] = useState<string>('')
+export default function ConfigDetailCard({
+  env,
+}: {
+  env: ConfigEnvironmentResponse;
+}) {
+  const [copiedProperty, setCopiedProperty] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>("accordion");
 
   // Logic merge properties to create Final Source
   const finalProperties = useMemo(() => {
-    if (!env.propertySources) return {}
-    
-    const merged: Record<string, any> = {}
-    
+    if (!env.propertySources) return {};
+
+    const merged: Record<string, any> = {};
+
     // Merge from bottom to top (propertySources[0] has highest priority)
     // Spring Cloud Config merge order: application.yml -> application-{profile}.yml -> {service}/application.yml -> {service}/application-{profile}.yml
     for (let i = env.propertySources.length - 1; i >= 0; i--) {
-      const source = env.propertySources[i]
+      const source = env.propertySources[i];
       if (source.source) {
-        Object.assign(merged, source.source)
+        Object.assign(merged, source.source);
       }
     }
-    
-    return merged
-  }, [env.propertySources])
+
+    return merged;
+  }, [env.propertySources]);
 
   const copyToClipboard = async (text: string, propertyKey?: string) => {
     try {
-      await navigator.clipboard.writeText(text)
+      await navigator.clipboard.writeText(text);
       if (propertyKey) {
-        setCopiedProperty(propertyKey)
-        setTimeout(() => setCopiedProperty(null), 2000)
+        setCopiedProperty(propertyKey);
+        setTimeout(() => setCopiedProperty(null), 2000);
       }
     } catch (err) {
-      console.error('Failed to copy: ', err)
+      console.error("Failed to copy: ", err);
     }
-  }
-
-  const handleSaveFinal = () => {
-    // TODO: Implement save to server
-    console.log('Saving final configuration:', editedFinalYaml)
-    setIsEditingFinal(false)
-  }
-
-  const handleCancelEdit = () => {
-    setEditedFinalYaml('')
-    setIsEditingFinal(false)
-  }
-
-  const handleEditFinal = () => {
-    setEditedFinalYaml(yaml.stringify(finalProperties, { indent: 2 }))
-    setIsEditingFinal(true)
-  }
+  };
 
   const extractGitUrl = (sourceName: string): string | null => {
     // Try matching the pattern: https://github.com/OWNER/REPO.git + optional path
     // We use a regex with capture groups to split the base repo and the path.
-    const regex = /^https:\/\/github\.com\/([^\/]+)\/([^\/]+)\.git(?:\/(.+))?$/
-    const match = sourceName.match(regex)
+    const regex = /^https:\/\/github\.com\/([^\/]+)\/([^\/]+)\.git(?:\/(.+))?$/;
+    const match = sourceName.match(regex);
     if (!match) {
-      return null
+      return null;
     }
-  
-    const owner = match[1]  // e.g. "hzeroxium"
-    const repo = match[2]   // e.g. "ztf-spring-cloud-config-server"
-    const restPath = match[3] // e.g. "sample-service/application.yml", or undefined if no path
-  
+
+    const owner = match[1]; // e.g. "hzeroxium"
+    const repo = match[2]; // e.g. "ztf-spring-cloud-config-server"
+    const restPath = match[3]; // e.g. "sample-service/application.yml", or undefined if no path
+
     // Build the blob URL with branch "master"
     if (restPath && restPath.length > 0) {
       // If there is a subpath after “.git/…”
-      return `https://github.com/${owner}/${repo}/blob/master/${restPath}`
+      return `https://github.com/${owner}/${repo}/blob/master/${restPath}`;
     } else {
       // If no path part (just repo), link to root of repo
-      return `https://github.com/${owner}/${repo}/tree/master`
+      return `https://github.com/${owner}/${repo}/tree/master`;
     }
-  }
+  };
 
   const renderPropertyValue = (value: any, key: string) => {
-    const jsonString = JSON.stringify(value, null, 2)
-    const isCopied = copiedProperty === key
+    const jsonString = JSON.stringify(value, null, 2);
+    const isCopied = copiedProperty === key;
 
     return (
-      <Box sx={{ position: 'relative', '&:hover .copy-button': { opacity: 1 } }}>
-        <Highlight
-          theme={themes.vsDark}
-          code={jsonString}
-          language="json"
-        >
+      <Box
+        sx={{ position: "relative", "&:hover .copy-button": { opacity: 1 } }}
+      >
+        <Highlight theme={themes.vsDark} code={jsonString} language="json">
           {({ className, style, tokens, getLineProps, getTokenProps }) => (
-            <pre className={`${className} p-4 rounded-lg overflow-x-auto text-sm`} style={style}>
+            <pre
+              className={`${className} p-4 rounded-lg overflow-x-auto text-sm`}
+              style={style}
+            >
               {tokens.map((line, i) => (
                 <div key={i} {...getLineProps({ line })}>
                   {line.map((token, key) => (
@@ -108,80 +118,139 @@ export default function ConfigDetailCard({ env }: { env: ConfigEnvironmentRespon
             </pre>
           )}
         </Highlight>
-        
+
         <Tooltip title={isCopied ? "Copied!" : "Copy to clipboard"}>
           <IconButton
             size="small"
             className="copy-button"
             sx={{
-              position: 'absolute',
+              position: "absolute",
               top: 8,
               right: 8,
               opacity: 0,
-              transition: 'opacity 0.2s',
-              bgcolor: 'rgba(0,0,0,0.7)',
-              '&:hover': {
-                bgcolor: 'rgba(0,0,0,0.85)'
+              transition: "opacity 0.2s",
+              bgcolor: "rgba(0,0,0,0.7)",
+              "&:hover": {
+                bgcolor: "rgba(0,0,0,0.85)",
               },
             }}
             onClick={() => copyToClipboard(jsonString, key)}
           >
-            {isCopied ? <Check sx={{ color: 'success.main' }} /> : <Copy sx={{ color: 'grey.300' }} />}
+            {isCopied ? (
+              <Check sx={{ color: "success.main" }} />
+            ) : (
+              <Copy sx={{ color: "grey.300" }} />
+            )}
           </IconButton>
         </Tooltip>
       </Box>
-    )
-  }
+    );
+  };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-      <Card sx={{ border: 1, borderColor: 'divider', boxShadow: 1 }}>
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+      <Card sx={{ border: 1, borderColor: "divider", boxShadow: 1 }}>
         <CardContent sx={{ p: 3 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-            <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              mb: 2,
+            }}
+          >
+            <Typography
+              variant="h6"
+              sx={{ fontWeight: 600, color: "text.primary" }}
+            >
               Configuration: {env.name}
             </Typography>
             <Button
               size="small"
-              startIcon={copiedProperty === 'full-config' ? <Check /> : <Copy />}
-              onClick={() => copyToClipboard(JSON.stringify(env, null, 2), 'full-config')}
+              startIcon={
+                copiedProperty === "full-config" ? <Check /> : <Copy />
+              }
+              onClick={() =>
+                copyToClipboard(JSON.stringify(env, null, 2), "full-config")
+              }
               sx={{
-                color: 'text.secondary',
-                '&:hover': {
-                  color: 'text.primary'
-                }
+                color: "text.secondary",
+                "&:hover": {
+                  color: "text.primary",
+                },
               }}
             >
-              {copiedProperty === 'full-config' ? 'Copied!' : 'Copy All'}
+              {copiedProperty === "full-config" ? "Copied!" : "Copy All"}
             </Button>
           </Box>
-          
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+              gap: 2,
+            }}
+          >
             <Box>
-              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>Profiles</Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+              <Typography
+                variant="body2"
+                sx={{ color: "text.secondary", mb: 1 }}
+              >
+                Profiles
+              </Typography>
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
                 {env.profiles?.map((profile) => (
-                  <Chip key={profile} label={profile} size="small" color="primary" />
+                  <Chip
+                    key={profile}
+                    label={profile}
+                    size="small"
+                    color="primary"
+                  />
                 )) || <Chip label="default" size="small" />}
               </Box>
             </Box>
-            
+
             <Box>
-              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>Label</Typography>
-              <Typography variant="body1" sx={{ fontWeight: 500, color: 'text.primary' }}>{env.label || 'default'}</Typography>
+              <Typography
+                variant="body2"
+                sx={{ color: "text.secondary", mb: 1 }}
+              >
+                Label
+              </Typography>
+              <Typography
+                variant="body1"
+                sx={{ fontWeight: 500, color: "text.primary" }}
+              >
+                {env.label || "default"}
+              </Typography>
             </Box>
-            
+
             <Box>
-              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>Version</Typography>
-              <Typography variant="body1" sx={{ fontWeight: 500, color: 'text.primary' }}>{env.version || '-'}</Typography>
+              <Typography
+                variant="body2"
+                sx={{ color: "text.secondary", mb: 1 }}
+              >
+                Version
+              </Typography>
+              <Typography
+                variant="body1"
+                sx={{ fontWeight: 500, color: "text.primary" }}
+              >
+                {env.version || "-"}
+              </Typography>
             </Box>
-            
+
             <Box>
-              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>State</Typography>
-              <Chip 
-                label={env.state || 'unknown'} 
-                size="small" 
-                color={env.state === 'success' ? 'success' : 'default'}
+              <Typography
+                variant="body2"
+                sx={{ color: "text.secondary", mb: 1 }}
+              >
+                State
+              </Typography>
+              <Chip
+                label={env.state || "unknown"}
+                size="small"
+                color={env.state === "success" ? "success" : "default"}
               />
             </Box>
           </Box>
@@ -189,18 +258,28 @@ export default function ConfigDetailCard({ env }: { env: ConfigEnvironmentRespon
       </Card>
 
       {/* Final Source Section */}
-      <Card sx={{ border: 1, borderColor: 'divider', boxShadow: 1 }}>
+      <Card sx={{ border: 1, borderColor: "divider", boxShadow: 1 }}>
         <CardContent sx={{ p: 3 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              mb: 3,
+            }}
+          >
             <Box>
-              <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary', mb: 0.5 }}>
+              <Typography
+                variant="h6"
+                sx={{ fontWeight: 600, color: "text.primary", mb: 0.5 }}
+              >
                 Final Configuration
               </Typography>
-              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+              <Typography variant="body2" sx={{ color: "text.secondary" }}>
                 Merged properties with override precedence
               </Typography>
             </Box>
-            <Box sx={{ display: 'flex', gap: 1 }}>
+            <Box sx={{ display: "flex", gap: 1 }}>
               {!isEditingFinal ? (
                 <Button
                   variant="outlined"
@@ -233,35 +312,48 @@ export default function ConfigDetailCard({ env }: { env: ConfigEnvironmentRespon
               )}
               <Button
                 size="small"
-                startIcon={copiedProperty === 'final-config' ? <Check /> : <Copy />}
-                onClick={() => copyToClipboard(
-                  isEditingFinal ? editedFinalYaml : yaml.stringify(finalProperties, { indent: 2 }), 
-                  'final-config'
-                )}
+                startIcon={
+                  copiedProperty === "final-config" ? <Check /> : <Copy />
+                }
+                onClick={() =>
+                  copyToClipboard(
+                    isEditingFinal
+                      ? editedFinalYaml
+                      : yaml.stringify(finalProperties, { indent: 2 }),
+                    "final-config"
+                  )
+                }
                 sx={{
-                  color: 'text.secondary',
-                  '&:hover': {
-                    color: 'text.primary'
-                  }
+                  color: "text.secondary",
+                  "&:hover": {
+                    color: "text.primary",
+                  },
                 }}
               >
-                {copiedProperty === 'final-config' ? 'Copied!' : 'Copy'}
+                {copiedProperty === "final-config" ? "Copied!" : "Copy"}
               </Button>
             </Box>
           </Box>
 
           {isEditingFinal ? (
-            <Box sx={{ border: 1, borderColor: 'divider', borderRadius: 1, overflow: 'hidden' }}>
+            <Box
+              sx={{
+                border: 1,
+                borderColor: "divider",
+                borderRadius: 1,
+                overflow: "hidden",
+              }}
+            >
               <Editor
                 height="400px"
                 defaultLanguage="yaml"
                 value={editedFinalYaml}
-                onChange={(value) => setEditedFinalYaml(value || '')}
+                onChange={(value) => setEditedFinalYaml(value || "")}
                 theme="vs-dark"
                 options={{
                   minimap: { enabled: false },
                   fontSize: 14,
-                  lineNumbers: 'on',
+                  lineNumbers: "on",
                   roundedSelection: false,
                   scrollBeyondLastLine: false,
                   automaticLayout: true,
@@ -269,14 +361,30 @@ export default function ConfigDetailCard({ env }: { env: ConfigEnvironmentRespon
               />
             </Box>
           ) : (
-            <Box sx={{ border: 1, borderColor: 'divider', borderRadius: 1, overflow: 'hidden' }}>
+            <Box
+              sx={{
+                border: 1,
+                borderColor: "divider",
+                borderRadius: 1,
+                overflow: "hidden",
+              }}
+            >
               <Highlight
                 theme={themes.vsDark}
                 code={yaml.stringify(finalProperties, { indent: 2 })}
                 language="yaml"
               >
-                {({ className, style, tokens, getLineProps, getTokenProps }) => (
-                  <pre className={`${className} p-4 overflow-x-auto text-sm`} style={style}>
+                {({
+                  className,
+                  style,
+                  tokens,
+                  getLineProps,
+                  getTokenProps,
+                }) => (
+                  <pre
+                    className={`${className} p-4 overflow-x-auto text-sm`}
+                    style={style}
+                  >
                     {tokens.map((line, i) => (
                       <div key={i} {...getLineProps({ line })}>
                         {line.map((token, key) => (
@@ -299,10 +407,20 @@ export default function ConfigDetailCard({ env }: { env: ConfigEnvironmentRespon
       <ConfigMergeInfo env={env} />
 
       {/* Property Sources Section */}
-      <Card sx={{ border: 1, borderColor: 'divider', boxShadow: 1 }}>
+      <Card sx={{ border: 1, borderColor: "divider", boxShadow: 1 }}>
         <CardContent sx={{ p: 3 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
-            <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              mb: 3,
+            }}
+          >
+            <Typography
+              variant="h6"
+              sx={{ fontWeight: 600, color: "text.primary" }}
+            >
               Property Sources
             </Typography>
             <ToggleButtonGroup
@@ -322,17 +440,56 @@ export default function ConfigDetailCard({ env }: { env: ConfigEnvironmentRespon
             </ToggleButtonGroup>
           </Box>
 
-          {viewMode === 'accordion' ? (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {viewMode === "accordion" ? (
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
               {env.propertySources?.map((ps, index) => {
-                const gitUrl = extractGitUrl(ps.name)
+                const gitUrl = extractGitUrl(ps.name);
                 return (
-                  <Accordion key={ps.name} sx={{ border: 1, borderColor: 'divider', boxShadow: 1, borderRadius: 2, '&.Mui-expanded': { margin: 0 } }}>
-                    <AccordionSummary expandIcon={<ExpandMore />} sx={{ '& .MuiAccordionSummary-content': { marginY: 1.5 } }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', mr: 2 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1, minWidth: 0 }}>
-                          <Typography variant="subtitle1" sx={{ fontWeight: 500, color: 'text.primary', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {ps.name.split('/').pop()}
+                  <Accordion
+                    key={ps.name}
+                    sx={{
+                      border: 1,
+                      borderColor: "divider",
+                      boxShadow: 1,
+                      borderRadius: 2,
+                      "&.Mui-expanded": { margin: 0 },
+                    }}
+                  >
+                    <AccordionSummary
+                      expandIcon={<ExpandMore />}
+                      sx={{
+                        "& .MuiAccordionSummary-content": { marginY: 1.5 },
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          width: "100%",
+                          mr: 2,
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 1,
+                            flex: 1,
+                            minWidth: 0,
+                          }}
+                        >
+                          <Typography
+                            variant="subtitle1"
+                            sx={{
+                              fontWeight: 500,
+                              color: "text.primary",
+                              flex: 1,
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                            }}
+                          >
+                            {ps.name.split("/").pop()}
                           </Typography>
                           {gitUrl && (
                             <Tooltip title="Open in GitHub">
@@ -342,7 +499,7 @@ export default function ConfigDetailCard({ env }: { env: ConfigEnvironmentRespon
                                 href={gitUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                sx={{ color: 'text.secondary' }}
+                                sx={{ color: "text.secondary" }}
                               >
                                 <GitHub fontSize="small" />
                               </IconButton>
@@ -351,32 +508,70 @@ export default function ConfigDetailCard({ env }: { env: ConfigEnvironmentRespon
                         </Box>
                         <Button
                           size="small"
-                          startIcon={copiedProperty === `source-${index}` ? <Check /> : <Copy />}
+                          startIcon={
+                            copiedProperty === `source-${index}` ? (
+                              <Check />
+                            ) : (
+                              <Copy />
+                            )
+                          }
                           onClick={(e) => {
-                            e.stopPropagation()
-                            copyToClipboard(JSON.stringify(ps.source, null, 2), `source-${index}`)
+                            e.stopPropagation();
+                            copyToClipboard(
+                              JSON.stringify(ps.source, null, 2),
+                              `source-${index}`
+                            );
                           }}
                           sx={{
-                            color: 'text.secondary',
-                            '&:hover': {
-                              color: 'text.primary'
-                            }
+                            color: "text.secondary",
+                            "&:hover": {
+                              color: "text.primary",
+                            },
                           }}
                         >
-                          {copiedProperty === `source-${index}` ? 'Copied!' : 'Copy All'}
+                          {copiedProperty === `source-${index}`
+                            ? "Copied!"
+                            : "Copy All"}
                         </Button>
                       </Box>
                     </AccordionSummary>
-                    <AccordionDetails sx={{ p: 2, borderTop: 1, borderColor: 'divider' }}>
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <AccordionDetails
+                      sx={{ p: 2, borderTop: 1, borderColor: "divider" }}
+                    >
+                      <Box
+                        sx={{
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 2,
+                        }}
+                      >
                         {Object.entries(ps.source || {}).map(([key, value]) => (
-                          <Box key={key} sx={{ border: 1, borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>
-                            <Box sx={{ bgcolor: 'action.hover', px: 2, py: 1.5, borderBottom: 1, borderColor: 'divider' }}>
-                              <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.primary' }}>
+                          <Box
+                            key={key}
+                            sx={{
+                              border: 1,
+                              borderColor: "divider",
+                              borderRadius: 2,
+                              overflow: "hidden",
+                            }}
+                          >
+                            <Box
+                              sx={{
+                                bgcolor: "action.hover",
+                                px: 2,
+                                py: 1.5,
+                                borderBottom: 1,
+                                borderColor: "divider",
+                              }}
+                            >
+                              <Typography
+                                variant="body2"
+                                sx={{ fontWeight: 500, color: "text.primary" }}
+                              >
                                 {key}
                               </Typography>
                             </Box>
-                            <Box sx={{ position: 'relative' }}>
+                            <Box sx={{ position: "relative" }}>
                               {renderPropertyValue(value, `${ps.name}-${key}`)}
                             </Box>
                           </Box>
@@ -384,20 +579,46 @@ export default function ConfigDetailCard({ env }: { env: ConfigEnvironmentRespon
                       </Box>
                     </AccordionDetails>
                   </Accordion>
-                )
+                );
               })}
             </Box>
           ) : (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
               {env.propertySources?.map((ps, index) => {
-                const gitUrl = extractGitUrl(ps.name)
+                const gitUrl = extractGitUrl(ps.name);
                 return (
-                  <Card key={ps.name} sx={{ border: 1, borderColor: 'divider', boxShadow: 1 }}>
+                  <Card
+                    key={ps.name}
+                    sx={{ border: 1, borderColor: "divider", boxShadow: 1 }}
+                  >
                     <CardContent sx={{ p: 2 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1, minWidth: 0 }}>
-                          <Typography variant="subtitle1" sx={{ fontWeight: 500, color: 'text.primary', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {ps.name.split('/').pop()}
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          mb: 2,
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 1,
+                            flex: 1,
+                            minWidth: 0,
+                          }}
+                        >
+                          <Typography
+                            variant="subtitle1"
+                            sx={{
+                              fontWeight: 500,
+                              color: "text.primary",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                            }}
+                          >
+                            {ps.name.split("/").pop()}
                           </Typography>
                           {gitUrl && (
                             <Tooltip title="Open in GitHub">
@@ -407,7 +628,7 @@ export default function ConfigDetailCard({ env }: { env: ConfigEnvironmentRespon
                                 href={gitUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                sx={{ color: 'text.secondary' }}
+                                sx={{ color: "text.secondary" }}
                               >
                                 <GitHub fontSize="small" />
                               </IconButton>
@@ -416,30 +637,62 @@ export default function ConfigDetailCard({ env }: { env: ConfigEnvironmentRespon
                         </Box>
                         <Button
                           size="small"
-                          startIcon={copiedProperty === `source-yaml-${index}` ? <Check /> : <Copy />}
-                          onClick={() => copyToClipboard(yaml.stringify(ps.source, { indent: 2 }), `source-yaml-${index}`)}
+                          startIcon={
+                            copiedProperty === `source-yaml-${index}` ? (
+                              <Check />
+                            ) : (
+                              <Copy />
+                            )
+                          }
+                          onClick={() =>
+                            copyToClipboard(
+                              yaml.stringify(ps.source, { indent: 2 }),
+                              `source-yaml-${index}`
+                            )
+                          }
                           sx={{
-                            color: 'text.secondary',
-                            '&:hover': {
-                              color: 'text.primary'
-                            }
+                            color: "text.secondary",
+                            "&:hover": {
+                              color: "text.primary",
+                            },
                           }}
                         >
-                          {copiedProperty === `source-yaml-${index}` ? 'Copied!' : 'Copy YAML'}
+                          {copiedProperty === `source-yaml-${index}`
+                            ? "Copied!"
+                            : "Copy YAML"}
                         </Button>
                       </Box>
-                      <Box sx={{ border: 1, borderColor: 'divider', borderRadius: 1, overflow: 'hidden' }}>
+                      <Box
+                        sx={{
+                          border: 1,
+                          borderColor: "divider",
+                          borderRadius: 1,
+                          overflow: "hidden",
+                        }}
+                      >
                         <Highlight
                           theme={themes.vsDark}
                           code={yaml.stringify(ps.source, { indent: 2 })}
                           language="yaml"
                         >
-                          {({ className, style, tokens, getLineProps, getTokenProps }) => (
-                            <pre className={`${className} p-4 overflow-x-auto text-sm`} style={style}>
+                          {({
+                            className,
+                            style,
+                            tokens,
+                            getLineProps,
+                            getTokenProps,
+                          }) => (
+                            <pre
+                              className={`${className} p-4 overflow-x-auto text-sm`}
+                              style={style}
+                            >
                               {tokens.map((line, i) => (
                                 <div key={i} {...getLineProps({ line })}>
                                   {line.map((token, key) => (
-                                    <span key={key} {...getTokenProps({ token })} />
+                                    <span
+                                      key={key}
+                                      {...getTokenProps({ token })}
+                                    />
                                   ))}
                                 </div>
                               ))}
@@ -449,12 +702,12 @@ export default function ConfigDetailCard({ env }: { env: ConfigEnvironmentRespon
                       </Box>
                     </CardContent>
                   </Card>
-                )
+                );
               })}
             </Box>
           )}
         </CardContent>
       </Card>
     </Box>
-  )
+  );
 }

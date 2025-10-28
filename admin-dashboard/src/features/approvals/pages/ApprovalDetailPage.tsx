@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useState, useMemo } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   Box,
   Card,
@@ -9,41 +9,67 @@ import {
   Button,
   Alert,
   Divider,
-} from '@mui/material';
-import Grid from '@mui/material/Grid';
-import { ArrowBack as ArrowBackIcon, CheckCircle as ApproveIcon } from '@mui/icons-material';
-import PageHeader from '@components/common/PageHeader';
-import Loading from '@components/common/Loading';
-import { useFindApprovalRequestById, useSubmitApprovalDecision } from '@lib/api/hooks';
-import { useAuth } from '@features/auth/authContext';
-import { toast } from '@lib/toast/toast';
-import { handleApiError } from '@lib/api/errorHandler';
-import { DecisionDialog } from '../components/DecisionDialog';
-import { format } from 'date-fns';
+} from "@mui/material";
+import Grid from "@mui/material/Grid";
+import {
+  ArrowBack as ArrowBackIcon,
+  CheckCircle as ApproveIcon,
+} from "@mui/icons-material";
+import PageHeader from "@components/common/PageHeader";
+import Loading from "@components/common/Loading";
+import {
+  useFindApprovalRequestById,
+  useSubmitApprovalDecision,
+  useFindByIdIamUser,
+} from "@lib/api/hooks";
+import { useAuth } from "@features/auth/authContext";
+import { toast } from "@lib/toast/toast";
+import { handleApiError } from "@lib/api/errorHandler";
+import { DecisionDialog } from "../components/DecisionDialog";
+import { format } from "date-fns";
 
 export default function ApprovalDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { isSysAdmin } = useAuth();
+  const { isSysAdmin, userInfo } = useAuth();
   const [decisionDialogOpen, setDecisionDialogOpen] = useState(false);
 
-  const { data: request, isLoading, error, refetch } = useFindApprovalRequestById(id!, {
+  const {
+    data: request,
+    isLoading,
+    error,
+    refetch,
+  } = useFindApprovalRequestById(id!, {
     query: {
       enabled: !!id,
       staleTime: 10_000,
     },
   });
 
+  // Fetch requester user info to check manager relationship
+  const { data: requesterUser } = useFindByIdIamUser(
+    request?.requesterUserId || "",
+    {
+      query: {
+        enabled: !!request?.requesterUserId,
+        staleTime: 30_000,
+      },
+    }
+  );
+
   const submitDecisionMutation = useSubmitApprovalDecision();
 
-  const handleSubmitDecision = async (decision: { decision: 'APPROVE' | 'REJECT'; note?: string }) => {
+  const handleSubmitDecision = async (decision: {
+    decision: "APPROVE" | "REJECT";
+    note?: string;
+  }) => {
     if (!id) return;
 
     submitDecisionMutation.mutate(
-      { id, data: decision as any },
+      { id, data: decision },
       {
         onSuccess: () => {
-          toast.success('Decision submitted successfully');
+          toast.success("Decision submitted successfully");
           setDecisionDialogOpen(false);
           refetch();
         },
@@ -54,20 +80,37 @@ export default function ApprovalDetailPage() {
     );
   };
 
-  const canApprove = isSysAdmin; // TODO: Check if user is in approval gate
+  // Check if user can approve - SYS_ADMIN OR is LINE_MANAGER of requester
+  const canApprove = useMemo(() => {
+    if (!request || request.status !== "PENDING") return false;
 
-  const getStatusColor = (status?: string): 'default' | 'info' | 'success' | 'error' | 'warning' => {
+    // SYS_ADMIN can always approve
+    if (isSysAdmin) return true;
+
+    // Check if user is the manager of the requester (from snapshot or fetched user)
+    const requesterManagerId =
+      request.snapshot?.managerId || requesterUser?.managerId;
+    if (requesterManagerId && userInfo?.userId === requesterManagerId) {
+      return true;
+    }
+
+    return false;
+  }, [isSysAdmin, userInfo?.userId, request, requesterUser?.managerId]);
+
+  const getStatusColor = (
+    status?: string
+  ): "default" | "info" | "success" | "error" | "warning" => {
     switch (status) {
-      case 'PENDING':
-        return 'warning';
-      case 'APPROVED':
-        return 'success';
-      case 'REJECTED':
-        return 'error';
-      case 'CANCELLED':
-        return 'default';
+      case "PENDING":
+        return "warning";
+      case "APPROVED":
+        return "success";
+      case "REJECTED":
+        return "error";
+      case "CANCELLED":
+        return "default";
       default:
-        return 'info';
+        return "info";
     }
   };
 
@@ -81,15 +124,21 @@ export default function ApprovalDetailPage() {
         <PageHeader
           title="Approval Request Not Found"
           actions={
-            <Button variant="outlined" startIcon={<ArrowBackIcon />} onClick={() => navigate('/approvals')}>
+            <Button
+              variant="outlined"
+              startIcon={<ArrowBackIcon />}
+              onClick={() => navigate("/approvals")}
+            >
               Back
             </Button>
           }
         />
         <Alert severity="error" sx={{ m: 3 }}>
           {error
-            ? `Failed to load approval request: ${(error as any).detail || 'Unknown error'}`
-            : 'The requested approval could not be found.'}
+            ? `Failed to load approval request: ${
+                error instanceof Error ? error.message : "Unknown error"
+              }`
+            : "The requested approval could not be found."}
         </Alert>
       </Box>
     );
@@ -98,18 +147,20 @@ export default function ApprovalDetailPage() {
   return (
     <Box>
       <PageHeader
-        title={`Approval Request: ${request.target?.serviceId || 'N/A'}`}
-        subtitle={`${request.requestType || 'Unknown'} - ${request.status || 'Unknown'}`}
+        title={`Approval Request: ${request.target?.serviceId || "N/A"}`}
+        subtitle={`${request.requestType || "Unknown"} - ${
+          request.status || "Unknown"
+        }`}
         actions={
-          <Box sx={{ display: 'flex', gap: 1 }}>
+          <Box sx={{ display: "flex", gap: 1 }}>
             <Button
               variant="outlined"
               startIcon={<ArrowBackIcon />}
-              onClick={() => navigate('/approvals')}
+              onClick={() => navigate("/approvals")}
             >
               Back
             </Button>
-            {canApprove && request.status === 'PENDING' && (
+            {canApprove && request.status === "PENDING" && (
               <Button
                 variant="contained"
                 startIcon={<ApproveIcon />}
@@ -131,7 +182,11 @@ export default function ApprovalDetailPage() {
 
           <Grid container spacing={3}>
             <Grid size={{ xs: 12, md: 6 }}>
-              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+              <Typography
+                variant="subtitle2"
+                color="text.secondary"
+                gutterBottom
+              >
                 Request ID
               </Typography>
               <Typography variant="body1" fontFamily="monospace">
@@ -140,36 +195,61 @@ export default function ApprovalDetailPage() {
             </Grid>
 
             <Grid size={{ xs: 12, md: 6 }}>
-              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+              <Typography
+                variant="subtitle2"
+                color="text.secondary"
+                gutterBottom
+              >
                 Status
               </Typography>
-              <Chip label={request.status} color={getStatusColor(request.status)} />
+              <Chip
+                label={request.status}
+                color={getStatusColor(request.status)}
+              />
             </Grid>
 
             <Grid size={{ xs: 12, md: 6 }}>
-              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+              <Typography
+                variant="subtitle2"
+                color="text.secondary"
+                gutterBottom
+              >
                 Request Type
               </Typography>
               <Typography variant="body1">{request.requestType}</Typography>
             </Grid>
 
             <Grid size={{ xs: 12, md: 6 }}>
-              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+              <Typography
+                variant="subtitle2"
+                color="text.secondary"
+                gutterBottom
+              >
                 Requester
               </Typography>
               <Typography variant="body1">{request.requesterUserId}</Typography>
             </Grid>
 
             <Grid size={{ xs: 12, md: 6 }}>
-              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+              <Typography
+                variant="subtitle2"
+                color="text.secondary"
+                gutterBottom
+              >
                 Target Service
               </Typography>
-              <Typography variant="body1">{request.target?.serviceId || 'N/A'}</Typography>
+              <Typography variant="body1">
+                {request.target?.serviceId || "N/A"}
+              </Typography>
             </Grid>
 
             {request.target?.teamId && (
               <Grid size={{ xs: 12, md: 6 }}>
-                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                <Typography
+                  variant="subtitle2"
+                  color="text.secondary"
+                  gutterBottom
+                >
                   Target Team
                 </Typography>
                 <Typography variant="body1">{request.target.teamId}</Typography>
@@ -177,20 +257,27 @@ export default function ApprovalDetailPage() {
             )}
 
             <Grid size={{ xs: 12, md: 6 }}>
-              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+              <Typography
+                variant="subtitle2"
+                color="text.secondary"
+                gutterBottom
+              >
                 Created At
               </Typography>
               <Typography variant="body1">
                 {request.createdAt
-                  ? format(new Date(request.createdAt), 'MMM dd, yyyy HH:mm:ss')
-                  : 'N/A'}
+                  ? format(new Date(request.createdAt), "MMM dd, yyyy HH:mm:ss")
+                  : "N/A"}
               </Typography>
             </Grid>
 
-
             {request.note && (
               <Grid size={{ xs: 12 }}>
-                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                <Typography
+                  variant="subtitle2"
+                  color="text.secondary"
+                  gutterBottom
+                >
                   Requester Note
                 </Typography>
                 <Typography variant="body1">{request.note}</Typography>

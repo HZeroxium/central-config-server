@@ -2,7 +2,6 @@ package com.example.control.infrastructure.rpc.thrift;
 
 import com.example.control.domain.object.HeartbeatPayload;
 import com.example.control.application.service.HeartbeatService;
-import com.example.control.domain.object.ServiceInstance;
 import com.example.control.thrift.ConfigControlService;
 import com.example.control.thrift.HeartbeatRequest;
 import com.example.control.thrift.HeartbeatResponse;
@@ -28,8 +27,9 @@ public class ThriftHeartbeatHandler implements ConfigControlService.Iface {
             // Convert Thrift request to HeartbeatPayload
             HeartbeatPayload payload = convertToPayload(request);
 
-            // Process heartbeat
-            ServiceInstance instance = heartbeatService.processHeartbeat(payload);
+            // Process heartbeat (returns updated instance but we don't need it for
+            // response)
+            heartbeatService.processHeartbeat(payload);
 
             // Build response
             return new HeartbeatResponse()

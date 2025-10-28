@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Box,
   Button,
@@ -12,18 +12,23 @@ import {
   Select,
   MenuItem,
   Alert,
-} from '@mui/material';
-import Grid from '@mui/material/Grid';
-import { Search as SearchIcon, Refresh as RefreshIcon, Add as AddIcon } from '@mui/icons-material';
-import PageHeader from '@components/common/PageHeader';
-import Loading from '@components/common/Loading';
-import ConfirmDialog from '@components/common/ConfirmDialog';
-import { useFindAllServiceShares, useRevokeServiceShare } from '@lib/api/hooks';
-import { useAuth } from '@features/auth/authContext';
-import { toast } from '@lib/toast/toast';
-import { handleApiError } from '@lib/api/errorHandler';
-import { ServiceShareTable } from '../components/ServiceShareTable';
-import { ShareFormDrawer } from '../components/ShareFormDrawer';
+} from "@mui/material";
+import Grid from "@mui/material/Grid";
+import {
+  Search as SearchIcon,
+  Refresh as RefreshIcon,
+  Add as AddIcon,
+} from "@mui/icons-material";
+import PageHeader from "@components/common/PageHeader";
+import Loading from "@components/common/Loading";
+import ConfirmDialog from "@components/common/ConfirmDialog";
+import { useFindAllServiceShares, useRevokeServiceShare } from "@lib/api/hooks";
+import { useAuth } from "@features/auth/authContext";
+import { toast } from "@lib/toast/toast";
+import { handleApiError } from "@lib/api/errorHandler";
+import { ServiceShareTable } from "../components/ServiceShareTable";
+import { ShareFormDrawer } from "../components/ShareFormDrawer";
+import type { ServiceShareResponse } from "@lib/api/models";
 
 export default function ServiceShareListPage() {
   const navigate = useNavigate();
@@ -31,8 +36,10 @@ export default function ServiceShareListPage() {
 
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(20);
-  const [search, setSearch] = useState('');
-  const [grantToTypeFilter, setGrantToTypeFilter] = useState('');
+  const [search, setSearch] = useState("");
+  const [grantToTypeFilter, setGrantToTypeFilter] = useState<
+    "TEAM" | "USER" | ""
+  >("");
   const [formDrawerOpen, setFormDrawerOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedShareId, setSelectedShareId] = useState<string | null>(null);
@@ -40,7 +47,7 @@ export default function ServiceShareListPage() {
   const { data, isLoading, error, refetch } = useFindAllServiceShares(
     {
       serviceId: search || undefined,
-      grantToType: (grantToTypeFilter || undefined) as any,
+      grantToType: grantToTypeFilter || undefined,
       page,
       size: pageSize,
     },
@@ -53,8 +60,10 @@ export default function ServiceShareListPage() {
 
   const revokeShareMutation = useRevokeServiceShare();
 
-  const shares = Array.isArray(data) ? data : (data as any)?.items || [];
-  const metadata = (data as any)?.metadata;
+  const shares: ServiceShareResponse[] = Array.isArray(data)
+    ? data
+    : data?.items || [];
+  const metadata = data && "metadata" in data ? data.metadata : undefined;
 
   const handleRevokeShare = async () => {
     if (!selectedShareId) return;
@@ -63,7 +72,7 @@ export default function ServiceShareListPage() {
       { id: selectedShareId },
       {
         onSuccess: () => {
-          toast.success('Service share revoked successfully');
+          toast.success("Service share revoked successfully");
           setDeleteDialogOpen(false);
           setSelectedShareId(null);
           refetch();
@@ -86,13 +95,13 @@ export default function ServiceShareListPage() {
   };
 
   const handleFilterReset = () => {
-    setSearch('');
-    setGrantToTypeFilter('');
+    setSearch("");
+    setGrantToTypeFilter("");
     setPage(0);
   };
 
   const handleShareSuccess = () => {
-    toast.success('Service share created successfully');
+    toast.success("Service share created successfully");
     setFormDrawerOpen(false);
     refetch();
   };
@@ -104,7 +113,11 @@ export default function ServiceShareListPage() {
         subtitle="Manage service access shares"
         actions={
           <>
-            <Button variant="outlined" startIcon={<RefreshIcon />} onClick={() => refetch()}>
+            <Button
+              variant="outlined"
+              startIcon={<RefreshIcon />}
+              onClick={() => refetch()}
+            >
               Refresh
             </Button>
             {isSysAdmin && (
@@ -166,7 +179,7 @@ export default function ServiceShareListPage() {
                 fullWidth
                 variant="outlined"
                 onClick={handleFilterReset}
-                sx={{ height: '56px' }}
+                sx={{ height: "56px" }}
               >
                 Reset Filters
               </Button>
@@ -175,7 +188,8 @@ export default function ServiceShareListPage() {
 
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
-              Failed to load service shares: {(error as any).detail || 'Unknown error'}
+              Failed to load service shares:{" "}
+              {error instanceof Error ? error.message : "Unknown error"}
             </Alert>
           )}
 
@@ -193,7 +207,9 @@ export default function ServiceShareListPage() {
                 setPageSize(newPageSize);
                 setPage(0);
               }}
-              onRowClick={(shareId: string) => navigate(`/service-shares/${shareId}`)}
+              onRowClick={(shareId: string) =>
+                navigate(`/service-shares/${shareId}`)
+              }
               onRevoke={handleOpenRevokeDialog}
             />
           )}

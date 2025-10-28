@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { useAuth } from '../authContext';
+import { useMemo } from "react";
+import { useAuth } from "../authContext";
 
 export const usePermissions = () => {
   const { userInfo, permissions, isSysAdmin: isSysAdminFromAuth } = useAuth();
@@ -7,25 +7,34 @@ export const usePermissions = () => {
   const isSysAdmin = isSysAdminFromAuth;
 
   const isUser = useMemo(() => {
-    return userInfo?.roles?.includes('USER') ?? false;
+    return userInfo?.roles?.includes("USER") ?? false;
   }, [userInfo?.roles]);
 
   const canViewService = useMemo(() => {
     return (serviceId: string) => {
       if (isSysAdmin) return true;
-      return permissions?.ownedServiceIds?.includes(serviceId) ||
-             permissions?.sharedServiceIds?.includes(serviceId);
+      return (
+        permissions?.ownedServiceIds?.includes(serviceId) ||
+        permissions?.sharedServiceIds?.includes(serviceId)
+      );
     };
   }, [isSysAdmin, permissions?.ownedServiceIds, permissions?.sharedServiceIds]);
 
   const canEditService = useMemo(() => {
     return (serviceId: string) => {
       if (isSysAdmin) return true;
-      return permissions?.ownedServiceIds?.includes(serviceId) || 
-             (permissions?.sharedServiceIds?.includes(serviceId) && 
-              permissions?.actions?.[serviceId]?.includes('EDIT_SERVICE'));
+      return (
+        permissions?.ownedServiceIds?.includes(serviceId) ||
+        (permissions?.sharedServiceIds?.includes(serviceId) &&
+          permissions?.actions?.[serviceId]?.includes("EDIT_SERVICE"))
+      );
     };
-  }, [isSysAdmin, permissions?.ownedServiceIds, permissions?.sharedServiceIds, permissions?.actions]);
+  }, [
+    isSysAdmin,
+    permissions?.ownedServiceIds,
+    permissions?.sharedServiceIds,
+    permissions?.actions,
+  ]);
 
   const canDeleteService = useMemo(() => {
     return (serviceId: string) => {
@@ -56,6 +65,38 @@ export const usePermissions = () => {
   const canViewDriftEvents = useMemo(() => {
     return permissions?.features?.canViewDriftEvents || isSysAdmin;
   }, [permissions?.features?.canViewDriftEvents, isSysAdmin]);
+
+  const canEditInstance = useMemo(() => {
+    return (serviceId: string) => {
+      if (isSysAdmin) return true;
+      return (
+        permissions?.ownedServiceIds?.includes(serviceId) ||
+        (permissions?.sharedServiceIds?.includes(serviceId) &&
+          permissions?.actions?.[serviceId]?.includes("EDIT_INSTANCE"))
+      );
+    };
+  }, [
+    isSysAdmin,
+    permissions?.ownedServiceIds,
+    permissions?.sharedServiceIds,
+    permissions?.actions,
+  ]);
+
+  const canDeleteInstance = useMemo(() => {
+    return (serviceId: string) => {
+      if (isSysAdmin) return true;
+      return (
+        permissions?.ownedServiceIds?.includes(serviceId) ||
+        (permissions?.sharedServiceIds?.includes(serviceId) &&
+          permissions?.actions?.[serviceId]?.includes("EDIT_INSTANCE"))
+      );
+    };
+  }, [
+    isSysAdmin,
+    permissions?.ownedServiceIds,
+    permissions?.sharedServiceIds,
+    permissions?.actions,
+  ]);
 
   const canAccessRoute = useMemo(() => {
     return (route: string) => {
@@ -97,6 +138,8 @@ export const usePermissions = () => {
     canManageAllServices,
     canManageApplicationServices,
     canViewDriftEvents,
+    canEditInstance,
+    canDeleteInstance,
     canAccessRoute,
     canViewTeamServices,
     canEditTeamServices,

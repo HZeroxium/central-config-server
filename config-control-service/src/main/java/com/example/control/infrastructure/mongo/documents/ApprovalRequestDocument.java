@@ -105,21 +105,25 @@ public class ApprovalRequestDocument {
      * Maps a {@link ApprovalRequest} domain object to a MongoDB document
      * representation.
      * <p>
-     * For new entities (version=0 or null), the version field is set to null to allow
-     * Spring Data MongoDB to treat it as a fresh insert. This prevents OptimisticLockingFailureException
-     * when reusing domain objects that were previously saved and returned with incremented version.
+     * For new entities (version=0 or null), the version field is set to null to
+     * allow
+     * Spring Data MongoDB to treat it as a fresh insert. This prevents
+     * OptimisticLockingFailureException
+     * when reusing domain objects that were previously saved and returned with
+     * incremented version.
      * </p>
      *
      * @param domain domain model
      * @return new {@link ApprovalRequestDocument} populated from domain
      */
     public static ApprovalRequestDocument fromDomain(ApprovalRequest domain) {
-        // For new entities (version 0 or null), set version to null to ensure fresh insert
+        // For new entities (version 0 or null), set version to null to ensure fresh
+        // insert
         // Otherwise, copy the version for optimistic locking on updates
-        Integer documentVersion = (domain.getVersion() == null || domain.getVersion() == 0) 
-            ? null 
-            : domain.getVersion();
-        
+        Integer documentVersion = (domain.getVersion() == null || domain.getVersion() == 0)
+                ? null
+                : domain.getVersion();
+
         ApprovalRequestDocumentBuilder builder = ApprovalRequestDocument.builder()
                 .requesterUserId(domain.getRequesterUserId())
                 .requestType(domain.getRequestType() != null ? domain.getRequestType().name() : null)

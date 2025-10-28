@@ -1,43 +1,61 @@
-import { useParams, useNavigate } from 'react-router-dom';
-import { Box, Button, Alert, Card, CardContent, Typography, Chip, Divider } from '@mui/material';
-import Grid from '@mui/material/Grid';
-import { ArrowBack as BackIcon, Delete as DeleteIcon } from '@mui/icons-material';
-import { useState } from 'react';
-import PageHeader from '@components/common/PageHeader';
-import Loading from '@components/common/Loading';
-import ConfirmDialog from '@components/common/ConfirmDialog';
-import { useFindByIdServiceInstance, useDeleteServiceInstance } from '@lib/api/hooks';
-import { useAuth } from '@features/auth/authContext';
-import { toast } from '@lib/toast/toast';
-import { handleApiError } from '@lib/api/errorHandler';
-import InstanceStatusChip from '../components/InstanceStatusChip';
-import DriftIndicator from '../components/DriftIndicator';
-import { format } from 'date-fns';
+import { useParams, useNavigate } from "react-router-dom";
+import {
+  Box,
+  Button,
+  Alert,
+  Card,
+  CardContent,
+  Typography,
+  Chip,
+  Divider,
+} from "@mui/material";
+import Grid from "@mui/material/Grid";
+import {
+  ArrowBack as BackIcon,
+  Delete as DeleteIcon,
+} from "@mui/icons-material";
+import { useState } from "react";
+import PageHeader from "@components/common/PageHeader";
+import Loading from "@components/common/Loading";
+import ConfirmDialog from "@components/common/ConfirmDialog";
+import {
+  useFindByIdServiceInstance,
+  useDeleteServiceInstance,
+} from "@lib/api/hooks";
+import { usePermissions } from "@features/auth/hooks/usePermissions";
+import { toast } from "@lib/toast/toast";
+import { handleApiError } from "@lib/api/errorHandler";
+import InstanceStatusChip from "../components/InstanceStatusChip";
+import DriftIndicator from "../components/DriftIndicator";
+import { format } from "date-fns";
 
 export default function ServiceInstanceDetailPage() {
-  const { serviceName, instanceId } = useParams<{ serviceName: string; instanceId: string }>();
+  const { serviceName, instanceId } = useParams<{
+    serviceName: string;
+    instanceId: string;
+  }>();
   const navigate = useNavigate();
-  const { isSysAdmin, permissions } = useAuth();
+  const { canDeleteInstance } = usePermissions();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
-  const { data: instance, isLoading, error } = useFindByIdServiceInstance(
-    instanceId!,
-    {
-      query: {
-        enabled: !!instanceId,
-        staleTime: 10_000,
-      },
-    }
-  );
+  const {
+    data: instance,
+    isLoading,
+    error,
+  } = useFindByIdServiceInstance(instanceId!, {
+    query: {
+      enabled: !!instanceId,
+      staleTime: 10_000,
+    },
+  });
 
   const deleteMutation = useDeleteServiceInstance();
 
   const handleBack = () => {
-    navigate('/service-instances');
+    navigate("/service-instances");
   };
 
-  const canDelete =
-    isSysAdmin || (serviceName && permissions?.ownedServiceIds?.includes(serviceName));
+  const canDelete = serviceName ? canDeleteInstance(serviceName) : false;
 
   const handleDelete = async () => {
     if (!instanceId) return;
@@ -46,8 +64,8 @@ export default function ServiceInstanceDetailPage() {
       { instanceId },
       {
         onSuccess: () => {
-          toast.success('Instance deleted successfully');
-          navigate('/service-instances');
+          toast.success("Instance deleted successfully");
+          navigate("/service-instances");
         },
         onError: (error) => {
           handleApiError(error);
@@ -66,14 +84,20 @@ export default function ServiceInstanceDetailPage() {
         <PageHeader
           title="Service Instance Details"
           actions={
-            <Button variant="outlined" startIcon={<BackIcon />} onClick={handleBack}>
+            <Button
+              variant="outlined"
+              startIcon={<BackIcon />}
+              onClick={handleBack}
+            >
               Back to Instances
             </Button>
           }
         />
         <Alert severity="error">
-          Failed to load service instance.{' '}
-          {error ? (error as any).detail || 'Please try again.' : 'Instance not found.'}
+          Failed to load service instance.{" "}
+          {error
+            ? (error as any).detail || "Please try again."
+            : "Instance not found."}
         </Alert>
       </Box>
     );
@@ -86,7 +110,11 @@ export default function ServiceInstanceDetailPage() {
         subtitle={`Service: ${instance.serviceName}`}
         actions={
           <>
-            <Button variant="outlined" startIcon={<BackIcon />} onClick={handleBack}>
+            <Button
+              variant="outlined"
+              startIcon={<BackIcon />}
+              onClick={handleBack}
+            >
               Back
             </Button>
             {canDelete && (
@@ -112,7 +140,11 @@ export default function ServiceInstanceDetailPage() {
 
           <Grid container spacing={3}>
             <Grid size={{ xs: 12, md: 6 }}>
-              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+              <Typography
+                variant="subtitle2"
+                color="text.secondary"
+                gutterBottom
+              >
                 Service Name
               </Typography>
               <Typography variant="body1" fontWeight={600} gutterBottom>
@@ -121,7 +153,11 @@ export default function ServiceInstanceDetailPage() {
             </Grid>
 
             <Grid size={{ xs: 12, md: 6 }}>
-              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+              <Typography
+                variant="subtitle2"
+                color="text.secondary"
+                gutterBottom
+              >
                 Instance ID
               </Typography>
               <Typography variant="body1" fontWeight={400} gutterBottom>
@@ -130,85 +166,136 @@ export default function ServiceInstanceDetailPage() {
             </Grid>
 
             <Grid size={{ xs: 12, md: 6 }}>
-              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+              <Typography
+                variant="subtitle2"
+                color="text.secondary"
+                gutterBottom
+              >
                 Environment
               </Typography>
               <Chip
                 label={instance.environment?.toUpperCase()}
                 color={
-                  instance.environment === 'prod'
-                    ? 'error'
-                    : instance.environment === 'staging'
-                    ? 'warning'
-                    : 'info'
+                  instance.environment === "prod"
+                    ? "error"
+                    : instance.environment === "staging"
+                    ? "warning"
+                    : "info"
                 }
                 size="small"
               />
             </Grid>
 
             <Grid size={{ xs: 12, md: 6 }}>
-              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+              <Typography
+                variant="subtitle2"
+                color="text.secondary"
+                gutterBottom
+              >
                 Status
               </Typography>
               <InstanceStatusChip status={instance.status} />
             </Grid>
 
             <Grid size={{ xs: 12, md: 6 }}>
-              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+              <Typography
+                variant="subtitle2"
+                color="text.secondary"
+                gutterBottom
+              >
                 Drift Status
               </Typography>
-              <DriftIndicator hasDrift={instance.hasDrift} driftDetectedAt={instance.driftDetectedAt} />
+              <DriftIndicator
+                hasDrift={instance.hasDrift}
+                driftDetectedAt={instance.driftDetectedAt}
+              />
             </Grid>
 
             <Grid size={{ xs: 12, md: 6 }}>
-              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+              <Typography
+                variant="subtitle2"
+                color="text.secondary"
+                gutterBottom
+              >
                 Version
               </Typography>
-              <Typography variant="body1">{instance.version || 'N/A'}</Typography>
+              <Typography variant="body1">
+                {instance.version || "N/A"}
+              </Typography>
             </Grid>
 
             <Grid size={{ xs: 12, md: 6 }}>
-              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+              <Typography
+                variant="subtitle2"
+                color="text.secondary"
+                gutterBottom
+              >
                 Host
               </Typography>
               <Typography variant="body1">{instance.host}</Typography>
             </Grid>
 
             <Grid size={{ xs: 12, md: 6 }}>
-              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+              <Typography
+                variant="subtitle2"
+                color="text.secondary"
+                gutterBottom
+              >
                 Port
               </Typography>
               <Typography variant="body1">{instance.port}</Typography>
             </Grid>
 
             <Grid size={{ xs: 12, md: 6 }}>
-              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+              <Typography
+                variant="subtitle2"
+                color="text.secondary"
+                gutterBottom
+              >
                 Last Seen At
               </Typography>
               <Typography variant="body1">
                 {instance.lastSeenAt
-                  ? format(new Date(instance.lastSeenAt), 'MMM dd, yyyy HH:mm:ss')
-                  : 'N/A'}
+                  ? format(
+                      new Date(instance.lastSeenAt),
+                      "MMM dd, yyyy HH:mm:ss"
+                    )
+                  : "N/A"}
               </Typography>
             </Grid>
 
             {instance.driftDetectedAt && (
               <Grid size={{ xs: 12, md: 6 }}>
-                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                <Typography
+                  variant="subtitle2"
+                  color="text.secondary"
+                  gutterBottom
+                >
                   Drift Detected At
                 </Typography>
                 <Typography variant="body1">
-                  {format(new Date(instance.driftDetectedAt), 'MMM dd, yyyy HH:mm:ss')}
+                  {format(
+                    new Date(instance.driftDetectedAt),
+                    "MMM dd, yyyy HH:mm:ss"
+                  )}
                 </Typography>
               </Grid>
             )}
 
             {instance.lastAppliedHash && (
               <Grid size={{ xs: 12 }}>
-                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                <Typography
+                  variant="subtitle2"
+                  color="text.secondary"
+                  gutterBottom
+                >
                   Last Applied Hash
                 </Typography>
-                <Typography variant="body2" fontFamily="monospace" sx={{ wordBreak: 'break-all' }}>
+                <Typography
+                  variant="body2"
+                  fontFamily="monospace"
+                  sx={{ wordBreak: "break-all" }}
+                >
                   {instance.lastAppliedHash}
                 </Typography>
               </Grid>
@@ -216,10 +303,18 @@ export default function ServiceInstanceDetailPage() {
 
             {instance.expectedHash && (
               <Grid size={{ xs: 12 }}>
-                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                <Typography
+                  variant="subtitle2"
+                  color="text.secondary"
+                  gutterBottom
+                >
                   Expected Hash
                 </Typography>
-                <Typography variant="body2" fontFamily="monospace" sx={{ wordBreak: 'break-all' }}>
+                <Typography
+                  variant="body2"
+                  fontFamily="monospace"
+                  sx={{ wordBreak: "break-all" }}
+                >
                   {instance.expectedHash}
                 </Typography>
               </Grid>
@@ -227,17 +322,21 @@ export default function ServiceInstanceDetailPage() {
 
             {instance.metadata && Object.keys(instance.metadata).length > 0 && (
               <Grid size={{ xs: 12 }}>
-                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                <Typography
+                  variant="subtitle2"
+                  color="text.secondary"
+                  gutterBottom
+                >
                   Metadata
                 </Typography>
                 <Box
                   component="pre"
                   sx={{
-                    bgcolor: 'grey.100',
+                    bgcolor: "grey.100",
                     p: 2,
                     borderRadius: 1,
-                    overflow: 'auto',
-                    fontSize: '0.875rem',
+                    overflow: "auto",
+                    fontSize: "0.875rem",
                   }}
                 >
                   {JSON.stringify(instance.metadata, null, 2)}

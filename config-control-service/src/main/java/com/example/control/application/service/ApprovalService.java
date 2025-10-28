@@ -50,20 +50,24 @@ public class ApprovalService {
      * <p>
      * Creates a PENDING request with default SYS_ADMIN gate requirement.
      *
-     * @param serviceId the service ID to request
+     * @param serviceId    the service ID to request
      * @param targetTeamId the target team ID for assignment
-     * @param userContext the current user context
+     * @param userContext  the current user context
      * @return the created approval request
      */
     @Transactional
     public ApprovalRequest createRequest(String serviceId, String targetTeamId, UserContext userContext) {
-        log.info("Creating approval request for service: {} to team: {} by user: {}", 
+        log.info("Creating approval request for service: {} to team: {} by user: {}",
                 serviceId, targetTeamId, userContext.getUserId());
 
-        // Validate service exists
+        // Validate service exists and is orphaned (ownerTeamId == null)
         ApplicationService service = applicationServiceService.findById(ApplicationServiceId.of(serviceId))
                 .orElseThrow(() -> new IllegalArgumentException("Service not found: " + serviceId));
 
+        // Only orphaned services can be requested
+        if (service.getOwnerTeamId() != null) {
+            throw new IllegalStateException("Service is already owned by team: " + service.getOwnerTeamId());
+        }
 
         // Check if user can create approval request
         if (!permissionEvaluator.canCreateApprovalRequest(userContext, serviceId)) {
@@ -72,13 +76,13 @@ public class ApprovalService {
 
         // Create approval request with dynamic gates based on requester
         List<ApprovalRequest.ApprovalGate> requiredGates = new java.util.ArrayList<>();
-        
+
         // Always require SYS_ADMIN gate
         requiredGates.add(ApprovalRequest.ApprovalGate.builder()
                 .gate("SYS_ADMIN")
                 .minApprovals(1)
                 .build());
-        
+
         // Add LINE_MANAGER gate if requester has a manager
         if (userContext.getManagerId() != null && !userContext.getManagerId().trim().isEmpty()) {
             requiredGates.add(ApprovalRequest.ApprovalGate.builder()
@@ -119,22 +123,21 @@ public class ApprovalService {
      * <p>
      * Validates gate eligibility and handles optimistic locking conflicts.
      *
-     * @param requestId the request ID
-     * @param decision the decision (APPROVE or REJECT)
-     * @param gate the gate name
-     * @param note optional note
+     * @param requestId   the request ID
+     * @param decision    the decision (APPROVE or REJECT)
+     * @param gate        the gate name
+     * @param note        optional note
      * @param userContext the current user context
      * @return the approval decision
      */
     @Transactional
-    @Retryable(value = {OptimisticLockingFailureException.class}, 
-               maxAttempts = 3, backoff = @Backoff(delay = 100))
-    public ApprovalDecision submitDecision(String requestId, 
-                                         ApprovalDecision.Decision decision, 
-                                         String gate, 
-                                         String note, 
-                                         UserContext userContext) {
-        log.info("Submitting decision for request: {} with decision: {} for gate: {} by user: {}", 
+    @Retryable(value = { OptimisticLockingFailureException.class }, maxAttempts = 3, backoff = @Backoff(delay = 100))
+    public ApprovalDecision submitDecision(String requestId,
+            ApprovalDecision.Decision decision,
+            String gate,
+            String note,
+            UserContext userContext) {
+        log.info("Submitting decision for request: {} with decision: {} for gate: {} by user: {}",
                 requestId, decision, gate, userContext.getUserId());
 
         // Get the request
@@ -152,7 +155,8 @@ public class ApprovalService {
         }
 
         // Check if user already made a decision for this request and gate
-        if (approvalDecisionService.existsByRequestAndApproverAndGate(ApprovalRequestId.of(requestId), userContext.getUserId(), gate)) {
+        if (approvalDecisionService.existsByRequestAndApproverAndGate(ApprovalRequestId.of(requestId),
+                userContext.getUserId(), gate)) {
             throw new IllegalStateException("User has already made a decision for this request and gate");
         }
 
@@ -181,14 +185,14 @@ public class ApprovalService {
      * <p>
      * Users see their own requests, system admins see all requests.
      *
-     * @param filter the filter criteria
-     * @param pageable pagination information
+     * @param filter      the filter criteria
+     * @param pageable    pagination information
      * @param userContext the current user context
      * @return page of approval requests
      */
-    public Page<ApprovalRequest> findAll(ApprovalRequestCriteria criteria, 
-                                     Pageable pageable, 
-                                     UserContext userContext) {
+    public Page<ApprovalRequest> findAll(ApprovalRequestCriteria criteria,
+            Pageable pageable,
+            UserContext userContext) {
         log.debug("Listing approval requests with criteria: {}, pageable: {}", criteria, pageable);
 
         return approvalRequestService.findAll(criteria, pageable, userContext);
@@ -210,7 +214,7 @@ public class ApprovalService {
      * <p>
      * Users can only see their own requests unless they're system admins.
      *
-     * @param requestId the request ID
+     * @param requestId   the request ID
      * @param userContext the current user context
      * @return optional approval request
      */
@@ -222,9 +226,10 @@ public class ApprovalService {
     /**
      * Cancel an approval request.
      * <p>
-     * Requesters can cancel their own requests, system admins can cancel any request.
+     * Requesters can cancel their own requests, system admins can cancel any
+     * request.
      *
-     * @param requestId the request ID
+     * @param requestId   the request ID
      * @param userContext the current user context
      */
     @Transactional
@@ -257,7 +262,7 @@ public class ApprovalService {
         for (ApprovalRequest.ApprovalGate gate : request.getRequired()) {
             long approveCount = approvalDecisionService.countByRequestIdAndGateAndDecision(
                     ApprovalRequestId.of(requestId), gate.getGate(), ApprovalDecision.Decision.APPROVE);
-            
+
             if (approveCount < gate.getMinApprovals()) {
                 allGatesSatisfied = false;
                 break;
@@ -281,8 +286,8 @@ public class ApprovalService {
 
         // Update request status
         boolean updated = approvalRequestService.updateStatus(
-                ApprovalRequestId.of(requestId), 
-                ApprovalRequest.ApprovalStatus.APPROVED, 
+                ApprovalRequestId.of(requestId),
+                ApprovalRequest.ApprovalStatus.APPROVED,
                 request.getVersion());
 
         if (!updated) {
@@ -295,7 +300,7 @@ public class ApprovalService {
                 .newTeamId(request.getTarget().getTeamId())
                 .transferredBy("system")
                 .build();
-        
+
         transferOwnershipHandler.handle(command);
 
         log.info("Successfully approved request: {} and transferred service ownership", requestId);

@@ -1,50 +1,85 @@
-import { useMemo } from 'react';
-import { Box, Alert } from '@mui/material';
-import Grid from '@mui/material/Grid';
+import { useMemo, useState } from "react";
+import { Box, Alert, Button, Typography } from "@mui/material";
+import Grid from "@mui/material/Grid";
 import {
   Apps as AppsIcon,
   Storage as StorageIcon,
   Warning as WarningIcon,
   Assignment as AssignmentIcon,
-} from '@mui/icons-material';
-import PageHeader from '@components/common/PageHeader';
-import Loading from '@components/common/Loading';
-import { StatsCard } from '../components/StatsCard';
-import { ServiceDistributionChart } from '../components/ServiceDistributionChart';
-import { InstanceStatusChart } from '../components/InstanceStatusChart';
-import { DriftEventsChart } from '../components/DriftEventsChart';
-import { RecentActivityList } from '../components/RecentActivityList';
+  Refresh as RefreshIcon,
+} from "@mui/icons-material";
+import PageHeader from "@components/common/PageHeader";
+import Loading from "@components/common/Loading";
+import { StatsCard } from "../components/StatsCard";
+import { ServiceDistributionChart } from "../components/ServiceDistributionChart";
+import { InstanceStatusChart } from "../components/InstanceStatusChart";
+import { DriftEventsChart } from "../components/DriftEventsChart";
+import { RecentActivityList } from "../components/RecentActivityList";
 import {
   useFindAllApplicationServices,
   useFindAllServiceInstances,
   useFindAllDriftEvents,
   useFindAllApprovalRequests,
-} from '@lib/api/hooks';
+} from "@lib/api/hooks";
 
 export default function DashboardPage() {
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+
   // Fetch dashboard data with higher page sizes for overview
-  const { data: servicesData, isLoading: servicesLoading, error: servicesError } = useFindAllApplicationServices(
+  const {
+    data: servicesData,
+    isLoading: servicesLoading,
+    error: servicesError,
+    refetch: refetchServices,
+  } = useFindAllApplicationServices(
     { page: 0, size: 100 },
     { query: { staleTime: 60_000 } }
   );
 
-  const { data: instancesData, isLoading: instancesLoading, error: instancesError } = useFindAllServiceInstances(
+  const {
+    data: instancesData,
+    isLoading: instancesLoading,
+    error: instancesError,
+    refetch: refetchInstances,
+  } = useFindAllServiceInstances(
     { page: 0, size: 100 },
     { query: { staleTime: 60_000 } }
   );
 
-  const { data: driftsData, isLoading: driftsLoading, error: driftsError } = useFindAllDriftEvents(
-    { status: 'DETECTED', page: 0, size: 100 },
+  const {
+    data: driftsData,
+    isLoading: driftsLoading,
+    error: driftsError,
+    refetch: refetchDrifts,
+  } = useFindAllDriftEvents(
+    { status: "DETECTED", page: 0, size: 100 },
     { query: { staleTime: 30_000 } }
   );
 
-  const { data: approvalsData, isLoading: approvalsLoading, error: approvalsError } = useFindAllApprovalRequests(
-    { status: 'PENDING', page: 0, size: 100 },
+  const {
+    data: approvalsData,
+    isLoading: approvalsLoading,
+    error: approvalsError,
+    refetch: refetchApprovals,
+  } = useFindAllApprovalRequests(
+    { status: "PENDING", page: 0, size: 100 },
     { query: { staleTime: 30_000 } }
   );
 
-  const isLoading = servicesLoading || instancesLoading || driftsLoading || approvalsLoading;
-  const hasError = servicesError || instancesError || driftsError || approvalsError;
+  const isLoading =
+    servicesLoading || instancesLoading || driftsLoading || approvalsLoading;
+  const hasError =
+    servicesError || instancesError || driftsError || approvalsError;
+
+  const handleRefresh = async () => {
+    await Promise.all([
+      refetchServices(),
+      refetchInstances(),
+      refetchDrifts(),
+      refetchApprovals(),
+    ]);
+    setLastUpdated(new Date());
+  };
 
   // Calculate statistics from real data
   const statsData = useMemo(() => {
@@ -65,9 +100,9 @@ export default function DashboardPage() {
   const serviceDistributionData = useMemo(() => {
     const services = servicesData?.items || [];
     const teamCounts: Record<string, number> = {};
-    
+
     services.forEach((service) => {
-      const team = service.ownerTeamId || 'Unknown';
+      const team = service.ownerTeamId || "Unknown";
       teamCounts[team] = (teamCounts[team] || 0) + 1;
     });
 
@@ -75,7 +110,9 @@ export default function DashboardPage() {
       .map(([name, value], index) => ({
         name,
         value,
-        color: ['#2563eb', '#60a5fa', '#93c5fd', '#dbeafe', '#bfdbfe'][index % 5],
+        color: ["#2563eb", "#60a5fa", "#93c5fd", "#dbeafe", "#bfdbfe"][
+          index % 5
+        ],
       }))
       .slice(0, 5); // Top 5 teams
   }, [servicesData]);
@@ -83,46 +120,60 @@ export default function DashboardPage() {
   const instanceStatusData = useMemo(() => {
     const instances = instancesData?.items || [];
     const statusCounts: Record<string, number> = {};
-    
+
     instances.forEach((instance) => {
-      const status = instance.status || 'UNKNOWN';
+      const status = instance.status || "UNKNOWN";
       statusCounts[status] = (statusCounts[status] || 0) + 1;
     });
 
     return [
-      { name: 'HEALTHY', value: statusCounts.HEALTHY || 0, color: '#10b981' },
-      { name: 'UNHEALTHY', value: statusCounts.UNHEALTHY || 0, color: '#ef4444' },
-      { name: 'DRIFT', value: statusCounts.DRIFT || 0, color: '#f59e0b' },
-      { name: 'UNKNOWN', value: statusCounts.UNKNOWN || 0, color: '#6b7280' },
+      { name: "HEALTHY", value: statusCounts.HEALTHY || 0, color: "#10b981" },
+      {
+        name: "UNHEALTHY",
+        value: statusCounts.UNHEALTHY || 0,
+        color: "#ef4444",
+      },
+      { name: "DRIFT", value: statusCounts.DRIFT || 0, color: "#f59e0b" },
+      { name: "UNKNOWN", value: statusCounts.UNKNOWN || 0, color: "#6b7280" },
     ].filter((item) => item.value > 0);
   }, [instancesData]);
 
   const driftEventsData = useMemo(() => {
     const drifts = driftsData?.items || [];
-    
+
     // Group by date (last 7 days) and severity
-    const dates: Record<string, { critical: number; high: number; medium: number; low: number }> = {};
+    const dates: Record<
+      string,
+      { critical: number; high: number; medium: number; low: number }
+    > = {};
     const today = new Date();
-    
+
     for (let i = 6; i >= 0; i--) {
       const date = new Date(today);
       date.setDate(date.getDate() - i);
-      const dateStr = date.toISOString().split('T')[0];
+      const dateStr = date.toISOString().split("T")[0];
       dates[dateStr] = { critical: 0, high: 0, medium: 0, low: 0 };
     }
 
     drifts.forEach((drift) => {
       if (drift.detectedAt) {
-        const dateStr = drift.detectedAt.split('T')[0];
+        const dateStr = drift.detectedAt.split("T")[0];
         if (dates[dateStr] !== undefined) {
-          const severity = (drift.severity || 'LOW').toLowerCase() as 'critical' | 'high' | 'medium' | 'low';
+          const severity = (drift.severity || "LOW").toLowerCase() as
+            | "critical"
+            | "high"
+            | "medium"
+            | "low";
           dates[dateStr][severity] = (dates[dateStr][severity] || 0) + 1;
         }
       }
     });
 
     return Object.entries(dates).map(([date, severities]) => ({
-      date: new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      date: new Date(date).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      }),
       critical: severities.critical,
       high: severities.high,
       medium: severities.medium,
@@ -136,27 +187,34 @@ export default function DashboardPage() {
     // Add recent approvals
     (approvalsData?.items || []).slice(0, 3).forEach((approval) => {
       activities.push({
-        type: 'approval',
-        message: `Approval request for ${approval.target?.serviceId || 'service'} - ${approval.status}`,
+        type: "approval",
+        message: `Approval request for ${
+          approval.target?.serviceId || "service"
+        } - ${approval.status}`,
         timestamp: approval.createdAt || new Date().toISOString(),
-        icon: 'assignment',
+        icon: "assignment",
       });
     });
 
     // Add recent drift events
     (driftsData?.items || []).slice(0, 3).forEach((drift) => {
       activities.push({
-        type: 'drift',
-        message: `Drift detected on ${drift.serviceName} instance ${drift.instanceId?.substring(0, 8)}`,
+        type: "drift",
+        message: `Drift detected on ${
+          drift.serviceName
+        } instance ${drift.instanceId?.substring(0, 8)}`,
         timestamp: drift.detectedAt || new Date().toISOString(),
-        icon: 'warning',
+        icon: "warning",
       });
     });
 
     // Sort by timestamp descending
-    return activities.sort((a, b) => 
-      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-    ).slice(0, 10);
+    return activities
+      .sort(
+        (a, b) =>
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      )
+      .slice(0, 10);
   }, [approvalsData, driftsData]);
 
   if (isLoading) {
@@ -166,7 +224,10 @@ export default function DashboardPage() {
   if (hasError) {
     return (
       <Box>
-        <PageHeader title="Dashboard" subtitle="Overview of services and system health" />
+        <PageHeader
+          title="Dashboard"
+          subtitle="Overview of services and system health"
+        />
         <Alert severity="error" sx={{ m: 3 }}>
           Failed to load dashboard data. Please try refreshing the page.
         </Alert>
@@ -179,6 +240,21 @@ export default function DashboardPage() {
       <PageHeader
         title="Dashboard"
         subtitle="Overview of services and system health"
+        actions={
+          <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
+            <Typography variant="caption" color="text.secondary">
+              Last updated: {lastUpdated.toLocaleTimeString()}
+            </Typography>
+            <Button
+              variant="outlined"
+              startIcon={<RefreshIcon />}
+              onClick={handleRefresh}
+              disabled={isLoading}
+            >
+              Refresh
+            </Button>
+          </Box>
+        }
       />
 
       {/* Stats Cards */}

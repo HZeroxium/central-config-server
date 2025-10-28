@@ -14,7 +14,8 @@ import java.time.Duration;
  * Health check utilities for E2E tests.
  * <p>
  * Provides methods to wait for services to be ready before running tests.
- * Includes health checks for Keycloak, config-control-service, and other dependencies.
+ * Includes health checks for Keycloak, config-control-service, and other
+ * dependencies.
  * </p>
  */
 @Slf4j
@@ -39,14 +40,14 @@ public class HealthCheckClient {
      * @throws RuntimeException if Keycloak doesn't become ready within timeout
      */
     public void waitForKeycloak() {
-        String keycloakUrl = String.format("%s/realms/%s", 
+        String keycloakUrl = String.format("%s/realms/%s",
                 config.getKeycloakBaseUrl(), config.getKeycloakRealm());
-        
+
         log.info("Waiting for Keycloak at: {}", keycloakUrl);
         waitForService("Keycloak", keycloakUrl, 200);
         log.info("Keycloak is ready");
-        
-        Allure.addAttachment("Health Check", "text/plain", 
+
+        Allure.addAttachment("Health Check", "text/plain",
                 String.format("Keycloak ready at: %s", keycloakUrl));
     }
 
@@ -60,12 +61,12 @@ public class HealthCheckClient {
      */
     public void waitForConfigControlService() {
         String serviceUrl = config.getApiBaseUrl().replace("/api", "") + "/actuator/health";
-        
+
         log.info("Waiting for config-control-service at: {}", serviceUrl);
         waitForService("Config Control Service", serviceUrl, 200);
         log.info("Config Control Service is ready");
-        
-        Allure.addAttachment("Health Check", "text/plain", 
+
+        Allure.addAttachment("Health Check", "text/plain",
                 String.format("Config Control Service ready at: %s", serviceUrl));
     }
 
@@ -78,18 +79,18 @@ public class HealthCheckClient {
      */
     public void waitForAllServices() {
         log.info("Starting health checks for all services...");
-        
+
         try {
             waitForKeycloak();
             waitForConfigControlService();
             log.info("All services are ready");
-            
-            Allure.addAttachment("Health Check Summary", "text/plain", 
+
+            Allure.addAttachment("Health Check Summary", "text/plain",
                     "All required services are ready and healthy");
-                    
+
         } catch (Exception e) {
             log.error("Health check failed", e);
-            Allure.addAttachment("Health Check Failure", "text/plain", 
+            Allure.addAttachment("Health Check Failure", "text/plain",
                     String.format("Health check failed: %s", e.getMessage()));
             throw e;
         }
@@ -98,14 +99,14 @@ public class HealthCheckClient {
     /**
      * Wait for a service to be ready by checking HTTP endpoint.
      *
-     * @param serviceName name of the service for logging
-     * @param url URL to check
+     * @param serviceName        name of the service for logging
+     * @param url                URL to check
      * @param expectedStatusCode expected HTTP status code
      * @throws RuntimeException if service doesn't become ready within timeout
      */
     private void waitForService(String serviceName, String url, int expectedStatusCode) {
         int maxAttempts = config.getHealthCheckTimeoutSeconds() / config.getHealthCheckIntervalSeconds();
-        
+
         for (int attempt = 1; attempt <= maxAttempts; attempt++) {
             try {
                 HttpRequest request = HttpRequest.newBuilder()
@@ -115,20 +116,20 @@ public class HealthCheckClient {
                         .build();
 
                 HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-                
+
                 if (response.statusCode() == expectedStatusCode) {
                     log.debug("{} is ready (attempt {}/{})", serviceName, attempt, maxAttempts);
                     return;
                 }
-                
-                log.debug("{} not ready yet: HTTP {} (attempt {}/{})", 
+
+                log.debug("{} not ready yet: HTTP {} (attempt {}/{})",
                         serviceName, response.statusCode(), attempt, maxAttempts);
-                        
+
             } catch (Exception e) {
-                log.debug("{} not ready yet: {} (attempt {}/{})", 
+                log.debug("{} not ready yet: {} (attempt {}/{})",
                         serviceName, e.getMessage(), attempt, maxAttempts);
             }
-            
+
             if (attempt < maxAttempts) {
                 try {
                     Thread.sleep(config.getHealthCheckIntervalSeconds() * 1000L);
@@ -138,16 +139,16 @@ public class HealthCheckClient {
                 }
             }
         }
-        
+
         throw new RuntimeException(String.format(
-                "%s did not become ready within %d seconds", 
+                "%s did not become ready within %d seconds",
                 serviceName, config.getHealthCheckTimeoutSeconds()));
     }
 
     /**
      * Check if a service is currently healthy without waiting.
      *
-     * @param url URL to check
+     * @param url                URL to check
      * @param expectedStatusCode expected HTTP status code
      * @return true if service is healthy, false otherwise
      */
@@ -161,7 +162,7 @@ public class HealthCheckClient {
 
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             return response.statusCode() == expectedStatusCode;
-            
+
         } catch (Exception e) {
             log.debug("Service health check failed: {}", e.getMessage());
             return false;
@@ -174,7 +175,7 @@ public class HealthCheckClient {
      * @return true if Keycloak is healthy, false otherwise
      */
     public boolean isKeycloakHealthy() {
-        String keycloakUrl = String.format("%s/realms/%s", 
+        String keycloakUrl = String.format("%s/realms/%s",
                 config.getKeycloakBaseUrl(), config.getKeycloakRealm());
         return isServiceHealthy(keycloakUrl, 200);
     }

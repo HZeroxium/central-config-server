@@ -39,7 +39,7 @@ public class ApiClient {
                     .contentType(ContentType.JSON)
                     .accept(ContentType.JSON)
                     .filter(new AllureRestAssured());
-            
+
             log.info("REST Assured initialized with base URI: {}", config.getApiBaseUrl());
             initialized = true;
         }
@@ -186,24 +186,24 @@ public class ApiClient {
     /**
      * Execute a request with logging and Allure reporting.
      *
-     * @param spec the request specification
+     * @param spec   the request specification
      * @param method the HTTP method
-     * @param path the request path
-     * @param body the request body
+     * @param path   the request path
+     * @param body   the request body
      * @return Response object
      */
     private static Response executeRequest(RequestSpecification spec, String method, String path, Object body) {
         Instant startTime = Instant.now();
-        
+
         log.debug("Executing {} {} {}", method, config.getApiBaseUrl(), path);
-        
+
         try {
             RequestSpecification requestSpec = spec;
-            
+
             if (body != null) {
                 requestSpec = requestSpec.body(body);
             }
-            
+
             Response response = switch (method.toUpperCase()) {
                 case "GET" -> requestSpec.get(path);
                 case "POST" -> requestSpec.post(path);
@@ -212,32 +212,32 @@ public class ApiClient {
                 case "PATCH" -> requestSpec.patch(path);
                 default -> throw new IllegalArgumentException("Unsupported HTTP method: " + method);
             };
-            
+
             Duration duration = Duration.between(startTime, Instant.now());
-            
-            log.debug("Request completed: {} {} - Status: {} - Duration: {}ms", 
+
+            log.debug("Request completed: {} {} - Status: {} - Duration: {}ms",
                     method, path, response.getStatusCode(), duration.toMillis());
-            
+
             // Add request/response details to Allure
-            Allure.addAttachment("Request Details", "text/plain", 
-                    String.format("Method: %s\nPath: %s\nBody: %s\nDuration: %dms", 
+            Allure.addAttachment("Request Details", "text/plain",
+                    String.format("Method: %s\nPath: %s\nBody: %s\nDuration: %dms",
                             method, path, body, duration.toMillis()));
-            
-            Allure.addAttachment("Response Details", "text/plain", 
-                    String.format("Status: %d\nBody: %s", 
+
+            Allure.addAttachment("Response Details", "text/plain",
+                    String.format("Status: %d\nBody: %s",
                             response.getStatusCode(), response.getBody().asString()));
-            
+
             return response;
-            
+
         } catch (Exception e) {
             Duration duration = Duration.between(startTime, Instant.now());
-            log.error("Request failed: {} {} - Duration: {}ms - Error: {}", 
+            log.error("Request failed: {} {} - Duration: {}ms - Error: {}",
                     method, path, duration.toMillis(), e.getMessage());
-            
-            Allure.addAttachment("Request Failure", "text/plain", 
-                    String.format("Method: %s\nPath: %s\nError: %s\nDuration: %dms", 
+
+            Allure.addAttachment("Request Failure", "text/plain",
+                    String.format("Method: %s\nPath: %s\nError: %s\nDuration: %dms",
                             method, path, e.getMessage(), duration.toMillis()));
-            
+
             throw e;
         }
     }

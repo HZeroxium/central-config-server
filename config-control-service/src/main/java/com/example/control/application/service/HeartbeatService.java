@@ -29,11 +29,11 @@ import java.util.concurrent.ConcurrentHashMap;
  * <p>
  * Its responsibilities include:
  * <ul>
- *   <li>Validating incoming heartbeat payloads</li>
- *   <li>Tracking instance liveness and metadata</li>
- *   <li>Detecting configuration drift via config hash comparison</li>
- *   <li>Auto-resolving drift once hashes realign</li>
- *   <li>Triggering /busrefresh on persistent drift</li>
+ * <li>Validating incoming heartbeat payloads</li>
+ * <li>Tracking instance liveness and metadata</li>
+ * <li>Detecting configuration drift via config hash comparison</li>
+ * <li>Auto-resolving drift once hashes realign</li>
+ * <li>Triggering /busrefresh on persistent drift</li>
  * </ul>
  * <p>
  * The service also uses in-memory exponential backoff logic to avoid
@@ -60,28 +60,30 @@ public class HeartbeatService {
    * <p>
    * The method performs multiple responsibilities:
    * <ol>
-   *   <li>Validate input payload</li>
-   *   <li>Retrieve or create instance record</li>
-   *   <li>Update metadata and timestamps</li>
-   *   <li>Compare applied config hash (from instance) with expected hash (from Config Server)</li>
-   *   <li>Detect drift, create events, and trigger refresh with exponential backoff</li>
-   *   <li>Persist the final state to MongoDB</li>
+   * <li>Validate input payload</li>
+   * <li>Retrieve or create instance record</li>
+   * <li>Update metadata and timestamps</li>
+   * <li>Compare applied config hash (from instance) with expected hash (from
+   * Config Server)</li>
+   * <li>Detect drift, create events, and trigger refresh with exponential
+   * backoff</li>
+   * <li>Persist the final state to MongoDB</li>
    * </ol>
    * <p>
-   * Caching for `service-instances` and `drift-events` is evicted on each heartbeat
+   * Caching for `service-instances` and `drift-events` is evicted on each
+   * heartbeat
    * to ensure fresh state for monitoring dashboards.
    *
    * @param payload validated heartbeat payload
    * @return updated {@link ServiceInstance} representing the current state
    */
   @Transactional
-  @CacheEvict(value = {"service-instances", "drift-events"}, allEntries = true)
+  @CacheEvict(value = { "service-instances", "drift-events" }, allEntries = true)
   @Timed("config_control.heartbeat.process")
   @Observed(name = "heartbeat.process", contextualName = "process-heartbeat")
   public ServiceInstance processHeartbeat(
       @SpanTag("service.name") HeartbeatPayload payload) {
     log.debug("Processing heartbeat from {}:{}", payload.getServiceName(), payload.getInstanceId());
-    
 
     // 1️⃣ Validate payload (basic sanity checks)
     validateHeartbeatPayload(payload);
@@ -89,12 +91,12 @@ public class HeartbeatService {
     String id = payload.getServiceName() + ":" + payload.getInstanceId();
 
     // 2️⃣ Load or initialize ServiceInstance domain object
-           ServiceInstance instance = serviceInstanceService
-                .findById(ServiceInstanceId.of(payload.getInstanceId()))
-               .orElse(ServiceInstance.builder()
-                   .id(ServiceInstanceId.of(payload.getInstanceId()))
-                   .status(ServiceInstance.InstanceStatus.HEALTHY)
-                   .build());
+    ServiceInstance instance = serviceInstanceService
+        .findById(ServiceInstanceId.of(payload.getInstanceId()))
+        .orElse(ServiceInstance.builder()
+            .id(ServiceInstanceId.of(payload.getInstanceId()))
+            .status(ServiceInstance.InstanceStatus.HEALTHY)
+            .build());
 
     Instant now = Instant.now();
 
@@ -102,22 +104,23 @@ public class HeartbeatService {
     if (instance.getCreatedAt() == null) {
       instance.setCreatedAt(now);
       log.info("New service instance registered: {}", id);
-      
+
       // Auto-populate serviceId and teamId by looking up ApplicationService
       if (instance.getServiceId() == null || instance.getTeamId() == null) {
         try {
           // Use efficient O(1) lookup by display name, auto-create orphaned if not found
           ApplicationService appService = applicationServiceService.findOrCreateByDisplayName(payload.getServiceName());
-          
+
           instance.setServiceId(appService.getId().id());
           instance.setTeamId(appService.getOwnerTeamId()); // May be null for orphaned services
-          
+
           if (appService.getOwnerTeamId() == null) {
-            log.warn("Auto-linked instance {} to orphaned ApplicationService {} - requires approval workflow for team assignment", 
-                     id, appService.getId());
+            log.warn(
+                "Auto-linked instance {} to orphaned ApplicationService {} - requires approval workflow for team assignment",
+                id, appService.getId());
           } else {
-            log.info("Auto-populated serviceId={} and teamId={} for instance {}", 
-                     appService.getId().id(), appService.getOwnerTeamId(), id);
+            log.info("Auto-populated serviceId={} and teamId={} for instance {}",
+                appService.getId().id(), appService.getOwnerTeamId(), id);
           }
         } catch (Exception e) {
           log.warn("Failed to auto-populate serviceId and teamId for instance {}: {}", id, e.getMessage());
@@ -168,13 +171,11 @@ public class HeartbeatService {
       instance.setConfigHash(expectedHash);
       instance.setStatus(ServiceInstance.InstanceStatus.DRIFT);
 
-
       // Create a drift event record for observability
       createDriftEvent(payload, expectedHash, instance);
 
       // Trigger /busrefresh to resync configuration
       triggerRefreshForInstance(payload.getServiceName(), payload.getInstanceId());
-      
 
       // Initialize retry counters for exponential backoff
       driftRetryCount.put(id, 1);
@@ -183,37 +184,39 @@ public class HeartbeatService {
     } else if (!hasDrift && Boolean.TRUE.equals(instance.getHasDrift())) {
       /** Case B: Drift resolved - config hash now matches expected */
       log.info("Configuration drift resolved for {}", id);
-      
+
       instance.setHasDrift(false);
       instance.setDriftDetectedAt(null);
       instance.setStatus(ServiceInstance.InstanceStatus.HEALTHY);
       instance.setExpectedHash(expectedHash); // Update expectedHash for future comparisons
-      
+
       // Auto-resolve all unresolved drift events for this instance
-      // Resolution is scoped by serviceName + instanceId (environment-agnostic as per policy)
+      // Resolution is scoped by serviceName + instanceId (environment-agnostic as per
+      // policy)
       driftEventService.resolveForInstance(
-          payload.getServiceName(), 
-          payload.getInstanceId(), 
-          "heartbeat-service"
-      );
-      
+          payload.getServiceName(),
+          payload.getInstanceId(),
+          "heartbeat-service");
+
       driftRetryCount.remove(id);
       driftBackoffPow.remove(id);
 
     } else if (!hasDrift && !Boolean.TRUE.equals(instance.getHasDrift())) {
-      /** Case C: Normal steady-state heartbeat - ensure any orphaned events are resolved */
+      /**
+       * Case C: Normal steady-state heartbeat - ensure any orphaned events are
+       * resolved
+       */
       if (instance.getStatus() != ServiceInstance.InstanceStatus.HEALTHY) {
         instance.setStatus(ServiceInstance.InstanceStatus.HEALTHY);
       }
       instance.setExpectedHash(expectedHash);
-      
+
       // Resolve any orphaned DETECTED events from previous sessions
       driftEventService.resolveForInstance(
-          payload.getServiceName(), 
-          payload.getInstanceId(), 
-          "heartbeat-service"
-      );
-      
+          payload.getServiceName(),
+          payload.getInstanceId(),
+          "heartbeat-service");
+
       driftRetryCount.remove(id);
       driftBackoffPow.remove(id);
 
@@ -226,8 +229,7 @@ public class HeartbeatService {
         log.warn("Persistent drift for {} after {} heartbeats (threshold {}). Re-triggering refresh.",
             id, count, threshold);
         triggerRefreshForInstance(payload.getServiceName(), payload.getInstanceId());
-        
-        
+
         driftRetryCount.put(id, 0);
         driftBackoffPow.put(id, Math.min(pow + 1, 4));
       }
@@ -253,7 +255,7 @@ public class HeartbeatService {
         .serviceName(payload.getServiceName())
         .instanceId(payload.getInstanceId())
         .serviceId(instance.getServiceId()) // Populate from instance
-        .teamId(instance.getTeamId())       // Populate from instance
+        .teamId(instance.getTeamId()) // Populate from instance
         .environment(instance.getEnvironment()) // Populate from instance
         .expectedHash(expectedHash)
         .appliedHash(payload.getConfigHash())
@@ -268,7 +270,8 @@ public class HeartbeatService {
   }
 
   /**
-   * Invokes Config Server’s /busrefresh endpoint to trigger a refresh event for a given instance.
+   * Invokes Config Server’s /busrefresh endpoint to trigger a refresh event for a
+   * given instance.
    *
    * @param serviceName service identifier
    * @param instanceId  instance identifier

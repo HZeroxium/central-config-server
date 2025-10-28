@@ -48,25 +48,25 @@ public abstract class BaseE2ETest {
     @Description("Initialize test environment with health checks and authentication tokens")
     void setUpTestEnvironment() {
         log.info("Setting up E2E test environment for: {}", getClass().getSimpleName());
-        
+
         try {
             // Wait for all services to be ready
             waitForServices();
-            
+
             // Acquire authentication tokens
             acquireTokens();
-            
+
             log.info("E2E test environment setup completed successfully");
-            
-            Allure.addAttachment("Test Environment", "text/plain", 
-                    String.format("Test Class: %s\nSetup Time: %s\nAPI Base URL: %s", 
-                            getClass().getSimpleName(), 
-                            Instant.now(), 
+
+            Allure.addAttachment("Test Environment", "text/plain",
+                    String.format("Test Class: %s\nSetup Time: %s\nAPI Base URL: %s",
+                            getClass().getSimpleName(),
+                            Instant.now(),
                             config.getApiBaseUrl()));
-                            
+
         } catch (Exception e) {
             log.error("Failed to setup E2E test environment", e);
-            Allure.addAttachment("Setup Failure", "text/plain", 
+            Allure.addAttachment("Setup Failure", "text/plain",
                     String.format("Setup failed: %s", e.getMessage()));
             throw e;
         }
@@ -84,23 +84,23 @@ public abstract class BaseE2ETest {
     @Description("Clean up test environment and clear cached resources")
     void tearDownTestEnvironment() {
         log.info("Cleaning up E2E test environment for: {}", getClass().getSimpleName());
-        
+
         try {
             // Clear token cache
             if (config.isTestDataCleanupEnabled()) {
                 tokenManager.clearCache();
                 log.debug("Token cache cleared");
             }
-            
+
             log.info("E2E test environment cleanup completed");
-            
-            Allure.addAttachment("Test Environment Cleanup", "text/plain", 
-                    String.format("Test Class: %s\nCleanup Time: %s", 
+
+            Allure.addAttachment("Test Environment Cleanup", "text/plain",
+                    String.format("Test Class: %s\nCleanup Time: %s",
                             getClass().getSimpleName(), Instant.now()));
-                            
+
         } catch (Exception e) {
             log.warn("Error during test environment cleanup", e);
-            Allure.addAttachment("Cleanup Warning", "text/plain", 
+            Allure.addAttachment("Cleanup Warning", "text/plain",
                     String.format("Cleanup warning: %s", e.getMessage()));
         }
     }
@@ -129,7 +129,7 @@ public abstract class BaseE2ETest {
     @Description("Acquire authentication tokens for all test users")
     private void acquireTokens() {
         log.info("Acquiring authentication tokens...");
-        
+
         try {
             adminToken = tokenManager.getAdminToken();
             user1Token = tokenManager.getUser1Token();
@@ -137,13 +137,13 @@ public abstract class BaseE2ETest {
             user3Token = tokenManager.getUser3Token();
             user4Token = tokenManager.getUser4Token();
             user5Token = tokenManager.getUser5Token();
-            
+
             log.info("Authentication tokens acquired successfully");
-            
-            Allure.addAttachment("Token Acquisition", "text/plain", 
-                    String.format("Tokens acquired for: admin, user1, user2, user3, user4, user5\nTime: %s", 
+
+            Allure.addAttachment("Token Acquisition", "text/plain",
+                    String.format("Tokens acquired for: admin, user1, user2, user3, user4, user5\nTime: %s",
                             Instant.now()));
-                            
+
         } catch (Exception e) {
             log.error("Failed to acquire authentication tokens", e);
             throw new RuntimeException("Token acquisition failed", e);
@@ -234,14 +234,14 @@ public abstract class BaseE2ETest {
     /**
      * Log test step for Allure reporting.
      *
-     * @param stepName the step name
+     * @param stepName        the step name
      * @param stepDescription the step description
      */
     @Step("{stepName}")
     protected void logTestStep(String stepName, String stepDescription) {
         log.info("Test Step: {} - {}", stepName, stepDescription);
-        Allure.addAttachment("Test Step", "text/plain", 
-                String.format("Step: %s\nDescription: %s\nTime: %s", 
+        Allure.addAttachment("Test Step", "text/plain",
+                String.format("Step: %s\nDescription: %s\nTime: %s",
                         stepName, stepDescription, Instant.now()));
     }
 
@@ -249,7 +249,7 @@ public abstract class BaseE2ETest {
      * Log test data for Allure reporting.
      *
      * @param dataName the data name
-     * @param data the data content
+     * @param data     the data content
      */
     protected void logTestData(String dataName, String data) {
         log.debug("Test Data: {} - {}", dataName, data);
@@ -260,7 +260,7 @@ public abstract class BaseE2ETest {
      * Log test result for Allure reporting.
      *
      * @param resultName the result name
-     * @param result the result content
+     * @param result     the result content
      */
     protected void logTestResult(String resultName, String result) {
         log.info("Test Result: {} - {}", resultName, result);

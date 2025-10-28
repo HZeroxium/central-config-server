@@ -1,28 +1,88 @@
-import React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Box, Button, Typography, Alert, Divider } from '@mui/material';
-import Grid from '@mui/material/Grid';
-import { ArrowBack as BackIcon } from '@mui/icons-material';
-import { PageHeader } from '@components/common/PageHeader';
-import { SkeletonLoader } from '@components/common/SkeletonLoader';
-import { DetailCard } from '@components/common/DetailCard';
-import { DriftSeverityChip } from '../components/DriftSeverityChip';
-import { ChipStatus } from '@components/common/ChipStatus';
-import { useFindDriftEventById } from '@lib/api/hooks';
+import React, { useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import {
+  Box,
+  Button,
+  Typography,
+  Alert,
+  Divider,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  TextField,
+} from "@mui/material";
+import Grid from "@mui/material/Grid";
+import {
+  ArrowBack as BackIcon,
+  CheckCircle as ResolveIcon,
+} from "@mui/icons-material";
+import { PageHeader } from "@components/common/PageHeader";
+import { SkeletonLoader } from "@components/common/SkeletonLoader";
+import { DetailCard } from "@components/common/DetailCard";
+import { DriftSeverityChip } from "../components/DriftSeverityChip";
+import { ChipStatus } from "@components/common/ChipStatus";
+import { useFindDriftEventById, useUpdateDriftEvent } from "@lib/api/hooks";
+import { useAuth } from "@features/auth/authContext";
+import { toast } from "@lib/toast/toast";
+import { handleApiError } from "@lib/api/errorHandler";
 
 export const DriftEventDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  
-  const { data: event, isLoading, error } = useFindDriftEventById(id!, {
+  const { userInfo } = useAuth();
+  const [resolveDialogOpen, setResolveDialogOpen] = useState(false);
+  const [resolutionNotes, setResolutionNotes] = useState("");
+
+  const {
+    data: event,
+    isLoading,
+    error,
+    refetch,
+  } = useFindDriftEventById(id!, {
     query: {
       enabled: !!id,
     },
   });
 
+  const updateDriftEventMutation = useUpdateDriftEvent();
+
   const handleBack = () => {
-    navigate('/drift-events');
+    navigate("/drift-events");
   };
+
+  const handleResolve = () => {
+    setResolveDialogOpen(true);
+    setResolutionNotes("");
+  };
+
+  const handleSubmitResolve = async () => {
+    if (!id || !event) return;
+
+    updateDriftEventMutation.mutate(
+      {
+        id,
+        data: {
+          status: "RESOLVED",
+          resolvedBy: userInfo?.username || "Unknown",
+          notes: resolutionNotes || undefined,
+        },
+      },
+      {
+        onSuccess: () => {
+          toast.success("Drift event marked as resolved");
+          setResolveDialogOpen(false);
+          refetch();
+        },
+        onError: (error) => {
+          handleApiError(error);
+        },
+      }
+    );
+  };
+
+  const canResolve = event?.status === "DETECTED";
 
   if (isLoading) {
     return <SkeletonLoader variant="page" />;
@@ -34,13 +94,18 @@ export const DriftEventDetailPage: React.FC = () => {
         <PageHeader
           title="Drift Event Details"
           actions={
-            <Button variant="outlined" startIcon={<BackIcon />} onClick={handleBack}>
+            <Button
+              variant="outlined"
+              startIcon={<BackIcon />}
+              onClick={handleBack}
+            >
               Back to Drift Events
             </Button>
           }
         />
         <Alert severity="error">
-          Failed to load drift event. {error ? 'Please try again.' : 'Event not found.'}
+          Failed to load drift event.{" "}
+          {error ? "Please try again." : "Event not found."}
         </Alert>
       </Box>
     );
@@ -64,17 +129,21 @@ export const DriftEventDetailPage: React.FC = () => {
         <Grid container spacing={2}>
           <Grid size={{ xs: 12, md: 6 }}>
             <Box>
-              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+              <Typography
+                variant="subtitle2"
+                color="text.secondary"
+                gutterBottom
+              >
                 Expected Hash
               </Typography>
-              <Typography 
-                variant="body2" 
-                fontFamily="monospace" 
-                sx={{ 
-                  backgroundColor: 'success.light', 
-                  p: 1, 
+              <Typography
+                variant="body2"
+                fontFamily="monospace"
+                sx={{
+                  backgroundColor: "success.light",
+                  p: 1,
                   borderRadius: 1,
-                  wordBreak: 'break-all'
+                  wordBreak: "break-all",
                 }}
               >
                 {event.expectedHash}
@@ -83,17 +152,21 @@ export const DriftEventDetailPage: React.FC = () => {
           </Grid>
           <Grid size={{ xs: 12, md: 6 }}>
             <Box>
-              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+              <Typography
+                variant="subtitle2"
+                color="text.secondary"
+                gutterBottom
+              >
                 Applied Hash
               </Typography>
-              <Typography 
-                variant="body2" 
-                fontFamily="monospace" 
-                sx={{ 
-                  backgroundColor: 'error.light', 
-                  p: 1, 
+              <Typography
+                variant="body2"
+                fontFamily="monospace"
+                sx={{
+                  backgroundColor: "error.light",
+                  p: 1,
                   borderRadius: 1,
-                  wordBreak: 'break-all'
+                  wordBreak: "break-all",
                 }}
               >
                 {event.appliedHash}
@@ -108,14 +181,32 @@ export const DriftEventDetailPage: React.FC = () => {
   return (
     <Box>
       <PageHeader
-        title={`Drift Event: ${event.id ? event.id.substring(0, 8) + '...' : 'Details'}`}
+        title={`Drift Event: ${
+          event.id ? event.id.substring(0, 8) + "..." : "Details"
+        }`}
         actions={
-          <Button variant="outlined" startIcon={<BackIcon />} onClick={handleBack}>
-            Back to Drift Events
-          </Button>
+          <>
+            <Button
+              variant="outlined"
+              startIcon={<BackIcon />}
+              onClick={handleBack}
+            >
+              Back
+            </Button>
+            {canResolve && (
+              <Button
+                variant="contained"
+                color="success"
+                startIcon={<ResolveIcon />}
+                onClick={handleResolve}
+              >
+                Mark as Resolved
+              </Button>
+            )}
+          </>
         }
       />
-      
+
       <Grid container spacing={3}>
         <Grid size={{ xs: 12, md: 8 }}>
           <DetailCard title="Event Information">
@@ -130,7 +221,7 @@ export const DriftEventDetailPage: React.FC = () => {
                   </Typography>
                 </Box>
               </Grid>
-              
+
               <Grid size={{ xs: 12, sm: 6 }}>
                 <Box>
                   <Typography variant="subtitle2" color="text.secondary">
@@ -150,7 +241,9 @@ export const DriftEventDetailPage: React.FC = () => {
                   {event.severity ? (
                     <DriftSeverityChip severity={event.severity as any} />
                   ) : (
-                    <Typography variant="body2" color="text.secondary">N/A</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      N/A
+                    </Typography>
                   )}
                 </Box>
               </Grid>
@@ -163,7 +256,9 @@ export const DriftEventDetailPage: React.FC = () => {
                   {event.status ? (
                     <ChipStatus status={event.status as string} />
                   ) : (
-                    <Typography variant="body2" color="text.secondary">N/A</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      N/A
+                    </Typography>
                   )}
                 </Box>
               </Grid>
@@ -178,7 +273,9 @@ export const DriftEventDetailPage: React.FC = () => {
                       {formatDateTime(event.detectedAt)}
                     </Typography>
                   ) : (
-                    <Typography variant="body2" color="text.secondary">N/A</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      N/A
+                    </Typography>
                   )}
                 </Box>
               </Grid>
@@ -202,9 +299,7 @@ export const DriftEventDetailPage: React.FC = () => {
                     <Typography variant="subtitle2" color="text.secondary">
                       Notes
                     </Typography>
-                    <Typography variant="body1">
-                      {event.notes}
-                    </Typography>
+                    <Typography variant="body1">{event.notes}</Typography>
                   </Box>
                 </Grid>
               )}
@@ -223,10 +318,10 @@ export const DriftEventDetailPage: React.FC = () => {
                 Detected By
               </Typography>
               <Typography variant="body1">
-                {event.detectedBy || 'Unknown'}
+                {event.detectedBy || "Unknown"}
               </Typography>
             </Box>
-            
+
             {event.resolvedBy && (
               <>
                 <Divider sx={{ my: 2 }} />
@@ -234,15 +329,56 @@ export const DriftEventDetailPage: React.FC = () => {
                   <Typography variant="subtitle2" color="text.secondary">
                     Resolved By
                   </Typography>
-                  <Typography variant="body1">
-                    {event.resolvedBy}
-                  </Typography>
+                  <Typography variant="body1">{event.resolvedBy}</Typography>
                 </Box>
               </>
             )}
           </DetailCard>
         </Grid>
       </Grid>
+
+      {/* Resolve Dialog */}
+      <Dialog
+        open={resolveDialogOpen}
+        onClose={() => setResolveDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Mark Drift Event as Resolved</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mb: 2 }}>
+            You are about to mark this drift event as resolved. Optionally, you
+            can add notes about the resolution.
+          </DialogContentText>
+          <TextField
+            label="Resolution Notes (Optional)"
+            multiline
+            rows={4}
+            fullWidth
+            value={resolutionNotes}
+            onChange={(e) => setResolutionNotes(e.target.value)}
+            placeholder="Describe how the drift was resolved..."
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setResolveDialogOpen(false)}
+            disabled={updateDriftEventMutation.isPending}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSubmitResolve}
+            variant="contained"
+            color="success"
+            disabled={updateDriftEventMutation.isPending}
+          >
+            {updateDriftEventMutation.isPending
+              ? "Resolving..."
+              : "Mark as Resolved"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

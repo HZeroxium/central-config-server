@@ -65,7 +65,7 @@ public class AuthTokenManager {
      */
     public String getToken(String username) {
         TokenInfo cachedToken = tokenCache.get(username);
-        
+
         if (cachedToken != null && !isTokenExpiringSoon(cachedToken)) {
             log.debug("Using cached token for user: {}", username);
             return cachedToken.getAccessToken();
@@ -74,10 +74,10 @@ public class AuthTokenManager {
         log.info("Acquiring new token for user: {}", username);
         TokenInfo newToken = acquireToken(username);
         tokenCache.put(username, newToken);
-        
-        Allure.addAttachment("Token Acquisition", "text/plain", 
+
+        Allure.addAttachment("Token Acquisition", "text/plain",
                 String.format("User: %s, Token acquired at: %s", username, Instant.now()));
-        
+
         return newToken.getAccessToken();
     }
 
@@ -176,8 +176,7 @@ public class AuthTokenManager {
                 config.getKeycloakClientId(),
                 config.getKeycloakClientSecret(),
                 username,
-                password
-        );
+                password);
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(tokenUrl))
@@ -188,7 +187,7 @@ public class AuthTokenManager {
 
         try {
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            
+
             if (response.statusCode() != 200) {
                 throw new RuntimeException(String.format(
                         "Failed to acquire token for user %s: HTTP %d - %s",
@@ -198,9 +197,9 @@ public class AuthTokenManager {
             JsonNode tokenResponse = objectMapper.readTree(response.body());
             String accessToken = tokenResponse.get("access_token").asText();
             int expiresIn = tokenResponse.get("expires_in").asInt();
-            
+
             Instant expiresAt = Instant.now().plusSeconds(expiresIn);
-            
+
             log.debug("Token acquired for user: {}, expires at: {}", username, expiresAt);
             return new TokenInfo(accessToken, expiresAt);
 
