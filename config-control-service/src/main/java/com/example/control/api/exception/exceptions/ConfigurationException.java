@@ -5,16 +5,18 @@ package com.example.control.api.exception.exceptions;
  */
 public class ConfigurationException extends ConfigControlException {
 
+  private static final String ERROR_CODE = "CONFIGURATION_ERROR";
+
   public ConfigurationException(String message) {
-    super("CONFIGURATION_ERROR", message);
+    super(ERROR_CODE, message);
   }
 
   public ConfigurationException(String message, Throwable cause) {
-    super("CONFIGURATION_ERROR", message, cause);
+    super(ERROR_CODE, message, cause);
   }
 
   public ConfigurationException(String serviceName, String profile, String message) {
-    super("CONFIGURATION_ERROR", "Configuration error for service " + serviceName +
+    super(ERROR_CODE, "Configuration error for service " + serviceName +
         " (profile: " + profile + "): " + message);
   }
 }

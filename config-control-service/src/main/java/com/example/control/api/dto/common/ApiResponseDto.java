@@ -19,6 +19,10 @@ import java.util.List;
  */
 public class ApiResponseDto {
 
+  private ApiResponseDto() {
+    throw new UnsupportedOperationException("Utility class");
+  }
+
   @Data
   @Builder
   @NoArgsConstructor
@@ -26,21 +30,21 @@ public class ApiResponseDto {
   @JsonInclude(JsonInclude.Include.NON_NULL)
   @Schema(description = "Standard API response wrapper with status, message, and data")
   public static class ApiResponse<T> {
-    @Schema(description = "Response status", example = "success", allowableValues = {"success", "error"})
+    @Schema(description = "Response status", example = "success", allowableValues = { "success", "error" })
     private String status;
-    
+
     @Schema(description = "Human-readable message", example = "Operation completed successfully")
     private String message;
-    
+
     @Schema(description = "Response data payload")
     private T data;
-    
+
     @Schema(description = "Timestamp in milliseconds since epoch", example = "1705312245123")
     private Long timestamp;
-    
+
     @Schema(description = "Trace ID for correlation", example = "550e8400-e29b-41d4-a716-446655440000")
     private String traceId;
-    
+
     @Schema(description = "List of error messages (for error responses)")
     private List<String> errors;
 
@@ -88,19 +92,19 @@ public class ApiResponseDto {
   public static class PaginatedResponse<T> {
     @Schema(description = "List of items in current page")
     private List<T> items;
-    
+
     @Schema(description = "Total number of items across all pages", example = "150")
     private Long totalCount;
-    
+
     @Schema(description = "Current page number (0-based)", example = "0")
     private Integer page;
-    
+
     @Schema(description = "Number of items per page", example = "20")
     private Integer size;
-    
+
     @Schema(description = "Whether there are more pages available", example = "true")
     private Boolean hasNext;
-    
+
     @Schema(description = "Whether there are previous pages available", example = "false")
     private Boolean hasPrevious;
   }

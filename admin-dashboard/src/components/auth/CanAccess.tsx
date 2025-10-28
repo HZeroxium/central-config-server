@@ -85,7 +85,7 @@ export default function CanAccess({
   children,
   fallback = null,
   showDisabled = false,
-}: CanAccessProps) {
+}: Readonly<CanAccessProps>) {
   const permissions = usePermissions();
   const { hasRole } = useAuth();
 

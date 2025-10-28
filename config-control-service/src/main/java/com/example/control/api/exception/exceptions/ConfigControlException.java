@@ -6,7 +6,7 @@ package com.example.control.api.exception.exceptions;
 public class ConfigControlException extends RuntimeException {
 
   private final String errorCode;
-  private final Object[] args;
+  private final transient Object[] args;
 
   public ConfigControlException(String message) {
     super(message);

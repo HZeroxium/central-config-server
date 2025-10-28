@@ -20,6 +20,10 @@ import java.util.List;
 @Schema(name = "IamTeamDtos", description = "DTOs for IAM team API operations")
 public class IamTeamDtos {
 
+    private IamTeamDtos() {
+        throw new UnsupportedOperationException("Utility class");
+    }
+
     /**
      * Response DTO for IAM team.
      */

@@ -26,6 +26,10 @@ import java.util.Map;
 @Schema(name = "ServiceInstanceDtos", description = "DTOs for ServiceInstance API operations")
 public class ServiceInstanceDtos {
 
+  private ServiceInstanceDtos() {
+    throw new UnsupportedOperationException("Utility class - do not instantiate");
+  }
+
   @Data
   @Builder
   @NoArgsConstructor

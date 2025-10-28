@@ -145,7 +145,7 @@ export default function ApplicationServiceListPage() {
     setSelectedServiceName("");
   };
 
-  const handleClaimSuccess = (_requestId: string) => {
+  const handleClaimSuccess = () => {
     toast.success("Ownership request submitted successfully");
     refetch();
   };

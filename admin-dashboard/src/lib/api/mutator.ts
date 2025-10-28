@@ -1,11 +1,17 @@
 // src/lib/api/mutator.ts
-import axios, { type AxiosRequestConfig, type AxiosResponse } from 'axios';
-import { keycloak } from '@lib/keycloak/keycloakConfig';
+import axios, { type AxiosRequestConfig, type AxiosResponse } from "axios";
+import { keycloak } from "@lib/keycloak/keycloakConfig";
+
+// Use environment variable for API base URL
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:8081";
+
+console.log("API Base URL:", API_BASE_URL);
 
 const axiosInstance = axios.create({
-  // baseURL: '/api',
+  baseURL: API_BASE_URL,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
@@ -18,14 +24,19 @@ axiosInstance.interceptors.request.use(
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) =>
+    Promise.reject(error instanceof Error ? error : new Error(String(error)))
 );
 
 // Response interceptor với auto-unwrapping
 axiosInstance.interceptors.response.use(
   (response: AxiosResponse) => {
     // Auto-unwrap ApiResponse wrapper
-    if (response.data && typeof response.data === 'object' && 'data' in response.data) {
+    if (
+      response.data &&
+      typeof response.data === "object" &&
+      "data" in response.data
+    ) {
       return {
         ...response,
         data: response.data.data, // Unwrap the data
@@ -34,7 +45,7 @@ axiosInstance.interceptors.response.use(
           message: response.data.message,
           timestamp: response.data.timestamp,
           traceId: response.data.traceId,
-        }
+        },
       };
     }
     return response;
@@ -43,13 +54,15 @@ axiosInstance.interceptors.response.use(
     if (error.response?.status === 401) {
       keycloak?.login();
     }
-    return Promise.reject(error);
+    return Promise.reject(
+      error instanceof Error ? error : new Error(String(error))
+    );
   }
 );
 
 export const customInstance = <T>(
   config: AxiosRequestConfig,
-  options?: AxiosRequestConfig,
+  options?: AxiosRequestConfig
 ): Promise<T> => {
   return axiosInstance({
     ...config,

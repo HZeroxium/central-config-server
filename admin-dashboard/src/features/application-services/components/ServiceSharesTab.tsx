@@ -226,7 +226,7 @@ export const ServiceSharesTab: React.FC<ServiceSharesTabProps> = ({
                             <IconButton
                               size="small"
                               color="error"
-                              onClick={() => handleRevokeShare(share.id)}
+                              onClick={() => handleRevokeShare(share.id || "")}
                             >
                               <RevokeIcon fontSize="small" />
                             </IconButton>

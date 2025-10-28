@@ -45,6 +45,8 @@ export default function ConfigDetailCard({
 }>) {
   const [copiedProperty, setCopiedProperty] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("accordion");
+  const [isEditingFinal, setIsEditingFinal] = useState(false);
+  const [editedFinalYaml, setEditedFinalYaml] = useState("");
 
   // Logic merge properties to create Final Source
   const finalProperties = useMemo(() => {
@@ -63,6 +65,22 @@ export default function ConfigDetailCard({
 
     return merged;
   }, [env.propertySources]);
+
+  const handleEditFinal = () => {
+    setEditedFinalYaml(yaml.stringify(finalProperties, { indent: 2 }));
+    setIsEditingFinal(true);
+  };
+
+  const handleSaveFinal = () => {
+    // TODO: Implement save logic to backend
+    console.log("Saving edited YAML:", editedFinalYaml);
+    setIsEditingFinal(false);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditingFinal(false);
+    setEditedFinalYaml("");
+  };
 
   const copyToClipboard = async (text: string, propertyKey?: string) => {
     try {

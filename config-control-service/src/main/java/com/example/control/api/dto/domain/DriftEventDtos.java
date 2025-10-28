@@ -24,6 +24,10 @@ import java.time.Instant;
 @Schema(name = "DriftEventDtos", description = "DTOs for DriftEvent API operations")
 public class DriftEventDtos {
 
+  private DriftEventDtos() {
+    throw new UnsupportedOperationException("Utility class");
+  }
+
   @Data
   @Builder
   @NoArgsConstructor
@@ -125,6 +129,9 @@ public class DriftEventDtos {
 
     @Schema(description = "Applied configuration hash", example = "def456ghi789")
     private String appliedHash;
+
+    @Schema(description = "Environment where drift occurred", example = "development")
+    private String environment;
 
     @Schema(description = "Drift severity level", example = "HIGH", allowableValues = { "LOW", "MEDIUM", "HIGH",
         "CRITICAL" })

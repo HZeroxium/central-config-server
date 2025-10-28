@@ -4,16 +4,15 @@ import {
   type UseFormReturn,
   type FieldValues,
   type Path,
-  type Resolver,
 } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AxiosError } from "axios";
 import type { ErrorResponse } from "@lib/api/models";
-import type { FormSchema } from "@lib/api/types";
+import type { ZodType } from "zod";
 
 interface UseFormWithValidationProps<TFormValues extends FieldValues>
   extends Omit<UseFormProps<TFormValues>, "resolver"> {
-  schema: FormSchema;
+  schema: ZodType<TFormValues>;
 }
 
 interface UseFormWithValidationReturn<TFormValues extends FieldValues>
@@ -30,9 +29,11 @@ export function useFormWithValidation<TFormValues extends FieldValues>(
 ): UseFormWithValidationReturn<TFormValues> {
   const { schema, ...formProps } = props;
 
+  // Type assertion needed due to zod v4 and resolver compatibility
   const form = useForm<TFormValues>({
     ...formProps,
-    resolver: zodResolver(schema) as Resolver<TFormValues>,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(schema as any) as any,
   });
 
   /**
@@ -110,5 +111,5 @@ export function getServerErrorMessages<TFormValues extends FieldValues>(
   return Object.values(errors)
     .filter((error) => error && error.type === "server")
     .map((error) => error?.message || "Server error")
-    .filter((msg): msg is string => Boolean(msg));
+    .filter(Boolean) as string[];
 }

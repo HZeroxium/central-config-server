@@ -20,6 +20,10 @@ import java.util.List;
 @Schema(name = "IamUserDtos", description = "DTOs for IAM user API operations")
 public class IamUserDtos {
 
+    private IamUserDtos() {
+        throw new UnsupportedOperationException("Utility class");
+    }
+
     /**
      * Response DTO for IAM user.
      */

@@ -107,20 +107,19 @@ export default function ApplicationServiceDetailPage() {
     );
 
   // Fetch service shares
-  const { data: _sharesDataRaw, refetch: refetchShares } =
-    useFindAllServiceShares(
-      {
-        serviceId: id,
-        page: 0,
-        size: 100,
+  const { refetch: refetchShares } = useFindAllServiceShares(
+    {
+      serviceId: id,
+      page: 0,
+      size: 100,
+    },
+    {
+      query: {
+        enabled: !!id && tabValue === 2,
+        staleTime: 15_000,
       },
-      {
-        query: {
-          enabled: !!id && tabValue === 2,
-          staleTime: 15_000,
-        },
-      }
-    );
+    }
+  );
 
   // Type assertion for shares data (unused for now - ServiceSharesTab fetches its own)
   // const sharesData = (
@@ -174,11 +173,6 @@ export default function ApplicationServiceDetailPage() {
     toast.success("Service updated successfully");
     setEditDrawerOpen(false);
     refetch();
-  };
-
-  const _handleRevokeShare = (shareId: string) => {
-    setSelectedShareId(shareId);
-    setRevokeShareDialogOpen(true);
   };
 
   const handleConfirmRevokeShare = async () => {
@@ -270,12 +264,6 @@ export default function ApplicationServiceDetailPage() {
 
   const handleViewInstance = (instanceId: string) => {
     navigate(`/service-instances/${id}/${instanceId}`);
-  };
-
-  const handleShareSuccess = () => {
-    toast.success("Service share granted successfully");
-    setShareDrawerOpen(false);
-    refetchShares();
   };
 
   if (isLoading) {
@@ -751,7 +739,6 @@ export default function ApplicationServiceDetailPage() {
       >
         <ServiceShareDrawer
           serviceId={service.id || ""}
-          onSuccess={handleShareSuccess}
           onClose={() => setShareDrawerOpen(false)}
         />
       </Drawer>

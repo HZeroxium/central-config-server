@@ -12,7 +12,8 @@ import java.util.List;
 
 public final class DriftEventApiMapper {
 
-  private DriftEventApiMapper() {}
+  private DriftEventApiMapper() {
+  }
 
   public static DriftEvent toDomain(DriftEventDtos.CreateRequest req) {
     return DriftEvent.builder()
@@ -35,8 +36,10 @@ public final class DriftEventApiMapper {
         entity.setResolvedAt(Instant.now());
       }
     }
-    if (req.getResolvedBy() != null) entity.setResolvedBy(req.getResolvedBy());
-    if (req.getNotes() != null) entity.setNotes(req.getNotes());
+    if (req.getResolvedBy() != null)
+      entity.setResolvedBy(req.getResolvedBy());
+    if (req.getNotes() != null)
+      entity.setNotes(req.getNotes());
   }
 
   public static DriftEventDtos.Response toResponse(DriftEvent ev) {
@@ -46,6 +49,7 @@ public final class DriftEventApiMapper {
         .instanceId(ev.getInstanceId())
         .expectedHash(ev.getExpectedHash())
         .appliedHash(ev.getAppliedHash())
+        .environment(ev.getEnvironment())
         .severity(ev.getSeverity())
         .status(ev.getStatus())
         .detectedAt(Instant.now())
@@ -59,7 +63,7 @@ public final class DriftEventApiMapper {
   /**
    * Map QueryFilter to domain criteria with team filtering.
    *
-   * @param filter the query filter
+   * @param filter      the query filter
    * @param userContext the user context for team filtering
    * @return the domain criteria
    */
@@ -85,12 +89,10 @@ public final class DriftEventApiMapper {
     List<DriftEventDtos.Response> items = page.getContent().stream()
         .map(DriftEventApiMapper::toResponse)
         .toList();
-    
+
     return DriftEventDtos.DriftEventPageResponse.builder()
         .items(items)
         .metadata(PageDtos.PageMetadata.from(page))
         .build();
   }
 }
-
-

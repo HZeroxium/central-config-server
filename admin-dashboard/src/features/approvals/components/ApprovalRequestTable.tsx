@@ -95,7 +95,7 @@ export function ApprovalRequestTable({
       headerName: "Gates Progress",
       width: 150,
       renderCell: (params) => {
-        const gates = params.value as any | undefined;
+        const gates = params.value as Array<{ status?: string }> | undefined;
         if (!gates || gates.length === 0) return "-";
 
         const approved = gates.filter((g) => g.status === "APPROVED").length;

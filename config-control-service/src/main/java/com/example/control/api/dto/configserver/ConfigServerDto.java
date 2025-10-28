@@ -19,6 +19,10 @@ import java.util.Map;
 @Schema(name = "ConfigServerDto", description = "DTOs for Config Server API responses")
 public class ConfigServerDto {
 
+  private ConfigServerDto() {
+    throw new UnsupportedOperationException("Utility class");
+  }
+
   @Data
   @Builder
   @NoArgsConstructor

@@ -21,7 +21,6 @@ import {
   useFindApprovalRequestById,
   useSubmitApprovalDecision,
 } from "@lib/api/hooks";
-import { useAuth } from "@features/auth/context";
 import { toast } from "@lib/toast/toast";
 import { handleApiError } from "@lib/api/errorHandler";
 import { DecisionDialog } from "../components/DecisionDialog";
@@ -33,7 +32,6 @@ import { format } from "date-fns";
 export default function ApprovalDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { isSysAdmin } = useAuth();
   const [decisionDialogOpen, setDecisionDialogOpen] = useState(false);
 
   const {

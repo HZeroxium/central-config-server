@@ -7,7 +7,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.domain.Page;
 
-
 /**
  * Generic page response DTO to wrap paginated results.
  * <p>
@@ -17,6 +16,10 @@ import org.springframework.data.domain.Page;
  */
 public final class PageDtos {
 
+  private PageDtos() {
+    throw new UnsupportedOperationException("Utility class");
+  }
+
   @Data
   @Builder
   @NoArgsConstructor
@@ -25,31 +28,31 @@ public final class PageDtos {
   public static class PageMetadata {
     @Schema(description = "Total number of elements across all pages", example = "150")
     private long totalElements;
-    
+
     @Schema(description = "Total number of pages", example = "8")
     private int totalPages;
-    
+
     @Schema(description = "Current page number (0-based)", example = "0")
     private int page;
-    
+
     @Schema(description = "Number of items per page", example = "20")
     private int size;
-    
+
     @Schema(description = "Whether there are more pages available", example = "true")
     private boolean hasNext;
-    
+
     @Schema(description = "Whether there are previous pages available", example = "false")
     private boolean hasPrevious;
-    
+
     @Schema(description = "Whether this is the first page", example = "true")
     private boolean isFirst;
-    
+
     @Schema(description = "Whether this is the last page", example = "false")
     private boolean isLast;
-    
+
     @Schema(description = "Number of elements in current page", example = "20")
     private int numberOfElements;
-    
+
     @Schema(description = "Whether the page is empty", example = "false")
     private boolean empty;
 
@@ -69,5 +72,3 @@ public final class PageDtos {
     }
   }
 }
-
-

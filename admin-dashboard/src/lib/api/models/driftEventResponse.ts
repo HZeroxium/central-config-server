@@ -36,6 +36,8 @@ export interface DriftEventResponse {
   expectedHash?: string;
   /** Applied configuration hash */
   appliedHash?: string;
+  /** Environment where drift occurred */
+  environment?: string;
   /** Drift severity level */
   severity?: DriftEventResponseSeverity;
   /** Drift status */
