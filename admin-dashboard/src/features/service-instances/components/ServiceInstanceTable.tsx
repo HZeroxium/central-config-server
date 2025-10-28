@@ -36,7 +36,7 @@ export function ServiceInstanceTable({
   onPageSizeChange,
   onRowClick,
   onDelete,
-}: ServiceInstanceTableProps) {
+}: Readonly<ServiceInstanceTableProps>) {
   const { isSysAdmin, permissions } = useAuth();
 
   const canDelete = (serviceName?: string) => {

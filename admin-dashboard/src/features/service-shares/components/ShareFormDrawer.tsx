@@ -338,7 +338,7 @@ export function ShareFormDrawer({
                   {...field}
                   label="Expiration Date (Optional)"
                   type="datetime-local"
-                  InputLabelProps={{ shrink: true }}
+                  slotProps={{ inputLabel: { shrink: true } }}
                   error={!!errors.expiresAt}
                   helperText={
                     errors.expiresAt?.message || "Leave empty for no expiration"

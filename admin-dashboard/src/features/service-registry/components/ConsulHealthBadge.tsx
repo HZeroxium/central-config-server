@@ -9,7 +9,7 @@ interface ConsulHealthBadgeProps {
   size?: 'small' | 'medium';
 }
 
-export default function ConsulHealthBadge({ status, size = 'small' }: ConsulHealthBadgeProps) {
+export default function ConsulHealthBadge({ status, size = 'small' }: Readonly<ConsulHealthBadgeProps>) {
   const getConfig = () => {
     switch (status) {
       case 'passing':

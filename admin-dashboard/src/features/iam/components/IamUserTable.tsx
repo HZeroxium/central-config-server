@@ -6,6 +6,7 @@ import {
 import { Visibility as ViewIcon } from "@mui/icons-material";
 import { Box, Chip, Avatar } from "@mui/material";
 import type { IamUserResponse } from "@lib/api/models";
+import { ChipList } from "@components/common/ChipList";
 
 interface IamUserTableProps {
   users: IamUserResponse[];
@@ -76,25 +77,18 @@ export function IamUserTable({
       renderCell: (params) => {
         const roles = params.value as string[] | undefined;
         if (!roles || roles.length === 0) return "-";
+
+        const getRoleColor = (role: string) => {
+          return role === "SYS_ADMIN" ? "error" : "default";
+        };
+
         return (
-          <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
-            {roles.slice(0, 2).map((role) => (
-              <Chip
-                key={role}
-                label={role}
-                size="small"
-                color={role === "SYS_ADMIN" ? "error" : "default"}
-                variant="outlined"
-              />
-            ))}
-            {roles.length > 2 && (
-              <Chip
-                label={`+${roles.length - 2}`}
-                size="small"
-                variant="outlined"
-              />
-            )}
-          </Box>
+          <ChipList
+            items={roles}
+            maxVisible={2}
+            variant="outlined"
+            getChipColor={getRoleColor}
+          />
         );
       },
     },

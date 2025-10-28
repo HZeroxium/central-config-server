@@ -1,52 +1,50 @@
-import React from 'react';
-import { Chip, type ChipProps } from '@mui/material';
+import React from "react";
+import { Chip, type ChipProps } from "@mui/material";
 
-export type DriftSeverityType = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+export type DriftSeverityType = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
 
 interface DriftSeverityChipProps extends ChipProps {
   severity: DriftSeverityType;
 }
 
-const getSeverityColor = (severity: DriftSeverityType): ChipProps['color'] => {
+const getSeverityColor = (severity: DriftSeverityType): ChipProps["color"] => {
   switch (severity) {
-    case 'CRITICAL':
-      return 'error';
-    case 'HIGH':
-      return 'error';
-    case 'MEDIUM':
-      return 'warning';
-    case 'LOW':
-      return 'info';
+    case "CRITICAL":
+      return "error";
+    case "HIGH":
+      return "error";
+    case "MEDIUM":
+      return "warning";
+    case "LOW":
+      return "info";
     default:
-      return 'default';
+      return "default";
   }
 };
 
 const getSeverityIcon = (severity: DriftSeverityType) => {
   switch (severity) {
-    case 'CRITICAL':
-      return '🚨';
-    case 'HIGH':
-      return '⚠️';
-    case 'MEDIUM':
-      return '⚡';
-    case 'LOW':
-      return 'ℹ️';
+    case "CRITICAL":
+      return "🚨";
+    case "HIGH":
+      return "⚠️";
+    case "MEDIUM":
+      return "⚡";
+    case "LOW":
+      return "ℹ️";
     default:
-      return '⚪';
+      return "⚪";
   }
 };
 
-export const DriftSeverityChip: React.FC<DriftSeverityChipProps> = ({ severity, ...props }) => {
+export const DriftSeverityChip: React.FC<DriftSeverityChipProps> = ({
+  severity,
+  ...props
+}) => {
   const color = getSeverityColor(severity);
   const icon = getSeverityIcon(severity);
-  
+
   return (
-    <Chip
-      label={`${icon} ${severity}`}
-      color={color}
-      size="small"
-      {...props}
-    />
+    <Chip label={`${icon} ${severity}`} color={color} size="small" {...props} />
   );
 };

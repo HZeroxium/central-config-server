@@ -1,7 +1,12 @@
-import { DataGrid, type GridColDef, type GridRenderCellParams } from '@mui/x-data-grid';
-import { Box, Chip, Stack } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
-import type { ConsulServicesMap } from '@lib/api/models';
+import {
+  DataGrid,
+  type GridColDef,
+  type GridRenderCellParams,
+} from "@mui/x-data-grid";
+import { Box } from "@mui/material";
+import { useNavigate } from "react-router-dom";
+import type { ConsulServicesMap } from "@lib/api/models";
+import { ChipList } from "@components/common/ChipList";
 
 interface ConsulServiceTableProps {
   servicesData: ConsulServicesMap | undefined;
@@ -15,7 +20,10 @@ interface ServiceRow {
   tagCount: number;
 }
 
-export default function ConsulServiceTable({ servicesData, loading }: ConsulServiceTableProps) {
+export default function ConsulServiceTable({
+  servicesData,
+  loading,
+}: Readonly<ConsulServiceTableProps>) {
   const navigate = useNavigate();
 
   // Transform services map to table rows
@@ -30,41 +38,39 @@ export default function ConsulServiceTable({ servicesData, loading }: ConsulServ
 
   const columns: GridColDef<ServiceRow>[] = [
     {
-      field: 'serviceName',
-      headerName: 'Service Name',
+      field: "serviceName",
+      headerName: "Service Name",
       flex: 1,
       minWidth: 200,
     },
     {
-      field: 'tagCount',
-      headerName: 'Tags',
+      field: "tagCount",
+      headerName: "Tags",
       width: 100,
-      align: 'center',
-      headerAlign: 'center',
+      align: "center",
+      headerAlign: "center",
     },
     {
-      field: 'tags',
-      headerName: 'Tag List',
+      field: "tags",
+      headerName: "Tag List",
       flex: 2,
       minWidth: 300,
       renderCell: (params: GridRenderCellParams<ServiceRow>) => {
         const tags = params.row.tags || [];
         return (
-          <Stack direction="row" spacing={0.5} flexWrap="wrap" sx={{ py: 0.5 }}>
-            {tags.slice(0, 5).map((tag: string) => (
-              <Chip key={tag} label={tag} size="small" variant="outlined" />
-            ))}
-            {tags.length > 5 && (
-              <Chip label={`+${tags.length - 5} more`} size="small" variant="outlined" />
-            )}
-          </Stack>
+          <ChipList
+            items={tags}
+            maxVisible={5}
+            variant="outlined"
+            chipProps={{ color: "default" }}
+          />
         );
       },
     },
   ];
 
   return (
-    <Box sx={{ height: 600, width: '100%' }}>
+    <Box sx={{ height: 600, width: "100%" }}>
       <DataGrid
         rows={rows}
         columns={columns}
@@ -80,12 +86,11 @@ export default function ConsulServiceTable({ servicesData, loading }: ConsulServ
           navigate(`/registry/${params.row.serviceName}`);
         }}
         sx={{
-          '& .MuiDataGrid-row': {
-            cursor: 'pointer',
+          "& .MuiDataGrid-row": {
+            cursor: "pointer",
           },
         }}
       />
     </Box>
   );
 }
-

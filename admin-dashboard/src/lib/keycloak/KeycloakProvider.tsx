@@ -33,9 +33,9 @@ const KeycloakProvider: React.FC<KeycloakProviderProps> = ({ children }) => {
       initOptions={initOptions}
       LoadingComponent={<LoadingComponent />}
       onEvent={(event, error) => {
-        console.log('Keycloak event:', event, error);
-        if (event === 'onAuthError') {
-          console.error('Keycloak auth error:', error);
+        console.log("Keycloak event:", event, error);
+        if (event === "onAuthError") {
+          console.error("Keycloak auth error:", error);
         }
       }}
     >

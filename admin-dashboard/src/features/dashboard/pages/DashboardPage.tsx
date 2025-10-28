@@ -21,7 +21,12 @@ import {
   useFindAllDriftEvents,
   useFindAllApprovalRequests,
 } from "@lib/api/hooks";
-import type { ActivityItem, ServiceDistributionData, InstanceStatusData, DriftEventsData } from "../types";
+import type {
+  ActivityItem,
+  ServiceDistributionData,
+  InstanceStatusData,
+  DriftEventsData,
+} from "../types";
 
 export default function DashboardPage() {
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
@@ -102,10 +107,10 @@ export default function DashboardPage() {
     const services = servicesData?.items || [];
     const teamCounts: Record<string, number> = {};
 
-    services.forEach((service) => {
+    for (const service of services) {
       const team = service.ownerTeamId || "Unknown";
       teamCounts[team] = (teamCounts[team] || 0) + 1;
-    });
+    }
 
     return Object.entries(teamCounts)
       .map(([name, value], index) => ({
@@ -122,10 +127,10 @@ export default function DashboardPage() {
     const instances = instancesData?.items || [];
     const statusCounts: Record<string, number> = {};
 
-    instances.forEach((instance) => {
+    for (const instance of instances) {
       const status = instance.status || "UNKNOWN";
       statusCounts[status] = (statusCounts[status] || 0) + 1;
-    });
+    }
 
     return [
       { name: "HEALTHY", value: statusCounts.HEALTHY || 0, color: "#10b981" },
@@ -156,7 +161,7 @@ export default function DashboardPage() {
       dates[dateStr] = { critical: 0, high: 0, medium: 0, low: 0 };
     }
 
-    drifts.forEach((drift) => {
+    for (const drift of drifts) {
       if (drift.detectedAt) {
         const dateStr = drift.detectedAt.split("T")[0];
         if (dates[dateStr] !== undefined) {
@@ -168,7 +173,7 @@ export default function DashboardPage() {
           dates[dateStr][severity] = (dates[dateStr][severity] || 0) + 1;
         }
       }
-    });
+    }
 
     return Object.entries(dates).map(([date, severities]) => ({
       date: new Date(date).toLocaleDateString("en-US", {
@@ -186,7 +191,7 @@ export default function DashboardPage() {
     const activities: ActivityItem[] = [];
 
     // Add recent approvals
-    (approvalsData?.items || []).slice(0, 3).forEach((approval) => {
+    for (const approval of (approvalsData?.items || []).slice(0, 3)) {
       activities.push({
         id: approval.id || `approval-${Date.now()}`,
         type: "approval",
@@ -195,10 +200,10 @@ export default function DashboardPage() {
         } - ${approval.status}`,
         timestamp: approval.createdAt || new Date().toISOString(),
       });
-    });
+    }
 
     // Add recent drift events
-    (driftsData?.items || []).slice(0, 3).forEach((drift) => {
+    for (const drift of (driftsData?.items || []).slice(0, 3)) {
       activities.push({
         id: drift.id || `drift-${Date.now()}`,
         type: "drift",
@@ -206,12 +211,12 @@ export default function DashboardPage() {
           drift.serviceName
         } instance ${drift.instanceId?.substring(0, 8)}`,
         timestamp: drift.detectedAt || new Date().toISOString(),
-        severity: drift.severity?.toLowerCase() as ActivityItem['severity'],
+        severity: drift.severity?.toLowerCase() as ActivityItem["severity"],
       });
-    });
+    }
 
     // Sort by timestamp descending
-    return activities
+    return [...activities]
       .sort(
         (a, b) =>
           new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()

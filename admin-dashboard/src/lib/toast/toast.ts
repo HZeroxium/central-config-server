@@ -1,4 +1,4 @@
-import { toast as sonnerToast } from 'sonner';
+import { toast as sonnerToast } from "sonner";
 
 export const toast = {
   success: (message: string, description?: string) => {
@@ -29,7 +29,7 @@ export const toast = {
     return sonnerToast.loading(message);
   },
 
-  promise: <T,>(
+  promise: <T>(
     promise: Promise<T>,
     messages: {
       loading: string;
@@ -40,4 +40,3 @@ export const toast = {
     return sonnerToast.promise(promise, messages);
   },
 };
-

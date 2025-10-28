@@ -334,8 +334,10 @@ export default function ApplicationServiceListPage() {
         anchor="right"
         open={formDrawerOpen}
         onClose={() => setFormDrawerOpen(false)}
-        PaperProps={{
-          sx: { width: { xs: "100%", sm: 600 } },
+        slotProps={{
+          paper: {
+            sx: { width: { xs: "100%", sm: 600 } },
+          },
         }}
       >
         <ApplicationServiceForm

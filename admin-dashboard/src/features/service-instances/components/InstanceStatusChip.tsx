@@ -1,48 +1,51 @@
-import { Chip, type ChipProps } from '@mui/material';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import ErrorIcon from '@mui/icons-material/Error';
-import WarningIcon from '@mui/icons-material/Warning';
-import HelpIcon from '@mui/icons-material/Help';
-import type { ServiceInstanceResponseStatus } from '@lib/api/models';
+import { Chip, type ChipProps } from "@mui/material";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import ErrorIcon from "@mui/icons-material/Error";
+import WarningIcon from "@mui/icons-material/Warning";
+import HelpIcon from "@mui/icons-material/Help";
+import type { ServiceInstanceResponseStatus } from "@lib/api/models";
 
 interface InstanceStatusChipProps {
-  status?: ServiceInstanceResponseStatus | string;
-  size?: 'small' | 'medium';
+  status?: ServiceInstanceResponseStatus;
+  size?: "small" | "medium";
 }
 
 const getStatusConfig = (
-  status?: ServiceInstanceResponseStatus | string
-): { label: string; color: ChipProps['color']; icon: React.ReactElement } => {
+  status?: ServiceInstanceResponseStatus
+): { label: string; color: ChipProps["color"]; icon: React.ReactElement } => {
   switch (status) {
-    case 'HEALTHY':
+    case "HEALTHY":
       return {
-        label: 'Healthy',
-        color: 'success',
+        label: "Healthy",
+        color: "success",
         icon: <CheckCircleIcon />,
       };
-    case 'UNHEALTHY':
+    case "UNHEALTHY":
       return {
-        label: 'Unhealthy',
-        color: 'error',
+        label: "Unhealthy",
+        color: "error",
         icon: <ErrorIcon />,
       };
-    case 'DRIFT':
+    case "DRIFT":
       return {
-        label: 'Drift',
-        color: 'warning',
+        label: "Drift",
+        color: "warning",
         icon: <WarningIcon />,
       };
-    case 'UNKNOWN':
+    case "UNKNOWN":
     default:
       return {
-        label: 'Unknown',
-        color: 'default',
+        label: "Unknown",
+        color: "default",
         icon: <HelpIcon />,
       };
   }
 };
 
-export default function InstanceStatusChip({ status, size = 'small' }: InstanceStatusChipProps) {
+export default function InstanceStatusChip({
+  status,
+  size = "small",
+}: Readonly<InstanceStatusChipProps>) {
   const config = getStatusConfig(status);
 
   return (

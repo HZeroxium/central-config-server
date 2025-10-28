@@ -12,18 +12,19 @@ import {
 import { Box, Chip } from "@mui/material";
 import type { ApplicationServiceResponse } from "@lib/api/models";
 import { useAuth } from "@features/auth/context";
+import { ChipList } from "@components/common/ChipList";
 
 interface ApplicationServiceTableProps {
-  services: ApplicationServiceResponse[];
-  loading: boolean;
-  page: number;
-  pageSize: number;
-  totalElements: number;
-  onPageChange: (page: number) => void;
-  onPageSizeChange: (pageSize: number) => void;
-  onRowClick: (serviceId: string) => void;
-  onDelete: (serviceId: string) => void;
-  onRequestOwnership?: (serviceId: string) => void;
+  readonly services: ApplicationServiceResponse[];
+  readonly loading: boolean;
+  readonly page: number;
+  readonly pageSize: number;
+  readonly totalElements: number;
+  readonly onPageChange: (page: number) => void;
+  readonly onPageSizeChange: (pageSize: number) => void;
+  readonly onRowClick: (serviceId: string) => void;
+  readonly onDelete: (serviceId: string) => void;
+  readonly onRequestOwnership?: (serviceId: string) => void;
 }
 
 export function ApplicationServiceTable({
@@ -144,31 +145,20 @@ export function ApplicationServiceTable({
       renderCell: (params) => {
         const envs = params.value as string[] | undefined;
         if (!envs || envs.length === 0) return "-";
+
+        const getEnvColor = (env: string): "error" | "warning" | "info" => {
+          if (env === "prod") return "error";
+          if (env === "staging") return "warning";
+          return "info";
+        };
+
         return (
-          <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
-            {envs.slice(0, 3).map((env) => (
-              <Chip
-                key={env}
-                label={env.toUpperCase()}
-                size="small"
-                variant="outlined"
-                color={
-                  env === "prod"
-                    ? "error"
-                    : env === "staging"
-                    ? "warning"
-                    : "info"
-                }
-              />
-            ))}
-            {envs.length > 3 && (
-              <Chip
-                label={`+${envs.length - 3}`}
-                size="small"
-                variant="outlined"
-              />
-            )}
-          </Box>
+          <ChipList
+            items={envs.map((e) => e.toUpperCase())}
+            maxVisible={3}
+            getChipColor={getEnvColor}
+            variant="outlined"
+          />
         );
       },
     },
@@ -181,20 +171,12 @@ export function ApplicationServiceTable({
         const tags = params.value as string[] | undefined;
         if (!tags || tags.length === 0) return "-";
         return (
-          <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
-            {tags.slice(0, 2).map((tag) => (
-              <Chip
-                key={tag}
-                label={tag}
-                size="small"
-                variant="filled"
-                color="default"
-              />
-            ))}
-            {tags.length > 2 && (
-              <Chip label={`+${tags.length - 2}`} size="small" />
-            )}
-          </Box>
+          <ChipList
+            items={tags}
+            maxVisible={2}
+            variant="filled"
+            chipProps={{ color: "default" }}
+          />
         );
       },
     },

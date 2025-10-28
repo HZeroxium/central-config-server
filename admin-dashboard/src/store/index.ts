@@ -1,6 +1,6 @@
-import { configureStore } from '@reduxjs/toolkit';
-import uiReducer from './uiSlice';
-import authReducer from './authSlice';
+import { configureStore } from "@reduxjs/toolkit";
+import uiReducer from "./uiSlice";
+import authReducer from "./authSlice";
 
 export const store = configureStore({
   reducer: {
@@ -11,15 +11,14 @@ export const store = configureStore({
     getDefaultMiddleware({
       serializableCheck: {
         // Ignore these action types
-        ignoredActions: ['ui/addNotification'],
+        ignoredActions: ["ui/addNotification"],
         // Ignore these field paths in all actions
-        ignoredActionPaths: ['payload.timestamp'],
+        ignoredActionPaths: ["payload.timestamp"],
         // Ignore these paths in the state
-        ignoredPaths: ['ui.notifications'],
+        ignoredPaths: ["ui.notifications"],
       },
     }),
 });
 
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
-

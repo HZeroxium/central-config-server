@@ -1,6 +1,6 @@
-import { AxiosError } from 'axios';
-import type { ErrorResponse, ValidationError } from './models';
-import { toast } from 'sonner';
+import { AxiosError } from "axios";
+import type { ErrorResponse, ValidationError } from "./models";
+import { toast } from "sonner";
 
 /**
  * Transformed error information for UI display
@@ -10,7 +10,71 @@ export interface TransformedError {
   message: string;
   statusCode?: number;
   validationErrors?: ValidationError[];
-  type: 'auth' | 'permission' | 'validation' | 'notFound' | 'server' | 'network' | 'generic';
+  type:
+    | "auth"
+    | "permission"
+    | "validation"
+    | "notFound"
+    | "server"
+    | "network"
+    | "generic";
+}
+
+/**
+ * Map HTTP status code to error type
+ */
+function getErrorTypeFromStatus(statusCode: number): TransformedError["type"] {
+  if (statusCode === 401) return "auth";
+  if (statusCode === 403) return "permission";
+  if (statusCode === 404) return "notFound";
+  if (statusCode === 400) return "validation";
+  if (statusCode >= 500) return "server";
+  return "generic";
+}
+
+/**
+ * Transform Axios error with response
+ */
+function transformAxiosResponseError(error: AxiosError): TransformedError {
+  const data = error.response!.data as ErrorResponse;
+  const statusCode = error.response!.status;
+
+  return {
+    title: data?.title || error.response!.statusText || "Request Failed",
+    message:
+      data?.detail ||
+      data?.title ||
+      "An error occurred while processing your request",
+    statusCode,
+    validationErrors: data?.validationErrors,
+    type: getErrorTypeFromStatus(statusCode),
+  };
+}
+
+/**
+ * Transform Axios network error (no response)
+ */
+function transformAxiosNetworkError(error: AxiosError): TransformedError {
+  if (error.code === "ECONNABORTED") {
+    return {
+      title: "Request Timeout",
+      message: "The request took too long to complete. Please try again.",
+      type: "network",
+    };
+  }
+  if (error.code === "ERR_NETWORK") {
+    return {
+      title: "Network Error",
+      message:
+        "Unable to connect to the server. Please check your internet connection.",
+      type: "network",
+    };
+  }
+  return {
+    title: "Request Failed",
+    message: error.message || "Failed to complete the request",
+    type: "network",
+  };
 }
 
 /**
@@ -19,70 +83,32 @@ export interface TransformedError {
 export function transformError(error: unknown): TransformedError {
   if (!error) {
     return {
-      title: 'Unknown Error',
-      message: 'An unknown error occurred',
-      type: 'generic'
+      title: "Unknown Error",
+      message: "An unknown error occurred",
+      type: "generic",
     };
   }
 
-  // Axios error with response
   if (error instanceof AxiosError && error.response) {
-    const data = error.response.data as ErrorResponse;
-    const statusCode = error.response.status;
-    
-    let type: TransformedError['type'] = 'generic';
-    if (statusCode === 401) type = 'auth';
-    else if (statusCode === 403) type = 'permission';
-    else if (statusCode === 404) type = 'notFound';
-    else if (statusCode === 400) type = 'validation';
-    else if (statusCode >= 500) type = 'server';
-
-    return {
-      title: data?.title || error.response.statusText || 'Request Failed',
-      message: data?.detail || data?.title || 'An error occurred while processing your request',
-      statusCode,
-      validationErrors: data?.validationErrors,
-      type
-    };
+    return transformAxiosResponseError(error);
   }
 
-  // Axios error without response (network error)
   if (error instanceof AxiosError) {
-    if (error.code === 'ECONNABORTED') {
-      return {
-        title: 'Request Timeout',
-        message: 'The request took too long to complete. Please try again.',
-        type: 'network'
-      };
-    }
-    if (error.code === 'ERR_NETWORK') {
-      return {
-        title: 'Network Error',
-        message: 'Unable to connect to the server. Please check your internet connection.',
-        type: 'network'
-      };
-    }
-    return {
-      title: 'Request Failed',
-      message: error.message || 'Failed to complete the request',
-      type: 'network'
-    };
+    return transformAxiosNetworkError(error);
   }
 
-  // Generic error
   if (error instanceof Error) {
     return {
-      title: 'Error',
+      title: "Error",
       message: error.message,
-      type: 'generic'
+      type: "generic",
     };
   }
 
-  // Unknown error type
   return {
-    title: 'Unknown Error',
-    message: String(error),
-    type: 'generic'
+    title: "Unknown Error",
+    message: typeof error === "object" ? JSON.stringify(error) : String(error),
+    type: "generic",
   };
 }
 
@@ -97,11 +123,13 @@ export function getErrorMessage(error: unknown): string {
 /**
  * Get validation errors as array of field-message pairs
  */
-export function getValidationErrors(error: unknown): Array<{ field: string; message: string }> {
+export function getValidationErrors(
+  error: unknown
+): Array<{ field: string; message: string }> {
   const transformed = transformError(error);
-  return (transformed.validationErrors || []).map(e => ({
-    field: e.field || '',
-    message: e.message || ''
+  return (transformed.validationErrors || []).map((e) => ({
+    field: e.field || "",
+    message: e.message || "",
   }));
 }
 
@@ -156,82 +184,89 @@ export function isServerError(error: unknown): boolean {
 }
 
 /**
- * Handle API errors with appropriate actions and toast notifications
- * Returns true if error was handled (e.g., redirect for auth), false otherwise
+ * Show auth error and trigger redirect
  */
-export function handleApiError(error: unknown, options?: { silent?: boolean; customMessage?: string }): boolean {
+function handleAuthError(): void {
+  toast.error("Authentication Required", {
+    description: "Please log in to continue",
+  });
+  console.warn("Authentication error detected, redirecting to login...");
+  setTimeout(() => {
+    globalThis.location.href = "/";
+  }, 1500);
+}
+
+/**
+ * Show validation error with field details
+ */
+function handleValidationError(
+  message: string,
+  validationErrors?: ValidationError[]
+): void {
+  const errors = validationErrors || [];
+  if (errors.length > 0) {
+    const errorList = errors.map((e) => `${e.field}: ${e.message}`).join("\n");
+    toast.error("Validation Error", { description: errorList });
+  } else {
+    toast.error("Validation Error", { description: message });
+  }
+  console.warn("Validation error:", message);
+}
+
+/**
+ * Handle API errors with appropriate actions and toast notifications
+ * Returns true if error requires special handling (e.g., auth redirect), false otherwise
+ */
+export function handleApiError(
+  error: unknown,
+  options?: { silent?: boolean; customMessage?: string }
+): boolean {
+  if (options?.silent) {
+    return false;
+  }
+
   const transformed = transformError(error);
   const message = options?.customMessage || transformed.message;
 
-  if (!options?.silent) {
-    if (transformed.type === 'auth') {
-      toast.error('Authentication Required', {
-        description: 'Please log in to continue',
-      });
-      console.warn('Authentication error detected, redirecting to login...');
-      // Let Keycloak handle the redirect
-      setTimeout(() => {
-        window.location.href = '/';
-      }, 1500);
-      return true;
-    }
-
-    if (transformed.type === 'permission') {
-      toast.error('Permission Denied', {
-        description: message,
-      });
-      console.warn('Permission denied:', message);
-      return true;
-    }
-
-    if (transformed.type === 'server') {
-      toast.error('Server Error', {
-        description: message || 'An unexpected error occurred on the server',
-      });
-      console.error('Server error:', message);
-      return true;
-    }
-
-    if (transformed.type === 'validation') {
-      const validationErrors = transformed.validationErrors || [];
-      if (validationErrors.length > 0) {
-        const errorList = validationErrors.map(e => `${e.field}: ${e.message}`).join('\n');
-        toast.error('Validation Error', {
-          description: errorList,
-        });
-      } else {
-        toast.error('Validation Error', {
-          description: message,
-        });
-      }
-      console.warn('Validation error:', message);
-      return true;
-    }
-
-    if (transformed.type === 'notFound') {
-      toast.error('Not Found', {
-        description: message,
-      });
-      console.warn('Not found error:', message);
-      return true;
-    }
-
-    if (transformed.type === 'network') {
-      toast.error('Network Error', {
-        description: message,
-      });
-      console.error('Network error:', message);
-      return true;
-    }
-
-    // Generic error
-    toast.error(transformed.title, {
-      description: message,
-    });
-    console.error('API error:', message);
+  if (transformed.type === "auth") {
+    handleAuthError();
+    return true;
   }
-  
-  return true;
+
+  if (transformed.type === "permission") {
+    toast.error("Permission Denied", { description: message });
+    console.warn("Permission denied:", message);
+    return false;
+  }
+
+  if (transformed.type === "server") {
+    toast.error("Server Error", {
+      description: message || "An unexpected error occurred on the server",
+    });
+    console.error("Server error:", message);
+    return false;
+  }
+
+  if (transformed.type === "validation") {
+    handleValidationError(message, transformed.validationErrors);
+    return false;
+  }
+
+  if (transformed.type === "notFound") {
+    toast.error("Not Found", { description: message });
+    console.warn("Not found error:", message);
+    return false;
+  }
+
+  if (transformed.type === "network") {
+    toast.error("Network Error", { description: message });
+    console.error("Network error:", message);
+    return false;
+  }
+
+  toast.error(transformed.title, { description: message });
+  console.error("API error:", message);
+  return false;
 }
 
 /**

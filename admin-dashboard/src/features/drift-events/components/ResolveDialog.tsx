@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import {
   Dialog,
   DialogTitle,
@@ -12,9 +12,9 @@ import {
   FormControlLabel,
   Radio,
   Box,
-} from '@mui/material';
-import { useForm, Controller } from 'react-hook-form';
-import type { DriftEventUpdateRequest } from '@lib/api/models';
+} from "@mui/material";
+import { useForm, Controller } from "react-hook-form";
+import type { DriftEventUpdateRequest } from "@lib/api/models";
 
 interface ResolveDialogProps {
   open: boolean;
@@ -29,7 +29,7 @@ export const ResolveDialog: React.FC<ResolveDialogProps> = ({
   onClose,
   onSubmit,
   loading = false,
-  eventTitle = 'Drift Event',
+  eventTitle = "Drift Event",
 }) => {
   const {
     control,
@@ -38,8 +38,8 @@ export const ResolveDialog: React.FC<ResolveDialogProps> = ({
     formState: { errors },
   } = useForm<DriftEventUpdateRequest>({
     defaultValues: {
-      status: 'RESOLVED',
-      notes: '',
+      status: "RESOLVED",
+      notes: "",
     },
   });
 
@@ -56,7 +56,11 @@ export const ResolveDialog: React.FC<ResolveDialogProps> = ({
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <DialogTitle>Update Drift Event: {eventTitle}</DialogTitle>
       <DialogContent dividers>
-        <Box component="form" onSubmit={handleSubmit(handleFormSubmit)} noValidate>
+        <Box
+          component="form"
+          onSubmit={handleSubmit(handleFormSubmit)}
+          noValidate
+        >
           <FormControl component="fieldset" sx={{ mb: 3 }}>
             <FormLabel component="legend">Status</FormLabel>
             <Controller

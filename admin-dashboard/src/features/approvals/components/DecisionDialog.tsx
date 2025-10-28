@@ -10,26 +10,31 @@ import {
   MenuItem,
   TextField,
   Stack,
-} from '@mui/material';
-import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+} from "@mui/material";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 
 const decisionSchema = z.object({
-  decision: z.enum(['APPROVE', 'REJECT']),
-  note: z.string().max(500, 'Note must not exceed 500 characters').optional(),
+  decision: z.enum(["APPROVE", "REJECT"]),
+  note: z.string().max(500, "Note must not exceed 500 characters").optional(),
 });
 
 type DecisionFormData = z.infer<typeof decisionSchema>;
 
 interface DecisionDialogProps {
-  open: boolean;
-  onClose: () => void;
-  onSubmit: (data: DecisionFormData) => void;
-  loading?: boolean;
+  readonly open: boolean;
+  readonly onClose: () => void;
+  readonly onSubmit: (data: DecisionFormData) => void;
+  readonly loading?: boolean;
 }
 
-export function DecisionDialog({ open, onClose, onSubmit, loading = false }: DecisionDialogProps) {
+export function DecisionDialog({
+  open,
+  onClose,
+  onSubmit,
+  loading = false,
+}: DecisionDialogProps) {
   const {
     control,
     handleSubmit,
@@ -38,8 +43,8 @@ export function DecisionDialog({ open, onClose, onSubmit, loading = false }: Dec
   } = useForm<DecisionFormData>({
     resolver: zodResolver(decisionSchema),
     defaultValues: {
-      decision: 'APPROVE',
-      note: '',
+      decision: "APPROVE",
+      note: "",
     },
   });
 
@@ -84,7 +89,10 @@ export function DecisionDialog({ open, onClose, onSubmit, loading = false }: Dec
                 rows={4}
                 fullWidth
                 error={!!errors.note}
-                helperText={errors.note?.message || 'Provide additional context for your decision'}
+                helperText={
+                  errors.note?.message ||
+                  "Provide additional context for your decision"
+                }
               />
             )}
           />
@@ -94,7 +102,11 @@ export function DecisionDialog({ open, onClose, onSubmit, loading = false }: Dec
         <Button onClick={handleClose} disabled={loading}>
           Cancel
         </Button>
-        <Button onClick={handleSubmit(handleFormSubmit)} variant="contained" disabled={loading}>
+        <Button
+          onClick={handleSubmit(handleFormSubmit)}
+          variant="contained"
+          disabled={loading}
+        >
           Submit Decision
         </Button>
       </DialogActions>

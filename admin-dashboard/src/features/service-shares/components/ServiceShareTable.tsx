@@ -10,6 +10,7 @@ import {
 import { Box, Chip } from "@mui/material";
 import { format } from "date-fns";
 import type { ServiceShareResponse } from "@/lib/api/models";
+import { ChipList } from "@components/common/ChipList";
 
 interface ServiceShareTableProps {
   shares: ServiceShareResponse[];
@@ -33,7 +34,7 @@ export function ServiceShareTable({
   onPageSizeChange,
   onRowClick,
   onRevoke,
-}: ServiceShareTableProps) {
+}: Readonly<ServiceShareTableProps>) {
   const columns: GridColDef[] = [
     {
       field: "serviceId",
@@ -72,20 +73,7 @@ export function ServiceShareTable({
       renderCell: (params) => {
         const perms = params.value as string[] | undefined;
         if (!perms || perms.length === 0) return "-";
-        return (
-          <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
-            {perms.slice(0, 2).map((perm) => (
-              <Chip key={perm} label={perm} size="small" variant="outlined" />
-            ))}
-            {perms.length > 2 && (
-              <Chip
-                label={`+${perms.length - 2}`}
-                size="small"
-                variant="outlined"
-              />
-            )}
-          </Box>
-        );
+        return <ChipList items={perms} maxVisible={2} variant="outlined" />;
       },
     },
     {
@@ -97,19 +85,11 @@ export function ServiceShareTable({
         const envs = params.value as string[] | undefined;
         if (!envs || envs.length === 0) return "All";
         return (
-          <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
-            {envs.slice(0, 2).map((env) => (
-              <Chip
-                key={env}
-                label={env.toUpperCase()}
-                size="small"
-                variant="filled"
-              />
-            ))}
-            {envs.length > 2 && (
-              <Chip label={`+${envs.length - 2}`} size="small" />
-            )}
-          </Box>
+          <ChipList
+            items={envs.map((e) => e.toUpperCase())}
+            maxVisible={2}
+            variant="filled"
+          />
         );
       },
     },

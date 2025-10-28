@@ -1,7 +1,10 @@
-import { Tooltip, Chip, IconButton } from '@mui/material';
-import { Warning as WarningIcon, CheckCircle as CheckIcon } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
-import { format } from 'date-fns';
+import { Tooltip, Chip, IconButton } from "@mui/material";
+import {
+  Warning as WarningIcon,
+  CheckCircle as CheckIcon,
+} from "@mui/icons-material";
+import { useNavigate } from "react-router-dom";
+import { format } from "date-fns";
 
 interface DriftIndicatorProps {
   hasDrift?: boolean;
@@ -10,7 +13,12 @@ interface DriftIndicatorProps {
   instanceId?: string;
 }
 
-export default function DriftIndicator({ hasDrift, driftDetectedAt, serviceId, instanceId }: DriftIndicatorProps) {
+export default function DriftIndicator({
+  hasDrift,
+  driftDetectedAt,
+  serviceId,
+  instanceId,
+}: Readonly<DriftIndicatorProps>) {
   const navigate = useNavigate();
 
   const handleDriftClick = () => {
@@ -19,7 +27,7 @@ export default function DriftIndicator({ hasDrift, driftDetectedAt, serviceId, i
       navigate(`/drift-events?serviceId=${serviceId}&instanceId=${instanceId}`);
     } else {
       // Navigate to all drift events
-      navigate('/drift-events');
+      navigate("/drift-events");
     }
   };
 
@@ -36,16 +44,15 @@ export default function DriftIndicator({ hasDrift, driftDetectedAt, serviceId, i
   }
 
   const tooltipTitle = driftDetectedAt
-    ? `Drift detected at ${format(new Date(driftDetectedAt), 'MMM dd, yyyy HH:mm')}. Click to view drift events.`
-    : 'Configuration drift detected. Click to view drift events.';
+    ? `Drift detected at ${format(
+        new Date(driftDetectedAt),
+        "MMM dd, yyyy HH:mm"
+      )}. Click to view drift events.`
+    : "Configuration drift detected. Click to view drift events.";
 
   return (
     <Tooltip title={tooltipTitle}>
-      <IconButton
-        size="small"
-        onClick={handleDriftClick}
-        sx={{ p: 0 }}
-      >
+      <IconButton size="small" onClick={handleDriftClick} sx={{ p: 0 }}>
         <Chip
           label="Drift"
           color="warning"
