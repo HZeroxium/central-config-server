@@ -22,6 +22,10 @@ import java.util.List;
  * @param toDate          filter by creation date (to)
  * @param gate            filter by approval gate
  * @param userTeamIds     team IDs for ABAC filtering (null for admin queries)
+ * @param targetServiceId filter by target service ID (for cascade operations)
+ * @param targetTeamId    filter by target team ID (for cascade operations)
+ * @param excludeTeamId   exclude requests with this target team ID (for cascade
+ *                        operations)
  */
 @Builder(toBuilder = true)
 @With
@@ -32,7 +36,10 @@ public record ApprovalRequestCriteria(
         Instant fromDate,
         Instant toDate,
         String gate,
-        List<String> userTeamIds) {
+        List<String> userTeamIds,
+        String targetServiceId,
+        String targetTeamId,
+        String excludeTeamId) {
 
     /**
      * Creates criteria with no filtering (admin query).
@@ -128,6 +135,45 @@ public record ApprovalRequestCriteria(
     public static ApprovalRequestCriteria allPending() {
         return ApprovalRequestCriteria.builder()
                 .status(ApprovalRequest.ApprovalStatus.PENDING)
+                .build();
+    }
+
+    /**
+     * Creates criteria for requests by service ID, status, and team ID.
+     * Used for cascade operations to find approved requests for the same team.
+     *
+     * @param serviceId the service ID
+     * @param status    the approval status
+     * @param teamId    the target team ID
+     * @return criteria for requests matching service, status, and team
+     */
+    public static ApprovalRequestCriteria forServiceIdAndStatusAndTeamId(String serviceId,
+            ApprovalRequest.ApprovalStatus status,
+            String teamId) {
+        return ApprovalRequestCriteria.builder()
+                .status(status)
+                .targetServiceId(serviceId)
+                .targetTeamId(teamId)
+                .build();
+    }
+
+    /**
+     * Creates criteria for requests by service ID and status, excluding a specific
+     * team ID.
+     * Used for cascade operations to find rejected requests for other teams.
+     *
+     * @param serviceId     the service ID
+     * @param status        the approval status
+     * @param excludeTeamId the team ID to exclude
+     * @return criteria for requests matching service and status, but not team
+     */
+    public static ApprovalRequestCriteria forServiceIdAndStatusExcludingTeamId(String serviceId,
+            ApprovalRequest.ApprovalStatus status,
+            String excludeTeamId) {
+        return ApprovalRequestCriteria.builder()
+                .status(status)
+                .targetServiceId(serviceId)
+                .excludeTeamId(excludeTeamId)
                 .build();
     }
 }

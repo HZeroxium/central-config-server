@@ -1,5 +1,7 @@
 package com.example.control.api.mapper.domain;
 
+import org.springframework.stereotype.Component;
+
 import com.example.control.api.dto.domain.UserDtos;
 import com.example.control.infrastructure.config.security.UserContext;
 
@@ -10,6 +12,7 @@ import com.example.control.infrastructure.config.security.UserContext;
  * proper JSON serialization.
  * </p>
  */
+@Component
 public class UserApiMapper {
 
     /**

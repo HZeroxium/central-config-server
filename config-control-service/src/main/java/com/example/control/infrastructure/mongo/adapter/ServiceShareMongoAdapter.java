@@ -12,6 +12,7 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
 import java.util.List;
 
 /**
@@ -71,6 +72,13 @@ public class ServiceShareMongoAdapter
             query.addCriteria(Criteria.where("grantToId").in(criteria.userTeamIds()));
         }
 
+        // Filter out expired shares: expiresAt == null OR expiresAt > now
+        Instant now = Instant.now();
+        query.addCriteria(
+                new Criteria().orOperator(
+                        Criteria.where("expiresAt").is(null),
+                        Criteria.where("expiresAt").gt(now)));
+
         return query;
     }
 
@@ -86,9 +94,9 @@ public class ServiceShareMongoAdapter
 
     @Override
     public boolean existsByServiceAndGranteeAndEnvironments(String serviceId,
-                                                            ServiceShare.GranteeType grantToType,
-                                                            String grantToId,
-                                                            List<String> environments) {
+            ServiceShare.GranteeType grantToType,
+            String grantToId,
+            List<String> environments) {
         log.debug("Checking if service share exists: service={}, grantee={}-{}, environments={}",
                 serviceId, grantToType, grantToId, environments);
 
@@ -98,16 +106,17 @@ public class ServiceShareMongoAdapter
 
     @Override
     public List<ServiceShare.SharePermission> findEffectivePermissions(String userId,
-                                                                       List<String> userTeamIds,
-                                                                       String serviceId,
-                                                                       List<String> environments) {
+            List<String> userTeamIds,
+            String serviceId,
+            List<String> environments) {
         log.debug("Finding effective permissions for user: {} on service: {} in environments: {}",
                 userId, serviceId, environments);
 
         List<ServiceShareDocument> documents = repository.findEffectivePermissions(
-                userId, userTeamIds, serviceId, environments);
+                userId, userTeamIds, serviceId, environments, Instant.now());
 
-        // Collect all permissions from matching shares
+        // Collect all permissions from matching shares (expiration already filtered in
+        // query)
         return documents.stream()
                 .flatMap(doc -> doc.getPermissions().stream())
                 .map(ServiceShare.SharePermission::valueOf)
@@ -128,6 +137,13 @@ public class ServiceShareMongoAdapter
         Query query = new Query();
         query.addCriteria(Criteria.where("grantToType").is(ServiceShare.GranteeType.TEAM.name()));
         query.addCriteria(Criteria.where("grantToId").in(teamIds));
+
+        // Filter out expired shares: expiresAt == null OR expiresAt > now
+        Instant now = Instant.now();
+        query.addCriteria(
+                new Criteria().orOperator(
+                        Criteria.where("expiresAt").is(null),
+                        Criteria.where("expiresAt").gt(now)));
 
         // Project only serviceId field for efficiency
         query.fields().include("serviceId");

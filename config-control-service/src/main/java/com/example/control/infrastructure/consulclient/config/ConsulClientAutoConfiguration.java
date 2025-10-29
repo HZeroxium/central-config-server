@@ -26,7 +26,8 @@ public class ConsulClientAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     public HttpTransport httpTransport(ObjectMapper objectMapper) {
-        log.info("Creating HttpTransport with Consul URL: {}", consulConfig.getConsulUrl());
+        log.info("Creating HttpTransport with Consul URL: {}",
+                consulConfig.getConsulUrl());
         RestClient restClient = RestClient.create();
         return new HttpTransport(restClient, objectMapper, consulConfig);
     }
@@ -93,7 +94,8 @@ public class ConsulClientAutoConfiguration {
             HealthClient healthClient, CatalogClient catalogClient, AgentClient agentClient,
             StatusClient statusClient, EventClient eventClient) {
         log.info("Creating main ConsulClient facade");
-        return new ConsulClientImpl(kvClient, sessionClient, txnClient, healthClient, catalogClient,
+        return new ConsulClientImpl(kvClient, sessionClient, txnClient, healthClient,
+                catalogClient,
                 agentClient, statusClient, eventClient);
     }
 }

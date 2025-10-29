@@ -7,6 +7,7 @@ import com.example.control.application.command.DriftEventCommandService;
 import com.example.control.application.command.ServiceInstanceCommandService;
 import com.example.control.application.query.ApplicationServiceQueryService;
 import com.example.control.application.query.ApprovalRequestQueryService;
+import com.example.control.domain.criteria.ApprovalRequestCriteria;
 import com.example.control.domain.event.ServiceOwnershipTransferred;
 import com.example.control.domain.id.ApplicationServiceId;
 import com.example.control.domain.id.ApprovalDecisionId;
@@ -125,24 +126,23 @@ public class ApprovalCascadeService {
     if (approvedAuto > 0) {
       // Use optimized query: directly fetch APPROVED requests for this service and
       // team
-      cascadedApprovedRequests = approvalRequestQueryService.findAllByServiceIdAndStatus(serviceId,
-          ApprovalRequest.ApprovalStatus.APPROVED)
-          .stream()
-          .filter(req -> req.getTarget().getServiceId().equals(serviceId)
-              && req.getTarget().getTeamId().equals(newTeamId))
-          .toList();
+      cascadedApprovedRequests = approvalRequestQueryService.findAll(
+          ApprovalRequestCriteria.forServiceIdAndStatusAndTeamId(serviceId,
+              ApprovalRequest.ApprovalStatus.APPROVED, newTeamId),
+          org.springframework.data.domain.Pageable.unpaged())
+          .getContent();
       log.debug("Found {} APPROVED requests for service {} and team {} after cascade",
           cascadedApprovedRequests.size(), serviceId, newTeamId);
     }
 
     if (rejectedAuto > 0) {
       // Use optimized query: directly fetch REJECTED requests for this service
-      cascadedRejectedRequests = approvalRequestQueryService.findAllByServiceIdAndStatus(serviceId,
-          ApprovalRequest.ApprovalStatus.REJECTED)
-          .stream()
-          .filter(req -> req.getTarget().getServiceId().equals(serviceId)
-              && !req.getTarget().getTeamId().equals(newTeamId))
-          .toList();
+      // excluding the approved team
+      cascadedRejectedRequests = approvalRequestQueryService.findAll(
+          ApprovalRequestCriteria.forServiceIdAndStatusExcludingTeamId(serviceId,
+              ApprovalRequest.ApprovalStatus.REJECTED, newTeamId),
+          org.springframework.data.domain.Pageable.unpaged())
+          .getContent();
       log.debug("Found {} REJECTED requests for service {} (other teams) after cascade",
           cascadedRejectedRequests.size(), serviceId);
     }

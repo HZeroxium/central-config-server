@@ -176,6 +176,12 @@ public class ServiceInstance {
         /**
          * Instance state could not be determined.
          */
-        UNKNOWN
+        UNKNOWN,
+
+        /**
+         * Instance has not sent a heartbeat within the stale threshold.
+         * Used by cleanup service to track instances that should be cleaned up.
+         */
+        STALE
     }
 }

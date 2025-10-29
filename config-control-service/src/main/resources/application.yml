@@ -289,6 +289,14 @@ kv:
     keepalive-time: 10s
     namespace: ${KV_ETCD_NAMESPACE:}
 
+# Service Instance Cleanup Configuration
+service-instance:
+  cleanup:
+    enabled: true
+    stale-threshold-minutes: 10
+    cleanup-threshold-days: 30
+    schedule-cron: "0 */5 * * * *" # Every 5 minutes
+
 # Spring Security OAuth2 Resource Server configuration (merged above)
 
 # Keycloak Admin client configuration (for optional IAM sync)

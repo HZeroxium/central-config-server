@@ -89,6 +89,36 @@ public class ApprovalService {
                         throw new IllegalStateException("User does not have permission to create approval request");
                 }
 
+                // Business logic: Validate targetTeamId exists (check in user's teams or
+                // validate format)
+                if (targetTeamId == null || targetTeamId.trim().isEmpty()) {
+                        throw new IllegalArgumentException("Target team ID is required");
+                }
+
+                // Validate team ID format and existence
+                // Note: If userContext has teamIds, validate that targetTeamId is in the list
+                // Otherwise, validate format (should be non-empty string)
+                if (userContext.getTeamIds() != null && !userContext.getTeamIds().isEmpty()) {
+                        // If user has teams, validate that targetTeamId is a valid team ID
+                        // We can't validate against Keycloak directly, so we validate format
+                        if (!targetTeamId.matches("^[a-zA-Z0-9_-]+$")) {
+                                throw new IllegalArgumentException("Invalid team ID format: " + targetTeamId);
+                        }
+                        // Log warning if targetTeamId is not in user's teams (user might be requesting
+                        // for another team)
+                        if (!userContext.getTeamIds().contains(targetTeamId)) {
+                                log.warn("User {} is creating approval request for team {} which is not in their teams: {}",
+                                                userContext.getUserId(), targetTeamId, userContext.getTeamIds());
+                        }
+                } else {
+                        // If user has no teams, validate format only
+                        if (!targetTeamId.matches("^[a-zA-Z0-9_-]+$")) {
+                                throw new IllegalArgumentException("Invalid team ID format: " + targetTeamId);
+                        }
+                        log.warn("User {} has no teams but is creating approval request for team {}",
+                                        userContext.getUserId(), targetTeamId);
+                }
+
                 // Business logic: Create approval request with dynamic gates based on requester
                 List<ApprovalRequest.ApprovalGate> requiredGates = new ArrayList<>();
 

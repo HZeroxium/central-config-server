@@ -23,10 +23,6 @@ import java.util.Map;
 @Component
 public final class ApplicationServiceApiMapper {
 
-    private ApplicationServiceApiMapper() {
-        throw new UnsupportedOperationException("Utility class");
-    }
-
     /**
      * Map CreateRequest DTO to domain entity.
      *

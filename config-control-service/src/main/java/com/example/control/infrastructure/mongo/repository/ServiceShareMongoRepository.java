@@ -28,13 +28,13 @@ public interface ServiceShareMongoRepository extends MongoRepository<ServiceShar
      */
     @Query("{'serviceId': ?0, 'grantToType': ?1, 'grantToId': ?2, '$or': [{'environments': null}, {'environments': {'$in': ?3}}]}")
     boolean existsByServiceAndGranteeAndEnvironments(String serviceId, String grantToType, String grantToId,
-                                                     List<String> environments);
+            List<String> environments);
 
     /**
      * Find effective permissions for a user on a service.
      * This query finds all shares where the user is either directly granted access
      * or is a member of a team that has been granted access, with strict
-     * environment filtering.
+     * environment filtering. Also filters out expired shares.
      *
      * @param userId       the user ID
      * @param userTeamIds  the team IDs the user belongs to
@@ -42,7 +42,7 @@ public interface ServiceShareMongoRepository extends MongoRepository<ServiceShar
      * @param environments the environments to check
      * @return list of shares with effective permissions
      */
-    @Query("{'serviceId': ?2, '$and': [{'$or': [{'grantToType': 'USER', 'grantToId': ?0}, {'grantToType': 'TEAM', 'grantToId': {'$in': ?1}}]}, {'$or': [{'environments': null}, {'environments': {'$in': ?3}}]}]}")
+    @Query("{'serviceId': ?2, '$and': [{'$or': [{'grantToType': 'USER', 'grantToId': ?0}, {'grantToType': 'TEAM', 'grantToId': {'$in': ?1}}]}, {'$or': [{'environments': null}, {'environments': {'$in': ?3}}]}, {'$or': [{'expiresAt': null}, {'expiresAt': {'$gt': ?4}}]}]}")
     List<ServiceShareDocument> findEffectivePermissions(String userId, List<String> userTeamIds, String serviceId,
-                                                        List<String> environments);
+            List<String> environments, java.time.Instant now);
 }

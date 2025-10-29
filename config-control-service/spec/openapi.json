@@ -27,6 +27,22 @@
   ],
   "tags": [
     {
+      "name": "IAM Users",
+      "description": "User management endpoints"
+    },
+    {
+      "name": "User Management",
+      "description": "User information and permissions endpoints"
+    },
+    {
+      "name": "Heartbeat",
+      "description": "Service instance heartbeat and health tracking"
+    },
+    {
+      "name": "Config Server",
+      "description": "Spring Cloud Config Server API proxy with standardized responses"
+    },
+    {
       "name": "Application Services",
       "description": "Manage application services with team-based access control"
     },
@@ -43,16 +59,8 @@
       "description": "Operations for managing mock data generation (Admin only)"
     },
     {
-      "name": "IAM Users",
-      "description": "User management endpoints"
-    },
-    {
       "name": "IAM Teams",
       "description": "Team management endpoints"
-    },
-    {
-      "name": "User Management",
-      "description": "User information and permissions endpoints"
     },
     {
       "name": "Drift Events",
@@ -63,16 +71,12 @@
       "description": "CRUD and query for service instances"
     },
     {
-      "name": "Heartbeat",
-      "description": "Service instance heartbeat and health tracking"
+      "name": "Approval Decisions",
+      "description": "Query approval decisions for audit and tracking"
     },
     {
       "name": "Service Registry",
       "description": "Consul service discovery and registry operations"
-    },
-    {
-      "name": "Config Server",
-      "description": "Spring Cloud Config Server API proxy with standardized responses"
     }
   ],
   "paths": {
@@ -105,8 +109,8 @@
               }
             }
           },
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -125,22 +129,22 @@
               }
             }
           },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "200": {
             "description": "Service instance found",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ServiceInstanceResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -193,18 +197,18 @@
               }
             }
           },
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
+          "200": {
+            "description": "Service instance updated successfully",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "$ref": "#/components/schemas/ServiceInstanceResponse"
                 }
               }
             }
           },
-          "404": {
-            "description": "Service instance not found",
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -223,8 +227,8 @@
               }
             }
           },
-          "500": {
-            "description": "Internal server error",
+          "404": {
+            "description": "Service instance not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -233,12 +237,12 @@
               }
             }
           },
-          "200": {
-            "description": "Service instance updated successfully",
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ServiceInstanceResponse"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -271,9 +275,6 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "Service instance deleted successfully"
-          },
           "401": {
             "description": "Unauthorized - Authentication required",
             "content": {
@@ -284,8 +285,11 @@
               }
             }
           },
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
+          "200": {
+            "description": "Service instance deleted successfully"
+          },
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -304,8 +308,8 @@
               }
             }
           },
-          "500": {
-            "description": "Internal server error",
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
             "content": {
               "application/json": {
                 "schema": {
@@ -354,16 +358,6 @@
               }
             }
           },
-          "200": {
-            "description": "Application service found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApplicationServiceResponse"
-                }
-              }
-            }
-          },
           "404": {
             "description": "Application service not found or access denied",
             "content": {
@@ -380,6 +374,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Application service found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationServiceResponse"
                 }
               }
             }
@@ -432,28 +436,18 @@
               }
             }
           },
+          "200": {
+            "description": "Application service updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationServiceResponse"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Application service not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid request data",
             "content": {
               "application/json": {
                 "schema": {
@@ -472,12 +466,22 @@
               }
             }
           },
-          "200": {
-            "description": "Application service updated successfully",
+          "400": {
+            "description": "Invalid request data",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApplicationServiceResponse"
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -520,6 +524,16 @@
               }
             }
           },
+          "403": {
+            "description": "Forbidden - SYS_ADMIN role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Application service not found",
             "content": {
@@ -535,16 +549,6 @@
           },
           "500": {
             "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden - SYS_ADMIN role required",
             "content": {
               "application/json": {
                 "schema": {
@@ -672,6 +676,16 @@
               }
             }
           },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "200": {
             "description": "Service shares retrieved successfully",
             "content": {
@@ -684,16 +698,6 @@
           },
           "400": {
             "description": "Invalid request parameters",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -738,18 +742,18 @@
               }
             }
           },
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
+          "201": {
+            "description": "Service share created successfully",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "$ref": "#/components/schemas/ServiceShareResponse"
                 }
               }
             }
           },
-          "400": {
-            "description": "Invalid request data",
+          "404": {
+            "description": "Service not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -768,8 +772,8 @@
               }
             }
           },
-          "404": {
-            "description": "Service not found",
+          "400": {
+            "description": "Invalid request data",
             "content": {
               "application/json": {
                 "schema": {
@@ -778,12 +782,12 @@
               }
             }
           },
-          "201": {
-            "description": "Service share created successfully",
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ServiceShareResponse"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -1020,16 +1024,6 @@
               }
             }
           },
-          "400": {
-            "description": "Invalid request parameters",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "500": {
             "description": "Internal server error",
             "content": {
@@ -1046,6 +1040,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/DriftEventPageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -1086,22 +1090,22 @@
               }
             }
           },
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "200": {
             "description": "Drift event created successfully",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/DriftEventResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -1116,8 +1120,8 @@
               }
             }
           },
-          "500": {
-            "description": "Internal server error",
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
             "content": {
               "application/json": {
                 "schema": {
@@ -1166,6 +1170,16 @@
           "required": true
         },
         "responses": {
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Approval request not found",
             "content": {
@@ -1176,8 +1190,8 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "400": {
+            "description": "Invalid decision data",
             "content": {
               "application/json": {
                 "schema": {
@@ -1196,16 +1210,6 @@
               }
             }
           },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "403": {
             "description": "Forbidden - Not authorized to approve this request",
             "content": {
@@ -1216,8 +1220,8 @@
               }
             }
           },
-          "400": {
-            "description": "Invalid decision data",
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -1286,18 +1290,8 @@
               }
             }
           },
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid request data",
+          "409": {
+            "description": "Conflict - Request already exists",
             "content": {
               "application/json": {
                 "schema": {
@@ -1316,8 +1310,18 @@
               }
             }
           },
-          "409": {
-            "description": "Conflict - Request already exists",
+          "400": {
+            "description": "Invalid request data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
             "content": {
               "application/json": {
                 "schema": {
@@ -1445,12 +1449,12 @@
               }
             }
           },
-          "400": {
-            "description": "Invalid request parameters",
+          "200": {
+            "description": "Successfully retrieved application services",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "$ref": "#/components/schemas/ApplicationServicePageResponse"
                 }
               }
             }
@@ -1465,12 +1469,12 @@
               }
             }
           },
-          "200": {
-            "description": "Successfully retrieved application services",
+          "400": {
+            "description": "Invalid request parameters",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApplicationServicePageResponse"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -1501,16 +1505,6 @@
           "required": true
         },
         "responses": {
-          "201": {
-            "description": "Application service created successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApplicationServiceResponse"
-                }
-              }
-            }
-          },
           "401": {
             "description": "Unauthorized - Authentication required",
             "content": {
@@ -1521,18 +1515,8 @@
               }
             }
           },
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid request data",
+          "409": {
+            "description": "Conflict - Service ID already exists",
             "content": {
               "application/json": {
                 "schema": {
@@ -1551,8 +1535,28 @@
               }
             }
           },
-          "409": {
-            "description": "Conflict - Service ID already exists",
+          "400": {
+            "description": "Invalid request data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Application service created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationServiceResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
             "content": {
               "application/json": {
                 "schema": {
@@ -1681,16 +1685,6 @@
               }
             }
           },
-          "404": {
-            "description": "Drift event not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "200": {
             "description": "Drift event found",
             "content": {
@@ -1701,8 +1695,8 @@
               }
             }
           },
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -1711,8 +1705,18 @@
               }
             }
           },
-          "500": {
-            "description": "Internal server error",
+          "404": {
+            "description": "Drift event not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
             "content": {
               "application/json": {
                 "schema": {
@@ -1769,18 +1773,8 @@
               }
             }
           },
-          "404": {
-            "description": "Drift event not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -1799,8 +1793,18 @@
               }
             }
           },
-          "500": {
-            "description": "Internal server error",
+          "200": {
+            "description": "Drift event updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DriftEventResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Drift event not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -1809,12 +1813,12 @@
               }
             }
           },
-          "200": {
-            "description": "Drift event updated successfully",
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DriftEventResponse"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -1895,22 +1899,22 @@
               }
             }
           },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "200": {
             "description": "User permissions retrieved successfully",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PermissionsResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -1955,22 +1959,22 @@
               }
             }
           },
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "200": {
             "description": "Service share found",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ServiceShareResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Service share not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -1985,8 +1989,8 @@
               }
             }
           },
-          "404": {
-            "description": "Service share not found",
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
             "content": {
               "application/json": {
                 "schema": {
@@ -2033,8 +2037,8 @@
               }
             }
           },
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
+          "404": {
+            "description": "Service share not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -2056,8 +2060,8 @@
           "204": {
             "description": "Service share revoked successfully"
           },
-          "404": {
-            "description": "Service share not found",
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
             "content": {
               "application/json": {
                 "schema": {
@@ -2228,12 +2232,12 @@
               }
             }
           },
-          "400": {
-            "description": "Invalid request parameters",
+          "200": {
+            "description": "Service instances retrieved successfully",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "$ref": "#/components/schemas/ServiceInstancePageResponse"
                 }
               }
             }
@@ -2248,12 +2252,12 @@
               }
             }
           },
-          "200": {
-            "description": "Service instances retrieved successfully",
+          "400": {
+            "description": "Invalid request parameters",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ServiceInstancePageResponse"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -2286,6 +2290,16 @@
               }
             }
           },
+          "500": {
+            "description": "Internal server error or Consul unreachable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "200": {
             "description": "Successfully retrieved service list",
             "content": {
@@ -2298,16 +2312,6 @@
           },
           "403": {
             "description": "Forbidden - Insufficient permissions",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error or Consul unreachable",
             "content": {
               "application/json": {
                 "schema": {
@@ -2367,8 +2371,8 @@
               }
             }
           },
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
+          "500": {
+            "description": "Internal server error or Consul unreachable",
             "content": {
               "application/json": {
                 "schema": {
@@ -2377,8 +2381,8 @@
               }
             }
           },
-          "500": {
-            "description": "Internal server error or Consul unreachable",
+          "404": {
+            "description": "Service not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -2397,8 +2401,8 @@
               }
             }
           },
-          "404": {
-            "description": "Service not found",
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
             "content": {
               "application/json": {
                 "schema": {
@@ -2544,8 +2548,8 @@
               }
             }
           },
-          "500": {
-            "description": "Internal server error",
+          "403": {
+            "description": "Forbidden - SYS_ADMIN role required",
             "content": {
               "application/json": {
                 "schema": {
@@ -2564,8 +2568,8 @@
               }
             }
           },
-          "403": {
-            "description": "Forbidden - SYS_ADMIN role required",
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -2617,6 +2621,16 @@
               }
             }
           },
+          "403": {
+            "description": "Forbidden - SYS_ADMIN role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "404": {
             "description": "IAM user not found",
             "content": {
@@ -2646,16 +2660,6 @@
                 }
               }
             }
-          },
-          "403": {
-            "description": "Forbidden - SYS_ADMIN role required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
           }
         },
         "security": [
@@ -2678,16 +2682,6 @@
         "description": "Retrieve user count statistics from cached IAM data.\nThis endpoint is restricted to system administrators.\n",
         "operationId": "getStatsIamUser",
         "responses": {
-          "200": {
-            "description": "User statistics retrieved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IamUserStatsResponse"
-                }
-              }
-            }
-          },
           "401": {
             "description": "Unauthorized - Authentication required",
             "content": {
@@ -2698,8 +2692,8 @@
               }
             }
           },
-          "500": {
-            "description": "Internal server error",
+          "403": {
+            "description": "Forbidden - SYS_ADMIN role required",
             "content": {
               "application/json": {
                 "schema": {
@@ -2708,8 +2702,18 @@
               }
             }
           },
-          "403": {
-            "description": "Forbidden - SYS_ADMIN role required",
+          "200": {
+            "description": "User statistics retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IamUserStatsResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -2761,8 +2765,8 @@
               }
             }
           },
-          "500": {
-            "description": "Internal server error",
+          "403": {
+            "description": "Forbidden - SYS_ADMIN role required",
             "content": {
               "application/json": {
                 "schema": {
@@ -2781,8 +2785,8 @@
               }
             }
           },
-          "403": {
-            "description": "Forbidden - SYS_ADMIN role required",
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -2834,8 +2838,8 @@
               }
             }
           },
-          "500": {
-            "description": "Internal server error",
+          "403": {
+            "description": "Forbidden - SYS_ADMIN role required",
             "content": {
               "application/json": {
                 "schema": {
@@ -2854,8 +2858,8 @@
               }
             }
           },
-          "403": {
-            "description": "Forbidden - SYS_ADMIN role required",
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -2961,6 +2965,16 @@
               }
             }
           },
+          "403": {
+            "description": "Forbidden - SYS_ADMIN role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "200": {
             "description": "Successfully retrieved IAM teams",
             "content": {
@@ -2973,16 +2987,6 @@
           },
           "500": {
             "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden - SYS_ADMIN role required",
             "content": {
               "application/json": {
                 "schema": {
@@ -3034,18 +3038,8 @@
               }
             }
           },
-          "200": {
-            "description": "IAM team found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IamTeamResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "IAM team not found",
+          "403": {
+            "description": "Forbidden - SYS_ADMIN role required",
             "content": {
               "application/json": {
                 "schema": {
@@ -3064,8 +3058,18 @@
               }
             }
           },
-          "403": {
-            "description": "Forbidden - SYS_ADMIN role required",
+          "200": {
+            "description": "IAM team found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IamTeamResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "IAM team not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -3105,8 +3109,8 @@
               }
             }
           },
-          "500": {
-            "description": "Internal server error",
+          "403": {
+            "description": "Forbidden - SYS_ADMIN role required",
             "content": {
               "application/json": {
                 "schema": {
@@ -3125,8 +3129,8 @@
               }
             }
           },
-          "403": {
-            "description": "Forbidden - SYS_ADMIN role required",
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -3178,12 +3182,12 @@
               }
             }
           },
-          "200": {
-            "description": "Teams containing the user found",
+          "403": {
+            "description": "Forbidden - SYS_ADMIN role required",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "string"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -3198,12 +3202,12 @@
               }
             }
           },
-          "403": {
-            "description": "Forbidden - SYS_ADMIN role required",
+          "200": {
+            "description": "Teams containing the user found",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "type": "string"
                 }
               }
             }
@@ -3229,6 +3233,16 @@
         "description": "Simple health check to verify that the heartbeat controller is operational.\nThis endpoint is used for monitoring and load balancer health checks.\n",
         "operationId": "heartbeatHealth",
         "responses": {
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "200": {
             "description": "Heartbeat controller is healthy",
             "content": {
@@ -3241,16 +3255,6 @@
                       "service": "heartbeat-controller"
                     }
                   }
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -3283,22 +3287,22 @@
               }
             }
           },
-          "200": {
-            "description": "Config Server information retrieved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ConfigServerInfo"
-                }
-              }
-            }
-          },
           "500": {
             "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Config Server information retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigServerInfo"
                 }
               }
             }
@@ -3411,8 +3415,8 @@
               }
             }
           },
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
+          "404": {
+            "description": "Configuration not found for the specified application/profile",
             "content": {
               "application/json": {
                 "schema": {
@@ -3421,8 +3425,8 @@
               }
             }
           },
-          "400": {
-            "description": "Invalid application or profile name",
+          "500": {
+            "description": "Internal server error or Config Server unreachable",
             "content": {
               "application/json": {
                 "schema": {
@@ -3441,8 +3445,8 @@
               }
             }
           },
-          "404": {
-            "description": "Configuration not found for the specified application/profile",
+          "400": {
+            "description": "Invalid application or profile name",
             "content": {
               "application/json": {
                 "schema": {
@@ -3451,8 +3455,8 @@
               }
             }
           },
-          "500": {
-            "description": "Internal server error or Config Server unreachable",
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
             "content": {
               "application/json": {
                 "schema": {
@@ -3501,8 +3505,8 @@
               }
             }
           },
-          "404": {
-            "description": "Actuator endpoint not found",
+          "500": {
+            "description": "Internal server error or Config Server unreachable",
             "content": {
               "application/json": {
                 "schema": {
@@ -3531,8 +3535,8 @@
               }
             }
           },
-          "500": {
-            "description": "Internal server error or Config Server unreachable",
+          "404": {
+            "description": "Actuator endpoint not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -3663,8 +3667,8 @@
               }
             }
           },
-          "400": {
-            "description": "Invalid request parameters",
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -3673,8 +3677,8 @@
               }
             }
           },
-          "500": {
-            "description": "Internal server error",
+          "400": {
+            "description": "Invalid request parameters",
             "content": {
               "application/json": {
                 "schema": {
@@ -3713,16 +3717,6 @@
           }
         ],
         "responses": {
-          "404": {
-            "description": "Approval request not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "401": {
             "description": "Unauthorized - Authentication required",
             "content": {
@@ -3733,18 +3727,8 @@
               }
             }
           },
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
+          "404": {
+            "description": "Approval request not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -3759,6 +3743,26 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApprovalRequestResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -3791,6 +3795,16 @@
           }
         ],
         "responses": {
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Approval request not found",
             "content": {
@@ -3801,8 +3815,21 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "204": {
+            "description": "Approval request cancelled successfully"
+          },
+          "409": {
+            "description": "Conflict - Request cannot be cancelled in current status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -3820,9 +3847,121 @@
                 }
               }
             }
+          }
+        },
+        "security": [
+          {
+            "oauth2_auth_code": []
           },
-          "409": {
-            "description": "Conflict - Request cannot be cancelled in current status",
+          {
+            "oauth2_password": []
+          }
+        ]
+      }
+    },
+    "/api/approval-decisions": {
+      "get": {
+        "tags": ["Approval Decisions"],
+        "summary": "List approval decisions",
+        "description": "Retrieve a paginated list of approval decisions with optional filtering.\n\n**Access Control:**\n- Users can view decisions for requests they have access to\n- SYS_ADMIN can view all decisions\n- Results are automatically filtered based on user permissions\n",
+        "operationId": "findAllApprovalDecisions",
+        "parameters": [
+          {
+            "name": "requestId",
+            "in": "query",
+            "description": "Filter by approval request ID",
+            "required": false,
+            "schema": {
+              "maxLength": 100,
+              "minLength": 0,
+              "type": "string",
+              "description": "Filter by approval request ID",
+              "example": "request-12345"
+            },
+            "example": "request-12345"
+          },
+          {
+            "name": "approverUserId",
+            "in": "query",
+            "description": "Filter by approver user ID",
+            "required": false,
+            "schema": {
+              "maxLength": 100,
+              "minLength": 0,
+              "type": "string",
+              "description": "Filter by approver user ID",
+              "example": "admin"
+            },
+            "example": "admin"
+          },
+          {
+            "name": "gate",
+            "in": "query",
+            "description": "Filter by approval gate",
+            "required": false,
+            "schema": {
+              "maxLength": 50,
+              "minLength": 0,
+              "type": "string",
+              "description": "Filter by approval gate",
+              "example": "SYS_ADMIN",
+              "enum": ["SYS_ADMIN", "LINE_MANAGER"]
+            },
+            "example": "SYS_ADMIN"
+          },
+          {
+            "name": "decision",
+            "in": "query",
+            "description": "Filter by decision type",
+            "required": false,
+            "schema": {
+              "maxLength": 20,
+              "minLength": 0,
+              "type": "string",
+              "description": "Filter by decision type",
+              "example": "APPROVE",
+              "enum": ["APPROVE", "REJECT"]
+            },
+            "example": "APPROVE"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Zero-based page index (0..N)",
+            "required": false,
+            "schema": {
+              "minimum": 0,
+              "type": "integer",
+              "default": 0
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "The size of the page to be returned",
+            "required": false,
+            "schema": {
+              "minimum": 1,
+              "type": "integer",
+              "default": 20
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -3831,11 +3970,212 @@
               }
             }
           },
-          "204": {
-            "description": "Approval request cancelled successfully"
+          "200": {
+            "description": "Approval decisions retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalDecisionPageResponse"
+                }
+              }
+            }
           },
           "500": {
             "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "oauth2_auth_code": []
+          },
+          {
+            "oauth2_password": []
+          }
+        ]
+      }
+    },
+    "/api/approval-decisions/{id}": {
+      "get": {
+        "tags": ["Approval Decisions"],
+        "summary": "Get approval decision by ID",
+        "description": "Retrieve a specific approval decision by its ID.\n\n**Access Control:**\n- Users can view decisions for requests they have access to\n- SYS_ADMIN can view any decision\n",
+        "operationId": "findApprovalDecisionById",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Approval decision ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "decision-12345"
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Approval decision not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Approval decision found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalDecisionResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "oauth2_auth_code": []
+          },
+          {
+            "oauth2_password": []
+          }
+        ]
+      }
+    },
+    "/api/approval-decisions/request/{requestId}": {
+      "get": {
+        "tags": ["Approval Decisions"],
+        "summary": "List decisions for a request",
+        "description": "Retrieve all approval decisions for a specific approval request.\n\n**Access Control:**\n- Users can view decisions for requests they have access to\n- SYS_ADMIN can view decisions for any request\n",
+        "operationId": "findApprovalDecisionsByRequestId",
+        "parameters": [
+          {
+            "name": "requestId",
+            "in": "path",
+            "description": "Approval request ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "request-12345"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Zero-based page index (0..N)",
+            "required": false,
+            "schema": {
+              "minimum": 0,
+              "type": "integer",
+              "default": 0
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "The size of the page to be returned",
+            "required": false,
+            "schema": {
+              "minimum": 1,
+              "type": "integer",
+              "default": 20
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Approval decisions retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalDecisionPageResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request parameters",
             "content": {
               "application/json": {
                 "schema": {
@@ -3862,16 +4202,6 @@
         "description": "Removes all application services, instances, drift events, shares, approval requests, and decisions. IAM data (users/teams) is preserved.",
         "operationId": "cleanData",
         "responses": {
-          "200": {
-            "description": "Data cleaned successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CleanResult"
-                }
-              }
-            }
-          },
           "500": {
             "description": "Internal server error during cleaning operation",
             "content": {
@@ -3884,6 +4214,16 @@
           },
           "403": {
             "description": "Forbidden: Requires SYS_ADMIN role or dev profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CleanResult"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Data cleaned successfully",
             "content": {
               "application/json": {
                 "schema": {
@@ -3952,6 +4292,7 @@
               "UNHEALTHY",
               "DRIFT",
               "UNKNOWN",
+              "STALE",
               "HEALTHY",
               "UNHEALTHY",
               "DRIFT",
@@ -4118,6 +4459,7 @@
               "UNHEALTHY",
               "DRIFT",
               "UNKNOWN",
+              "STALE",
               "HEALTHY",
               "UNHEALTHY",
               "DRIFT",
@@ -5601,6 +5943,66 @@
           }
         },
         "description": "Page response for approval requests"
+      },
+      "ApprovalDecisionPageResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "description": "List of approval decisions in current page",
+            "items": {
+              "$ref": "#/components/schemas/ApprovalDecisionResponse"
+            }
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/PageMetadata"
+          }
+        },
+        "description": "Page response for approval decisions"
+      },
+      "ApprovalDecisionResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique decision identifier",
+            "example": "decision-12345"
+          },
+          "requestId": {
+            "type": "string",
+            "description": "Associated approval request ID",
+            "example": "request-67890"
+          },
+          "approverUserId": {
+            "type": "string",
+            "description": "User who made the decision",
+            "example": "admin"
+          },
+          "gate": {
+            "type": "string",
+            "description": "Approval gate",
+            "example": "SYS_ADMIN",
+            "enum": ["SYS_ADMIN", "LINE_MANAGER"]
+          },
+          "decision": {
+            "type": "string",
+            "description": "Decision made",
+            "example": "APPROVE",
+            "enum": ["APPROVE", "REJECT"]
+          },
+          "decidedAt": {
+            "type": "string",
+            "description": "When the decision was made",
+            "format": "date-time",
+            "example": "2024-01-15T14:30:45.123Z"
+          },
+          "note": {
+            "type": "string",
+            "description": "Decision notes",
+            "example": "Approved based on team capacity and expertise"
+          }
+        },
+        "description": "Approval decision details response"
       },
       "ApplicationServicePageResponse": {
         "type": "object",

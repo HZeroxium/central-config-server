@@ -150,7 +150,7 @@ tasks.register('buildKeycloakImage', Exec) {
     
     workingDir 'config-control-service'
     commandLine 'docker', 'build', '-f', 'keycloak/Dockerfile.keycloak', 
-        '-t', 'hzeroxium/keycloak-custom:26.4.0', '.', '--no-cache'
+        '-t', 'hzeroxium/keycloak-custom:26.4.0', '.'
     
     doFirst {
         println "Building custom Keycloak image with providers..."

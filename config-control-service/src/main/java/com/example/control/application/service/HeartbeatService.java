@@ -145,8 +145,12 @@ public class HeartbeatService {
                             appService.getId(), payload.getServiceName());
                 }
             } else {
-                // Business logic: Only auto-create orphaned service on first heartbeat
-                if (isFirstHeartbeat) {
+                // Business logic: Recreate orphaned ApplicationService if instance exists but
+                // service is missing
+                // This handles edge case where ApplicationService was deleted but instance
+                // still exists
+                if (isFirstHeartbeat || instance.getServiceId() == null) {
+                    // Create orphaned service
                     ApplicationService orphanedService = ApplicationService.builder()
                             .id(ApplicationServiceId.of(UUID.randomUUID().toString()))
                             .displayName(payload.getServiceName())
@@ -158,14 +162,37 @@ public class HeartbeatService {
                             .build();
 
                     appService = applicationServiceCommandService.save(orphanedService);
-                    log.warn(
-                            "Auto-created orphaned ApplicationService: {} (displayName: {}) - requires approval workflow for team assignment",
-                            appService.getId(), payload.getServiceName());
+                    if (isFirstHeartbeat) {
+                        log.warn(
+                                "Auto-created orphaned ApplicationService: {} (displayName: {}) - requires approval workflow for team assignment",
+                                appService.getId(), payload.getServiceName());
+                    } else {
+                        log.warn(
+                                "Recreated orphaned ApplicationService: {} (displayName: {}) - ApplicationService was missing but instance exists",
+                                appService.getId(), payload.getServiceName());
+                    }
                 } else {
-                    // Instance exists but ApplicationService not found - skip sync
-                    log.warn("ApplicationService not found for displayName: {} on subsequent heartbeat, skipping sync",
-                            payload.getServiceName());
-                    appService = null;
+                    // Instance exists but ApplicationService not found - this shouldn't happen
+                    // normally
+                    // But we'll recreate it to ensure consistency
+                    log.warn(
+                            "ApplicationService not found for displayName: {} but instance has serviceId: {}, recreating orphaned service",
+                            payload.getServiceName(), instance.getServiceId());
+
+                    ApplicationService orphanedService = ApplicationService.builder()
+                            .id(ApplicationServiceId.of(instance.getServiceId())) // Try to reuse same ID if possible
+                            .displayName(payload.getServiceName())
+                            .ownerTeamId(null) // Orphaned - requires approval workflow
+                            .environments(List.of("dev", "staging", "prod")) // Default environments
+                            .lifecycle(ApplicationService.ServiceLifecycle.ACTIVE)
+                            .createdAt(Instant.now())
+                            .createdBy("system") // System-created
+                            .build();
+
+                    appService = applicationServiceCommandService.save(orphanedService);
+                    log.warn(
+                            "Recreated orphaned ApplicationService: {} (displayName: {}) - maintaining consistency",
+                            appService.getId(), payload.getServiceName());
                 }
             }
 

@@ -72,12 +72,12 @@ public class ServiceShareService {
      */
     @Transactional
     public ServiceShare grantShare(String serviceId,
-                                   ServiceShare.GranteeType grantToType,
-                                   String grantToId,
-                                   List<ServiceShare.SharePermission> permissions,
-                                   List<String> environments,
-                                   Instant expiresAt,
-                                   UserContext userContext) {
+            ServiceShare.GranteeType grantToType,
+            String grantToId,
+            List<ServiceShare.SharePermission> permissions,
+            List<String> environments,
+            Instant expiresAt,
+            UserContext userContext) {
         log.info("Granting share for service: {} to {}:{} by user: {}",
                 serviceId, grantToType, grantToId, userContext.getUserId());
 
@@ -97,6 +97,13 @@ public class ServiceShareService {
             throw new IllegalStateException("Share already exists for the specified criteria");
         }
 
+        // Business logic: Validate expiresAt if provided
+        Instant now = Instant.now();
+        if (expiresAt != null && expiresAt.isBefore(now.plusSeconds(60))) {
+            // Allow some tolerance (60 seconds) for clock skew
+            throw new IllegalArgumentException("expiresAt must be in the future");
+        }
+
         // Create share domain object
         ServiceShare share = ServiceShare.builder()
                 .resourceLevel(ServiceShare.ResourceLevel.SERVICE)
@@ -106,9 +113,14 @@ public class ServiceShareService {
                 .permissions(permissions)
                 .environments(environments)
                 .grantedBy(userContext.getUserId())
-                .createdAt(Instant.now())
+                .createdAt(now)
                 .expiresAt(expiresAt)
                 .build();
+
+        // Validate expiresAt > createdAt (should always be true if expiresAt is set)
+        if (share.getExpiresAt() != null && share.getExpiresAt().isBefore(share.getCreatedAt())) {
+            throw new IllegalArgumentException("expiresAt must be after createdAt");
+        }
 
         // Save via command service
         ServiceShare saved = commandService.save(share);
@@ -185,8 +197,8 @@ public class ServiceShareService {
      * @return page of service shares
      */
     public Page<ServiceShare> findAll(ServiceShareCriteria criteria,
-                                      Pageable pageable,
-                                      UserContext userContext) {
+            Pageable pageable,
+            UserContext userContext) {
         log.debug("Listing service shares with criteria: {}, pageable: {}", criteria, pageable);
 
         // If filtering by service, check permission to view shares for that service

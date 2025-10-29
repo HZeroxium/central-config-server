@@ -1,1 +1,1 @@
-com.example.control.consulclient.config.ConsulClientAutoConfiguration
+com.example.control.infrastructure.consulclient.config.ConsulClientAutoConfiguration

@@ -74,6 +74,21 @@ public class ApprovalRequestMongoAdapter
             query.addCriteria(Criteria.where("requiredGates").in(criteria.gate()));
         }
 
+        // Target service ID filter (for cascade operations)
+        if (criteria.targetServiceId() != null) {
+            query.addCriteria(Criteria.where("targetServiceId").is(criteria.targetServiceId()));
+        }
+
+        // Target team ID filter (for cascade operations)
+        if (criteria.targetTeamId() != null) {
+            query.addCriteria(Criteria.where("targetTeamId").is(criteria.targetTeamId()));
+        }
+
+        // Exclude team ID filter (for cascade operations)
+        if (criteria.excludeTeamId() != null) {
+            query.addCriteria(Criteria.where("targetTeamId").ne(criteria.excludeTeamId()));
+        }
+
         // ABAC: Team-based filtering
         if (criteria.userTeamIds() != null && !criteria.userTeamIds().isEmpty()) {
             query.addCriteria(Criteria.where("requesterUserId").in(criteria.userTeamIds()));
