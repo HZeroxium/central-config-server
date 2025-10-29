@@ -8,6 +8,7 @@ rootProject.name = 'thrift-demo'
 // include 'spring-boot-admin-server'
 include 'config-server'
 include 'config-control-service'
+include 'config-control-service:keycloak-providers'
 include 'zcm-spring-sdk-starter'
 include 'sample-service'
 
@@ -18,5 +19,6 @@ include 'sample-service'
 // project(':spring-boot-admin-server').projectDir = file('spring-boot-admin-server')
 project(':config-server').projectDir = file('config-server')
 project(':config-control-service').projectDir = file('config-control-service')
+project(':config-control-service:keycloak-providers').projectDir = file('config-control-service/keycloak-providers')
 project(':zcm-spring-sdk-starter').projectDir = file('zcm-spring-sdk-starter')
 project(':sample-service').projectDir = file('sample-service')

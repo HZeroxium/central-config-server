@@ -1,0 +1,11 @@
+# Custom Keycloak image with authentication providers
+FROM quay.io/keycloak/keycloak:26.4.0
+
+# Copy the custom provider JAR
+COPY keycloak-providers/build/libs/keycloak-providers-all.jar /opt/keycloak/providers/
+
+# Build optimized image with providers
+RUN /opt/keycloak/bin/kc.sh build
+
+# Set entrypoint
+ENTRYPOINT ["/opt/keycloak/bin/kc.sh"]

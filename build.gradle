@@ -33,23 +33,36 @@ subprojects {
     apply plugin: 'java'
     apply plugin: 'idea'
     
-    // Common dependencies
-    dependencies {
-        // Thrift dependencies
-        implementation libs.thrift.lib
-        compileOnly libs.javax.annotation.api
-        
-        // Kafka dependencies (common for all services)
-        implementation libs.spring.kafka
-        implementation libs.kafka.clients
-        
-        // Lombok
-        compileOnly libs.lombok
-        annotationProcessor libs.lombok
-        
-        // Test dependencies
-        testImplementation libs.junit.jupiter
-        testImplementation libs.mockito.core
+    // Common dependencies (exclude keycloak-providers from Spring/Kafka dependencies)
+    if (project.name != 'keycloak-providers') {
+        dependencies {
+            // Thrift dependencies
+            implementation libs.thrift.lib
+            compileOnly libs.javax.annotation.api
+            
+            // Kafka dependencies (common for all services)
+            implementation libs.spring.kafka
+            implementation libs.kafka.clients
+            
+            // Lombok
+            compileOnly libs.lombok
+            annotationProcessor libs.lombok
+            
+            // Test dependencies
+            testImplementation libs.junit.jupiter
+            testImplementation libs.mockito.core
+        }
+    } else {
+        // Minimal dependencies for keycloak-providers
+        dependencies {
+            // Lombok
+            compileOnly libs.lombok
+            annotationProcessor libs.lombok
+            
+            // Test dependencies
+            testImplementation libs.junit.jupiter
+            testImplementation libs.mockito.core
+        }
     }
     
     // Common test configuration
@@ -130,10 +143,29 @@ subprojects { sp ->
     }
 }
 
+tasks.register('buildKeycloakImage', Exec) {
+    group = 'docker'
+    description = 'Build custom Keycloak image with authentication providers'
+    dependsOn ':config-control-service:keycloak-providers:jar'
+    
+    workingDir 'config-control-service'
+    commandLine 'docker', 'build', '-f', 'keycloak/Dockerfile.keycloak', 
+        '-t', 'hzeroxium/keycloak-custom:26.4.0', '.', '--no-cache'
+    
+    doFirst {
+        println "Building custom Keycloak image with providers..."
+    }
+    
+    doLast {
+        println "Custom Keycloak image built successfully: hzeroxium/keycloak-custom:26.4.0"
+    }
+}
+
 tasks.register('buildDocker') {
     group = 'docker'
     description = 'Build Docker images for all services'
     dependsOn 'buildAll'
+    dependsOn 'buildKeycloakImage'
     dependsOn subprojects.collect { it.tasks.named('dockerBuild') }
 }
 

@@ -1,0 +1,4 @@
+com.example.keycloak.registration.PostRegistrationEnricherAuthenticatorFactory
+com.example.keycloak.login.PhoneOrUsernameResolverAuthenticatorFactory
+com.example.keycloak.login.PhoneOrUsernamePasswordFormFactory
+

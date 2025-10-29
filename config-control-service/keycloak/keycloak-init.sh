@@ -28,6 +28,39 @@ echo "======================================================================"
 # Source function library
 . "$BASE_DIR/keycloak-functions.sh"
 
+# Configure custom authentication flows
+configure_custom_flows() {
+  log_info "Configuring custom authentication flows..."
+
+  # Create custom registration flow by copying the built-in 'registration' flow (idempotent)
+  log_info "Creating custom registration flow by copying 'registration'..."
+  curl -s -X POST "$KEYCLOAK_API_URL/admin/realms/$REALM_NAME/authentication/flows/registration/copy" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{"newName": "custom-registration"}' >/dev/null || true
+
+  # Bind as realm registration flow
+  curl -s -X PUT "$KEYCLOAK_API_URL/admin/realms/$REALM_NAME" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{"registrationFlow":"custom-registration"}' >/dev/null || true
+  log_success "Custom registration flow configured (copied from built-in)"
+
+  # Create custom browser flow by copying the built-in 'browser' flow (idempotent)
+  log_info "Creating custom browser flow by copying 'browser'..."
+  curl -s -X POST "$KEYCLOAK_API_URL/admin/realms/$REALM_NAME/authentication/flows/browser/copy" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{"newName": "custom-browser"}' >/dev/null || true
+
+  # Bind as realm browser flow
+  curl -s -X PUT "$KEYCLOAK_API_URL/admin/realms/$REALM_NAME" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{"browserFlow":"custom-browser"}' >/dev/null || true
+  log_success "Custom browser flow configured (copied from built-in)"
+}
+
 # Configure User Profile with custom attributes
 configure_user_profile() {
   log_info "Configuring User Profile attributes..."
@@ -136,6 +169,11 @@ fi
 echo ""
 log_step 4 15 "Configuring User Profile"
 configure_user_profile
+
+# Configure custom authentication flows
+echo ""
+log_step 4.5 15 "Configuring Custom Authentication Flows"
+configure_custom_flows
 
 # Process roles.json
 echo ""

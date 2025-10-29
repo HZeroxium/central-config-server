@@ -75,7 +75,7 @@
   "adminEventsEnabled": true,
   "adminEventsDetailsEnabled": true,
   "attributes": {
-    "frontendUrl": "http://localhost:8082"
+    "frontendUrl": "http://keycloak:8080"
   },
   "passwordPolicy": "length(8) and digits(1) and upperCase(1) and lowerCase(1)",
   "otpPolicyType": "totp",
