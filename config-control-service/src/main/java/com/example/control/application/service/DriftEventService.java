@@ -1,14 +1,14 @@
 package com.example.control.application.service;
 
+import com.example.control.application.command.DriftEventCommandService;
+import com.example.control.application.query.DriftEventQueryService;
 import com.example.control.config.security.DomainPermissionEvaluator;
 import com.example.control.config.security.UserContext;
 import com.example.control.domain.object.DriftEvent;
 import com.example.control.domain.criteria.DriftEventCriteria;
 import com.example.control.domain.id.DriftEventId;
-import com.example.control.domain.port.DriftEventRepositoryPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -17,35 +17,47 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 /**
- * Application service for managing {@link DriftEvent} lifecycle operations.
+ * Orchestrator service for DriftEvent business operations.
  * <p>
- * Provides high-level operations for persistence, retrieval, and
- * auto-resolution logic.
+ * This service acts as an orchestrator/aggregator that:
+ * <ul>
+ * <li>Handles business logic and orchestration</li>
+ * <li>Enforces permission checks and team-based filtering</li>
+ * <li>Enriches criteria with user context (team IDs)</li>
+ * <li>Coordinates between CommandService and QueryService</li>
+ * <li>Manages transactions for complex operations</li>
+ * </ul>
+ * <p>
+ * Uses:
+ * <ul>
+ * <li>{@link DriftEventCommandService} for write operations</li>
+ * <li>{@link DriftEventQueryService} for read operations</li>
+ * <li>{@link DomainPermissionEvaluator} for permission checks</li>
+ * </ul>
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class DriftEventService {
 
-  private final DriftEventRepositoryPort repository;
+  private final DriftEventCommandService commandService;
+  private final DriftEventQueryService queryService;
   private final DomainPermissionEvaluator permissionEvaluator;
 
   /**
    * Saves a new drift event to the database.
+   * <p>
+   * No permission checking - use {@link #save(DriftEvent, UserContext)} for
+   * permission-aware save.
    *
    * @param event domain drift event
    * @return persisted {@link DriftEvent}
    */
-  @CacheEvict(value = "drift-events", allEntries = true)
   public DriftEvent save(DriftEvent event) {
-    // Generate UUID if ID is null (new event)
-    if (event.getId() == null) {
-      event.setId(DriftEventId.of(UUID.randomUUID().toString()));
-    }
-    return repository.save(event);
+    log.debug("Saving drift event (no permission check): {}", event.getId());
+    return commandService.save(event);
   }
 
   /**
@@ -59,7 +71,6 @@ public class DriftEventService {
    * @throws SecurityException if user lacks permission to create drift event
    */
   @Transactional
-  @CacheEvict(value = "drift-events", allEntries = true)
   public DriftEvent save(DriftEvent event, UserContext userContext) {
     log.debug("Saving drift event {} for user {}", event.getId(), userContext.getUserId());
 
@@ -71,11 +82,7 @@ public class DriftEventService {
           "Insufficient permissions to create drift event for service: " + event.getServiceName());
     }
 
-    // Generate UUID if ID is null (new event)
-    if (event.getId() == null) {
-      event.setId(DriftEventId.of(java.util.UUID.randomUUID().toString()));
-    }
-    return repository.save(event);
+    return commandService.save(event);
   }
 
   /**
@@ -98,7 +105,7 @@ public class DriftEventService {
 
     // System admins can see all events
     if (userContext.isSysAdmin()) {
-      return repository.findAll(criteria, pageable);
+      return queryService.findAll(criteria, pageable);
     }
 
     // Build enriched criteria with team filtering
@@ -107,7 +114,7 @@ public class DriftEventService {
         .build();
 
     // Query with team-based filtering (repository handles team filtering)
-    Page<DriftEvent> events = repository.findAll(enrichedCriteria, pageable);
+    Page<DriftEvent> events = queryService.findAll(enrichedCriteria, pageable);
 
     log.debug("Found {} drift events for user: {} (team-owned)",
         events.getContent().size(), userContext.getUserId());
@@ -127,7 +134,7 @@ public class DriftEventService {
   public Optional<DriftEvent> findById(DriftEventId id, UserContext userContext) {
     log.debug("Finding drift event by ID: {} for user: {}", id, userContext.getUserId());
 
-    Optional<DriftEvent> event = repository.findById(id);
+    Optional<DriftEvent> event = queryService.findById(id);
 
     if (event.isPresent() && !permissionEvaluator.canViewDriftEvent(userContext, event.get())) {
       log.warn("User {} does not have permission to view drift event {}", userContext.getUserId(), id);
@@ -142,13 +149,8 @@ public class DriftEventService {
    *
    * @return list of unresolved drift events
    */
-  @Cacheable(value = "drift-events", key = "'unresolved'")
   public List<DriftEvent> findUnresolved() {
-    DriftEventCriteria criteria = DriftEventCriteria.builder()
-        .status(DriftEvent.DriftStatus.DETECTED)
-        .build();
-    Page<DriftEvent> page = repository.findAll(criteria, Pageable.unpaged());
-    return page.getContent();
+    return queryService.findUnresolved();
   }
 
   /**
@@ -158,11 +160,7 @@ public class DriftEventService {
    * @return list of unresolved events
    */
   public List<DriftEvent> findUnresolvedByService(String serviceName) {
-    DriftEventCriteria criteria = DriftEventCriteria.builder()
-        .serviceName(serviceName)
-        .status(DriftEvent.DriftStatus.DETECTED)
-        .build();
-    return repository.findAll(criteria, Pageable.unpaged()).getContent();
+    return queryService.findUnresolvedByService(serviceName);
   }
 
   /**
@@ -171,12 +169,8 @@ public class DriftEventService {
    * @param serviceName service name
    * @return list of drift events
    */
-  @Cacheable(value = "drift-events", key = "#serviceName")
   public List<DriftEvent> findByService(String serviceName) {
-    DriftEventCriteria criteria = DriftEventCriteria.builder()
-        .serviceName(serviceName)
-        .build();
-    return repository.findAll(criteria, Pageable.unpaged()).getContent();
+    return queryService.findByService(serviceName);
   }
 
   /**
@@ -185,7 +179,7 @@ public class DriftEventService {
    * @return total drift event count
    */
   public long countAll() {
-    return repository.countAll();
+    return queryService.countAll();
   }
 
   /**
@@ -195,7 +189,7 @@ public class DriftEventService {
    * @return count of events with the given status
    */
   public long countByStatus(DriftEvent.DriftStatus status) {
-    return repository.countByStatus(status);
+    return queryService.countByStatus(status);
   }
 
   /**
@@ -208,9 +202,8 @@ public class DriftEventService {
    * @param instanceId  instance identifier
    * @param resolvedBy  identifier of who/what resolved the drift
    */
-  @CacheEvict(value = "drift-events", allEntries = true)
   public void resolveForInstance(String serviceName, String instanceId, String resolvedBy) {
-    repository.resolveForInstance(serviceName, instanceId, resolvedBy);
+    commandService.resolveForInstance(serviceName, instanceId, resolvedBy);
   }
 
   /**
@@ -223,10 +216,9 @@ public class DriftEventService {
    * @param newTeamId the new team ID to set
    * @return number of drift events updated
    */
-  @CacheEvict(value = "drift-events", allEntries = true)
   public long bulkUpdateTeamIdByServiceId(String serviceId, String newTeamId) {
-    log.info("Bulk updating teamId to {} for all drift events of service: {}", newTeamId, serviceId);
-    return repository.bulkUpdateTeamIdByServiceId(serviceId, newTeamId);
+    log.info("Orchestrating bulk teamId update for drift events of service: {}", serviceId);
+    return commandService.bulkUpdateTeamIdByServiceId(serviceId, newTeamId);
   }
 
 }

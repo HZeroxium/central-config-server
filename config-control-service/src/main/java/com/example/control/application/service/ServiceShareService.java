@@ -1,9 +1,6 @@
 package com.example.control.application.service;
 
-import com.example.control.application.command.serviceshare.GrantShareCommand;
-import com.example.control.application.command.serviceshare.GrantShareHandler;
-import com.example.control.application.command.serviceshare.RevokeShareCommand;
-import com.example.control.application.command.serviceshare.RevokeShareHandler;
+import com.example.control.application.command.ServiceShareCommandService;
 import com.example.control.application.query.ApplicationServiceQueryService;
 import com.example.control.application.query.ServiceShareQueryService;
 import com.example.control.config.security.DomainPermissionEvaluator;
@@ -26,11 +23,24 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Application service for managing service sharing ACL.
+ * Orchestrator service for managing service sharing ACL.
  * <p>
- * Provides business logic for granting and revoking service shares with
- * environment-based filtering and permission management.
- * </p>
+ * This service acts as an orchestrator/aggregator that:
+ * <ul>
+ * <li>Handles business logic and orchestration</li>
+ * <li>Enforces permission checks</li>
+ * <li>Validates service existence and duplicates</li>
+ * <li>Coordinates between CommandService and QueryService</li>
+ * <li>Manages transactions for complex operations</li>
+ * </ul>
+ * <p>
+ * Uses:
+ * <ul>
+ * <li>{@link ServiceShareCommandService} for write operations</li>
+ * <li>{@link ServiceShareQueryService} for read operations</li>
+ * <li>{@link ApplicationServiceQueryService} for service validation</li>
+ * <li>{@link DomainPermissionEvaluator} for permission checks</li>
+ * </ul>
  */
 @Slf4j
 @Service
@@ -39,16 +49,16 @@ import java.util.Optional;
 public class ServiceShareService {
 
     private final ServiceShareRepositoryPort shareRepository;
+    private final ServiceShareCommandService commandService;
     private final ApplicationServiceQueryService applicationServiceQueryService;
     private final ServiceShareQueryService serviceShareQueryService;
     private final DomainPermissionEvaluator permissionEvaluator;
-    private final GrantShareHandler grantShareHandler;
-    private final RevokeShareHandler revokeShareHandler;
 
     /**
      * Grant share permissions for a service.
      * <p>
-     * Delegates to GrantShareHandler for write operations.
+     * Validates service existence, permissions, and duplicates before creating
+     * share.
      *
      * @param serviceId    the service ID to share
      * @param grantToType  the type of grantee (TEAM or USER)
@@ -58,6 +68,9 @@ public class ServiceShareService {
      * @param expiresAt    optional expiration time
      * @param userContext  the current user context
      * @return the created service share
+     * @throws IllegalArgumentException if service not found
+     * @throws IllegalStateException    if user lacks permission or share already
+     *                                  exists
      */
     @Transactional
     public ServiceShare grantShare(String serviceId,
@@ -70,17 +83,37 @@ public class ServiceShareService {
         log.info("Granting share for service: {} to {}:{} by user: {}",
                 serviceId, grantToType, grantToId, userContext.getUserId());
 
-        GrantShareCommand command = GrantShareCommand.builder()
+        // Validate service exists
+        ApplicationService service = applicationServiceQueryService
+                .findById(ApplicationServiceId.of(serviceId))
+                .orElseThrow(() -> new IllegalArgumentException("Service not found: " + serviceId));
+
+        // Check if user can manage shares for this service
+        if (!permissionEvaluator.canManageShares(userContext, service)) {
+            throw new IllegalStateException("User does not have permission to manage shares for this service");
+        }
+
+        // Check if share already exists
+        if (shareRepository.existsByServiceAndGranteeAndEnvironments(
+                serviceId, grantToType, grantToId, environments)) {
+            throw new IllegalStateException("Share already exists for the specified criteria");
+        }
+
+        // Create share domain object
+        ServiceShare share = ServiceShare.builder()
+                .resourceLevel(ServiceShare.ResourceLevel.SERVICE)
                 .serviceId(serviceId)
                 .grantToType(grantToType)
                 .grantToId(grantToId)
                 .permissions(permissions)
                 .environments(environments)
-                .expiresAt(expiresAt)
                 .grantedBy(userContext.getUserId())
+                .createdAt(Instant.now())
+                .expiresAt(expiresAt)
                 .build();
 
-        ServiceShare saved = grantShareHandler.handle(command);
+        // Save via command service
+        ServiceShare saved = commandService.save(share);
         log.info("Successfully granted share: {}", saved.getId());
         return saved;
     }
@@ -88,21 +121,33 @@ public class ServiceShareService {
     /**
      * Revoke a service share.
      * <p>
-     * Delegates to RevokeShareHandler for write operations.
+     * Validates share existence and user permission before deletion.
      *
      * @param shareId     the share ID to revoke
      * @param userContext the current user context
+     * @throws IllegalArgumentException if share not found
+     * @throws IllegalStateException    if user lacks permission
      */
     @Transactional
     public void revokeShare(String shareId, UserContext userContext) {
         log.info("Revoking share: {} by user: {}", shareId, userContext.getUserId());
 
-        RevokeShareCommand command = RevokeShareCommand.builder()
-                .shareId(shareId)
-                .revokedBy(userContext.getUserId())
-                .build();
+        // Find share
+        ServiceShare share = serviceShareQueryService.findById(ServiceShareId.of(shareId))
+                .orElseThrow(() -> new IllegalArgumentException("Share not found: " + shareId));
 
-        revokeShareHandler.handle(command);
+        // Validate service exists
+        ApplicationService service = applicationServiceQueryService
+                .findById(ApplicationServiceId.of(share.getServiceId()))
+                .orElseThrow(() -> new IllegalArgumentException("Service not found: " + share.getServiceId()));
+
+        // Check if user can manage shares for this service
+        if (!permissionEvaluator.canManageShares(userContext, service)) {
+            throw new IllegalStateException("User does not have permission to manage shares for this service");
+        }
+
+        // Delete via command service
+        commandService.deleteById(ServiceShareId.of(shareId));
         log.info("Successfully revoked share: {}", shareId);
     }
 

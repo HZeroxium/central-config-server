@@ -66,10 +66,7 @@ public class DriftEventQueryService {
     @Cacheable(value = "drift-events", key = "'unresolved'")
     public List<DriftEvent> findUnresolved() {
         log.debug("Finding unresolved drift events");
-        DriftEventCriteria criteria = DriftEventCriteria.builder()
-                .status(DriftEvent.DriftStatus.DETECTED)
-                .build();
-        return repository.findAll(criteria, Pageable.unpaged()).getContent();
+        return repository.findAll(DriftEventCriteria.unresolved(), Pageable.unpaged()).getContent();
     }
 
     /**
@@ -81,11 +78,8 @@ public class DriftEventQueryService {
     @Cacheable(value = "drift-events", key = "'unresolved:' + #serviceName")
     public List<DriftEvent> findUnresolvedByService(String serviceName) {
         log.debug("Finding unresolved drift events for service: {}", serviceName);
-        DriftEventCriteria criteria = DriftEventCriteria.builder()
-                .serviceName(serviceName)
-                .status(DriftEvent.DriftStatus.DETECTED)
-                .build();
-        return repository.findAll(criteria, Pageable.unpaged()).getContent();
+        return repository.findAll(DriftEventCriteria.unresolvedForService(serviceName), Pageable.unpaged())
+                .getContent();
     }
 
     /**
@@ -97,10 +91,7 @@ public class DriftEventQueryService {
     @Cacheable(value = "drift-events", key = "'service:' + #serviceName")
     public List<DriftEvent> findByService(String serviceName) {
         log.debug("Finding drift events for service: {}", serviceName);
-        DriftEventCriteria criteria = DriftEventCriteria.builder()
-                .serviceName(serviceName)
-                .build();
-        return repository.findAll(criteria, Pageable.unpaged()).getContent();
+        return repository.findAll(DriftEventCriteria.forService(serviceName), Pageable.unpaged()).getContent();
     }
 
     /**
@@ -115,6 +106,18 @@ public class DriftEventQueryService {
     }
 
     /**
+     * Count drift events with filtering.
+     *
+     * @param criteria filter criteria
+     * @return count of events matching criteria
+     */
+    @Cacheable(value = "drift-events", key = "'count:' + #criteria.hashCode()")
+    public long count(DriftEventCriteria criteria) {
+        log.debug("Counting drift events with criteria: {}", criteria);
+        return repository.count(criteria);
+    }
+
+    /**
      * Count drift events by their current status.
      *
      * @param status drift status
@@ -123,6 +126,6 @@ public class DriftEventQueryService {
     @Cacheable(value = "drift-events", key = "'countByStatus:' + #status")
     public long countByStatus(DriftEvent.DriftStatus status) {
         log.debug("Counting drift events by status: {}", status);
-        return repository.countByStatus(status);
+        return repository.count(DriftEventCriteria.withStatus(status));
     }
 }

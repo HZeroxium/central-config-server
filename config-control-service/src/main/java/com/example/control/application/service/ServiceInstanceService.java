@@ -1,15 +1,14 @@
 package com.example.control.application.service;
 
+import com.example.control.application.command.ServiceInstanceCommandService;
+import com.example.control.application.query.ServiceInstanceQueryService;
 import com.example.control.config.security.DomainPermissionEvaluator;
 import com.example.control.config.security.UserContext;
 import com.example.control.domain.object.ServiceInstance;
 import com.example.control.domain.criteria.ServiceInstanceCriteria;
 import com.example.control.domain.id.ServiceInstanceId;
-import com.example.control.domain.port.ServiceInstanceRepositoryPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -20,37 +19,45 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Application service layer responsible for managing {@link ServiceInstance}
- * entities.
+ * Orchestrator service for managing ServiceInstance entities.
  * <p>
- * Provides business logic for persistence, drift tracking, and lifecycle
+ * Coordinates between CommandService and QueryService for service instance
  * operations.
+ * Handles business logic, permission checks, and team-based filtering.
+ * </p>
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class ServiceInstanceService {
 
-  private final ServiceInstanceRepositoryPort repository;
+  private final ServiceInstanceCommandService commandService;
+  private final ServiceInstanceQueryService queryService;
   private final DomainPermissionEvaluator permissionEvaluator;
-  // private final ApplicationServiceService applicationServiceService;
 
   /**
-   * Saves or updates a {@link ServiceInstance} record in MongoDB.
+   * Saves or updates a {@link ServiceInstance} record.
    * <p>
+   * Handles business logic for timestamp initialization and delegates to
+   * CommandService.
    * If the instance does not exist, it initializes creation and update
    * timestamps.
    *
    * @param instance the instance to save or update
    * @return persisted {@link ServiceInstance}
    */
-  @CacheEvict(value = "service-instances", key = "#instance.instanceId")
+  @Transactional
   public ServiceInstance save(ServiceInstance instance) {
+    log.debug("Orchestrating save for service instance: {}", instance.getId());
+
+    // Business logic: Initialize timestamps if new instance
     if (instance.getCreatedAt() == null) {
       instance.setCreatedAt(Instant.now());
     }
     instance.setUpdatedAt(Instant.now());
-    return repository.save(instance);
+
+    return commandService.save(instance);
   }
 
   /**
@@ -59,13 +66,8 @@ public class ServiceInstanceService {
    * @param serviceId the service ID
    * @return list of instances
    */
-  @Cacheable(value = "service-instances", key = "#serviceId")
   public List<ServiceInstance> findByServiceId(String serviceId) {
-    ServiceInstanceCriteria criteria = ServiceInstanceCriteria.builder()
-        .serviceId(serviceId)
-        .build();
-    Page<ServiceInstance> page = repository.findAll(criteria, Pageable.unpaged());
-    return page.getContent();
+    return queryService.findByServiceId(serviceId);
   }
 
   /**
@@ -74,9 +76,8 @@ public class ServiceInstanceService {
    * @param id the service instance ID
    * @return optional instance
    */
-  @Cacheable(value = "service-instances", key = "#id")
   public Optional<ServiceInstance> findById(ServiceInstanceId id) {
-    return repository.findById(id);
+    return queryService.findById(id);
   }
 
   /**
@@ -85,11 +86,7 @@ public class ServiceInstanceService {
    * @return list of drifted instances
    */
   public List<ServiceInstance> findAllWithDrift() {
-    ServiceInstanceCriteria criteria = ServiceInstanceCriteria.builder()
-        .status(ServiceInstance.InstanceStatus.DRIFT)
-        .hasDrift(true)
-        .build();
-    return repository.findAll(criteria, Pageable.unpaged()).getContent();
+    return queryService.findAllWithDrift();
   }
 
   /**
@@ -99,12 +96,7 @@ public class ServiceInstanceService {
    * @return list of drifted instances
    */
   public List<ServiceInstance> findByServiceWithDrift(String serviceId) {
-    ServiceInstanceCriteria criteria = ServiceInstanceCriteria.builder()
-        .serviceId(serviceId)
-        .status(ServiceInstance.InstanceStatus.DRIFT)
-        .hasDrift(true)
-        .build();
-    return repository.findAll(criteria, Pageable.unpaged()).getContent();
+    return queryService.findByServiceWithDrift(serviceId);
   }
 
   /**
@@ -112,19 +104,20 @@ public class ServiceInstanceService {
    * <p>
    * Sorting is applied via {@link Pageable#getSort()} and delegated to the
    * Mongo adapter using {@code query.with(pageable)}.
+   * Raw data query - no permission filtering.
    *
    * @param criteria optional filter parameters encapsulated in a record
    * @param pageable pagination and sorting information
    * @return a page of {@link ServiceInstance}
    */
-  @Cacheable(value = "service-instances", key = "'list:' + #criteria.hashCode() + ':' + #pageable")
   public Page<ServiceInstance> findAll(ServiceInstanceCriteria criteria, Pageable pageable) {
-    return repository.findAll(criteria, pageable);
+    return queryService.findAll(criteria, pageable);
   }
 
   /**
    * Retrieves a page of service instances with permission-aware filtering.
    * <p>
+   * Business logic: Applies team-based access control.
    * Results are filtered by user permissions - users can only see instances
    * for services they own or have been granted access to via service shares.
    *
@@ -133,18 +126,17 @@ public class ServiceInstanceService {
    * @param userContext the user context for permission filtering
    * @return a page of {@link ServiceInstance}
    */
-  @Cacheable(value = "service-instances", key = "'list:' + #criteria.hashCode() + ':' + #pageable + ':' + #userContext.userId")
   public Page<ServiceInstance> findAll(ServiceInstanceCriteria criteria, Pageable pageable, UserContext userContext) {
-    log.debug("Listing service instances with criteria: {} for user: {}", criteria, userContext.getUserId());
+    log.debug("Orchestrating findAll with permission filtering for user: {}", userContext.getUserId());
 
     // System admins can see all instances
     if (userContext.isSysAdmin()) {
-      return repository.findAll(criteria, pageable);
+      return queryService.findAll(criteria, pageable);
     }
 
-    // Apply team-based filtering
+    // Apply team-based filtering (business logic)
     ServiceInstanceCriteria filteredCriteria = applyUserFilter(criteria, userContext);
-    return repository.findAll(filteredCriteria, pageable);
+    return queryService.findAll(filteredCriteria, pageable);
   }
 
   /**
@@ -177,10 +169,7 @@ public class ServiceInstanceService {
    * @return list of stale instances
    */
   public List<ServiceInstance> findStaleInstances(java.time.Instant threshold) {
-    ServiceInstanceCriteria criteria = ServiceInstanceCriteria.builder()
-        .lastSeenAtTo(threshold)
-        .build();
-    return repository.findAll(criteria, Pageable.unpaged()).getContent();
+    return queryService.findStaleInstances(threshold);
   }
 
   /**
@@ -190,10 +179,7 @@ public class ServiceInstanceService {
    * @return count of instances
    */
   public long countByServiceId(String serviceId) {
-    ServiceInstanceCriteria criteria = ServiceInstanceCriteria.builder()
-        .serviceId(serviceId)
-        .build();
-    return repository.count(criteria);
+    return queryService.countByServiceId(serviceId);
   }
 
   /**
@@ -201,17 +187,18 @@ public class ServiceInstanceService {
    *
    * @param id the service instance ID
    */
-  @CacheEvict(value = "service-instances", allEntries = true)
+  @Transactional
   public void delete(ServiceInstanceId id) {
-    repository.deleteById(id);
+    log.debug("Orchestrating delete for service instance: {}", id);
+    commandService.deleteById(id);
   }
 
   /**
    * Updates an instance's status, drift flag, and hash information.
    * <p>
-   * Creates a new record if one does not already exist.
+   * Business logic: Creates a new record if one does not already exist.
+   * Enriches with timestamps and delegates to CommandService.
    *
-   * @param serviceName     service name
    * @param instanceId      instance ID
    * @param status          new status
    * @param hasDrift        whether drift detected
@@ -219,23 +206,29 @@ public class ServiceInstanceService {
    * @param lastAppliedHash last applied config hash
    * @return updated {@link ServiceInstance}
    */
-  @CacheEvict(value = "service-instances", allEntries = true)
+  @Transactional
   public ServiceInstance updateStatusAndDrift(String instanceId,
       ServiceInstance.InstanceStatus status,
       boolean hasDrift,
       String expectedHash,
       String lastAppliedHash) {
-    ServiceInstance instance = repository.findById(ServiceInstanceId.of(instanceId)).orElse(
+    log.debug("Orchestrating status/drift update for instance: {}", instanceId);
+
+    // Business logic: Find or create instance
+    ServiceInstance instance = queryService.findById(ServiceInstanceId.of(instanceId)).orElse(
         ServiceInstance.builder()
             .id(ServiceInstanceId.of(instanceId))
             .createdAt(Instant.now())
             .build());
+
+    // Business logic: Update fields
     instance.setStatus(status);
     instance.setHasDrift(hasDrift);
     instance.setExpectedHash(expectedHash);
     instance.setLastAppliedHash(lastAppliedHash);
     instance.setUpdatedAt(Instant.now());
-    return repository.save(instance);
+
+    return commandService.save(instance);
   }
 
   /**
@@ -243,15 +236,16 @@ public class ServiceInstanceService {
    * <p>
    * Used during ownership transfer to ensure all instances are updated
    * to reflect the new team ownership.
+   * Delegates to CommandService for the bulk operation.
    *
    * @param serviceId the service ID to match
    * @param newTeamId the new team ID to set
    * @return number of instances updated
    */
-  @CacheEvict(value = "service-instances", allEntries = true)
+  @Transactional
   public long bulkUpdateTeamIdByServiceId(String serviceId, String newTeamId) {
-    log.info("Bulk updating teamId to {} for all instances of service: {}", newTeamId, serviceId);
-    return repository.bulkUpdateTeamIdByServiceId(serviceId, newTeamId);
+    log.info("Orchestrating bulk teamId update for instances of service: {}", serviceId);
+    return commandService.bulkUpdateTeamIdByServiceId(serviceId, newTeamId);
   }
 
   /**
@@ -306,7 +300,7 @@ public class ServiceInstanceService {
   /**
    * Updates an existing service instance with permission validation.
    * <p>
-   * Validates that the user can edit the instance before applying updates.
+   * Business logic: Validates permissions and delegates to CommandService.
    *
    * @param id          the instance ID
    * @param updates     the updates to apply
@@ -315,71 +309,70 @@ public class ServiceInstanceService {
    * @throws SecurityException if user lacks permission to edit instance
    */
   @Transactional
-  @CacheEvict(value = "service-instances", allEntries = true)
   public ServiceInstance update(ServiceInstanceId id, ServiceInstance updates, UserContext userContext) {
-    log.debug("Updating service instance {} for user {}", id, userContext.getUserId());
+    log.debug("Orchestrating update for service instance {} by user {}", id, userContext.getUserId());
 
     // Fetch existing instance
-    ServiceInstance existing = repository.findById(id)
+    ServiceInstance existing = queryService.findById(id)
         .orElseThrow(() -> new IllegalArgumentException("ServiceInstance not found: " + id));
 
-    // Check if user can edit this instance
+    // Business logic: Check if user can edit this instance
     if (!permissionEvaluator.canEditInstance(userContext, existing)) {
       log.warn("User {} denied permission to edit instance {}", userContext.getUserId(), id);
       throw new SecurityException("Insufficient permissions to edit instance: " + id);
     }
 
-    // Apply updates (preserve ID and teamId)
+    // Business logic: Apply updates (preserve ID and teamId)
     updates.setId(id);
     updates.setTeamId(existing.getTeamId());
     updates.setServiceId(existing.getServiceId());
     updates.setUpdatedAt(Instant.now());
 
-    return repository.save(updates);
+    return commandService.save(updates);
   }
 
   /**
    * Deletes a service instance with permission validation.
    * <p>
-   * Validates that the user can edit the instance before deletion.
+   * Business logic: Validates permissions and delegates to CommandService.
    *
    * @param id          the instance ID
    * @param userContext the user context for permission checking
    * @throws SecurityException if user lacks permission to delete instance
    */
   @Transactional
-  @CacheEvict(value = "service-instances", allEntries = true)
   public void delete(ServiceInstanceId id, UserContext userContext) {
-    log.debug("Deleting service instance {} for user {}", id, userContext.getUserId());
+    log.debug("Orchestrating delete for service instance {} by user {}", id, userContext.getUserId());
 
     // Fetch existing instance
-    ServiceInstance existing = repository.findById(id)
+    ServiceInstance existing = queryService.findById(id)
         .orElseThrow(() -> new IllegalArgumentException("ServiceInstance not found: " + id));
 
-    // Check if user can edit this instance
+    // Business logic: Check if user can edit this instance
     if (!permissionEvaluator.canEditInstance(userContext, existing)) {
       log.warn("User {} denied permission to delete instance {}", userContext.getUserId(), id);
       throw new SecurityException("Insufficient permissions to delete instance: " + id);
     }
 
-    repository.deleteById(id);
+    commandService.deleteById(id);
   }
 
   /**
    * Retrieves a service instance with permission validation.
    * <p>
-   * Returns the instance only if the user has permission to view it.
+   * Business logic: Applies permission filtering.
    *
    * @param id          the instance ID
    * @param userContext the user context for permission checking
    * @return the instance if found and user has permission, empty otherwise
    */
-  @Cacheable(value = "service-instances", key = "#id + ':' + #userContext.userId")
   public Optional<ServiceInstance> findById(ServiceInstanceId id, UserContext userContext) {
-    log.debug("Finding service instance {} for user {}", id, userContext.getUserId());
+    log.debug("Orchestrating findById with permission filtering for instance {} and user {}", id,
+        userContext.getUserId());
 
-    Optional<ServiceInstance> instance = repository.findById(id);
+    Optional<ServiceInstance> instance = queryService.findById(id);
 
+    // Business logic: Filter by permissions
     if (instance.isPresent() && !permissionEvaluator.canViewInstance(userContext, instance.get())) {
       log.warn("User {} does not have permission to view instance {}", userContext.getUserId(), id);
       return Optional.empty();

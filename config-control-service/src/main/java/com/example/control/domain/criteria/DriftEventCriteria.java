@@ -15,14 +15,14 @@ import java.util.List;
  * All queries are automatically filtered by userTeamIds when provided.
  * </p>
  *
- * @param serviceName filter by service name
- * @param instanceId filter by instance ID
- * @param status filter by drift status
- * @param severity filter by drift severity
+ * @param serviceName    filter by service name
+ * @param instanceId     filter by instance ID
+ * @param status         filter by drift status
+ * @param severity       filter by drift severity
  * @param detectedAtFrom filter by detection date (from)
- * @param detectedAtTo filter by detection date (to)
+ * @param detectedAtTo   filter by detection date (to)
  * @param unresolvedOnly filter for unresolved events only
- * @param userTeamIds team IDs for ABAC filtering (null for admin queries)
+ * @param userTeamIds    team IDs for ABAC filtering (null for admin queries)
  */
 @Builder(toBuilder = true)
 @With
@@ -34,8 +34,7 @@ public record DriftEventCriteria(
         Instant detectedAtFrom,
         Instant detectedAtTo,
         Boolean unresolvedOnly,
-        List<String> userTeamIds
-) {
+        List<String> userTeamIds) {
 
     /**
      * Creates criteria with no filtering (admin query).
@@ -80,6 +79,68 @@ public record DriftEventCriteria(
         return DriftEventCriteria.builder()
                 .unresolvedOnly(true)
                 .userTeamIds(teamIds)
+                .build();
+    }
+
+    /**
+     * Creates criteria for a specific service (admin query, no team filtering).
+     *
+     * @param serviceName the service name to filter by
+     * @return criteria for service
+     */
+    public static DriftEventCriteria forService(String serviceName) {
+        return DriftEventCriteria.builder()
+                .serviceName(serviceName)
+                .build();
+    }
+
+    /**
+     * Creates criteria for unresolved events of a specific service (admin query).
+     *
+     * @param serviceName the service name to filter by
+     * @return criteria for unresolved events of service
+     */
+    public static DriftEventCriteria unresolvedForService(String serviceName) {
+        return DriftEventCriteria.builder()
+                .serviceName(serviceName)
+                .status(DriftEvent.DriftStatus.DETECTED)
+                .build();
+    }
+
+    /**
+     * Creates criteria for a specific drift status (admin query).
+     *
+     * @param status the drift status to filter by
+     * @return criteria for status
+     */
+    public static DriftEventCriteria withStatus(DriftEvent.DriftStatus status) {
+        return DriftEventCriteria.builder()
+                .status(status)
+                .build();
+    }
+
+    /**
+     * Creates criteria for unresolved events only (admin query).
+     *
+     * @return criteria for unresolved events
+     */
+    public static DriftEventCriteria unresolved() {
+        return DriftEventCriteria.builder()
+                .status(DriftEvent.DriftStatus.DETECTED)
+                .build();
+    }
+
+    /**
+     * Creates criteria for a specific instance (admin query).
+     *
+     * @param serviceName the service name
+     * @param instanceId  the instance ID
+     * @return criteria for instance
+     */
+    public static DriftEventCriteria forInstance(String serviceName, String instanceId) {
+        return DriftEventCriteria.builder()
+                .serviceName(serviceName)
+                .instanceId(instanceId)
                 .build();
     }
 }

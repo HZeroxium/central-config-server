@@ -1,19 +1,18 @@
 package com.example.control.application.service;
 
-import com.example.control.application.command.applicationservice.CreateOrUpdateServiceCommand;
-import com.example.control.application.command.applicationservice.CreateOrUpdateServiceHandler;
-import com.example.control.application.command.applicationservice.TransferOwnershipCommand;
-import com.example.control.application.command.applicationservice.TransferOwnershipHandler;
+import com.example.control.application.command.ApplicationServiceCommandService;
+import com.example.control.application.command.DriftEventCommandService;
+import com.example.control.application.command.ServiceInstanceCommandService;
 import com.example.control.application.query.ApplicationServiceQueryService;
 import com.example.control.application.query.ServiceShareQueryService;
 import com.example.control.config.security.UserContext;
+import com.example.control.domain.event.ServiceOwnershipTransferred;
 import com.example.control.domain.object.ApplicationService;
 import com.example.control.domain.criteria.ApplicationServiceCriteria;
 import com.example.control.domain.id.ApplicationServiceId;
-import com.example.control.domain.port.ApplicationServiceRepositoryPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -25,10 +24,10 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Application service for managing application services.
+ * Orchestrator service for managing ApplicationService entities.
  * <p>
- * Provides business logic for CRUD operations on application services with
- * team-based access control and caching support.
+ * Coordinates between Command/QueryServices for complex business operations.
+ * Handles ownership transfer with cascading updates across related entities.
  * </p>
  */
 @Slf4j
@@ -37,16 +36,18 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 public class ApplicationServiceService {
 
-    private final ApplicationServiceRepositoryPort repository;
+    private final ApplicationServiceCommandService commandService;
     private final ApplicationServiceQueryService queryService;
     private final ServiceShareQueryService serviceShareQueryService;
-    private final CreateOrUpdateServiceHandler createOrUpdateHandler;
-    private final TransferOwnershipHandler transferOwnershipHandler;
+    private final ServiceInstanceCommandService serviceInstanceCommandService;
+    private final DriftEventCommandService driftEventCommandService;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * Save or update an application service.
      * <p>
-     * Delegates to CreateOrUpdateServiceHandler for write operations.
+     * Business logic: Initializes timestamps and ID if needed, then delegates to
+     * CommandService.
      *
      * @param service     the application service to save
      * @param userContext the current user context
@@ -54,21 +55,22 @@ public class ApplicationServiceService {
      */
     @Transactional
     public ApplicationService save(ApplicationService service, UserContext userContext) {
-        log.info("Saving application service: {} by user: {}", service.getId(), userContext.getUserId());
+        log.info("Orchestrating save for application service: {} by user: {}", service.getId(),
+                userContext.getUserId());
 
-        CreateOrUpdateServiceCommand command = CreateOrUpdateServiceCommand.builder()
-                .id(service.getId() != null ? service.getId().id() : null)
-                .displayName(service.getDisplayName())
-                .ownerTeamId(service.getOwnerTeamId())
-                .environments(service.getEnvironments())
-                .tags(service.getTags())
-                .repoUrl(service.getRepoUrl())
-                .lifecycle(service.getLifecycle())
-                .attributes(service.getAttributes())
-                .createdBy(userContext.getUserId())
-                .build();
+        // Business logic: Generate ID if null
+        if (service.getId() == null) {
+            service.setId(ApplicationServiceId.of(UUID.randomUUID().toString()));
+        }
 
-        ApplicationService saved = createOrUpdateHandler.handle(command);
+        // Business logic: Initialize timestamps
+        if (service.getCreatedAt() == null) {
+            service.setCreatedAt(Instant.now());
+            service.setCreatedBy(userContext.getUserId());
+        }
+        service.setUpdatedAt(Instant.now());
+
+        ApplicationService saved = commandService.save(service);
         log.info("Successfully saved application service: {}", saved.getId());
         return saved;
     }
@@ -119,7 +121,7 @@ public class ApplicationServiceService {
             return existing.get();
         }
 
-        // Create orphaned service (no owner team) - generate UUID
+        // Business logic: Create orphaned service (no owner team) - generate UUID
         ApplicationService orphanedService = ApplicationService.builder()
                 .id(ApplicationServiceId.of(UUID.randomUUID().toString()))
                 .displayName(displayName)
@@ -130,7 +132,7 @@ public class ApplicationServiceService {
                 .createdBy("system") // System-created
                 .build();
 
-        ApplicationService saved = repository.save(orphanedService);
+        ApplicationService saved = commandService.save(orphanedService);
         log.warn(
                 "Auto-created orphaned ApplicationService: {} (displayName: {}) - requires approval workflow for team assignment",
                 saved.getId(), displayName);
@@ -180,7 +182,7 @@ public class ApplicationServiceService {
         // System admins can see all services - no filtering
         if (userContext.isSysAdmin()) {
             log.debug("User {} is SYS_ADMIN, returning all services", userContext.getUserId());
-            return repository.findAll(criteria, pageable);
+            return queryService.findAll(criteria, pageable);
         }
 
         // For regular users: apply visibility filtering
@@ -212,27 +214,27 @@ public class ApplicationServiceService {
     /**
      * Delete an application service.
      * <p>
-     * Only system admins can delete services.
+     * Business logic: Only system admins can delete services.
      *
      * @param id          the service ID to delete
      * @param userContext the current user context
      */
     @Transactional
-    @CacheEvict(value = "application-services", allEntries = true)
     public void delete(ApplicationServiceId id, UserContext userContext) {
-        log.info("Deleting application service: {} by user: {}", id, userContext.getUserId());
+        log.info("Orchestrating delete for application service: {} by user: {}", id, userContext.getUserId());
 
-        Optional<ApplicationService> service = repository.findById(id);
+        // Business logic: Verify service exists
+        Optional<ApplicationService> service = queryService.findById(id);
         if (service.isEmpty()) {
             throw new IllegalArgumentException("Application service not found: " + id);
         }
 
-        // Only system admins can delete services
+        // Business logic: Only system admins can delete services
         if (!userContext.isSysAdmin()) {
             throw new IllegalStateException("Only system administrators can delete services");
         }
 
-        repository.deleteById(id);
+        commandService.deleteById(id);
         log.info("Successfully deleted application service: {}", id);
     }
 
@@ -240,8 +242,9 @@ public class ApplicationServiceService {
      * Transfer ownership of an application service and cascade the change to all
      * related entities.
      * <p>
-     * Delegates to TransferOwnershipHandler which publishes a domain event for
-     * cascading updates.
+     * Complex orchestration: Updates ApplicationService, then cascades to
+     * ServiceInstances and DriftEvents.
+     * Publishes ServiceOwnershipTransferred event for other async listeners.
      *
      * @param serviceId   the service ID to transfer
      * @param newTeamId   the new team ID to assign
@@ -253,18 +256,37 @@ public class ApplicationServiceService {
     @Transactional
     public ApplicationService transferOwnershipWithCascade(String serviceId, String newTeamId,
             UserContext userContext) {
-        log.info("Transferring ownership of service {} to team {} by user {}",
+        log.info("Orchestrating ownership transfer of service {} to team {} by user {}",
                 serviceId, newTeamId, userContext.getUserId());
 
-        TransferOwnershipCommand command = TransferOwnershipCommand.builder()
+        // Business logic: Validate service exists
+        ApplicationService service = queryService.findById(ApplicationServiceId.of(serviceId))
+                .orElseThrow(() -> new IllegalArgumentException("Application service not found: " + serviceId));
+
+        String oldTeamId = service.getOwnerTeamId();
+
+        // Business logic: Update service ownership
+        service.setOwnerTeamId(newTeamId);
+        service.setUpdatedAt(Instant.now());
+
+        ApplicationService updatedService = commandService.save(service);
+
+        // Cascade updates to related entities
+        log.debug("Cascading teamId update to service instances and drift events for service: {}", serviceId);
+        serviceInstanceCommandService.bulkUpdateTeamIdByServiceId(serviceId, newTeamId);
+        driftEventCommandService.bulkUpdateTeamIdByServiceId(serviceId, newTeamId);
+
+        // Publish domain event for any other async listeners
+        ServiceOwnershipTransferred event = ServiceOwnershipTransferred.builder()
                 .serviceId(serviceId)
+                .oldTeamId(oldTeamId)
                 .newTeamId(newTeamId)
+                .transferredAt(Instant.now())
                 .transferredBy(userContext.getUserId())
                 .build();
+        eventPublisher.publishEvent(event);
 
-        ApplicationService updatedService = transferOwnershipHandler.handle(command);
         log.info("Successfully transferred ownership of service {} to team {}", serviceId, newTeamId);
-
         return updatedService;
     }
 }

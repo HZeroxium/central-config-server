@@ -1,13 +1,12 @@
 package com.example.control.application.service;
 
+import com.example.control.application.command.IamTeamCommandService;
+import com.example.control.application.query.IamTeamQueryService;
 import com.example.control.domain.object.IamTeam;
 import com.example.control.domain.criteria.IamTeamCriteria;
 import com.example.control.domain.id.IamTeamId;
-import com.example.control.domain.port.IamTeamRepositoryPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -17,10 +16,13 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Service for managing IAM teams with caching.
+ * Orchestrator service for managing IAM teams.
  * <p>
- * Provides CRUD operations for IAM teams with caching
- * for performance optimization.
+ * Coordinates between CommandService and QueryService for IAM team operations.
+ * Handles business logic and orchestration but delegates persistence to
+ * Command/Query services.
+ * This service currently has minimal business logic as IAM teams are simple
+ * read-only projections.
  * </p>
  */
 @Slf4j
@@ -29,23 +31,22 @@ import java.util.Optional;
 @Transactional(readOnly = true)
 public class IamTeamService {
 
-    private final IamTeamRepositoryPort repository;
+    private final IamTeamCommandService commandService;
+    private final IamTeamQueryService queryService;
 
     /**
      * Save or update an IAM team.
      * <p>
-     * Evicts cache entries to ensure consistency.
+     * Delegates to CommandService for persistence.
+     * Currently minimal business logic as IAM teams are simple projections.
      *
      * @param team the IAM team to save
      * @return the saved team
      */
     @Transactional
-    @CacheEvict(value = "iam-teams", allEntries = true)
     public IamTeam save(IamTeam team) {
-        log.debug("Saving IAM team: {}", team.getTeamId());
-        IamTeam saved = repository.save(team);
-        log.debug("Saved IAM team: {}", saved.getTeamId());
-        return saved;
+        log.debug("Orchestrating save for IAM team: {}", team.getTeamId());
+        return commandService.save(team);
     }
 
     /**
@@ -54,12 +55,8 @@ public class IamTeamService {
      * @param id the team ID
      * @return the IAM team if found
      */
-    @Cacheable(value = "iam-teams", key = "#id")
     public Optional<IamTeam> findById(IamTeamId id) {
-        log.debug("Finding IAM team by ID: {}", id);
-        Optional<IamTeam> result = repository.findById(id);
-        log.debug("Found IAM team: {}", result.isPresent());
-        return result;
+        return queryService.findById(id);
     }
 
     /**
@@ -68,12 +65,8 @@ public class IamTeamService {
      * @param userId the user ID
      * @return list of teams containing the user
      */
-    @Cacheable(value = "iam-teams", key = "'member:' + #userId")
     public List<IamTeam> findByMember(String userId) {
-        log.debug("Finding teams by member: {}", userId);
-        List<IamTeam> result = repository.findByMember(userId);
-        log.debug("Found {} teams for member: {}", result.size(), userId);
-        return result;
+        return queryService.findByMember(userId);
     }
 
     /**
@@ -83,12 +76,8 @@ public class IamTeamService {
      * @param pageable pagination information
      * @return page of IAM teams
      */
-    @Cacheable(value = "iam-teams", key = "'list:' + #criteria.hashCode() + ':' + #pageable")
     public Page<IamTeam> findAll(IamTeamCriteria criteria, Pageable pageable) {
-        log.debug("Listing IAM teams with criteria: {}", criteria);
-        Page<IamTeam> result = repository.findAll(criteria, pageable);
-        log.debug("Found {} IAM teams", result.getTotalElements());
-        return result;
+        return queryService.findAll(criteria, pageable);
     }
 
     /**
@@ -97,12 +86,8 @@ public class IamTeamService {
      * @param criteria the filter criteria
      * @return count of matching teams
      */
-    @Cacheable(value = "iam-teams", key = "'count:' + #criteria.hashCode()")
     public long count(IamTeamCriteria criteria) {
-        log.debug("Counting IAM teams with criteria: {}", criteria);
-        long count = repository.count(criteria);
-        log.debug("Found {} IAM teams matching criteria", count);
-        return count;
+        return queryService.count(criteria);
     }
 
     /**
@@ -110,23 +95,18 @@ public class IamTeamService {
      *
      * @return total count of all teams
      */
-    @Cacheable(value = "iam-teams", key = "'countAll'")
     public long countAll() {
-        log.debug("Counting all IAM teams");
-        long count = repository.countAll();
-        log.debug("Found {} total IAM teams", count);
-        return count;
+        return queryService.countAll();
     }
 
     /**
      * Delete all team projections (for full sync).
+     * Delegates to CommandService.
      */
     @Transactional
-    @CacheEvict(value = "iam-teams", allEntries = true)
     public void deleteAll() {
-        log.debug("Deleting all IAM teams");
-        repository.deleteAll();
-        log.debug("Deleted all IAM teams");
+        log.debug("Orchestrating delete all IAM teams");
+        commandService.deleteAll();
     }
 
     /**
@@ -136,9 +116,6 @@ public class IamTeamService {
      * @return true if exists, false otherwise
      */
     public boolean existsById(IamTeamId id) {
-        log.debug("Checking existence of IAM team: {}", id);
-        boolean exists = repository.existsById(id);
-        log.debug("IAM team exists: {}", exists);
-        return exists;
+        return queryService.existsById(id);
     }
 }

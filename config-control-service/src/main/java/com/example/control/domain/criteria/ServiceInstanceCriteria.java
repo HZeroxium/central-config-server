@@ -15,15 +15,15 @@ import java.util.List;
  * All queries are automatically filtered by userTeamIds when provided.
  * </p>
  *
- * @param serviceId filter by service ID
- * @param instanceId filter by instance ID
- * @param status filter by instance status
- * @param hasDrift filter by drift status
- * @param environment filter by environment
- * @param version filter by version
+ * @param serviceId      filter by service ID
+ * @param instanceId     filter by instance ID
+ * @param status         filter by instance status
+ * @param hasDrift       filter by drift status
+ * @param environment    filter by environment
+ * @param version        filter by version
  * @param lastSeenAtFrom filter by last seen date (from)
- * @param lastSeenAtTo filter by last seen date (to)
- * @param userTeamIds team IDs for ABAC filtering (null for admin queries)
+ * @param lastSeenAtTo   filter by last seen date (to)
+ * @param userTeamIds    team IDs for ABAC filtering (null for admin queries)
  */
 @Builder(toBuilder = true)
 @With
@@ -36,8 +36,7 @@ public record ServiceInstanceCriteria(
         String version,
         Instant lastSeenAtFrom,
         Instant lastSeenAtTo,
-        List<String> userTeamIds
-) {
+        List<String> userTeamIds) {
 
     /**
      * Creates criteria with no filtering (admin query).
@@ -76,13 +75,72 @@ public record ServiceInstanceCriteria(
      * Creates criteria for a specific service.
      *
      * @param serviceId the service ID
-     * @param teamIds the team IDs to filter by
+     * @param teamIds   the team IDs to filter by
      * @return criteria for the service
      */
     public static ServiceInstanceCriteria forService(String serviceId, List<String> teamIds) {
         return ServiceInstanceCriteria.builder()
                 .serviceId(serviceId)
                 .userTeamIds(teamIds)
+                .build();
+    }
+
+    /**
+     * Creates criteria for a specific service (admin query, no team filtering).
+     *
+     * @param serviceId the service ID
+     * @return criteria for the service
+     */
+    public static ServiceInstanceCriteria forService(String serviceId) {
+        return ServiceInstanceCriteria.builder()
+                .serviceId(serviceId)
+                .build();
+    }
+
+    /**
+     * Creates criteria for instances with drift (admin query).
+     *
+     * @return criteria for drifted instances
+     */
+    public static ServiceInstanceCriteria withDrift() {
+        return ServiceInstanceCriteria.builder()
+                .hasDrift(true)
+                .build();
+    }
+
+    /**
+     * Creates criteria for instances with specific status (admin query).
+     *
+     * @param status the instance status
+     * @return criteria for status
+     */
+    public static ServiceInstanceCriteria withStatus(ServiceInstance.InstanceStatus status) {
+        return ServiceInstanceCriteria.builder()
+                .status(status)
+                .build();
+    }
+
+    /**
+     * Creates criteria for a specific instance (admin query).
+     *
+     * @param instanceId the instance ID
+     * @return criteria for instance
+     */
+    public static ServiceInstanceCriteria forInstance(String instanceId) {
+        return ServiceInstanceCriteria.builder()
+                .instanceId(instanceId)
+                .build();
+    }
+
+    /**
+     * Creates criteria for a specific environment (admin query).
+     *
+     * @param environment the environment
+     * @return criteria for environment
+     */
+    public static ServiceInstanceCriteria forEnvironment(String environment) {
+        return ServiceInstanceCriteria.builder()
+                .environment(environment)
                 .build();
     }
 }

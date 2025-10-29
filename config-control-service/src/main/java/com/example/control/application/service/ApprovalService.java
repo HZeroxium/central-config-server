@@ -1,8 +1,6 @@
 package com.example.control.application.service;
 
 import com.example.control.api.exception.exceptions.ConflictException;
-import com.example.control.application.command.applicationservice.TransferOwnershipCommand;
-import com.example.control.application.command.applicationservice.TransferOwnershipHandler;
 import com.example.control.config.security.DomainPermissionEvaluator;
 import com.example.control.config.security.UserContext;
 import com.example.control.domain.object.ApplicationService;
@@ -28,10 +26,11 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Application service for managing approval workflow requests.
+ * Orchestrator service for managing approval workflow requests.
  * <p>
  * Provides business logic for multi-gate approval workflows with optimistic
- * locking support and automatic status updates.
+ * locking support, automatic status updates, and ownership transfer
+ * orchestration.
  * </p>
  */
 @Slf4j
@@ -44,7 +43,6 @@ public class ApprovalService {
     private final ApprovalDecisionService approvalDecisionService;
     private final ApplicationServiceService applicationServiceService;
     private final DomainPermissionEvaluator permissionEvaluator;
-    private final TransferOwnershipHandler transferOwnershipHandler;
 
     /**
      * Create a new approval request.
@@ -354,14 +352,20 @@ public class ApprovalService {
             return;
         }
 
-        // Transfer service ownership using command handler
-        TransferOwnershipCommand command = TransferOwnershipCommand.builder()
-                .serviceId(request.getTarget().getServiceId())
-                .newTeamId(request.getTarget().getTeamId())
-                .transferredBy("system")
+        // Transfer service ownership via ApplicationServiceService orchestrator
+        // Create system user context for ownership transfer
+        UserContext systemUserContext = UserContext.builder()
+                .userId("system")
+                .username("system")
+                .email("system@internal")
+                .teamIds(List.of())
+                .roles(List.of("ROLE_SYS_ADMIN"))
                 .build();
 
-        transferOwnershipHandler.handle(command);
+        applicationServiceService.transferOwnershipWithCascade(
+                request.getTarget().getServiceId(),
+                request.getTarget().getTeamId(),
+                systemUserContext);
 
         // Find all pending requests for this service before cascade
         List<ApprovalRequest> pendingRequests = findPendingRequestsForService(

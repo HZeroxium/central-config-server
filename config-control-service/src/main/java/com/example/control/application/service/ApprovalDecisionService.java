@@ -1,13 +1,12 @@
 package com.example.control.application.service;
 
+import com.example.control.application.command.ApprovalDecisionCommandService;
+import com.example.control.application.query.ApprovalDecisionQueryService;
 import com.example.control.domain.object.ApprovalDecision;
 import com.example.control.domain.id.ApprovalDecisionId;
 import com.example.control.domain.id.ApprovalRequestId;
-import com.example.control.domain.port.ApprovalDecisionRepositoryPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,10 +15,14 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Service for managing approval decisions with caching.
+ * Orchestrator service for managing approval decisions.
  * <p>
- * Provides CRUD operations for approval decisions with caching
- * for performance optimization.
+ * Coordinates between CommandService and QueryService for approval decision
+ * operations.
+ * Handles business logic and orchestration but delegates persistence to
+ * Command/Query services.
+ * Provides special logic for system-generated decisions used in cascade
+ * approval scenarios.
  * </p>
  */
 @Slf4j
@@ -28,23 +31,21 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 public class ApprovalDecisionService {
 
-    private final ApprovalDecisionRepositoryPort repository;
+    private final ApprovalDecisionCommandService commandService;
+    private final ApprovalDecisionQueryService queryService;
 
     /**
      * Save an approval decision.
      * <p>
-     * Evicts cache entries to ensure consistency.
+     * Delegates to CommandService for persistence.
      *
      * @param decision the approval decision to save
      * @return the saved decision
      */
     @Transactional
-    @CacheEvict(value = "approval-decisions", allEntries = true)
     public ApprovalDecision save(ApprovalDecision decision) {
-        log.debug("Saving approval decision: {}", decision.getId());
-        ApprovalDecision saved = repository.save(decision);
-        log.debug("Saved approval decision: {}", saved.getId());
-        return saved;
+        log.debug("Orchestrating save for approval decision: {}", decision.getId());
+        return commandService.save(decision);
     }
 
     /**
@@ -53,20 +54,9 @@ public class ApprovalDecisionService {
      * @param id the decision ID
      * @return the approval decision if found
      */
-    @Cacheable(value = "approval-decisions", key = "#id")
     public Optional<ApprovalDecision> findById(ApprovalDecisionId id) {
-        log.debug("Finding approval decision by ID: {}", id);
-        Optional<ApprovalDecision> result = repository.findById(id);
-        log.debug("Found approval decision: {}", result.isPresent());
-        return result;
+        return queryService.findById(id);
     }
-
-    /**
-     * Find all decisions for a specific approval request.
-     *
-     * @param requestId the approval request ID
-     * @return list of decisions for the request
-     */
 
     /**
      * Check if a decision exists for a specific request, approver, and gate.
@@ -79,15 +69,10 @@ public class ApprovalDecisionService {
      * @param gate           the gate name
      * @return true if decision exists, false otherwise
      */
-    @Cacheable(value = "approval-decisions", key = "'exists:' + #requestId + ':' + #approverUserId + ':' + #gate")
     public boolean existsByRequestAndApproverAndGate(ApprovalRequestId requestId,
             String approverUserId,
             String gate) {
-        log.debug("Checking if decision exists for request: {}, approver: {}, gate: {}",
-                requestId, approverUserId, gate);
-        boolean exists = repository.existsByRequestAndApproverAndGate(requestId, approverUserId, gate);
-        log.debug("Decision exists: {}", exists);
-        return exists;
+        return queryService.existsByRequestAndApproverAndGate(requestId, approverUserId, gate);
     }
 
     /**
@@ -98,16 +83,10 @@ public class ApprovalDecisionService {
      * @param decision  the decision type (APPROVE or REJECT)
      * @return number of decisions of the specified type
      */
-    @Cacheable(value = "approval-decisions", key = "'count-by-request-gate-decision:' + #requestId + ':' + #gate + ':' + #decision")
     public long countByRequestIdAndGateAndDecision(ApprovalRequestId requestId,
             String gate,
             ApprovalDecision.Decision decision) {
-        log.debug("Counting decisions for request: {}, gate: {}, decision: {}",
-                requestId, gate, decision);
-        long count = repository.countByRequestIdAndGateAndDecision(requestId, gate, decision);
-        log.debug("Found {} decisions for request: {}, gate: {}, decision: {}",
-                count, requestId, gate, decision);
-        return count;
+        return queryService.countByRequestIdAndGateAndDecision(requestId, gate, decision);
     }
 
     /**
@@ -117,31 +96,29 @@ public class ApprovalDecisionService {
      * @return true if exists, false otherwise
      */
     public boolean existsById(ApprovalDecisionId id) {
-        log.debug("Checking existence of approval decision: {}", id);
-        boolean exists = repository.existsById(id);
-        log.debug("Approval decision exists: {}", exists);
-        return exists;
+        return queryService.existsById(id);
     }
 
     /**
      * Delete an approval decision by ID.
+     * Delegates to CommandService.
      *
      * @param id the decision ID
      */
     @Transactional
-    @CacheEvict(value = "approval-decisions", allEntries = true)
     public void deleteById(ApprovalDecisionId id) {
-        log.debug("Deleting approval decision: {}", id);
-        repository.deleteById(id);
-        log.debug("Deleted approval decision: {}", id);
+        log.debug("Orchestrating delete for approval decision: {}", id);
+        commandService.deleteById(id);
     }
 
     /**
      * Create a system-generated approval decision.
      * <p>
-     * Used for cascade operations where the system automatically approves or
-     * rejects
+     * Business logic for cascade operations where the system automatically approves
+     * or rejects
      * requests based on service ownership assignment.
+     * Builds the domain object with system defaults and delegates to
+     * CommandService.
      * </p>
      *
      * @param requestId the approval request ID
@@ -151,7 +128,6 @@ public class ApprovalDecisionService {
      * @return the created system decision
      */
     @Transactional
-    @CacheEvict(value = "approval-decisions", allEntries = true)
     public ApprovalDecision createSystemDecision(ApprovalRequestId requestId,
             String gate,
             ApprovalDecision.Decision decision,
@@ -159,6 +135,7 @@ public class ApprovalDecisionService {
         log.debug("Creating system decision for request: {}, gate: {}, decision: {}",
                 requestId, gate, decision);
 
+        // Build system decision domain object
         ApprovalDecision systemDecision = ApprovalDecision.builder()
                 .id(ApprovalDecisionId.of(UUID.randomUUID().toString()))
                 .requestId(requestId)
@@ -169,7 +146,7 @@ public class ApprovalDecisionService {
                 .note(note)
                 .build();
 
-        ApprovalDecision saved = repository.save(systemDecision);
+        ApprovalDecision saved = commandService.save(systemDecision);
         log.info("Created system decision: {} for request: {}", saved.getId(), requestId);
         return saved;
     }
