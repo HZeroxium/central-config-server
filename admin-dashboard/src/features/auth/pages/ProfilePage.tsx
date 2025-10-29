@@ -19,7 +19,7 @@ import ShareIcon from "@mui/icons-material/Share";
 import { useAuth } from "../context";
 import { useFindCurrentUserInformation } from "@lib/api/hooks";
 import PageHeader from "@components/common/PageHeader";
-import Loading from "@components/common/Loading";
+import { DetailPageSkeleton } from "@components/common/skeletons";
 import ErrorFallback from "@components/common/ErrorFallback";
 import { getErrorMessage } from "@lib/api/errorHandler";
 
@@ -32,7 +32,7 @@ export default function ProfilePage() {
     refetch,
   } = useFindCurrentUserInformation();
 
-  if (isLoading) return <Loading />;
+  if (isLoading) return <DetailPageSkeleton />;
   if (error)
     return <ErrorFallback message={getErrorMessage(error)} onRetry={refetch} />;
 

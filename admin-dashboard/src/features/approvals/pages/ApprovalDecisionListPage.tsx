@@ -21,7 +21,7 @@ import {
   Assessment as StatsIcon,
 } from "@mui/icons-material";
 import PageHeader from "@components/common/PageHeader";
-import Loading from "@components/common/Loading";
+import { TableSkeleton } from "@components/common/skeletons";
 import StatCard from "@components/common/StatCard";
 import { useFindAllApprovalDecisions } from "@lib/api/hooks";
 import type {
@@ -333,7 +333,7 @@ export default function ApprovalDecisionListPage() {
             </Alert>
           )}
 
-          {isLoading && <Loading />}
+          {isLoading && <TableSkeleton rows={10} columns={7} />}
 
           {!isLoading && !error && (
             <ApprovalDecisionTable

@@ -11,7 +11,7 @@ import {
 } from "@mui/material";
 import { useGetServiceRegistryServiceInstances } from "@lib/api/generated/service-registry/service-registry";
 import PageHeader from "@components/common/PageHeader";
-import Loading from "@components/common/Loading";
+import { DetailPageSkeleton } from "@components/common/skeletons";
 import Breadcrumbs from "@components/common/Breadcrumbs";
 import ConsulHealthBadge from "../components/ConsulHealthBadge";
 import { getErrorMessage } from "@lib/api/errorHandler";
@@ -53,7 +53,7 @@ export default function ServiceRegistryDetailPage() {
         </Alert>
       )}
 
-      {isLoading && <Loading />}
+      {isLoading && <DetailPageSkeleton />}
 
       {!isLoading && !error && (
         <Stack spacing={3}>

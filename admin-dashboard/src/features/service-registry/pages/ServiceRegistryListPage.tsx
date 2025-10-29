@@ -10,7 +10,7 @@ import {
 import SearchIcon from "@mui/icons-material/Search";
 import { useListServiceRegistryServices } from "@lib/api/generated/service-registry/service-registry";
 import PageHeader from "@components/common/PageHeader";
-import Loading from "@components/common/Loading";
+import { TableSkeleton } from "@components/common/skeletons";
 import ConsulServiceTable from "../components/ConsulServiceTable";
 import { getErrorMessage } from "@lib/api/errorHandler";
 import { useState } from "react";
@@ -86,7 +86,7 @@ export default function ServiceRegistryListPage() {
                 />
               </Box>
 
-              {isLoading && <Loading />}
+              {isLoading && <TableSkeleton rows={10} columns={4} />}
 
               {!isLoading && data && (
                 <ConsulServiceTable

@@ -33,6 +33,8 @@ import DarkModeIcon from "@mui/icons-material/DarkMode";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import Breadcrumbs from "@components/common/Breadcrumbs";
+import QuickActionsMenu from "@components/common/QuickActionsMenu";
+import CommandPalette from "@components/common/CommandPalette";
 import { useColorMode } from "@theme/colorModeContext";
 import UserMenu from "@features/auth/components/UserMenu";
 import { usePermissions } from "@features/auth/hooks/usePermissions";
@@ -40,6 +42,9 @@ import { usePendingApprovalCount } from "@features/approvals/hooks/usePendingApp
 import { useAppDispatch, useAppSelector } from "@store/hooks";
 import { toggleSidebar } from "@store/uiSlice";
 import { useCallback, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useKeyboardShortcuts } from "@hooks/useKeyboardShortcuts";
+import { useCommandPalette } from "@components/common/CommandPalette";
 
 export default function MainLayout() {
   const theme = useTheme();
@@ -47,15 +52,48 @@ export default function MainLayout() {
   const { mode, toggleMode } = useColorMode();
   const { isSysAdmin } = usePermissions();
   const pendingApprovalCount = usePendingApprovalCount();
+  const queryClient = useQueryClient();
 
   const dispatch = useAppDispatch();
   const open = useAppSelector((state) => state.ui.sidebarOpen);
   const location = useLocation();
   const [iamMenuOpen, setIamMenuOpen] = useState(false);
+  const { open: commandPaletteOpen, setOpen: setCommandPaletteOpen } =
+    useCommandPalette();
 
   const handleToggleSidebar = useCallback(() => {
     dispatch(toggleSidebar());
   }, [dispatch]);
+
+  // Global keyboard shortcuts
+  useKeyboardShortcuts({
+    shortcuts: [
+      {
+        key: "ctrl+k",
+        handler: () => {
+          setCommandPaletteOpen(true);
+        },
+        description: "Open command palette",
+      },
+      {
+        key: "ctrl+/",
+        handler: () => {
+          // TODO: Show keyboard shortcuts help dialog
+          console.log("Keyboard shortcuts help - to be implemented");
+        },
+        description: "Show keyboard shortcuts",
+      },
+      {
+        key: "ctrl+r",
+        handler: (e: KeyboardEvent) => {
+          e.preventDefault();
+          // Refresh current page queries
+          queryClient.invalidateQueries();
+        },
+        description: "Refresh page data",
+      },
+    ],
+  });
 
   // Kích thước khi mở / khi đóng
   const openWidth = 240;
@@ -353,8 +391,13 @@ export default function MainLayout() {
         }}
       >
         <Toolbar />
-        <Breadcrumbs />
+        <Breadcrumbs enableDynamicLabels />
         <Outlet />
+        <QuickActionsMenu />
+        <CommandPalette
+          open={commandPaletteOpen}
+          onClose={() => setCommandPaletteOpen(false)}
+        />
       </Box>
     </Box>
   );

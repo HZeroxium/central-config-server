@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Box,
   Button,
@@ -15,23 +15,41 @@ import {
   Refresh as RefreshIcon,
 } from "@mui/icons-material";
 import PageHeader from "@components/common/PageHeader";
-import Loading from "@components/common/Loading";
+import { TableSkeleton } from "@components/common/skeletons";
 import { useFindAllIamTeams } from "@lib/api/hooks";
 import { useAuth } from "@lib/keycloak/useAuth";
 import { IamTeamTable } from "../components/IamTeamTable";
+import { useDebounce } from "@hooks/useDebounce";
 
 export default function IamTeamListPage() {
   const navigate = useNavigate();
   const { isSysAdmin } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState(20);
-  const [search, setSearch] = useState("");
+  // Parse initial state from URL params
+  const initialPage = parseInt(searchParams.get("page") || "0", 10);
+  const initialPageSize = parseInt(searchParams.get("size") || "20", 10);
+
+  const [page, setPage] = useState(initialPage);
+  const [pageSize, setPageSize] = useState(initialPageSize);
+  const [search, setSearch] = useState(searchParams.get("displayName") || "");
+
+  // Debounce search input
+  const debouncedSearch = useDebounce(search, 400);
+
+  // Sync URL params when filters change
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (debouncedSearch) params.set("displayName", debouncedSearch);
+    if (page > 0) params.set("page", page.toString());
+    if (pageSize !== 20) params.set("size", pageSize.toString());
+    setSearchParams(params, { replace: true });
+  }, [debouncedSearch, page, pageSize, setSearchParams]);
 
   // Always call hooks, but control with enabled option
   const { data, isLoading, error, refetch } = useFindAllIamTeams(
     {
-      displayName: search || undefined,
+      displayName: debouncedSearch || undefined,
       page,
       size: pageSize,
     },
@@ -62,6 +80,7 @@ export default function IamTeamListPage() {
   const handleFilterReset = () => {
     setSearch("");
     setPage(0);
+    setSearchParams({}, { replace: true });
   };
 
   return (
@@ -74,6 +93,7 @@ export default function IamTeamListPage() {
             variant="outlined"
             startIcon={<RefreshIcon />}
             onClick={() => refetch()}
+            aria-label="Refresh IAM teams"
           >
             Refresh
           </Button>
@@ -100,6 +120,7 @@ export default function IamTeamListPage() {
                         <SearchIcon />
                       </InputAdornment>
                     ),
+                    "aria-label": "Search by team name",
                   },
                 }}
               />
@@ -111,6 +132,7 @@ export default function IamTeamListPage() {
                 variant="outlined"
                 onClick={handleFilterReset}
                 sx={{ height: "56px" }}
+                aria-label="Reset all filters"
               >
                 Reset Filters
               </Button>
@@ -124,7 +146,7 @@ export default function IamTeamListPage() {
             </Alert>
           )}
 
-          {isLoading && <Loading />}
+          {isLoading && <TableSkeleton rows={10} columns={4} />}
 
           {!isLoading && !error && (
             <IamTeamTable

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Box,
   Button,
@@ -39,7 +40,10 @@ import {
   SwapHoriz as TransferIcon,
 } from "@mui/icons-material";
 import PageHeader from "@components/common/PageHeader";
-import Loading from "@components/common/Loading";
+import {
+  DetailPageSkeleton,
+  TableSkeleton,
+} from "@components/common/skeletons";
 import ConfirmDialog from "@components/common/ConfirmDialog";
 import {
   useFindApplicationServiceById,
@@ -49,6 +53,12 @@ import {
   useRevokeServiceShare,
   useCreateApprovalRequest,
 } from "@lib/api/hooks";
+import {
+  getFindApplicationServiceByIdQueryKey,
+  getFindAllApplicationServicesQueryKey,
+} from "@lib/api/generated/application-services/application-services";
+import { getFindAllServiceSharesQueryKey } from "@lib/api/generated/service-shares/service-shares";
+import { getFindAllApprovalRequestsQueryKey } from "@lib/api/generated/approval-requests/approval-requests";
 import { useAuth } from "@features/auth/context";
 import { toast } from "@lib/toast/toast";
 import { handleApiError } from "@lib/api/errorHandler";
@@ -61,6 +71,7 @@ export default function ApplicationServiceDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { isSysAdmin, permissions, userInfo } = useAuth();
+  const queryClient = useQueryClient();
 
   const [tabValue, setTabValue] = useState(0);
   const [selectedEnvironment, setSelectedEnvironment] = useState<
@@ -81,7 +92,6 @@ export default function ApplicationServiceDetailPage() {
     data: service,
     isLoading,
     error,
-    refetch,
   } = useFindApplicationServiceById(id!, {
     query: {
       enabled: !!id,
@@ -106,8 +116,8 @@ export default function ApplicationServiceDetailPage() {
       }
     );
 
-  // Fetch service shares
-  const { refetch: refetchShares } = useFindAllServiceShares(
+  // Fetch service shares (unused refetch - shares are managed in ServiceSharesTab)
+  useFindAllServiceShares(
     {
       serviceId: id,
       page: 0,
@@ -160,6 +170,13 @@ export default function ApplicationServiceDetailPage() {
       {
         onSuccess: () => {
           toast.success("Service deleted successfully");
+          // Invalidate queries
+          queryClient.invalidateQueries({
+            queryKey: getFindApplicationServiceByIdQueryKey(id),
+          });
+          queryClient.invalidateQueries({
+            queryKey: getFindAllApplicationServicesQueryKey(),
+          });
           navigate("/application-services");
         },
         onError: (error) => {
@@ -172,7 +189,15 @@ export default function ApplicationServiceDetailPage() {
   const handleEditSuccess = () => {
     toast.success("Service updated successfully");
     setEditDrawerOpen(false);
-    refetch();
+    // Invalidate detail query to refresh data
+    if (id) {
+      queryClient.invalidateQueries({
+        queryKey: getFindApplicationServiceByIdQueryKey(id),
+      });
+      queryClient.invalidateQueries({
+        queryKey: getFindAllApplicationServicesQueryKey(),
+      });
+    }
   };
 
   const handleConfirmRevokeShare = async () => {
@@ -185,7 +210,12 @@ export default function ApplicationServiceDetailPage() {
           toast.success("Service share revoked successfully");
           setRevokeShareDialogOpen(false);
           setSelectedShareId(null);
-          refetchShares();
+          // Invalidate shares query
+          if (id) {
+            queryClient.invalidateQueries({
+              queryKey: getFindAllServiceSharesQueryKey({ serviceId: id }),
+            });
+          }
         },
         onError: (error) => {
           handleApiError(error);
@@ -219,6 +249,15 @@ export default function ApplicationServiceDetailPage() {
           toast.success("Ownership claim request submitted successfully");
           setClaimOwnershipDialogOpen(false);
           setOwnershipNote("");
+          // Invalidate approval requests and service detail
+          queryClient.invalidateQueries({
+            queryKey: getFindAllApprovalRequestsQueryKey(),
+          });
+          if (id) {
+            queryClient.invalidateQueries({
+              queryKey: getFindApplicationServiceByIdQueryKey(id),
+            });
+          }
           navigate("/approvals");
         },
         onError: (error) => {
@@ -253,6 +292,15 @@ export default function ApplicationServiceDetailPage() {
           toast.success("Ownership transfer request submitted successfully");
           setTransferOwnershipDialogOpen(false);
           setOwnershipNote("");
+          // Invalidate approval requests and service detail
+          queryClient.invalidateQueries({
+            queryKey: getFindAllApprovalRequestsQueryKey(),
+          });
+          if (id) {
+            queryClient.invalidateQueries({
+              queryKey: getFindApplicationServiceByIdQueryKey(id),
+            });
+          }
           navigate("/approvals");
         },
         onError: (error) => {
@@ -267,7 +315,7 @@ export default function ApplicationServiceDetailPage() {
   };
 
   if (isLoading) {
-    return <Loading />;
+    return <DetailPageSkeleton />;
   }
 
   // Handle errors (404, 403, or network errors)
@@ -605,7 +653,7 @@ export default function ApplicationServiceDetailPage() {
             </Box>
 
             {instancesLoading ? (
-              <Loading />
+              <TableSkeleton rows={5} columns={4} />
             ) : instancesData?.items && instancesData.items.length > 0 ? (
               <TableContainer component={Paper} variant="outlined">
                 <Table>

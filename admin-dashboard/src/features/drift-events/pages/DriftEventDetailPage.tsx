@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Box,
   Button,
@@ -23,8 +24,12 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import PageHeader from "@components/common/PageHeader";
-import Loading from "@components/common/Loading";
+import { DetailPageSkeleton } from "@components/common/skeletons";
 import { useFindDriftEventById, useUpdateDriftEvent } from "@lib/api/hooks";
+import {
+  getFindDriftEventByIdQueryKey,
+  getFindAllDriftEventsQueryKey,
+} from "@lib/api/generated/drift-events/drift-events";
 import { useAuth } from "@features/auth/context";
 import { toast } from "@lib/toast/toast";
 import { handleApiError } from "@lib/api/errorHandler";
@@ -40,13 +45,13 @@ export default function DriftEventDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { isSysAdmin, permissions } = useAuth();
+  const queryClient = useQueryClient();
   const [resolveDialogOpen, setResolveDialogOpen] = useState(false);
 
   const {
     data: driftEvent,
     isLoading,
     error,
-    refetch,
   } = useFindDriftEventById(id!, {
     query: {
       enabled: !!id,
@@ -69,7 +74,15 @@ export default function DriftEventDetailPage() {
         toast.success("Drift event resolved successfully");
         setResolveDialogOpen(false);
         reset();
-        refetch();
+        // Invalidate queries to refresh data
+        if (id) {
+          queryClient.invalidateQueries({
+            queryKey: getFindDriftEventByIdQueryKey(id),
+          });
+          queryClient.invalidateQueries({
+            queryKey: getFindAllDriftEventsQueryKey(),
+          });
+        }
       },
       onError: (error) => {
         handleApiError(error);
@@ -129,7 +142,7 @@ export default function DriftEventDetailPage() {
   };
 
   if (isLoading) {
-    return <Loading />;
+    return <DetailPageSkeleton />;
   }
 
   if (error || !driftEvent) {

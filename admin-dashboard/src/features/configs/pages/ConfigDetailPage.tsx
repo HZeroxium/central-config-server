@@ -1,7 +1,7 @@
 import { Box } from "@mui/material";
 import { useSearchParams, useParams } from "react-router-dom";
 import { useGetEnvironmentConfigServer } from "@lib/api/hooks";
-import Loading from "@components/common/Loading";
+import { DetailPageSkeleton } from "@components/common/skeletons";
 import ErrorFallback from "@components/common/ErrorFallback";
 import ConfigDetailCard from "@features/configs/components/ConfigDetailCard";
 
@@ -28,7 +28,7 @@ export default function ConfigDetailPage() {
 
   const configData = configResponse;
 
-  if (isLoading) return <Loading />;
+  if (isLoading) return <DetailPageSkeleton />;
   if (error || !configData)
     return (
       <ErrorFallback

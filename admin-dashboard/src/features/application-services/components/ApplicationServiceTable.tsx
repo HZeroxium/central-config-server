@@ -9,7 +9,7 @@ import {
   PersonAdd as RequestOwnershipIcon,
   Warning as WarningIcon,
 } from "@mui/icons-material";
-import { Box, Chip } from "@mui/material";
+import { Box, Chip, Typography } from "@mui/material";
 import type { ApplicationServiceResponse } from "@lib/api/models";
 import { useAuth } from "@features/auth/context";
 import { ChipList } from "@components/common/ChipList";
@@ -254,6 +254,29 @@ export function ApplicationServiceTable({
         disableRowSelectionOnClick
         getRowClassName={(params) => {
           return isOrphaned(params.row) ? "orphaned-service-row" : "";
+        }}
+        slotProps={{
+          noRowsOverlay: {
+            children: (
+              <Box
+                sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  height: "100%",
+                  gap: 2,
+                }}
+              >
+                <Typography variant="h6" color="text.secondary">
+                  No application services found
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Try adjusting your filters or check back later.
+                </Typography>
+              </Box>
+            ),
+          },
         }}
         sx={{
           "& .MuiDataGrid-cell": {

@@ -16,7 +16,7 @@ import {
 } from "@mui/icons-material";
 import { useState } from "react";
 import PageHeader from "@components/common/PageHeader";
-import Loading from "@components/common/Loading";
+import { DetailPageSkeleton } from "@components/common/skeletons";
 import ConfirmDialog from "@components/common/ConfirmDialog";
 import {
   useFindByIdServiceInstance,
@@ -75,7 +75,7 @@ export default function ServiceInstanceDetailPage() {
   };
 
   if (isLoading) {
-    return <Loading />;
+    return <DetailPageSkeleton />;
   }
 
   if (error || !instance) {

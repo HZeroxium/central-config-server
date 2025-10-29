@@ -16,7 +16,7 @@ import {
   CheckCircle as ApproveIcon,
 } from "@mui/icons-material";
 import PageHeader from "@components/common/PageHeader";
-import Loading from "@components/common/Loading";
+import { DetailPageSkeleton } from "@components/common/skeletons";
 import {
   useFindApprovalRequestById,
   useSubmitApprovalDecision,
@@ -30,6 +30,10 @@ import { useCanApprove } from "../hooks/useCanApprove";
 import { format } from "date-fns";
 import { useQueryClient } from "@tanstack/react-query";
 import { getFindApprovalDecisionsByRequestIdQueryKey } from "@lib/api/generated/approval-decisions/approval-decisions";
+import {
+  getFindApprovalRequestByIdQueryKey,
+  getFindAllApprovalRequestsQueryKey,
+} from "@lib/api/generated/approval-requests/approval-requests";
 
 export default function ApprovalDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -41,7 +45,6 @@ export default function ApprovalDetailPage() {
     data: request,
     isLoading,
     error,
-    refetch,
   } = useFindApprovalRequestById(id!, {
     query: {
       enabled: !!id,
@@ -65,11 +68,16 @@ export default function ApprovalDetailPage() {
         onSuccess: () => {
           toast.success("Decision submitted successfully");
           setDecisionDialogOpen(false);
-          // Invalidate and refetch approval request and decisions
-          refetch();
+          // Invalidate queries to refresh data
           if (id) {
             queryClient.invalidateQueries({
+              queryKey: getFindApprovalRequestByIdQueryKey(id),
+            });
+            queryClient.invalidateQueries({
               queryKey: getFindApprovalDecisionsByRequestIdQueryKey(id),
+            });
+            queryClient.invalidateQueries({
+              queryKey: getFindAllApprovalRequestsQueryKey(),
             });
           }
         },
@@ -98,7 +106,7 @@ export default function ApprovalDetailPage() {
   };
 
   if (isLoading) {
-    return <Loading />;
+    return <DetailPageSkeleton />;
   }
 
   if (error || !request) {

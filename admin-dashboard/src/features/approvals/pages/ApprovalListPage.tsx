@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useMemo, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Box,
   Button,
@@ -17,34 +17,92 @@ import {
   FormControlLabel,
   Switch,
   Badge,
+  Collapse,
 } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import {
   Search as SearchIcon,
   Refresh as RefreshIcon,
   CheckCircle as ApprovalIcon,
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon,
 } from "@mui/icons-material";
 import PageHeader from "@components/common/PageHeader";
-import Loading from "@components/common/Loading";
+import { TableSkeleton } from "@components/common/skeletons";
+import { DateRangeFilter } from "@components/common/filters";
 import { useFindAllApprovalRequests } from "@lib/api/hooks";
 import { ApprovalRequestTable } from "../components/ApprovalRequestTable";
 import { useAuth } from "@features/auth/context";
 import { useDebounce } from "@hooks/useDebounce";
+import { formatISO } from "date-fns";
 
 export default function ApprovalListPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { isSysAdmin, userInfo } = useAuth();
 
-  const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState(20);
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-  const [requestTypeFilter, setRequestTypeFilter] = useState("");
-  const [activeTab, setActiveTab] = useState(0);
-  const [showMyApprovalsOnly, setShowMyApprovalsOnly] = useState(false);
+  // Parse initial state from URL params
+  const initialPage = parseInt(searchParams.get("page") || "0", 10);
+  const initialPageSize = parseInt(searchParams.get("size") || "20", 10);
+  const initialTab = parseInt(searchParams.get("tab") || "0", 10);
+
+  const [page, setPage] = useState(initialPage);
+  const [pageSize, setPageSize] = useState(initialPageSize);
+  const [search, setSearch] = useState(searchParams.get("search") || "");
+  const [statusFilter, setStatusFilter] = useState(
+    searchParams.get("status") || ""
+  );
+  const [requestTypeFilter, setRequestTypeFilter] = useState(
+    searchParams.get("requestType") || ""
+  );
+  const [activeTab, setActiveTab] = useState(initialTab);
+  const [showMyApprovalsOnly, setShowMyApprovalsOnly] = useState(
+    searchParams.get("showMyApprovalsOnly") === "true"
+  );
+  const [fromDate, setFromDate] = useState<Date | null>(
+    searchParams.get("fromDate")
+      ? new Date(searchParams.get("fromDate")!)
+      : null
+  );
+  const [toDate, setToDate] = useState<Date | null>(
+    searchParams.get("toDate") ? new Date(searchParams.get("toDate")!) : null
+  );
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(
+    searchParams.get("fromDate") !== null || searchParams.get("toDate") !== null
+  );
 
   // Debounce search input
   const debouncedSearch = useDebounce(search, 400);
+
+  // Sync URL params when filters change
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (debouncedSearch) params.set("search", debouncedSearch);
+    if (statusFilter) params.set("status", statusFilter);
+    if (requestTypeFilter) params.set("requestType", requestTypeFilter);
+    if (showMyApprovalsOnly) params.set("showMyApprovalsOnly", "true");
+    if (fromDate) {
+      params.set("fromDate", formatISO(fromDate, { representation: "date" }));
+    }
+    if (toDate) {
+      params.set("toDate", formatISO(toDate, { representation: "date" }));
+    }
+    if (activeTab > 0) params.set("tab", activeTab.toString());
+    if (page > 0) params.set("page", page.toString());
+    if (pageSize !== 20) params.set("size", pageSize.toString());
+    setSearchParams(params, { replace: true });
+  }, [
+    debouncedSearch,
+    statusFilter,
+    requestTypeFilter,
+    showMyApprovalsOnly,
+    fromDate,
+    toDate,
+    activeTab,
+    page,
+    pageSize,
+    setSearchParams,
+  ]);
 
   // Map tab to status filter
   const tabToStatus: Record<number, string | undefined> = {
@@ -62,6 +120,12 @@ export default function ApprovalListPage() {
       requesterUserId: debouncedSearch || undefined,
       status: currentStatus,
       requestType: requestTypeFilter || undefined,
+      fromDate: fromDate
+        ? formatISO(fromDate, { representation: "date" })
+        : undefined,
+      toDate: toDate
+        ? formatISO(toDate, { representation: "date" })
+        : undefined,
       page,
       size: pageSize,
     },
@@ -115,6 +179,20 @@ export default function ApprovalListPage() {
     setStatusFilter("");
     setRequestTypeFilter("");
     setShowMyApprovalsOnly(false);
+    setFromDate(null);
+    setToDate(null);
+    setShowAdvancedFilters(false);
+    setActiveTab(0);
+    setPage(0);
+    setSearchParams({}, { replace: true });
+  };
+
+  const handleDateRangeChange = (
+    startDate: Date | null,
+    endDate: Date | null
+  ) => {
+    setFromDate(startDate);
+    setToDate(endDate);
     setPage(0);
   };
 
@@ -268,6 +346,37 @@ export default function ApprovalListPage() {
             </Grid>
           </Grid>
 
+          {/* Advanced Filters */}
+          <Collapse in={showAdvancedFilters}>
+            <Grid container spacing={2} sx={{ mb: 2, mt: 1 }}>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <DateRangeFilter
+                  label="Request Date Range"
+                  startDate={fromDate}
+                  endDate={toDate}
+                  onChange={handleDateRangeChange}
+                  helperText="Filter requests by creation date"
+                />
+              </Grid>
+            </Grid>
+          </Collapse>
+
+          {/* More/Less Button */}
+          <Box sx={{ mb: 2 }}>
+            <Button
+              variant="text"
+              size="small"
+              onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+              endIcon={
+                showAdvancedFilters ? <ExpandLessIcon /> : <ExpandMoreIcon />
+              }
+            >
+              {showAdvancedFilters
+                ? "Hide Advanced Filters"
+                : "Show Advanced Filters"}
+            </Button>
+          </Box>
+
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
               Failed to load approval requests:{" "}
@@ -275,7 +384,7 @@ export default function ApprovalListPage() {
             </Alert>
           )}
 
-          {isLoading && <Loading />}
+          {isLoading && <TableSkeleton rows={10} columns={6} />}
 
           {!isLoading && !error && (
             <ApprovalRequestTable

@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Box,
   Button,
@@ -24,18 +25,20 @@ import {
   Refresh as RefreshIcon,
 } from "@mui/icons-material";
 import PageHeader from "@components/common/PageHeader";
-import Loading from "@components/common/Loading";
+import { TableSkeleton } from "@components/common/skeletons";
 import ConfirmDialog from "@components/common/ConfirmDialog";
 import {
   useFindAllApplicationServices,
   useDeleteApplicationService,
 } from "@lib/api/hooks";
+import { getFindAllApplicationServicesQueryKey } from "@lib/api/generated/application-services/application-services";
 import { useAuth } from "@features/auth/context";
 import { toast } from "@lib/toast/toast";
 import { handleApiError } from "@lib/api/errorHandler";
 import { ApplicationServiceTable } from "../components/ApplicationServiceTable";
 import { ApplicationServiceForm } from "../components/ApplicationServiceForm";
 import { ClaimOwnershipDialog } from "../components/ClaimOwnershipDialog";
+import { useDebounce } from "@hooks/useDebounce";
 import type {
   ApplicationServiceResponse,
   FindAllApplicationServicesParams,
@@ -44,16 +47,32 @@ import type {
 export default function ApplicationServiceListPage() {
   const navigate = useNavigate();
   const { isSysAdmin, permissions } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const queryClient = useQueryClient();
 
-  const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState(20);
-  const [search, setSearch] = useState("");
+  // Parse initial state from URL params
+  const initialPage = parseInt(searchParams.get("page") || "0", 10);
+  const initialPageSize = parseInt(searchParams.get("size") || "20", 10);
+
+  const [page, setPage] = useState(initialPage);
+  const [pageSize, setPageSize] = useState(initialPageSize);
+  const [search, setSearch] = useState(searchParams.get("search") || "");
   const [lifecycleFilter, setLifecycleFilter] = useState<
     FindAllApplicationServicesParams["lifecycle"] | ""
-  >("");
-  const [ownerTeamFilter, setOwnerTeamFilter] = useState("");
-  const [environmentFilter, setEnvironmentFilter] = useState("");
-  const [showUnassignedOnly, setShowUnassignedOnly] = useState(false);
+  >(
+    (searchParams.get("lifecycle") as
+      | FindAllApplicationServicesParams["lifecycle"]
+      | null) || ""
+  );
+  const [ownerTeamFilter, setOwnerTeamFilter] = useState(
+    searchParams.get("ownerTeamId") || ""
+  );
+  const [environmentFilter, setEnvironmentFilter] = useState(
+    searchParams.get("environment") || ""
+  );
+  const [showUnassignedOnly, setShowUnassignedOnly] = useState(
+    searchParams.get("unassignedOnly") === "true"
+  );
 
   const [formDrawerOpen, setFormDrawerOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -63,9 +82,35 @@ export default function ApplicationServiceListPage() {
   );
   const [selectedServiceName, setSelectedServiceName] = useState<string>("");
 
+  // Debounce search input
+  const debouncedSearch = useDebounce(search, 400);
+
+  // Sync URL params when filters change
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (debouncedSearch) params.set("search", debouncedSearch);
+    if (lifecycleFilter) params.set("lifecycle", lifecycleFilter);
+    if (ownerTeamFilter && !showUnassignedOnly)
+      params.set("ownerTeamId", ownerTeamFilter);
+    if (environmentFilter) params.set("environment", environmentFilter);
+    if (showUnassignedOnly) params.set("unassignedOnly", "true");
+    if (page > 0) params.set("page", page.toString());
+    if (pageSize !== 20) params.set("size", pageSize.toString());
+    setSearchParams(params, { replace: true });
+  }, [
+    debouncedSearch,
+    lifecycleFilter,
+    ownerTeamFilter,
+    environmentFilter,
+    showUnassignedOnly,
+    page,
+    pageSize,
+    setSearchParams,
+  ]);
+
   const { data, isLoading, error, refetch } = useFindAllApplicationServices(
     {
-      search: search || undefined,
+      search: debouncedSearch || undefined,
       ownerTeamId: showUnassignedOnly ? "null" : ownerTeamFilter || undefined,
       lifecycle: lifecycleFilter || undefined,
       page,
@@ -99,7 +144,18 @@ export default function ApplicationServiceListPage() {
           toast.success("Service deleted successfully");
           setDeleteDialogOpen(false);
           setSelectedServiceId(null);
-          refetch();
+          // Invalidate list query to refresh data
+          queryClient.invalidateQueries({
+            queryKey: getFindAllApplicationServicesQueryKey({
+              search: debouncedSearch || undefined,
+              ownerTeamId: showUnassignedOnly
+                ? "null"
+                : ownerTeamFilter || undefined,
+              lifecycle: lifecycleFilter || undefined,
+              page,
+              size: pageSize,
+            }),
+          });
         },
         onError: (error) => {
           handleApiError(error);
@@ -125,12 +181,22 @@ export default function ApplicationServiceListPage() {
     setEnvironmentFilter("");
     setShowUnassignedOnly(false);
     setPage(0);
+    setSearchParams({}, { replace: true });
   };
 
   const handleCreateSuccess = () => {
     toast.success("Service created successfully");
     setFormDrawerOpen(false);
-    refetch();
+    // Invalidate list query to refresh data
+    queryClient.invalidateQueries({
+      queryKey: getFindAllApplicationServicesQueryKey({
+        search: debouncedSearch || undefined,
+        ownerTeamId: showUnassignedOnly ? "null" : ownerTeamFilter || undefined,
+        lifecycle: lifecycleFilter || undefined,
+        page,
+        size: pageSize,
+      }),
+    });
   };
 
   const handleRequestOwnership = (serviceId: string) => {
@@ -148,7 +214,16 @@ export default function ApplicationServiceListPage() {
 
   const handleClaimSuccess = () => {
     toast.success("Ownership request submitted successfully");
-    refetch();
+    // Invalidate list query to refresh data
+    queryClient.invalidateQueries({
+      queryKey: getFindAllApplicationServicesQueryKey({
+        search: debouncedSearch || undefined,
+        ownerTeamId: showUnassignedOnly ? "null" : ownerTeamFilter || undefined,
+        lifecycle: lifecycleFilter || undefined,
+        page,
+        size: pageSize,
+      }),
+    });
   };
 
   return (
@@ -163,6 +238,7 @@ export default function ApplicationServiceListPage() {
                 variant="outlined"
                 startIcon={<RefreshIcon />}
                 onClick={() => refetch()}
+                aria-label="Refresh application services"
               >
                 Refresh
               </Button>
@@ -205,6 +281,7 @@ export default function ApplicationServiceListPage() {
                         <SearchIcon />
                       </InputAdornment>
                     ),
+                    "aria-label": "Search by service name",
                   },
                 }}
               />
@@ -224,6 +301,7 @@ export default function ApplicationServiceListPage() {
                     );
                     setPage(0);
                   }}
+                  aria-label="Filter by lifecycle"
                 >
                   <MenuItem value="">All</MenuItem>
                   <MenuItem value="ACTIVE">Active</MenuItem>
@@ -243,6 +321,7 @@ export default function ApplicationServiceListPage() {
                     setEnvironmentFilter(e.target.value);
                     setPage(0);
                   }}
+                  aria-label="Filter by environment"
                 >
                   <MenuItem value="">All</MenuItem>
                   <MenuItem value="dev">Dev</MenuItem>
@@ -262,6 +341,11 @@ export default function ApplicationServiceListPage() {
                   setPage(0);
                 }}
                 disabled={showUnassignedOnly}
+                slotProps={{
+                  input: {
+                    "aria-label": "Filter by owner team ID",
+                  },
+                }}
               />
             </Grid>
 
@@ -290,6 +374,7 @@ export default function ApplicationServiceListPage() {
                 variant="outlined"
                 onClick={handleFilterReset}
                 sx={{ height: "56px" }}
+                aria-label="Reset all filters"
               >
                 Reset
               </Button>
@@ -305,7 +390,7 @@ export default function ApplicationServiceListPage() {
             </Alert>
           )}
 
-          {isLoading && <Loading />}
+          {isLoading && <TableSkeleton rows={10} columns={6} />}
 
           {!isLoading && !error && (
             <ApplicationServiceTable

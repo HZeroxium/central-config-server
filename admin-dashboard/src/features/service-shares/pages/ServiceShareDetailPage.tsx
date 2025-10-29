@@ -15,7 +15,7 @@ import {
   ArrowBack as ArrowBackIcon,
 } from "@mui/icons-material";
 import PageHeader from "@components/common/PageHeader";
-import Loading from "@components/common/Loading";
+import { DetailPageSkeleton } from "@components/common/skeletons";
 import ConfirmDialog from "@components/common/ConfirmDialog";
 import { useFindByIdServiceShare, useRevokeServiceShare } from "@lib/api/hooks";
 import { useAuth } from "@/features/auth/context";
@@ -61,7 +61,7 @@ export default function ServiceShareDetailPage() {
   };
 
   if (isLoading) {
-    return <Loading />;
+    return <DetailPageSkeleton />;
   }
 
   if (error || !share) {

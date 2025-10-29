@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Box,
   Card,
@@ -12,19 +13,24 @@ import {
   MenuItem,
   Button,
   Alert,
+  Collapse,
 } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import {
   Search as SearchIcon,
   Refresh as RefreshIcon,
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon,
 } from "@mui/icons-material";
 import PageHeader from "@components/common/PageHeader";
 import ConfirmDialog from "@components/common/ConfirmDialog";
-import Loading from "@components/common/Loading";
+import { TableSkeleton } from "@components/common/skeletons";
+import { DateRangeFilter } from "@components/common/filters";
 import {
   useFindAllServiceInstances,
   useDeleteServiceInstance,
 } from "@lib/api/hooks";
+import { getFindAllServiceInstancesQueryKey } from "@lib/api/generated/service-instances/service-instances";
 import { ServiceInstanceTable } from "../components/ServiceInstanceTable";
 import type {
   FindAllServiceInstancesStatus,
@@ -32,30 +38,96 @@ import type {
 } from "@lib/api/models";
 import { toast } from "@lib/toast/toast";
 import { handleApiError } from "@lib/api/errorHandler";
+import { useDebounce } from "@hooks/useDebounce";
+import { formatISO } from "date-fns";
 
 export default function ServiceInstanceListPage() {
   const navigate = useNavigate();
-  const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState(20);
-  const [search, setSearch] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const queryClient = useQueryClient();
+
+  // Parse initial state from URL params
+  const initialPage = parseInt(searchParams.get("page") || "0", 10);
+  const initialPageSize = parseInt(searchParams.get("size") || "20", 10);
+
+  const [page, setPage] = useState(initialPage);
+  const [pageSize, setPageSize] = useState(initialPageSize);
+  const [search, setSearch] = useState(searchParams.get("search") || "");
   const [environmentFilter, setEnvironmentFilter] = useState<
     FindAllServiceInstancesEnvironment | ""
-  >("");
+  >(
+    (searchParams.get(
+      "environment"
+    ) as FindAllServiceInstancesEnvironment | null) || ""
+  );
   const [statusFilter, setStatusFilter] = useState<
     FindAllServiceInstancesStatus | ""
-  >("");
-  const [driftFilter, setDriftFilter] = useState<"true" | "false" | "">("");
+  >((searchParams.get("status") as FindAllServiceInstancesStatus | null) || "");
+  const [driftFilter, setDriftFilter] = useState<"true" | "false" | "">(
+    (searchParams.get("drift") as "true" | "false" | null) || ""
+  );
+  const [lastSeenAtFrom, setLastSeenAtFrom] = useState<Date | null>(
+    searchParams.get("lastSeenAtFrom")
+      ? new Date(searchParams.get("lastSeenAtFrom")!)
+      : null
+  );
+  const [lastSeenAtTo, setLastSeenAtTo] = useState<Date | null>(
+    searchParams.get("lastSeenAtTo")
+      ? new Date(searchParams.get("lastSeenAtTo")!)
+      : null
+  );
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(
+    searchParams.get("lastSeenAtFrom") !== null ||
+      searchParams.get("lastSeenAtTo") !== null
+  );
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(
     null
   );
 
+  // Debounce search input
+  const debouncedSearch = useDebounce(search, 400);
+
+  // Sync URL params when filters change
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (debouncedSearch) params.set("search", debouncedSearch);
+    if (environmentFilter) params.set("environment", environmentFilter);
+    if (statusFilter) params.set("status", statusFilter);
+    if (driftFilter) params.set("drift", driftFilter);
+    if (lastSeenAtFrom) {
+      params.set("lastSeenAtFrom", formatISO(lastSeenAtFrom, { representation: "date" }));
+    }
+    if (lastSeenAtTo) {
+      params.set("lastSeenAtTo", formatISO(lastSeenAtTo, { representation: "date" }));
+    }
+    if (page > 0) params.set("page", page.toString());
+    if (pageSize !== 20) params.set("size", pageSize.toString());
+    setSearchParams(params, { replace: true });
+  }, [
+    debouncedSearch,
+    environmentFilter,
+    statusFilter,
+    driftFilter,
+    lastSeenAtFrom,
+    lastSeenAtTo,
+    page,
+    pageSize,
+    setSearchParams,
+  ]);
+
   const { data, isLoading, error, refetch } = useFindAllServiceInstances(
     {
-      serviceId: search || undefined,
+      serviceId: debouncedSearch || undefined,
       status: statusFilter || undefined,
       environment: environmentFilter || undefined,
       hasDrift: driftFilter || undefined,
+      lastSeenAtFrom: lastSeenAtFrom
+        ? formatISO(lastSeenAtFrom, { representation: "date" })
+        : undefined,
+      lastSeenAtTo: lastSeenAtTo
+        ? formatISO(lastSeenAtTo, { representation: "date" })
+        : undefined,
       page,
       size: pageSize,
     },
@@ -83,7 +155,23 @@ export default function ServiceInstanceListPage() {
           toast.success("Instance deleted successfully");
           setDeleteDialogOpen(false);
           setSelectedInstanceId(null);
-          refetch();
+          // Invalidate list query to refresh data
+          queryClient.invalidateQueries({
+            queryKey: getFindAllServiceInstancesQueryKey({
+              serviceId: debouncedSearch || undefined,
+              status: statusFilter || undefined,
+              environment: environmentFilter || undefined,
+              hasDrift: driftFilter || undefined,
+              lastSeenAtFrom: lastSeenAtFrom
+                ? formatISO(lastSeenAtFrom, { representation: "date" })
+                : undefined,
+              lastSeenAtTo: lastSeenAtTo
+                ? formatISO(lastSeenAtTo, { representation: "date" })
+                : undefined,
+              page,
+              size: pageSize,
+            }),
+          });
         },
         onError: (error) => {
           handleApiError(error);
@@ -107,6 +195,16 @@ export default function ServiceInstanceListPage() {
     setEnvironmentFilter("");
     setStatusFilter("");
     setDriftFilter("");
+    setLastSeenAtFrom(null);
+    setLastSeenAtTo(null);
+    setShowAdvancedFilters(false);
+    setPage(0);
+    setSearchParams({}, { replace: true });
+  };
+
+  const handleDateRangeChange = (startDate: Date | null, endDate: Date | null) => {
+    setLastSeenAtFrom(startDate);
+    setLastSeenAtTo(endDate);
     setPage(0);
   };
 
@@ -120,6 +218,7 @@ export default function ServiceInstanceListPage() {
             variant="outlined"
             startIcon={<RefreshIcon />}
             onClick={() => refetch()}
+            aria-label="Refresh service instances"
           >
             Refresh
           </Button>
@@ -146,6 +245,7 @@ export default function ServiceInstanceListPage() {
                         <SearchIcon />
                       </InputAdornment>
                     ),
+                    "aria-label": "Search by service name",
                   },
                 }}
               />
@@ -163,6 +263,7 @@ export default function ServiceInstanceListPage() {
                     );
                     setPage(0);
                   }}
+                  aria-label="Filter by environment"
                 >
                   <MenuItem value="">All</MenuItem>
                   <MenuItem value="dev">Development</MenuItem>
@@ -184,6 +285,7 @@ export default function ServiceInstanceListPage() {
                     );
                     setPage(0);
                   }}
+                  aria-label="Filter by status"
                 >
                   <MenuItem value="">All</MenuItem>
                   <MenuItem value="HEALTHY">Healthy</MenuItem>
@@ -204,6 +306,7 @@ export default function ServiceInstanceListPage() {
                     setDriftFilter(e.target.value as "true" | "false" | "");
                     setPage(0);
                   }}
+                  aria-label="Filter by drift status"
                 >
                   <MenuItem value="">All</MenuItem>
                   <MenuItem value="true">Has Drift</MenuItem>
@@ -212,17 +315,46 @@ export default function ServiceInstanceListPage() {
               </FormControl>
             </Grid>
 
-            <Grid size={{ xs: 12, md: 3 }}>
+            <Grid size={{ xs: 12, md: 1 }}>
+              <Button
+                fullWidth
+                variant="outlined"
+                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                endIcon={showAdvancedFilters ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                sx={{ height: "56px" }}
+                aria-label="Toggle advanced filters"
+              >
+                {showAdvancedFilters ? "Less" : "More"}
+              </Button>
+            </Grid>
+
+            <Grid size={{ xs: 12, md: 2 }}>
               <Button
                 fullWidth
                 variant="outlined"
                 onClick={handleFilterReset}
                 sx={{ height: "56px" }}
+                aria-label="Reset all filters"
               >
                 Reset Filters
               </Button>
             </Grid>
           </Grid>
+
+          {/* Advanced Filters */}
+          <Collapse in={showAdvancedFilters}>
+            <Grid container spacing={2} sx={{ mb: 2, mt: 1 }}>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <DateRangeFilter
+                  label="Last Seen Date Range"
+                  startDate={lastSeenAtFrom}
+                  endDate={lastSeenAtTo}
+                  onChange={handleDateRangeChange}
+                  helperText="Filter instances by last seen date"
+                />
+              </Grid>
+            </Grid>
+          </Collapse>
 
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
@@ -231,7 +363,7 @@ export default function ServiceInstanceListPage() {
             </Alert>
           )}
 
-          {isLoading && <Loading />}
+          {isLoading && <TableSkeleton rows={10} columns={7} />}
 
           {!isLoading && !error && (
             <ServiceInstanceTable

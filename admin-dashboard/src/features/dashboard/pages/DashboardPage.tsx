@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Box, Alert, Button, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import {
@@ -9,7 +10,7 @@ import {
   Refresh as RefreshIcon,
 } from "@mui/icons-material";
 import PageHeader from "@components/common/PageHeader";
-import Loading from "@components/common/Loading";
+import { DashboardSkeleton } from "@components/common/skeletons";
 import { StatsCard } from "../components/StatsCard";
 import { ServiceDistributionChart } from "../components/ServiceDistributionChart";
 import { InstanceStatusChart } from "../components/InstanceStatusChart";
@@ -21,6 +22,10 @@ import {
   useFindAllDriftEvents,
   useFindAllApprovalRequests,
 } from "@lib/api/hooks";
+import { getFindAllApplicationServicesQueryKey } from "@lib/api/generated/application-services/application-services";
+import { getFindAllServiceInstancesQueryKey } from "@lib/api/generated/service-instances/service-instances";
+import { getFindAllDriftEventsQueryKey } from "@lib/api/generated/drift-events/drift-events";
+import { getFindAllApprovalRequestsQueryKey } from "@lib/api/generated/approval-requests/approval-requests";
 import type {
   ActivityItem,
   ServiceDistributionData,
@@ -30,15 +35,16 @@ import type {
 
 export default function DashboardPage() {
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const queryClient = useQueryClient();
 
-  // Fetch dashboard data with higher page sizes for overview
+  // Optimized: Reduced page sizes for faster initial load
+  // Stats cards use metadata.totalElements, charts use sample data
   const {
     data: servicesData,
     isLoading: servicesLoading,
     error: servicesError,
-    refetch: refetchServices,
   } = useFindAllApplicationServices(
-    { page: 0, size: 100 },
+    { page: 0, size: 50 }, // Reduced from 100
     { query: { staleTime: 60_000 } }
   );
 
@@ -46,9 +52,8 @@ export default function DashboardPage() {
     data: instancesData,
     isLoading: instancesLoading,
     error: instancesError,
-    refetch: refetchInstances,
   } = useFindAllServiceInstances(
-    { page: 0, size: 100 },
+    { page: 0, size: 50 }, // Reduced from 100
     { query: { staleTime: 60_000 } }
   );
 
@@ -56,9 +61,8 @@ export default function DashboardPage() {
     data: driftsData,
     isLoading: driftsLoading,
     error: driftsError,
-    refetch: refetchDrifts,
   } = useFindAllDriftEvents(
-    { status: "DETECTED", page: 0, size: 100 },
+    { status: "DETECTED", page: 0, size: 50 }, // Reduced from 100
     { query: { staleTime: 30_000 } }
   );
 
@@ -66,9 +70,8 @@ export default function DashboardPage() {
     data: approvalsData,
     isLoading: approvalsLoading,
     error: approvalsError,
-    refetch: refetchApprovals,
   } = useFindAllApprovalRequests(
-    { status: "PENDING", page: 0, size: 100 },
+    { status: "PENDING", page: 0, size: 50 }, // Reduced from 100
     { query: { staleTime: 30_000 } }
   );
 
@@ -78,12 +81,27 @@ export default function DashboardPage() {
     servicesError || instancesError || driftsError || approvalsError;
 
   const handleRefresh = async () => {
-    await Promise.all([
-      refetchServices(),
-      refetchInstances(),
-      refetchDrifts(),
-      refetchApprovals(),
-    ]);
+    // Invalidate all dashboard queries to trigger refetch
+    queryClient.invalidateQueries({
+      queryKey: getFindAllApplicationServicesQueryKey({ page: 0, size: 50 }),
+    });
+    queryClient.invalidateQueries({
+      queryKey: getFindAllServiceInstancesQueryKey({ page: 0, size: 50 }),
+    });
+    queryClient.invalidateQueries({
+      queryKey: getFindAllDriftEventsQueryKey({
+        status: "DETECTED",
+        page: 0,
+        size: 50,
+      }),
+    });
+    queryClient.invalidateQueries({
+      queryKey: getFindAllApprovalRequestsQueryKey({
+        status: "PENDING",
+        page: 0,
+        size: 50,
+      }),
+    });
     setLastUpdated(new Date());
   };
 
@@ -225,7 +243,7 @@ export default function DashboardPage() {
   }, [approvalsData, driftsData]);
 
   if (isLoading) {
-    return <Loading />;
+    return <DashboardSkeleton />;
   }
 
   if (hasError) {

@@ -16,7 +16,7 @@ import {
   Link as LinkIcon,
 } from "@mui/icons-material";
 import PageHeader from "@components/common/PageHeader";
-import Loading from "@components/common/Loading";
+import { DetailPageSkeleton } from "@components/common/skeletons";
 import { useFindApprovalDecisionById } from "@lib/api/hooks";
 import { format } from "date-fns";
 import { UserInfoDisplay } from "@components/common/UserInfoDisplay";
@@ -49,9 +49,7 @@ export default function ApprovalDecisionDetailPage() {
     }
   };
 
-  const getGateColor = (
-    gate?: string
-  ): "primary" | "secondary" | "default" => {
+  const getGateColor = (gate?: string): "primary" | "secondary" | "default" => {
     switch (gate) {
       case "SYS_ADMIN":
         return "primary";
@@ -63,7 +61,7 @@ export default function ApprovalDecisionDetailPage() {
   };
 
   if (isLoading) {
-    return <Loading />;
+    return <DetailPageSkeleton />;
   }
 
   if (error || !decision) {
@@ -272,4 +270,3 @@ export default function ApprovalDecisionDetailPage() {
     </Box>
   );
 }
-

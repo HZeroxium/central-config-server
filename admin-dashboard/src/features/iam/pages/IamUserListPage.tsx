@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Box,
   Button,
@@ -15,25 +15,47 @@ import {
   Refresh as RefreshIcon,
 } from "@mui/icons-material";
 import PageHeader from "@components/common/PageHeader";
-import Loading from "@components/common/Loading";
+import { TableSkeleton } from "@components/common/skeletons";
 import { useFindAllIamUsers } from "@lib/api/hooks";
 import { useAuth } from "@lib/keycloak/useAuth";
 import { IamUserTable } from "../components/IamUserTable";
+import { useDebounce } from "@hooks/useDebounce";
 
 export default function IamUserListPage() {
   const navigate = useNavigate();
   const { isSysAdmin } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState(20);
-  const [search, setSearch] = useState("");
-  const [emailSearch, setEmailSearch] = useState("");
+  // Parse initial state from URL params
+  const initialPage = parseInt(searchParams.get("page") || "0", 10);
+  const initialPageSize = parseInt(searchParams.get("size") || "20", 10);
+
+  const [page, setPage] = useState(initialPage);
+  const [pageSize, setPageSize] = useState(initialPageSize);
+  const [search, setSearch] = useState(searchParams.get("username") || "");
+  const [emailSearch, setEmailSearch] = useState(
+    searchParams.get("email") || ""
+  );
+
+  // Debounce search inputs
+  const debouncedSearch = useDebounce(search, 400);
+  const debouncedEmailSearch = useDebounce(emailSearch, 400);
+
+  // Sync URL params when filters change
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (debouncedSearch) params.set("username", debouncedSearch);
+    if (debouncedEmailSearch) params.set("email", debouncedEmailSearch);
+    if (page > 0) params.set("page", page.toString());
+    if (pageSize !== 20) params.set("size", pageSize.toString());
+    setSearchParams(params, { replace: true });
+  }, [debouncedSearch, debouncedEmailSearch, page, pageSize, setSearchParams]);
 
   // Always call hooks, but control with enabled option
   const { data, isLoading, error, refetch } = useFindAllIamUsers(
     {
-      username: search || undefined,
-      email: emailSearch || undefined,
+      username: debouncedSearch || undefined,
+      email: debouncedEmailSearch || undefined,
       page,
       size: pageSize,
     },
@@ -65,6 +87,7 @@ export default function IamUserListPage() {
     setSearch("");
     setEmailSearch("");
     setPage(0);
+    setSearchParams({}, { replace: true });
   };
 
   return (
@@ -77,6 +100,7 @@ export default function IamUserListPage() {
             variant="outlined"
             startIcon={<RefreshIcon />}
             onClick={() => refetch()}
+            aria-label="Refresh IAM users"
           >
             Refresh
           </Button>
@@ -103,6 +127,7 @@ export default function IamUserListPage() {
                         <SearchIcon />
                       </InputAdornment>
                     ),
+                    "aria-label": "Search by username",
                   },
                 }}
               />
@@ -124,6 +149,7 @@ export default function IamUserListPage() {
                         <SearchIcon />
                       </InputAdornment>
                     ),
+                    "aria-label": "Search by email",
                   },
                 }}
               />
@@ -135,6 +161,7 @@ export default function IamUserListPage() {
                 variant="outlined"
                 onClick={handleFilterReset}
                 sx={{ height: "56px" }}
+                aria-label="Reset all filters"
               >
                 Reset Filters
               </Button>
@@ -148,7 +175,7 @@ export default function IamUserListPage() {
             </Alert>
           )}
 
-          {isLoading && <Loading />}
+          {isLoading && <TableSkeleton rows={10} columns={5} />}
 
           {!isLoading && !error && (
             <IamUserTable

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Box,
   Button,
@@ -22,10 +23,11 @@ import {
   useFindAllServiceShares,
   useRevokeServiceShare,
 } from "@lib/api/generated/service-shares/service-shares";
+import { getFindAllServiceSharesQueryKey } from "@lib/api/generated/service-shares/service-shares";
 import { useAuth } from "@features/auth/context";
 import { toast } from "@lib/toast/toast";
 import { handleApiError } from "@lib/api/errorHandler";
-import Loading from "@components/common/Loading";
+import { TableSkeleton } from "@components/common/skeletons";
 import ConfirmDialog from "@components/common/ConfirmDialog";
 import { GrantShareDrawer } from "./GrantShareDrawer";
 
@@ -37,25 +39,23 @@ export const ServiceSharesTab: React.FC<ServiceSharesTabProps> = ({
   serviceId,
 }) => {
   const { isSysAdmin, permissions } = useAuth();
+  const queryClient = useQueryClient();
   const [shareDrawerOpen, setShareDrawerOpen] = useState(false);
   const [revokeDialogOpen, setRevokeDialogOpen] = useState(false);
   const [selectedShareId, setSelectedShareId] = useState<string | null>(null);
 
   // Fetch service shares
-  const {
-    data: sharesData,
-    isLoading: sharesLoading,
-    refetch: refetchShares,
-  } = useFindAllServiceShares(
-    {
-      serviceId,
-    },
-    {
-      query: {
-        staleTime: 30_000,
+  const { data: sharesData, isLoading: sharesLoading } =
+    useFindAllServiceShares(
+      {
+        serviceId,
       },
-    }
-  );
+      {
+        query: {
+          staleTime: 30_000,
+        },
+      }
+    );
 
   // Revoke share mutation
   const revokeShareMutation = useRevokeServiceShare({
@@ -64,7 +64,10 @@ export const ServiceSharesTab: React.FC<ServiceSharesTabProps> = ({
         toast.success("Service share revoked successfully");
         setRevokeDialogOpen(false);
         setSelectedShareId(null);
-        refetchShares();
+        // Invalidate shares query
+        queryClient.invalidateQueries({
+          queryKey: getFindAllServiceSharesQueryKey({ serviceId }),
+        });
       },
       onError: (error) => {
         handleApiError(error);
@@ -93,7 +96,10 @@ export const ServiceSharesTab: React.FC<ServiceSharesTabProps> = ({
   const handleShareSuccess = () => {
     toast.success("Service share granted successfully");
     setShareDrawerOpen(false);
-    refetchShares();
+    // Invalidate shares query
+    queryClient.invalidateQueries({
+      queryKey: getFindAllServiceSharesQueryKey({ serviceId }),
+    });
   };
 
   const shares = sharesData?.items || [];
@@ -124,7 +130,7 @@ export const ServiceSharesTab: React.FC<ServiceSharesTabProps> = ({
           </Box>
 
           {sharesLoading ? (
-            <Loading />
+            <TableSkeleton rows={5} columns={5} />
           ) : shares.length > 0 ? (
             <TableContainer component={Paper} variant="outlined">
               <Table>

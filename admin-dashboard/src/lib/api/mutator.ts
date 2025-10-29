@@ -28,7 +28,7 @@ axiosInstance.interceptors.request.use(
     Promise.reject(error instanceof Error ? error : new Error(String(error)))
 );
 
-// Response interceptor với auto-unwrapping
+// Response interceptor with auto-unwrapping
 axiosInstance.interceptors.response.use(
   (response: AxiosResponse) => {
     // Auto-unwrap ApiResponse wrapper
@@ -60,16 +60,45 @@ axiosInstance.interceptors.response.use(
   }
 );
 
+/**
+ * Wrapper for customInstance with request deduplication
+ * TanStack Query already handles request deduplication at the query level,
+ * so this is mainly for manual axios calls outside of React Query
+ */
+const requestCache = new Map<string, Promise<any>>();
+
 export const customInstance = <T>(
   config: AxiosRequestConfig,
   options?: AxiosRequestConfig
 ): Promise<T> => {
-  return axiosInstance({
+  // Generate cache key for deduplication
+  const cacheKey = `${config.method || "GET"}:${config.url}:${JSON.stringify(
+    options?.params || config.params
+  )}:${JSON.stringify(options?.data || config.data)}`;
+
+  // Check if an identical request is already in progress
+  const cachedRequest = requestCache.get(cacheKey);
+  if (cachedRequest) {
+    return cachedRequest;
+  }
+
+  // Create new request
+  const requestPromise = axiosInstance({
     ...config,
     ...options,
     headers: {
       ...config.headers,
       ...options?.headers,
     },
-  }).then((response) => response.data);
+  })
+    .then((response) => response.data)
+    .finally(() => {
+      // Clean up cache after request completes
+      requestCache.delete(cacheKey);
+    });
+
+  // Cache the request promise
+  requestCache.set(cacheKey, requestPromise);
+
+  return requestPromise;
 };

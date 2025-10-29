@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Box,
   Button,
@@ -21,33 +22,54 @@ import {
   Add as AddIcon,
 } from "@mui/icons-material";
 import PageHeader from "@components/common/PageHeader";
-import Loading from "@components/common/Loading";
+import { TableSkeleton } from "@components/common/skeletons";
 import ConfirmDialog from "@components/common/ConfirmDialog";
 import { useFindAllServiceShares, useRevokeServiceShare } from "@lib/api/hooks";
+import { getFindAllServiceSharesQueryKey } from "@lib/api/generated/service-shares/service-shares";
 import { useAuth } from "@features/auth/context";
 import { toast } from "@lib/toast/toast";
 import { handleApiError } from "@lib/api/errorHandler";
 import { ServiceShareTable } from "../components/ServiceShareTable";
 import { ShareFormDrawer } from "../components/ShareFormDrawer";
 import type { ServiceShareResponse } from "@lib/api/models";
+import { useDebounce } from "@hooks/useDebounce";
 
 export default function ServiceShareListPage() {
   const navigate = useNavigate();
   const { isSysAdmin } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const queryClient = useQueryClient();
 
-  const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState(20);
-  const [search, setSearch] = useState("");
+  // Parse initial state from URL params
+  const initialPage = parseInt(searchParams.get("page") || "0", 10);
+  const initialPageSize = parseInt(searchParams.get("size") || "20", 10);
+
+  const [page, setPage] = useState(initialPage);
+  const [pageSize, setPageSize] = useState(initialPageSize);
+  const [search, setSearch] = useState(searchParams.get("search") || "");
   const [grantToTypeFilter, setGrantToTypeFilter] = useState<
     "TEAM" | "USER" | ""
-  >("");
+  >((searchParams.get("grantToType") as "TEAM" | "USER" | null) || "");
   const [formDrawerOpen, setFormDrawerOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedShareId, setSelectedShareId] = useState<string | null>(null);
 
+  // Debounce search input
+  const debouncedSearch = useDebounce(search, 400);
+
+  // Sync URL params when filters change
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (debouncedSearch) params.set("search", debouncedSearch);
+    if (grantToTypeFilter) params.set("grantToType", grantToTypeFilter);
+    if (page > 0) params.set("page", page.toString());
+    if (pageSize !== 20) params.set("size", pageSize.toString());
+    setSearchParams(params, { replace: true });
+  }, [debouncedSearch, grantToTypeFilter, page, pageSize, setSearchParams]);
+
   const { data, isLoading, error, refetch } = useFindAllServiceShares(
     {
-      serviceId: search || undefined,
+      serviceId: debouncedSearch || undefined,
       grantToType: grantToTypeFilter || undefined,
       page,
       size: pageSize,
@@ -76,7 +98,15 @@ export default function ServiceShareListPage() {
           toast.success("Service share revoked successfully");
           setDeleteDialogOpen(false);
           setSelectedShareId(null);
-          refetch();
+          // Invalidate list query to refresh data
+          queryClient.invalidateQueries({
+            queryKey: getFindAllServiceSharesQueryKey({
+              serviceId: debouncedSearch || undefined,
+              grantToType: grantToTypeFilter || undefined,
+              page,
+              size: pageSize,
+            }),
+          });
         },
         onError: (error) => {
           handleApiError(error);
@@ -99,12 +129,21 @@ export default function ServiceShareListPage() {
     setSearch("");
     setGrantToTypeFilter("");
     setPage(0);
+    setSearchParams({}, { replace: true });
   };
 
   const handleShareSuccess = () => {
     toast.success("Service share created successfully");
     setFormDrawerOpen(false);
-    refetch();
+    // Invalidate list query to refresh data
+    queryClient.invalidateQueries({
+      queryKey: getFindAllServiceSharesQueryKey({
+        serviceId: debouncedSearch || undefined,
+        grantToType: grantToTypeFilter || undefined,
+        page,
+        size: pageSize,
+      }),
+    });
   };
 
   return (
@@ -158,6 +197,7 @@ export default function ServiceShareListPage() {
                         <SearchIcon />
                       </InputAdornment>
                     ),
+                    "aria-label": "Search by service ID",
                   },
                 }}
               />
@@ -200,7 +240,7 @@ export default function ServiceShareListPage() {
             </Alert>
           )}
 
-          {isLoading && <Loading />}
+          {isLoading && <TableSkeleton rows={10} columns={5} />}
 
           {!isLoading && !error && (
             <ServiceShareTable

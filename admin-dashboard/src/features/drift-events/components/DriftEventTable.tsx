@@ -8,7 +8,7 @@ import {
   CheckCircle as ResolveIcon,
   RemoveCircle as IgnoreIcon,
 } from "@mui/icons-material";
-import { Box, Chip } from "@mui/material";
+import { Box, Chip, Typography } from "@mui/material";
 import type { DriftEventResponse } from "@lib/api/models";
 import { format } from "date-fns";
 
@@ -210,6 +210,29 @@ export function DriftEventTable({
         }}
         pageSizeOptions={[10, 20, 50, 100]}
         disableRowSelectionOnClick
+        slotProps={{
+          noRowsOverlay: {
+            children: (
+              <Box
+                sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  height: "100%",
+                  gap: 2,
+                }}
+              >
+                <Typography variant="h6" color="text.secondary">
+                  No drift events found
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Try adjusting your filters or check back later.
+                </Typography>
+              </Box>
+            ),
+          },
+        }}
         sx={{
           "& .MuiDataGrid-cell": {
             display: "flex",
