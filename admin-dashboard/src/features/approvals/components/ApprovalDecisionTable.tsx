@@ -4,23 +4,25 @@ import {
   GridActionsCellItem,
 } from "@mui/x-data-grid";
 import { Visibility as ViewIcon } from "@mui/icons-material";
-import { Box, Chip, LinearProgress, Tooltip, Typography } from "@mui/material";
-import type { ApprovalRequestResponse } from "@lib/api/models";
+import { Box, Chip, Typography } from "@mui/material";
+import type { ApprovalDecisionResponse } from "@lib/api/models";
 import { format } from "date-fns";
+import { UserInfoDisplay } from "@components/common/UserInfoDisplay";
 
-interface ApprovalRequestTableProps {
-  readonly requests: ApprovalRequestResponse[];
+interface ApprovalDecisionTableProps {
+  readonly decisions: ApprovalDecisionResponse[];
   readonly loading: boolean;
   readonly page: number;
   readonly pageSize: number;
   readonly totalElements: number;
   readonly onPageChange: (page: number) => void;
   readonly onPageSizeChange: (pageSize: number) => void;
-  readonly onRowClick: (requestId: string) => void;
+  readonly onRowClick: (decisionId: string) => void;
+  readonly onRequestClick?: (requestId: string) => void;
 }
 
-export function ApprovalRequestTable({
-  requests,
+export function ApprovalDecisionTable({
+  decisions,
   loading,
   page,
   pageSize,
@@ -28,97 +30,111 @@ export function ApprovalRequestTable({
   onPageChange,
   onPageSizeChange,
   onRowClick,
-}: ApprovalRequestTableProps) {
-  const getStatusColor = (
-    status?: string
-  ): "default" | "info" | "success" | "error" | "warning" => {
-    switch (status) {
-      case "PENDING":
-        return "warning";
-      case "APPROVED":
+  onRequestClick,
+}: ApprovalDecisionTableProps) {
+  const getDecisionColor = (
+    decision?: string
+  ): "success" | "error" | "default" => {
+    switch (decision?.toUpperCase()) {
+      case "APPROVE":
         return "success";
-      case "REJECTED":
+      case "REJECT":
         return "error";
-      case "CANCELLED":
-        return "default";
       default:
-        return "info";
+        return "default";
     }
   };
 
-  const columns: GridColDef<ApprovalRequestResponse>[] = [
+  const getGateColor = (gate?: string): "primary" | "secondary" | "default" => {
+    switch (gate) {
+      case "SYS_ADMIN":
+        return "primary";
+      case "LINE_MANAGER":
+        return "secondary";
+      default:
+        return "default";
+    }
+  };
+
+  const columns: GridColDef<ApprovalDecisionResponse>[] = [
     {
       field: "id",
-      headerName: "Request ID",
+      headerName: "Decision ID",
       flex: 1,
       minWidth: 200,
       renderCell: (params) => (
         <Box sx={{ fontFamily: "monospace", fontSize: "0.875rem" }}>
-          {params.value}
+          {params.value || "N/A"}
         </Box>
       ),
     },
     {
-      field: "requestType",
-      headerName: "Type",
-      width: 150,
+      field: "requestId",
+      headerName: "Request ID",
+      flex: 1,
+      minWidth: 200,
       renderCell: (params) => (
-        <Chip label={params.value || "N/A"} size="small" variant="outlined" />
+        <Box
+          sx={{
+            fontFamily: "monospace",
+            fontSize: "0.875rem",
+            color: onRequestClick ? "primary.main" : "inherit",
+            cursor: onRequestClick ? "pointer" : "default",
+            textDecoration: onRequestClick ? "underline" : "none",
+          }}
+          onClick={(e) => {
+            if (onRequestClick && params.value) {
+              e.stopPropagation();
+              onRequestClick(params.value);
+            }
+          }}
+        >
+          {params.value || "N/A"}
+        </Box>
       ),
     },
     {
-      field: "requesterUserId",
-      headerName: "Requester",
+      field: "approverUserId",
+      headerName: "Approver",
       flex: 1,
-      minWidth: 150,
+      minWidth: 200,
+      renderCell: (params) => {
+        const userId = params.value as string | undefined;
+        if (!userId) {
+          return <Typography variant="body2">Unknown</Typography>;
+        }
+        return <UserInfoDisplay userId={userId} mode="compact" />;
+      },
     },
     {
-      field: "targetServiceId",
-      headerName: "Target Service",
-      flex: 1,
-      minWidth: 150,
-    },
-    {
-      field: "status",
-      headerName: "Status",
-      width: 120,
+      field: "gate",
+      headerName: "Gate",
+      width: 150,
       renderCell: (params) => (
         <Chip
-          label={params.value || "Unknown"}
-          color={getStatusColor(params.value)}
+          label={params.value || "N/A"}
           size="small"
+          color={getGateColor(params.value as string)}
+          variant="outlined"
         />
       ),
     },
     {
-      field: "approvalGates",
-      headerName: "Gates Progress",
-      width: 150,
-      renderCell: (params) => {
-        const gates = params.value as Array<{ status?: string }> | undefined;
-        if (!gates || gates.length === 0) return "-";
-
-        const approved = gates.filter((g) => g.status === "APPROVED").length;
-        const total = gates.length;
-        const progress = (approved / total) * 100;
-
-        return (
-          <Tooltip title={`${approved}/${total} gates approved`}>
-            <Box sx={{ width: "100%" }}>
-              <LinearProgress
-                variant="determinate"
-                value={progress}
-                sx={{ height: 8, borderRadius: 1 }}
-              />
-            </Box>
-          </Tooltip>
-        );
-      },
+      field: "decision",
+      headerName: "Decision",
+      width: 120,
+      renderCell: (params) => (
+        <Chip
+          label={params.value || "Unknown"}
+          size="small"
+          color={getDecisionColor(params.value as string)}
+        />
+      ),
     },
     {
-      field: "createdAt",
-      headerName: "Created",
-      width: 160,
+      field: "decidedAt",
+      headerName: "Decision Date",
+      width: 180,
       renderCell: (params) => {
         if (!params.value) return "-";
         try {
@@ -127,6 +143,24 @@ export function ApprovalRequestTable({
           return params.value;
         }
       },
+    },
+    {
+      field: "note",
+      headerName: "Notes",
+      flex: 1,
+      minWidth: 200,
+      renderCell: (params) => (
+        <Box
+          sx={{
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+          title={params.value as string}
+        >
+          {params.value || "-"}
+        </Box>
+      ),
     },
     {
       field: "actions",
@@ -138,20 +172,21 @@ export function ApprovalRequestTable({
           key="view"
           icon={<ViewIcon />}
           label="View details"
-          onClick={() => onRowClick(params.row.id || "")}
+          onClick={() => {
+            if (params.row.id) {
+              onRowClick(params.row.id);
+            }
+          }}
           showInMenu={false}
         />,
       ],
     },
   ];
 
-  // Create rows with unique id for DataGrid (requests already have id field)
-  const rows = requests;
-
   return (
     <Box sx={{ height: 600, width: "100%" }}>
       <DataGrid
-        rows={rows}
+        rows={decisions}
         columns={columns}
         loading={loading}
         paginationMode="server"
@@ -167,6 +202,10 @@ export function ApprovalRequestTable({
         }}
         pageSizeOptions={[10, 20, 50, 100]}
         disableRowSelectionOnClick
+        getRowId={(row) =>
+          row.id ||
+          `decision-${row.requestId}-${row.approverUserId}-${row.decidedAt}`
+        }
         slotProps={{
           noRowsOverlay: {
             children: (
@@ -181,7 +220,7 @@ export function ApprovalRequestTable({
                 }}
               >
                 <Typography variant="h6" color="text.secondary">
-                  No approval requests found
+                  No approval decisions found
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   Try adjusting your filters or check back later.

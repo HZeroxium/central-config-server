@@ -38,6 +38,12 @@ const ApprovalListPage = lazy(
 const ApprovalDetailPage = lazy(
   () => import("@features/approvals/pages/ApprovalDetailPage")
 );
+const ApprovalDecisionListPage = lazy(
+  () => import("@features/approvals/pages/ApprovalDecisionListPage")
+);
+const ApprovalDecisionDetailPage = lazy(
+  () => import("@features/approvals/pages/ApprovalDecisionDetailPage")
+);
 const DriftEventListPage = lazy(
   () => import("@features/drift-events/pages/DriftEventListPage")
 );
@@ -192,6 +198,31 @@ export const router = createBrowserRouter([
               <ProtectedRoute>
                 <Suspense fallback={<Loading />}>
                   <ApprovalDetailPage />
+                </Suspense>
+              </ProtectedRoute>
+            ),
+          },
+        ],
+      },
+      {
+        path: "approval-decisions",
+        children: [
+          {
+            index: true,
+            element: (
+              <ProtectedRoute>
+                <Suspense fallback={<Loading />}>
+                  <ApprovalDecisionListPage />
+                </Suspense>
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: ":id",
+            element: (
+              <ProtectedRoute>
+                <Suspense fallback={<Loading />}>
+                  <ApprovalDecisionDetailPage />
                 </Suspense>
               </ProtectedRoute>
             ),

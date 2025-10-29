@@ -28,10 +28,13 @@ import { ApprovalStepper } from "../components/ApprovalStepper";
 import { DecisionTimeline } from "../components/DecisionTimeline";
 import { useCanApprove } from "../hooks/useCanApprove";
 import { format } from "date-fns";
+import { useQueryClient } from "@tanstack/react-query";
+import { getFindApprovalDecisionsByRequestIdQueryKey } from "@lib/api/generated/approval-decisions/approval-decisions";
 
 export default function ApprovalDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [decisionDialogOpen, setDecisionDialogOpen] = useState(false);
 
   const {
@@ -48,8 +51,6 @@ export default function ApprovalDetailPage() {
 
   const { canApprove, eligibleGates = [] } = useCanApprove(request);
 
-  // Note: requesterUser fetch removed - manager logic now in useCanApprove hook
-
   const submitDecisionMutation = useSubmitApprovalDecision();
 
   const handleSubmitDecision = async (decision: {
@@ -64,7 +65,13 @@ export default function ApprovalDetailPage() {
         onSuccess: () => {
           toast.success("Decision submitted successfully");
           setDecisionDialogOpen(false);
+          // Invalidate and refetch approval request and decisions
           refetch();
+          if (id) {
+            queryClient.invalidateQueries({
+              queryKey: getFindApprovalDecisionsByRequestIdQueryKey(id),
+            });
+          }
         },
         onError: (error) => {
           handleApiError(error);
@@ -72,8 +79,6 @@ export default function ApprovalDetailPage() {
       }
     );
   };
-
-  // Note: canApprove logic is now handled by useCanApprove hook
 
   const getStatusColor = (
     status?: string
@@ -275,10 +280,17 @@ export default function ApprovalDetailPage() {
       </Card>
 
       {/* Approval Progress Stepper */}
-      <ApprovalStepper request={request} />
+      {request.id && request.required && (
+        <ApprovalStepper
+          requestId={request.id}
+          requiredGates={request.required}
+        />
+      )}
 
       {/* Decision Timeline */}
-      <DecisionTimeline request={request} />
+      {request.id && (
+        <DecisionTimeline request={request} requestId={request.id} />
+      )}
 
       {/* Decision Dialog */}
       <DecisionDialog

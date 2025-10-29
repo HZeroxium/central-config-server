@@ -19,18 +19,14 @@
 
  * OpenAPI spec version: 1.0.0
  */
+import type { ApprovalDecisionResponse } from './approvalDecisionResponse';
+import type { PageMetadata } from './pageMetadata';
 
 /**
- * Instance status
+ * Page response for approval decisions
  */
-export type ServiceInstanceUpdateRequestStatus = typeof ServiceInstanceUpdateRequestStatus[keyof typeof ServiceInstanceUpdateRequestStatus];
-
-
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-export const ServiceInstanceUpdateRequestStatus = {
-  HEALTHY: 'HEALTHY',
-  UNHEALTHY: 'UNHEALTHY',
-  DRIFT: 'DRIFT',
-  UNKNOWN: 'UNKNOWN',
-  STALE: 'STALE',
-} as const;
+export interface ApprovalDecisionPageResponse {
+  /** List of approval decisions in current page */
+  items?: ApprovalDecisionResponse[];
+  metadata?: PageMetadata;
+}

@@ -29,6 +29,7 @@ import Loading from "@components/common/Loading";
 import { useFindAllApprovalRequests } from "@lib/api/hooks";
 import { ApprovalRequestTable } from "../components/ApprovalRequestTable";
 import { useAuth } from "@features/auth/context";
+import { useDebounce } from "@hooks/useDebounce";
 
 export default function ApprovalListPage() {
   const navigate = useNavigate();
@@ -41,6 +42,9 @@ export default function ApprovalListPage() {
   const [requestTypeFilter, setRequestTypeFilter] = useState("");
   const [activeTab, setActiveTab] = useState(0);
   const [showMyApprovalsOnly, setShowMyApprovalsOnly] = useState(false);
+
+  // Debounce search input
+  const debouncedSearch = useDebounce(search, 400);
 
   // Map tab to status filter
   const tabToStatus: Record<number, string | undefined> = {
@@ -55,7 +59,7 @@ export default function ApprovalListPage() {
 
   const { data, isLoading, error, refetch } = useFindAllApprovalRequests(
     {
-      requesterUserId: search || undefined,
+      requesterUserId: debouncedSearch || undefined,
       status: currentStatus,
       requestType: requestTypeFilter || undefined,
       page,
@@ -134,6 +138,7 @@ export default function ApprovalListPage() {
               variant="outlined"
               startIcon={<RefreshIcon />}
               onClick={() => refetch()}
+              aria-label="Refresh approval requests"
             >
               Refresh
             </Button>
@@ -201,6 +206,7 @@ export default function ApprovalListPage() {
                         <SearchIcon />
                       </InputAdornment>
                     ),
+                    "aria-label": "Search by requester user ID",
                   },
                 }}
               />
@@ -217,6 +223,7 @@ export default function ApprovalListPage() {
                     setPage(0);
                   }}
                   disabled={showMyApprovalsOnly}
+                  aria-label="Filter by request type"
                 >
                   <MenuItem value="">All</MenuItem>
                   <MenuItem value="SERVICE_ACCESS">Service Access</MenuItem>
@@ -237,6 +244,7 @@ export default function ApprovalListPage() {
                     setPage(0);
                   }}
                   disabled={showMyApprovalsOnly}
+                  aria-label="Override status filter"
                 >
                   <MenuItem value="">Use Tab Filter</MenuItem>
                   <MenuItem value="PENDING">Pending</MenuItem>
@@ -253,6 +261,7 @@ export default function ApprovalListPage() {
                 variant="outlined"
                 onClick={handleFilterReset}
                 sx={{ height: "56px" }}
+                aria-label="Reset all filters"
               >
                 Reset
               </Button>

@@ -20,17 +20,19 @@
  * OpenAPI spec version: 1.0.0
  */
 
+export type FindApprovalDecisionsByRequestIdParams = {
 /**
- * Instance status
+ * Zero-based page index (0..N)
+ * @minimum 0
  */
-export type ServiceInstanceUpdateRequestStatus = typeof ServiceInstanceUpdateRequestStatus[keyof typeof ServiceInstanceUpdateRequestStatus];
-
-
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-export const ServiceInstanceUpdateRequestStatus = {
-  HEALTHY: 'HEALTHY',
-  UNHEALTHY: 'UNHEALTHY',
-  DRIFT: 'DRIFT',
-  UNKNOWN: 'UNKNOWN',
-  STALE: 'STALE',
-} as const;
+page?: number;
+/**
+ * The size of the page to be returned
+ * @minimum 1
+ */
+size?: number;
+/**
+ * Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.
+ */
+sort?: string[];
+};

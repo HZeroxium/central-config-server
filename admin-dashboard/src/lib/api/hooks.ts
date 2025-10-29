@@ -43,6 +43,13 @@ export {
   useCancelApprovalRequest,
 } from "./generated/approval-requests/approval-requests";
 
+// Approval Decisions - Decision tracking and audit
+export {
+  useFindAllApprovalDecisions,
+  useFindApprovalDecisionById,
+  useFindApprovalDecisionsByRequestId,
+} from "./generated/approval-decisions/approval-decisions";
+
 // Service Shares - Rename for better API
 export {
   useFindAllServiceShares,

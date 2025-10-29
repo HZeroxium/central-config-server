@@ -32,4 +32,5 @@ export const ServiceInstanceResponseStatus = {
   UNHEALTHY: 'UNHEALTHY',
   DRIFT: 'DRIFT',
   UNKNOWN: 'UNKNOWN',
+  STALE: 'STALE',
 } as const;

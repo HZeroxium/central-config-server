@@ -20,17 +20,11 @@
  * OpenAPI spec version: 1.0.0
  */
 
-/**
- * Instance status
- */
-export type ServiceInstanceUpdateRequestStatus = typeof ServiceInstanceUpdateRequestStatus[keyof typeof ServiceInstanceUpdateRequestStatus];
+export type FindAllApprovalDecisionsDecision = typeof FindAllApprovalDecisionsDecision[keyof typeof FindAllApprovalDecisionsDecision];
 
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
-export const ServiceInstanceUpdateRequestStatus = {
-  HEALTHY: 'HEALTHY',
-  UNHEALTHY: 'UNHEALTHY',
-  DRIFT: 'DRIFT',
-  UNKNOWN: 'UNKNOWN',
-  STALE: 'STALE',
+export const FindAllApprovalDecisionsDecision = {
+  APPROVE: 'APPROVE',
+  REJECT: 'REJECT',
 } as const;

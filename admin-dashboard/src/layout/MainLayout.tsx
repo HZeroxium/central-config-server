@@ -21,6 +21,7 @@ import DnsIcon from "@mui/icons-material/Dns";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import AppsIcon from "@mui/icons-material/Apps";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import GavelIcon from "@mui/icons-material/Gavel";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import ShareIcon from "@mui/icons-material/Share";
 import PeopleIcon from "@mui/icons-material/People";
@@ -96,6 +97,12 @@ export default function MainLayout() {
       label: "Approvals",
       icon: <CheckCircleIcon />,
       badge: pendingApprovalCount > 0 ? pendingApprovalCount : undefined,
+    },
+    {
+      path: "/approval-decisions",
+      label: "Approval Decisions",
+      icon: <GavelIcon />,
+      badge: undefined,
     },
     {
       path: "/drift-events",
