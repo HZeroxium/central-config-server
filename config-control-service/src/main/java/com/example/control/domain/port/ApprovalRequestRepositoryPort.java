@@ -65,4 +65,14 @@ public interface ApprovalRequestRepositoryPort
      * @return list of PENDING requests for the service
      */
     List<ApprovalRequest> findAllPendingByServiceId(String serviceId);
+
+    /**
+     * Find all requests for a service by status.
+     * Used after cascade operations to find requests that were actually updated.
+     *
+     * @param serviceId the service ID
+     * @param status    the status to filter by
+     * @return list of requests matching the criteria
+     */
+    List<ApprovalRequest> findAllByServiceIdAndStatus(String serviceId, ApprovalRequest.ApprovalStatus status);
 }

@@ -1,4 +1,4 @@
-package com.example.control.api.controller;
+package com.example.control.api.controller.domain;
 
 import com.example.control.api.dto.domain.ApplicationServiceDtos;
 import com.example.control.api.exception.ErrorResponse;

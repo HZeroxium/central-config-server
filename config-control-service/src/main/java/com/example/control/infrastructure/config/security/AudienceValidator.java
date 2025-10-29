@@ -27,7 +27,7 @@ import java.util.List;
  *   <li>Otherwise, validation fails.</li>
  * </ol>
  * On failure, this validator returns an {@code invalid_token} error via
- * {@link OAuth2TokenValidatorResult#failure(org.springframework.security.oauth2.core.OAuth2Error)}.</p>
+ * .</p>
  *
  * <p><strong>Security note</strong>:
  * Accepting {@code "account"} as a valid audience is specific to certain Keycloak defaults and may broaden

@@ -46,6 +46,9 @@ public class ApplicationServiceDocument {
 
     /**
      * Human-readable display name.
+     * <p>
+     * Has unique index for exact lookups and text index for full-text search.
+     * </p>
      */
     @Indexed(unique = true)
     @Field("displayName")

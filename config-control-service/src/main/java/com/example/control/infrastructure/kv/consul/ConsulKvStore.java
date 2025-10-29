@@ -1,7 +1,7 @@
-package com.example.control.kv.consul;
+package com.example.control.infrastructure.kv.consul;
 
-import com.example.control.application.ConsulClient;
-import com.example.control.kv.KvStore;
+import com.example.control.application.external.ConsulClient;
+import com.example.control.infrastructure.kv.KvStore;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -99,26 +99,26 @@ public class ConsulKvStore implements KvStore {
                 case PUT -> {
                     Long cas = op.expectedVersion() != null ? Long.parseLong(op.expectedVersion()) : null;
                     ConsulClient.TxnOperation consulOp = new ConsulClient.TxnOperation(
-                            "set",           // verb
-                            op.key(),        // key
-                            op.value(),      // value
-                            cas,             // cas for conditional operations
-                            null,            // session
-                            null,            // acquire
-                            null             // release
+                            "set", // verb
+                            op.key(), // key
+                            op.value(), // value
+                            cas, // cas for conditional operations
+                            null, // session
+                            null, // acquire
+                            null // release
                     );
                     consulOps.add(consulOp);
                 }
                 case DELETE -> {
                     Long cas = op.expectedVersion() != null ? Long.parseLong(op.expectedVersion()) : null;
                     ConsulClient.TxnOperation consulOp = new ConsulClient.TxnOperation(
-                            "delete",        // verb
-                            op.key(),        // key
-                            null,            // value
-                            cas,             // cas for conditional operations
-                            null,            // session
-                            null,            // acquire
-                            null             // release
+                            "delete", // verb
+                            op.key(), // key
+                            null, // value
+                            cas, // cas for conditional operations
+                            null, // session
+                            null, // acquire
+                            null // release
                     );
                     consulOps.add(consulOp);
                 }

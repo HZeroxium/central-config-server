@@ -18,7 +18,7 @@ import java.util.List;
  * </p>
  */
 @Schema(name = "IamUserDtos", description = "DTOs for IAM user API operations")
-public class IamUserDtos {
+public final class IamUserDtos {
 
     private IamUserDtos() {
         throw new UnsupportedOperationException("Utility class");

@@ -2,7 +2,6 @@ package com.example.control.application.query;
 
 import com.example.control.domain.criteria.ApprovalDecisionCriteria;
 import com.example.control.domain.id.ApprovalDecisionId;
-import com.example.control.domain.id.ApprovalRequestId;
 import com.example.control.domain.object.ApprovalDecision;
 import com.example.control.domain.port.ApprovalDecisionRepositoryPort;
 import lombok.RequiredArgsConstructor;

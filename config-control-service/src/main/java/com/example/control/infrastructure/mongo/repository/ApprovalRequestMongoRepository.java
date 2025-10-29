@@ -46,14 +46,14 @@ public interface ApprovalRequestMongoRepository extends MongoRepository<Approval
      * Check existence of a pending request for a requester and service.
      */
     boolean existsByRequesterUserIdAndTargetServiceIdAndStatus(String requesterUserId, String targetServiceId,
-                                                               String status);
+            String status);
 
     /**
      * Cascade approve: set status APPROVED where PENDING and matches same team and
      * service.
      */
     @Query(value = "{'targetServiceId': ?0, 'targetTeamId': ?1, 'status': 'PENDING'}")
-    @Update("{'$set': {'status': 'APPROVED', 'updatedAt': ?2}}")
+    @Update("{'$set': {'status': 'APPROVED', 'updatedAt': ?2}, '$inc': {'version': 1}}")
     long cascadeApproveSameTeamPending(String serviceId, String teamId, Instant updatedAt);
 
     /**
@@ -61,6 +61,6 @@ public interface ApprovalRequestMongoRepository extends MongoRepository<Approval
      * different team.
      */
     @Query(value = "{'targetServiceId': ?0, 'targetTeamId': {'$ne': ?1}, 'status': 'PENDING'}")
-    @Update("{'$set': {'status': 'REJECTED', 'updatedAt': ?2, 'cancelReason': ?3}}")
+    @Update("{'$set': {'status': 'REJECTED', 'updatedAt': ?2, 'cancelReason': ?3}, '$inc': {'version': 1}}")
     long cascadeRejectOtherTeamsPending(String serviceId, String approvedTeamId, Instant updatedAt, String reason);
 }

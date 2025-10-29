@@ -18,24 +18,24 @@ import org.apache.thrift.transport.TTransportException;
  */
 @Slf4j
 public class ThriftRpcPingStrategy implements PingStrategy {
-  
+
   private static final int TIMEOUT_MS = 5000;
   private static final int DEFAULT_THRIFT_PORT = 9090;
-  
+
   @Override
   public void sendHeartbeat(String endpoint, HeartbeatPayload payload) throws Exception {
     String[] parts = endpoint.split(":");
     String host = parts[0];
     int port = parts.length > 1 ? Integer.parseInt(parts[1]) : DEFAULT_THRIFT_PORT;
-    
+
     try (TTransport transport = new TSocket(host, port, TIMEOUT_MS)) {
       transport.open();
       TBinaryProtocol protocol = new TBinaryProtocol(transport);
       ConfigControlService.Client client = new ConfigControlService.Client(protocol);
-      
+
       HeartbeatRequest request = convertToThrift(payload);
       client.recordHeartbeat(request);
-      
+
       log.debug("Thrift RPC ping sent to {}:{}", host, port);
     } catch (TTransportException e) {
       throw new Exception("Failed to connect to Thrift service at " + host + ":" + port, e);
@@ -43,17 +43,17 @@ public class ThriftRpcPingStrategy implements PingStrategy {
       throw new Exception("Thrift RPC call failed: " + e.getMessage(), e);
     }
   }
-  
+
   @Override
   public String getName() {
     return "Thrift RPC";
   }
-  
+
   @Override
   public PingProtocol getProtocol() {
     return PingProtocol.THRIFT;
   }
-  
+
   /**
    * Converts HeartbeatPayload to Thrift HeartbeatRequest.
    * 

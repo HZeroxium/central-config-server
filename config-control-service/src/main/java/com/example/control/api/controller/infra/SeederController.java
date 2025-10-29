@@ -1,4 +1,4 @@
-package com.example.control.api.rest.controller;
+package com.example.control.api.controller.infra;
 
 import com.example.control.infrastructure.seeding.service.DataSeederService;
 import com.example.control.infrastructure.seeding.service.DataSeederService.CleanResult;

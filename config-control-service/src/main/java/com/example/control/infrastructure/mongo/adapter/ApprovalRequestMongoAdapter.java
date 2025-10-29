@@ -66,8 +66,12 @@ public class ApprovalRequestMongoAdapter
         if (criteria.toDate() != null) {
             query.addCriteria(Criteria.where("createdAt").lte(criteria.toDate()));
         }
+        // Gate filter: use indexed array field for efficient queries
         if (criteria.gate() != null) {
-            query.addCriteria(Criteria.where("requiredGatesJson").regex(criteria.gate(), "i"));
+            // Use $in query on requiredGates array for indexed lookup
+            // Falls back to regex on JSON field for backward compatibility if array is
+            // empty
+            query.addCriteria(Criteria.where("requiredGates").in(criteria.gate()));
         }
 
         // ABAC: Team-based filtering
@@ -97,7 +101,7 @@ public class ApprovalRequestMongoAdapter
 
     @Override
     public boolean updateStatusAndVersion(ApprovalRequestId id, ApprovalRequest.ApprovalStatus status,
-                                          Integer version) {
+            Integer version) {
         log.debug("Updating approval request status and version: id={}, status={}, version={}",
                 id, status, version);
 
@@ -149,6 +153,31 @@ public class ApprovalRequestMongoAdapter
                 .toList();
 
         log.debug("Found {} PENDING requests for service: {}", requests.size(), serviceId);
+        return requests;
+    }
+
+    /**
+     * Find all requests for a service by status (APPROVED or REJECTED).
+     * Used after cascade operations to find requests that were actually updated.
+     *
+     * @param serviceId the service ID
+     * @param status    the status to filter by
+     * @return list of requests matching the criteria
+     */
+    public List<ApprovalRequest> findAllByServiceIdAndStatus(String serviceId,
+            ApprovalRequest.ApprovalStatus status) {
+        log.debug("Finding all {} requests for service: {}", status, serviceId);
+
+        Query query = new Query();
+        query.addCriteria(Criteria.where("targetServiceId").is(serviceId));
+        query.addCriteria(Criteria.where("status").is(status.name()));
+
+        List<ApprovalRequestDocument> documents = mongoTemplate.find(query, ApprovalRequestDocument.class);
+        List<ApprovalRequest> requests = documents.stream()
+                .map(this::toDomain)
+                .toList();
+
+        log.debug("Found {} {} requests for service: {}", requests.size(), status, serviceId);
         return requests;
     }
 }

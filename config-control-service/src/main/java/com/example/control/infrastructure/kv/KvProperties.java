@@ -1,4 +1,4 @@
-package com.example.control.kv;
+package com.example.control.infrastructure.kv;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;

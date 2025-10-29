@@ -17,7 +17,7 @@ import java.util.Map;
  * </p>
  */
 @Schema(name = "ConfigServerDto", description = "DTOs for Config Server API responses")
-public class ConfigServerDto {
+public final class ConfigServerDto {
 
     private ConfigServerDto() {
         throw new UnsupportedOperationException("Utility class");

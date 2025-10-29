@@ -2,7 +2,7 @@ package com.example.control.application.service;
 
 import com.example.control.api.exception.exceptions.ConfigurationException;
 import com.example.control.api.exception.exceptions.ValidationException;
-import com.example.control.application.ConfigProxyService;
+import com.example.control.application.external.ConfigProxyService;
 import com.example.control.application.command.ApplicationServiceCommandService;
 import com.example.control.application.query.ApplicationServiceQueryService;
 import com.example.control.domain.criteria.ApplicationServiceCriteria;
@@ -96,7 +96,7 @@ public class HeartbeatService {
      * @return updated {@link ServiceInstance} representing the current state
      */
     @Transactional
-    @CacheEvict(value = {"service-instances", "drift-events"}, allEntries = true)
+    @CacheEvict(value = { "service-instances", "drift-events" }, allEntries = true)
     @Timed("config_control.heartbeat.process")
     @Observed(name = "heartbeat.process", contextualName = "process-heartbeat")
     public ServiceInstance processHeartbeat(
@@ -119,44 +119,64 @@ public class HeartbeatService {
         Instant now = Instant.now();
 
         // 3️⃣ Handle first-time heartbeat (registration)
-        if (instance.getCreatedAt() == null) {
+        boolean isFirstHeartbeat = instance.getCreatedAt() == null;
+        if (isFirstHeartbeat) {
             instance.setCreatedAt(now);
             log.info("New service instance registered: {}", id);
+        }
 
-            // Auto-populate serviceId and teamId by looking up ApplicationService
-            if (instance.getServiceId() == null || instance.getTeamId() == null) {
-                try {
-                    // Business logic: Find or create ApplicationService by display name (inline)
-                    ApplicationServiceCriteria criteria = ApplicationServiceCriteria.byDisplayName(payload.getServiceName());
-                    Page<ApplicationService> results = applicationServiceQueryService.findAll(criteria, Pageable.unpaged());
-                    Optional<ApplicationService> existing = results.getContent().stream().findFirst();
+        // Always sync serviceId and teamId from ApplicationService to ensure
+        // consistency
+        // This handles cases where ApplicationService ownership changes after instance
+        // creation
+        try {
+            // Business logic: Find or create ApplicationService by display name
+            ApplicationServiceCriteria criteria = ApplicationServiceCriteria
+                    .byDisplayName(payload.getServiceName());
+            Page<ApplicationService> results = applicationServiceQueryService.findAll(criteria,
+                    Pageable.unpaged());
+            Optional<ApplicationService> existing = results.getContent().stream().findFirst();
 
-                    ApplicationService appService;
-                    if (existing.isPresent()) {
-                        appService = existing.get();
-                        log.debug("Found existing ApplicationService: {} for display name: {}",
-                                appService.getId(), payload.getServiceName());
-                    } else {
-                        // Business logic: Create orphaned service (no owner team)
-                        ApplicationService orphanedService = ApplicationService.builder()
-                                .id(ApplicationServiceId.of(UUID.randomUUID().toString()))
-                                .displayName(payload.getServiceName())
-                                .ownerTeamId(null) // Orphaned - requires approval workflow
-                                .environments(List.of("dev", "staging", "prod")) // Default environments
-                                .lifecycle(ApplicationService.ServiceLifecycle.ACTIVE)
-                                .createdAt(Instant.now())
-                                .createdBy("system") // System-created
-                                .build();
+            ApplicationService appService;
+            if (existing.isPresent()) {
+                appService = existing.get();
+                if (isFirstHeartbeat) {
+                    log.debug("Found existing ApplicationService: {} for display name: {}",
+                            appService.getId(), payload.getServiceName());
+                }
+            } else {
+                // Business logic: Only auto-create orphaned service on first heartbeat
+                if (isFirstHeartbeat) {
+                    ApplicationService orphanedService = ApplicationService.builder()
+                            .id(ApplicationServiceId.of(UUID.randomUUID().toString()))
+                            .displayName(payload.getServiceName())
+                            .ownerTeamId(null) // Orphaned - requires approval workflow
+                            .environments(List.of("dev", "staging", "prod")) // Default environments
+                            .lifecycle(ApplicationService.ServiceLifecycle.ACTIVE)
+                            .createdAt(Instant.now())
+                            .createdBy("system") // System-created
+                            .build();
 
-                        appService = applicationServiceCommandService.save(orphanedService);
-                        log.warn(
-                                "Auto-created orphaned ApplicationService: {} (displayName: {}) - requires approval workflow for team assignment",
-                                appService.getId(), payload.getServiceName());
-                    }
+                    appService = applicationServiceCommandService.save(orphanedService);
+                    log.warn(
+                            "Auto-created orphaned ApplicationService: {} (displayName: {}) - requires approval workflow for team assignment",
+                            appService.getId(), payload.getServiceName());
+                } else {
+                    // Instance exists but ApplicationService not found - skip sync
+                    log.warn("ApplicationService not found for displayName: {} on subsequent heartbeat, skipping sync",
+                            payload.getServiceName());
+                    appService = null;
+                }
+            }
 
-                    instance.setServiceId(appService.getId().id());
-                    instance.setTeamId(appService.getOwnerTeamId()); // May be null for orphaned services
+            if (appService != null) {
+                String previousServiceId = instance.getServiceId();
+                String previousTeamId = instance.getTeamId();
 
+                instance.setServiceId(appService.getId().id());
+                instance.setTeamId(appService.getOwnerTeamId()); // May be null for orphaned services
+
+                if (isFirstHeartbeat) {
                     if (appService.getOwnerTeamId() == null) {
                         log.warn(
                                 "Auto-linked instance {} to orphaned ApplicationService {} - requires approval workflow for team assignment",
@@ -165,10 +185,23 @@ public class HeartbeatService {
                         log.info("Auto-populated serviceId={} and teamId={} for instance {}",
                                 appService.getId().id(), appService.getOwnerTeamId(), id);
                     }
-                } catch (Exception e) {
-                    log.warn("Failed to auto-populate serviceId and teamId for instance {}: {}", id, e.getMessage());
+                } else {
+                    // Subsequent heartbeat - log if teamId changed
+                    if (previousServiceId != null && !previousServiceId.equals(appService.getId().id())) {
+                        log.info("ServiceId changed for instance {}: {} -> {}", id, previousServiceId,
+                                appService.getId().id());
+                    }
+                    if (previousTeamId != null && !previousTeamId.equals(appService.getOwnerTeamId())) {
+                        log.info("TeamId synced for instance {}: {} -> {} (ownership changed)",
+                                id, previousTeamId, appService.getOwnerTeamId());
+                    } else if (previousTeamId == null && appService.getOwnerTeamId() != null) {
+                        log.info("TeamId synced for instance {}: null -> {} (ownership assigned)",
+                                id, appService.getOwnerTeamId());
+                    }
                 }
             }
+        } catch (Exception e) {
+            log.warn("Failed to sync serviceId and teamId for instance {}: {}", id, e.getMessage());
         }
 
         // 4️⃣ Update runtime metadata (host, port, version, hashes)
@@ -186,7 +219,8 @@ public class HeartbeatService {
         try {
             expectedHash = getExpectedConfigHashWithSpan(payload.getServiceName(), payload.getEnvironment());
         } catch (Exception e) {
-            log.error("Failed to get effective config hash for {}:{}", payload.getServiceName(), payload.getEnvironment(), e);
+            log.error("Failed to get effective config hash for {}:{}", payload.getServiceName(),
+                    payload.getEnvironment(), e);
             throw new ConfigurationException(payload.getServiceName(), payload.getEnvironment(),
                     "Failed to retrieve effective configuration: " + e.getMessage());
         }

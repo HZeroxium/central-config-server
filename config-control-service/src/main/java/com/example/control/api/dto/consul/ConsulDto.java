@@ -18,7 +18,7 @@ import java.util.Map;
  * </p>
  */
 @Schema(name = "ConsulDto", description = "DTOs for Consul API responses")
-public class ConsulDto {
+public final class ConsulDto {
 
     private ConsulDto() {
         throw new UnsupportedOperationException("Utility class");

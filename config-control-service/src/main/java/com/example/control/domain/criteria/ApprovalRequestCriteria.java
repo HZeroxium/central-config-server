@@ -111,8 +111,6 @@ public record ApprovalRequestCriteria(
      * Used to check for duplicate pending requests.
      *
      * @param requesterUserId the requester user ID
-     * @param serviceId       the service ID (not in criteria, handled via
-     *                        repository)
      * @return criteria for pending requests by requester
      */
     public static ApprovalRequestCriteria pendingByRequester(String requesterUserId) {

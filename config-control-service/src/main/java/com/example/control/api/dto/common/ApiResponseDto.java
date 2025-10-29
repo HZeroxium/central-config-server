@@ -17,7 +17,7 @@ import java.util.List;
  * for successful operations and error handling.
  * </p>
  */
-public class ApiResponseDto {
+public final class ApiResponseDto {
 
     private ApiResponseDto() {
         throw new UnsupportedOperationException("Utility class");

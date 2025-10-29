@@ -1,6 +1,6 @@
-package com.example.control.kv.model;
+package com.example.control.infrastructure.kv.model;
 
-import com.example.control.kv.KvStore;
+import com.example.control.infrastructure.kv.KvStore;
 import jakarta.validation.constraints.NotBlank;
 
 import java.time.Duration;
@@ -61,8 +61,7 @@ public final class KvDtos {
                     Base64.getEncoder().encodeToString(entry.value()),
                     entry.version(),
                     entry.createIndex(),
-                    entry.modifyIndex()
-            );
+                    entry.modifyIndex());
         }
 
         /**
@@ -118,8 +117,7 @@ public final class KvDtos {
                     key,
                     valueBytes(),
                     expectedVersion,
-                    ttl()
-            );
+                    ttl());
         }
     }
 

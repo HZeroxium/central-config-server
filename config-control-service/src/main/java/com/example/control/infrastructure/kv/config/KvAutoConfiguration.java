@@ -1,11 +1,11 @@
-package com.example.control.kv.config;
+package com.example.control.infrastructure.kv.config;
 
-import com.example.control.application.ConsulClient;
-import com.example.control.kv.KvProperties;
-import com.example.control.kv.KvStore;
-import com.example.control.kv.consul.ConsulKvStore;
-import com.example.control.kv.etcd.EtcdClients;
-import com.example.control.kv.etcd.EtcdKvStore;
+import com.example.control.application.external.ConsulClient;
+import com.example.control.infrastructure.kv.KvProperties;
+import com.example.control.infrastructure.kv.KvStore;
+import com.example.control.infrastructure.kv.consul.ConsulKvStore;
+import com.example.control.infrastructure.kv.etcd.EtcdClients;
+import com.example.control.infrastructure.kv.etcd.EtcdKvStore;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -30,8 +30,7 @@ public class KvAutoConfiguration {
         log.info("Configuring etcd client with endpoints: {}", kvProperties.getEtcd().getEndpoints());
         return new EtcdClients(
                 kvProperties.getEtcd().getEndpoints(),
-                kvProperties.getEtcd().getConnectTimeout()
-        );
+                kvProperties.getEtcd().getConnectTimeout());
     }
 
     @Bean

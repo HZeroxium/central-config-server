@@ -1,4 +1,4 @@
-package com.example.control.api.controller;
+package com.example.control.api.controller.domain;
 
 import com.example.control.api.dto.domain.IamUserDtos;
 import com.example.control.api.mapper.domain.IamUserApiMapper;
@@ -55,7 +55,6 @@ public class IamUserController {
      *
      * @param criteria    filter criteria
      * @param pageable    pagination information
-     * @param userContext current user context
      * @return page of IAM users
      */
     @GetMapping
@@ -101,7 +100,6 @@ public class IamUserController {
      * Get IAM user by ID.
      *
      * @param userId      the user ID
-     * @param userContext current user context
      * @return IAM user details
      */
     @GetMapping("/{userId}")
@@ -149,7 +147,6 @@ public class IamUserController {
      * List IAM users by team.
      *
      * @param teamId      the team ID
-     * @param userContext current user context
      * @return list of users in the team
      */
     @GetMapping("/by-team/{teamId}")
@@ -197,7 +194,7 @@ public class IamUserController {
      * List IAM users by manager.
      *
      * @param managerId   the manager's user ID
-     * @param userContext current user context
+     * @param jwt current user context
      * @return list of users reporting to the manager
      */
     @GetMapping("/by-manager/{managerId}")
@@ -244,7 +241,7 @@ public class IamUserController {
     /**
      * Get user statistics.
      *
-     * @param userContext current user context
+     * @param jwt current user context
      * @return user statistics
      */
     @GetMapping("/stats")

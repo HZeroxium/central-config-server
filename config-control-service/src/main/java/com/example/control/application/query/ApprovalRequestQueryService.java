@@ -79,4 +79,18 @@ public class ApprovalRequestQueryService {
         log.debug("Checking existence of approval request: {}", id);
         return repository.existsById(id);
     }
+
+    /**
+     * Find all requests for a service by status.
+     * Used after cascade operations to find requests that were actually updated.
+     *
+     * @param serviceId the service ID
+     * @param status    the status to filter by
+     * @return list of requests matching the criteria
+     */
+    public List<ApprovalRequest> findAllByServiceIdAndStatus(String serviceId,
+            ApprovalRequest.ApprovalStatus status) {
+        log.debug("Finding all {} requests for service: {}", status, serviceId);
+        return repository.findAllByServiceIdAndStatus(serviceId, status);
+    }
 }

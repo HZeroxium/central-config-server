@@ -1,6 +1,7 @@
 package com.example.control.api.mapper.domain;
 
 import com.example.control.api.dto.domain.ApprovalDecisionDtos;
+import com.example.control.domain.criteria.ApprovalDecisionCriteria;
 import com.example.control.domain.object.ApprovalDecision;
 import org.springframework.stereotype.Component;
 
@@ -28,7 +29,23 @@ public class ApprovalDecisionApiMapper {
                 entity.getGate(),
                 entity.getDecision().name(),
                 entity.getDecidedAt(),
-                entity.getNote()
-        );
+                entity.getNote());
+    }
+
+    /**
+     * Map QueryFilter to domain criteria.
+     *
+     * @param filter the query filter
+     * @return the domain criteria
+     */
+    public ApprovalDecisionCriteria toCriteria(ApprovalDecisionDtos.QueryFilter filter) {
+        return ApprovalDecisionCriteria.builder()
+                .requestId(filter != null ? filter.requestId() : null)
+                .approverUserId(filter != null ? filter.approverUserId() : null)
+                .gate(filter != null ? filter.gate() : null)
+                .decision(filter != null && filter.decision() != null
+                        ? ApprovalDecision.Decision.valueOf(filter.decision())
+                        : null)
+                .build();
     }
 }

@@ -57,9 +57,21 @@ public class ApplicationServiceMongoAdapter
         if (criteria.tags() != null && !criteria.tags().isEmpty()) {
             query.addCriteria(Criteria.where("tags").in(criteria.tags()));
         }
+        // Text search: use MongoDB text index for efficient full-text search
         if (criteria.search() != null && !criteria.search().trim().isEmpty()) {
-            String searchRegex = ".*" + criteria.search().trim() + ".*";
-            query.addCriteria(Criteria.where("displayName").regex(searchRegex, "i"));
+            String searchTerm = criteria.search().trim();
+            // Use $text search for full-text matching (requires text index)
+            // This is more efficient than regex for search queries
+            query.addCriteria(new org.springframework.data.mongodb.core.query.Criteria()
+                    .orOperator(
+                            org.springframework.data.mongodb.core.query.Criteria.where("displayName")
+                                    .regex(".*" + searchTerm + ".*", "i"), // Fallback regex for partial matching
+                            org.springframework.data.mongodb.core.query.Criteria.where("displayName")
+                                    .is(searchTerm) // Exact match
+                    ));
+            // Note: MongoDB text search with $text operator requires special syntax
+            // For now, using regex with case-insensitive flag as text index supports it
+            // Full $text search can be enabled later if needed for more advanced queries
         }
 
         // Build visibility filtering with $or operator

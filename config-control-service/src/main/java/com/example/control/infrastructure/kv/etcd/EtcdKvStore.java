@@ -1,7 +1,7 @@
-package com.example.control.kv.etcd;
+package com.example.control.infrastructure.kv.etcd;
 
-import com.example.control.kv.KvProperties;
-import com.example.control.kv.KvStore;
+import com.example.control.infrastructure.kv.KvProperties;
+import com.example.control.infrastructure.kv.KvStore;
 import io.etcd.jetcd.ByteSequence;
 import io.etcd.jetcd.KeyValue;
 import io.etcd.jetcd.Watch;

@@ -22,7 +22,7 @@ import java.time.Instant;
  */
 @Data
 @Schema(name = "DriftEventDtos", description = "DTOs for DriftEvent API operations")
-public class DriftEventDtos {
+public final class DriftEventDtos {
 
     private DriftEventDtos() {
         throw new UnsupportedOperationException("Utility class");

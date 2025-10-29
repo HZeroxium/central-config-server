@@ -1,4 +1,4 @@
-package com.example.control.application;
+package com.example.control.application.external;
 
 import com.example.control.api.exception.exceptions.ExternalServiceException;
 import com.example.control.api.exception.exceptions.ServiceNotFoundException;

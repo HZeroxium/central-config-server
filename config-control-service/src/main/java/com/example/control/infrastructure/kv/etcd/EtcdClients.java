@@ -1,6 +1,6 @@
-package com.example.control.kv.etcd;
+package com.example.control.infrastructure.kv.etcd;
 
-import com.example.control.kv.KvProperties;
+import com.example.control.infrastructure.kv.KvProperties;
 import io.etcd.jetcd.*;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -12,20 +12,27 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * Provides a managed set of jetcd clients (KV, Lease, Watch, Lock, Maintenance).
+ * Provides a managed set of jetcd clients (KV, Lease, Watch, Lock,
+ * Maintenance).
  *
- * <p>Key improvements over a minimal wrapper:</p>
+ * <p>
+ * Key improvements over a minimal wrapper:
+ * </p>
  * <ul>
- *   <li>Supports keepalive and connect timeouts via {@link Client.Builder}.</li>
- *   <li>Supports optional etcd key namespace via {@link Client.Builder#namespace(ByteSequence)}.</li>
- *   <li>Exposes {@link Maintenance} client and a robust health check using {@code statusMember}.</li>
+ * <li>Supports keepalive and connect timeouts via {@link Client.Builder}.</li>
+ * <li>Supports optional etcd key namespace via
+ * {@link Client.Builder#namespace(ByteSequence)}.</li>
+ * <li>Exposes {@link Maintenance} client and a robust health check using
+ * {@code statusMember}.</li>
  * </ul>
  *
- * <p>References:</p>
+ * <p>
+ * References:
+ * </p>
  * <ul>
- *   <li>jetcd deprecated list (use builder() / isPrefix): 0.7.x docs. </li>
- *   <li>jetcd ClientBuilder keepalive/connectTimeout: available since 0.5.x.</li>
- *   <li>Maintenance.statusMember(String): preferred over URI overload.</li>
+ * <li>jetcd deprecated list (use builder() / isPrefix): 0.7.x docs.</li>
+ * <li>jetcd ClientBuilder keepalive/connectTimeout: available since 0.5.x.</li>
+ * <li>Maintenance.statusMember(String): preferred over URI overload.</li>
  * </ul>
  */
 @Slf4j
@@ -50,9 +57,8 @@ public final class EtcdClients implements AutoCloseable {
         this(buildClient(
                 endpoints,
                 connectTimeout,
-                /*keepaliveTime*/ null,
-                /*namespace*/ null
-        ), endpoints);
+                /* keepaliveTime */ null,
+                /* namespace */ null), endpoints);
     }
 
     /**
@@ -62,13 +68,11 @@ public final class EtcdClients implements AutoCloseable {
      */
     public EtcdClients(KvProperties.Etcd etcdProps) {
         this(buildClient(
-                        Objects.requireNonNull(etcdProps.getEndpoints(), "endpoints"),
-                        Objects.requireNonNull(etcdProps.getConnectTimeout(), "connectTimeout"),
-                        etcdProps.getKeepaliveTime(),
-                        emptyToNull(etcdProps.getNamespace())
-                ),
-                etcdProps.getEndpoints()
-        );
+                Objects.requireNonNull(etcdProps.getEndpoints(), "endpoints"),
+                Objects.requireNonNull(etcdProps.getConnectTimeout(), "connectTimeout"),
+                etcdProps.getKeepaliveTime(),
+                emptyToNull(etcdProps.getNamespace())),
+                etcdProps.getEndpoints());
     }
 
     private EtcdClients(Client client, List<URI> endpoints) {
@@ -83,9 +87,9 @@ public final class EtcdClients implements AutoCloseable {
     }
 
     private static Client buildClient(List<URI> endpoints,
-                                      Duration connectTimeout,
-                                      Duration keepaliveTime,
-                                      String namespace) {
+            Duration connectTimeout,
+            Duration keepaliveTime,
+            String namespace) {
         String[] eps = endpoints.stream().map(URI::toString).toArray(String[]::new);
         ClientBuilder b = Client.builder()
                 .endpoints(eps)
@@ -110,7 +114,8 @@ public final class EtcdClients implements AutoCloseable {
      */
     public boolean isHealthy() {
         try {
-            if (endpoints.isEmpty()) return false;
+            if (endpoints.isEmpty())
+                return false;
             // Prefer statusMember(String) per jetcd deprecations.
             maintenance.statusMember(endpoints.get(0).toString()).get();
             return true;

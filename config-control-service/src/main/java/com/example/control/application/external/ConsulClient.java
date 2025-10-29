@@ -1,4 +1,4 @@
-package com.example.control.application;
+package com.example.control.application.external;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -462,8 +462,7 @@ public class ConsulClient {
             String requestBody = String.format(
                     "{\"TTL\":\"%ds\",\"Behavior\":\"%s\"}",
                     ttl.getSeconds(),
-                    behavior
-            );
+                    behavior);
 
             String response = restClient.put()
                     .uri(url)
@@ -634,8 +633,7 @@ public class ConsulClient {
                             result.get("Verb").asText(),
                             result.get("Key").asText(),
                             result.has("Value") ? Base64.getDecoder().decode(result.get("Value").asText()) : null,
-                            result.has("Index") ? result.get("Index").asLong() : null
-                    );
+                            result.has("Index") ? result.get("Index").asLong() : null);
                     operationResults.add(opResult);
                 }
             }
@@ -661,13 +659,14 @@ public class ConsulClient {
      */
     public record TxnOperation(
             String verb,
-            // "set", "delete", "get", "get-tree", "check-index", "check-session", "lock", "unlock"
+            // "set", "delete", "get", "get-tree", "check-index", "check-session", "lock",
+            // "unlock"
             String key,
-            byte[] value,          // null for delete/get operations
-            Long cas,              // for CAS operations
-            String session,        // for session-based operations
-            String acquire,        // for lock acquisition
-            String release         // for lock release
+            byte[] value, // null for delete/get operations
+            Long cas, // for CAS operations
+            String session, // for session-based operations
+            String acquire, // for lock acquisition
+            String release // for lock release
     ) {
     }
 
@@ -678,8 +677,7 @@ public class ConsulClient {
             String verb,
             String key,
             byte[] value,
-            Long index
-    ) {
+            Long index) {
     }
 
     /**
@@ -688,8 +686,7 @@ public class ConsulClient {
     public record TxnResult(
             boolean success,
             List<TxnOperationResult> results,
-            List<String> errors
-    ) {
+            List<String> errors) {
     }
 
     /**
