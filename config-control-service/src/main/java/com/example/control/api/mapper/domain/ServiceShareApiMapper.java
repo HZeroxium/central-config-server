@@ -2,7 +2,7 @@ package com.example.control.api.mapper.domain;
 
 import com.example.control.api.dto.common.PageDtos;
 import com.example.control.api.dto.domain.ServiceShareDtos;
-import com.example.control.config.security.UserContext;
+import com.example.control.infrastructure.config.security.UserContext;
 import com.example.control.domain.object.ServiceShare;
 import com.example.control.domain.criteria.ServiceShareCriteria;
 import com.example.control.domain.id.ServiceShareId;
@@ -28,7 +28,7 @@ public final class ServiceShareApiMapper {
     /**
      * Map CreateRequest DTO to domain entity.
      *
-     * @param request the create request
+     * @param request     the create request
      * @param userContext the user context for granted by
      * @return the domain entity
      */
@@ -75,14 +75,14 @@ public final class ServiceShareApiMapper {
     /**
      * Map QueryFilter to domain criteria with team filtering.
      *
-     * @param filter the query filter
+     * @param filter      the query filter
      * @param userContext the user context for team filtering
      * @return the domain criteria
      */
     public static ServiceShareCriteria toCriteria(ServiceShareDtos.QueryFilter filter, UserContext userContext) {
         return ServiceShareCriteria.builder()
                 .serviceId(filter != null ? filter.serviceId() : null)
-                .grantToType(filter != null && filter.grantToType() != null ? 
+                .grantToType(filter != null && filter.grantToType() != null ?
                         ServiceShare.GranteeType.valueOf(filter.grantToType()) : null)
                 .grantToId(filter != null ? filter.grantToId() : null)
                 .environments(filter != null ? filter.environments() : null)
@@ -100,7 +100,7 @@ public final class ServiceShareApiMapper {
         List<ServiceShareDtos.Response> items = page.getContent().stream()
                 .map(ServiceShareApiMapper::toResponse)
                 .toList();
-        
+
         return ServiceShareDtos.ServiceSharePageResponse.builder()
                 .items(items)
                 .metadata(PageDtos.PageMetadata.from(page))

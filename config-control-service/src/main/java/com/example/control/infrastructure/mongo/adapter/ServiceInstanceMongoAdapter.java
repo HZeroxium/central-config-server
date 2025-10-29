@@ -17,81 +17,81 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class ServiceInstanceMongoAdapter
-    extends
-    AbstractMongoAdapter<ServiceInstance, ServiceInstanceDocument, ServiceInstanceId, ServiceInstanceCriteria, ServiceInstanceMongoRepository>
-    implements ServiceInstanceRepositoryPort {
+        extends
+        AbstractMongoAdapter<ServiceInstance, ServiceInstanceDocument, ServiceInstanceId, ServiceInstanceCriteria, ServiceInstanceMongoRepository>
+        implements ServiceInstanceRepositoryPort {
 
-  public ServiceInstanceMongoAdapter(ServiceInstanceMongoRepository repository, MongoTemplate mongoTemplate) {
-    super(repository, mongoTemplate, ServiceInstanceId::instanceId);
-  }
-
-  @Override
-  protected ServiceInstanceDocument toDocument(ServiceInstance domain) {
-    return ServiceInstanceDocument.fromDomain(domain);
-  }
-
-  @Override
-  protected ServiceInstance toDomain(ServiceInstanceDocument document) {
-    return document.toDomain();
-  }
-
-  @Override
-  protected Query buildQuery(ServiceInstanceCriteria criteria) {
-    Query query = new Query();
-
-    if (criteria == null)
-      return query;
-
-    // Apply filters
-    if (criteria.serviceId() != null && !criteria.serviceId().isBlank()) {
-      query.addCriteria(Criteria.where("serviceId").is(criteria.serviceId()));
-    }
-    if (criteria.instanceId() != null && !criteria.instanceId().isBlank()) {
-      query.addCriteria(Criteria.where("_id").is(criteria.instanceId()));
-    }
-    if (criteria.status() != null)
-      query.addCriteria(Criteria.where("status").is(criteria.status().name()));
-    if (criteria.hasDrift() != null) {
-      query.addCriteria(Criteria.where("hasDrift").is(criteria.hasDrift()));
-    }
-    if (criteria.environment() != null && !criteria.environment().isBlank()) {
-      query.addCriteria(Criteria.where("environment").is(criteria.environment()));
-    }
-    if (criteria.version() != null && !criteria.version().isBlank()) {
-      query.addCriteria(Criteria.where("version").is(criteria.version()));
-    }
-    if (criteria.lastSeenAtFrom() != null) {
-      query.addCriteria(Criteria.where("lastSeenAt").gte(criteria.lastSeenAtFrom()));
-    }
-    if (criteria.lastSeenAtTo() != null) {
-      query.addCriteria(Criteria.where("lastSeenAt").lte(criteria.lastSeenAtTo()));
+    public ServiceInstanceMongoAdapter(ServiceInstanceMongoRepository repository, MongoTemplate mongoTemplate) {
+        super(repository, mongoTemplate, ServiceInstanceId::instanceId);
     }
 
-    // ABAC: Team-based filtering
-    if (criteria.userTeamIds() != null && !criteria.userTeamIds().isEmpty()) {
-      query.addCriteria(Criteria.where("teamId").in(criteria.userTeamIds()));
+    @Override
+    protected ServiceInstanceDocument toDocument(ServiceInstance domain) {
+        return ServiceInstanceDocument.fromDomain(domain);
     }
 
-    return query;
-  }
+    @Override
+    protected ServiceInstance toDomain(ServiceInstanceDocument document) {
+        return document.toDomain();
+    }
 
-  @Override
-  protected String getCollectionName() {
-    return "service_instances";
-  }
+    @Override
+    protected Query buildQuery(ServiceInstanceCriteria criteria) {
+        Query query = new Query();
 
-  @Override
-  public long countByServiceId(String serviceId) {
-    return repository.countByServiceId(serviceId);
-  }
+        if (criteria == null)
+            return query;
 
-  @Override
-  public long bulkUpdateTeamIdByServiceId(String serviceId, String newTeamId) {
-    return super.bulkUpdateTeamIdByServiceId(serviceId, newTeamId);
-  }
+        // Apply filters
+        if (criteria.serviceId() != null && !criteria.serviceId().isBlank()) {
+            query.addCriteria(Criteria.where("serviceId").is(criteria.serviceId()));
+        }
+        if (criteria.instanceId() != null && !criteria.instanceId().isBlank()) {
+            query.addCriteria(Criteria.where("_id").is(criteria.instanceId()));
+        }
+        if (criteria.status() != null)
+            query.addCriteria(Criteria.where("status").is(criteria.status().name()));
+        if (criteria.hasDrift() != null) {
+            query.addCriteria(Criteria.where("hasDrift").is(criteria.hasDrift()));
+        }
+        if (criteria.environment() != null && !criteria.environment().isBlank()) {
+            query.addCriteria(Criteria.where("environment").is(criteria.environment()));
+        }
+        if (criteria.version() != null && !criteria.version().isBlank()) {
+            query.addCriteria(Criteria.where("version").is(criteria.version()));
+        }
+        if (criteria.lastSeenAtFrom() != null) {
+            query.addCriteria(Criteria.where("lastSeenAt").gte(criteria.lastSeenAtFrom()));
+        }
+        if (criteria.lastSeenAtTo() != null) {
+            query.addCriteria(Criteria.where("lastSeenAt").lte(criteria.lastSeenAtTo()));
+        }
 
-  @Override
-  protected Class<ServiceInstanceDocument> getDocumentClass() {
-    return ServiceInstanceDocument.class;
-  }
+        // ABAC: Team-based filtering
+        if (criteria.userTeamIds() != null && !criteria.userTeamIds().isEmpty()) {
+            query.addCriteria(Criteria.where("teamId").in(criteria.userTeamIds()));
+        }
+
+        return query;
+    }
+
+    @Override
+    protected String getCollectionName() {
+        return "service_instances";
+    }
+
+    @Override
+    public long countByServiceId(String serviceId) {
+        return repository.countByServiceId(serviceId);
+    }
+
+    @Override
+    public long bulkUpdateTeamIdByServiceId(String serviceId, String newTeamId) {
+        return super.bulkUpdateTeamIdByServiceId(serviceId, newTeamId);
+    }
+
+    @Override
+    protected Class<ServiceInstanceDocument> getDocumentClass() {
+        return ServiceInstanceDocument.class;
+    }
 }

@@ -37,66 +37,94 @@ import java.util.UUID;
 @Document(collection = "approval_requests")
 public class ApprovalRequestDocument {
 
-    /** Document identifier: UUID string. */
+    /**
+     * Document identifier: UUID string.
+     */
     @Id
     private String id;
 
-    /** User who created this request (Keycloak user ID). */
+    /**
+     * User who created this request (Keycloak user ID).
+     */
     @Indexed
     @Field("requesterUserId")
     private String requesterUserId;
 
-    /** Type of request being made (stored as string value). */
+    /**
+     * Type of request being made (stored as string value).
+     */
     @Field("requestType")
     private String requestType;
 
-    /** Target service ID for the request. */
+    /**
+     * Target service ID for the request.
+     */
     @Field("targetServiceId")
     private String targetServiceId;
 
-    /** Target team ID for assignment. */
+    /**
+     * Target team ID for assignment.
+     */
     @Field("targetTeamId")
     private String targetTeamId;
 
-    /** Required approval gates as JSON (stored as string for flexibility). */
+    /**
+     * Required approval gates as JSON (stored as string for flexibility).
+     */
     @Field("requiredGatesJson")
     private String requiredGatesJson;
 
-    /** Current status of the request (stored as string value). */
+    /**
+     * Current status of the request (stored as string value).
+     */
     @Indexed
     @Field("status")
     private String status;
 
-    /** Requester snapshot as JSON (stored as string for flexibility). */
+    /**
+     * Requester snapshot as JSON (stored as string for flexibility).
+     */
     @Field("requesterSnapshotJson")
     private String requesterSnapshotJson;
 
-    /** Current approval counts per gate as JSON. */
+    /**
+     * Current approval counts per gate as JSON.
+     */
     @Field("approvalCountsJson")
     private String approvalCountsJson;
 
-    /** Timestamp when the request was created. */
+    /**
+     * Timestamp when the request was created.
+     */
     @Indexed
     @Field("createdAt")
     @CreatedDate
     private Instant createdAt;
 
-    /** Timestamp when the request was last updated. */
+    /**
+     * Timestamp when the request was last updated.
+     */
     @Field("updatedAt")
     @LastModifiedDate
     private Instant updatedAt;
 
-    /** Version for optimistic locking. */
+    /**
+     * Version for optimistic locking.
+     */
     @Version
     @Field("version")
     private Integer version;
 
-    /** User who created this request (Keycloak user ID). */
+    /**
+     * User who created this request (Keycloak user ID).
+     */
     @Field("createdBy")
     @CreatedBy
     private String createdBy;
 
-    /** User who last modified this request (Keycloak user ID). */
+    /**
+     * User who last modified this request (Keycloak user ID).
+     */
     @Field("updatedBy")
     @LastModifiedBy
     private String updatedBy;
@@ -145,34 +173,6 @@ public class ApprovalRequestDocument {
         }
 
         return builder.build();
-    }
-
-    /**
-     * Converts this document back into its domain representation.
-     *
-     * @return new {@link ApprovalRequest} populated from document
-     */
-    public ApprovalRequest toDomain() {
-        return ApprovalRequest.builder()
-                .id(ApprovalRequestId.of(id != null ? id : null))
-                .requesterUserId(requesterUserId)
-                .requestType(requestType != null
-                        ? ApprovalRequest.RequestType.valueOf(requestType)
-                        : null)
-                .target(ApprovalRequest.ApprovalTarget.builder()
-                        .serviceId(targetServiceId)
-                        .teamId(targetTeamId)
-                        .build())
-                .required(deserializeRequiredGates(requiredGatesJson))
-                .status(status != null
-                        ? ApprovalRequest.ApprovalStatus.valueOf(status)
-                        : ApprovalRequest.ApprovalStatus.PENDING)
-                .snapshot(deserializeRequesterSnapshot(requesterSnapshotJson))
-                .counts(deserializeApprovalCounts(approvalCountsJson))
-                .createdAt(createdAt)
-                .updatedAt(updatedAt)
-                .version(version)
-                .build();
     }
 
     /**
@@ -257,5 +257,33 @@ public class ApprovalRequestDocument {
         }
         // For now, return empty map - implement proper JSON parsing if needed
         return Map.of();
+    }
+
+    /**
+     * Converts this document back into its domain representation.
+     *
+     * @return new {@link ApprovalRequest} populated from document
+     */
+    public ApprovalRequest toDomain() {
+        return ApprovalRequest.builder()
+                .id(ApprovalRequestId.of(id != null ? id : null))
+                .requesterUserId(requesterUserId)
+                .requestType(requestType != null
+                        ? ApprovalRequest.RequestType.valueOf(requestType)
+                        : null)
+                .target(ApprovalRequest.ApprovalTarget.builder()
+                        .serviceId(targetServiceId)
+                        .teamId(targetTeamId)
+                        .build())
+                .required(deserializeRequiredGates(requiredGatesJson))
+                .status(status != null
+                        ? ApprovalRequest.ApprovalStatus.valueOf(status)
+                        : ApprovalRequest.ApprovalStatus.PENDING)
+                .snapshot(deserializeRequesterSnapshot(requesterSnapshotJson))
+                .counts(deserializeApprovalCounts(approvalCountsJson))
+                .createdAt(createdAt)
+                .updatedAt(updatedAt)
+                .version(version)
+                .build();
     }
 }

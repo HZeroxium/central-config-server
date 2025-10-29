@@ -33,19 +33,19 @@ public class IamTeamDtos {
     public static class Response {
         @Schema(description = "Unique team identifier", example = "team_core")
         private String teamId;
-        
+
         @Schema(description = "Team display name", example = "Core Team")
         private String displayName;
-        
+
         @Schema(description = "List of team member user IDs", example = "[\"user1\", \"user2\", \"user3\"]")
         private List<String> members;
-        
+
         @Schema(description = "Team creation timestamp", example = "2024-01-15T10:30:45.123Z")
         private Instant createdAt;
-        
+
         @Schema(description = "Team last update timestamp", example = "2024-01-15T14:30:45.123Z")
         private Instant updatedAt;
-        
+
         @Schema(description = "Last sync timestamp from Keycloak", example = "2024-01-15T14:30:45.123Z")
         private Instant syncedAt;
     }
@@ -59,7 +59,7 @@ public class IamTeamDtos {
     public static class QueryFilter {
         @Schema(description = "Filter by team display name", example = "Core Team")
         private String displayName;
-        
+
         @Schema(description = "Filter by team members", example = "[\"user1\", \"user2\"]")
         private List<String> members;
     }
@@ -83,7 +83,7 @@ public class IamTeamDtos {
     public static class IamTeamPageResponse {
         @Schema(description = "List of IAM teams in current page")
         private List<IamTeamDtos.Response> items;
-        
+
         @Schema(description = "Pagination metadata")
         private PageDtos.PageMetadata metadata;
     }

@@ -97,7 +97,7 @@ public class ApprovalDecisionMongoAdapter
 
     @Override
     public long countByRequestIdAndGateAndDecision(ApprovalRequestId requestId, String gate,
-            ApprovalDecision.Decision decision) {
+                                                   ApprovalDecision.Decision decision) {
         log.debug("Counting approval decisions by request ID: {}, gate: {}, decision: {}",
                 requestId, gate, decision);
 

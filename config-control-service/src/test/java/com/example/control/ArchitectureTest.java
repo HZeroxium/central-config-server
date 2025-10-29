@@ -50,7 +50,7 @@ public class ArchitectureTest {
             .should().onlyDependOnClassesThat()
             .resideInAnyPackage(
                     "..domain.port..",
-                    "..application.query..", 
+                    "..application.query..",
                     "..domain..",
                     "java..",
                     "lombok..",
@@ -118,7 +118,7 @@ public class ArchitectureTest {
             .layer("Infrastructure").definedBy("..infrastructure..")
             .layer("Web").definedBy("..web..")
             .layer("Config").definedBy("..config..")
-            
+
             .whereLayer("Domain").mayOnlyBeAccessedByLayers("Application", "Infrastructure", "Web", "Config")
             .whereLayer("Application").mayOnlyBeAccessedByLayers("Web", "Config")
             .whereLayer("Infrastructure").mayOnlyBeAccessedByLayers("Web", "Config")

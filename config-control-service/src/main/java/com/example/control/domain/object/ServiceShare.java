@@ -19,7 +19,7 @@ import java.util.List;
  * specific permissions for their services with other teams or individual users
  * without granting full team membership.
  * </p>
- * 
+ *
  * @see ApplicationService for the service being shared
  * @see SharePermission for available permissions
  */
@@ -29,94 +29,73 @@ import java.util.List;
 @AllArgsConstructor
 public class ServiceShare {
 
-    /** Unique share identifier. */
+    /**
+     * Unique share identifier.
+     */
     @NotNull(message = "Share ID is required")
     private ServiceShareId id;
 
-    /** Level of resource being shared. */
+    /**
+     * Level of resource being shared.
+     */
     @NotNull(message = "Resource level is required")
     private ResourceLevel resourceLevel;
 
-    /** Service ID being shared. */
+    /**
+     * Service ID being shared.
+     */
     @NotBlank(message = "Service ID is required")
     private String serviceId;
 
-    /** Instance ID if sharing at instance level (optional). */
+    /**
+     * Instance ID if sharing at instance level (optional).
+     */
     private String instanceId;
 
-    /** Type of grantee (TEAM or USER). */
+    /**
+     * Type of grantee (TEAM or USER).
+     */
     @NotNull(message = "Grantee type is required")
     private GranteeType grantToType;
 
-    /** ID of the grantee (team ID or user ID). */
+    /**
+     * ID of the grantee (team ID or user ID).
+     */
     @NotBlank(message = "Grantee ID is required")
     private String grantToId;
 
-    /** Permissions being granted. */
+    /**
+     * Permissions being granted.
+     */
     @NotNull(message = "Permissions cannot be null")
     @Size(min = 1, message = "At least one permission must be specified")
     private List<SharePermission> permissions;
 
-    /** Environment filter (optional, null means all environments). */
+    /**
+     * Environment filter (optional, null means all environments).
+     */
     private List<String> environments;
 
-    /** User who created this share (Keycloak user ID). */
+    /**
+     * User who created this share (Keycloak user ID).
+     */
     @NotBlank(message = "Granted by user ID is required")
     private String grantedBy;
 
-    /** Timestamp when the share was created. */
+    /**
+     * Timestamp when the share was created.
+     */
     private Instant createdAt;
 
-    /** Timestamp when the share was last updated. */
+    /**
+     * Timestamp when the share was last updated.
+     */
     private Instant updatedAt;
 
-    /** Optional expiration timestamp. */
+    /**
+     * Optional expiration timestamp.
+     */
     private Instant expiresAt;
-
-    /**
-     * Resource level enumeration.
-     */
-    public enum ResourceLevel {
-        /** Share all instances of a service. */
-        SERVICE,
-
-        /** Share a specific instance. */
-        INSTANCE
-    }
-
-    /**
-     * Grantee type enumeration.
-     */
-    public enum GranteeType {
-        /** Share with a team. */
-        TEAM,
-
-        /** Share with an individual user. */
-        USER
-    }
-
-    /**
-     * Share permission enumeration.
-     */
-    public enum SharePermission {
-        /** Can view service metadata. */
-        VIEW_SERVICE,
-
-        /** Can view service instances and metadata. */
-        VIEW_INSTANCE,
-
-        /** Can view drift events. */
-        VIEW_DRIFT,
-
-        /** Can edit service metadata. */
-        EDIT_SERVICE,
-
-        /** Can edit service instances and configuration. */
-        EDIT_INSTANCE,
-
-        /** Can trigger instance restarts. */
-        RESTART_INSTANCE
-    }
 
     /**
      * Check if this share applies to the given environment.
@@ -133,5 +112,70 @@ public class ServiceShare {
             return true; // No environment filter means all environments
         }
         return environments.contains(environment);
+    }
+
+    /**
+     * Resource level enumeration.
+     */
+    public enum ResourceLevel {
+        /**
+         * Share all instances of a service.
+         */
+        SERVICE,
+
+        /**
+         * Share a specific instance.
+         */
+        INSTANCE
+    }
+
+    /**
+     * Grantee type enumeration.
+     */
+    public enum GranteeType {
+        /**
+         * Share with a team.
+         */
+        TEAM,
+
+        /**
+         * Share with an individual user.
+         */
+        USER
+    }
+
+    /**
+     * Share permission enumeration.
+     */
+    public enum SharePermission {
+        /**
+         * Can view service metadata.
+         */
+        VIEW_SERVICE,
+
+        /**
+         * Can view service instances and metadata.
+         */
+        VIEW_INSTANCE,
+
+        /**
+         * Can view drift events.
+         */
+        VIEW_DRIFT,
+
+        /**
+         * Can edit service metadata.
+         */
+        EDIT_SERVICE,
+
+        /**
+         * Can edit service instances and configuration.
+         */
+        EDIT_INSTANCE,
+
+        /**
+         * Can trigger instance restarts.
+         */
+        RESTART_INSTANCE
     }
 }

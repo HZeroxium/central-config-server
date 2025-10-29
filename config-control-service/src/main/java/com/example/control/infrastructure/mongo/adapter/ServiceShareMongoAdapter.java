@@ -86,9 +86,9 @@ public class ServiceShareMongoAdapter
 
     @Override
     public boolean existsByServiceAndGranteeAndEnvironments(String serviceId,
-            ServiceShare.GranteeType grantToType,
-            String grantToId,
-            List<String> environments) {
+                                                            ServiceShare.GranteeType grantToType,
+                                                            String grantToId,
+                                                            List<String> environments) {
         log.debug("Checking if service share exists: service={}, grantee={}-{}, environments={}",
                 serviceId, grantToType, grantToId, environments);
 
@@ -98,9 +98,9 @@ public class ServiceShareMongoAdapter
 
     @Override
     public List<ServiceShare.SharePermission> findEffectivePermissions(String userId,
-            List<String> userTeamIds,
-            String serviceId,
-            List<String> environments) {
+                                                                       List<String> userTeamIds,
+                                                                       String serviceId,
+                                                                       List<String> environments) {
         log.debug("Finding effective permissions for user: {} on service: {} in environments: {}",
                 userId, serviceId, environments);
 

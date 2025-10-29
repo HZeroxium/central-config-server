@@ -66,7 +66,8 @@ public class IamUserService {
      * @return list of users in the team
      */
     public List<IamUser> findByTeam(String teamId) {
-        return queryService.findByTeam(teamId);
+        IamUserCriteria criteria = IamUserCriteria.forTeam(teamId);
+        return queryService.findAll(criteria, Pageable.unpaged()).getContent();
     }
 
     /**
@@ -76,7 +77,8 @@ public class IamUserService {
      * @return list of users reporting to the manager
      */
     public List<IamUser> findByManager(String managerId) {
-        return queryService.findByManager(managerId);
+        IamUserCriteria criteria = IamUserCriteria.forManager(managerId);
+        return queryService.findAll(criteria, Pageable.unpaged()).getContent();
     }
 
     /**
@@ -86,7 +88,8 @@ public class IamUserService {
      * @return list of users with the role
      */
     public List<IamUser> findByRole(String role) {
-        return queryService.findByRole(role);
+        IamUserCriteria criteria = IamUserCriteria.forRole(role);
+        return queryService.findAll(criteria, Pageable.unpaged()).getContent();
     }
 
     /**
@@ -106,7 +109,8 @@ public class IamUserService {
      * @return number of users in the team
      */
     public long countByTeam(String teamId) {
-        return queryService.countByTeam(teamId);
+        IamUserCriteria criteria = IamUserCriteria.forTeam(teamId);
+        return queryService.count(criteria);
     }
 
     /**
@@ -116,7 +120,8 @@ public class IamUserService {
      * @return number of users with the role
      */
     public long countByRole(String role) {
-        return queryService.countByRole(role);
+        IamUserCriteria criteria = IamUserCriteria.forRole(role);
+        return queryService.count(criteria);
     }
 
     /**

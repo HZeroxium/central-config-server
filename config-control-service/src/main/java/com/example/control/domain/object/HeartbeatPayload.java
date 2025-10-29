@@ -18,30 +18,46 @@ import java.util.Map;
 @NoArgsConstructor
 @AllArgsConstructor
 public class HeartbeatPayload {
-  /** Service name identifier */
-  @NotBlank(message = "Service name is required")
-  private String serviceName;
+    /**
+     * Service name identifier
+     */
+    @NotBlank(message = "Service name is required")
+    private String serviceName;
 
-  /** Unique instance identifier */
-  @NotBlank(message = "Instance ID is required")
-  private String instanceId;
+    /**
+     * Unique instance identifier
+     */
+    @NotBlank(message = "Instance ID is required")
+    private String instanceId;
 
-  /** SHA-256 hash of applied configuration */
-  private String configHash;
+    /**
+     * SHA-256 hash of applied configuration
+     */
+    private String configHash;
 
-  /** Instance host address */
-  private String host;
+    /**
+     * Instance host address
+     */
+    private String host;
 
-  /** Instance port number */
-  @Positive(message = "Port must be a positive number")
-  private Integer port;
+    /**
+     * Instance port number
+     */
+    @Positive(message = "Port must be a positive number")
+    private Integer port;
 
-  /** Deployment environment (e.g., dev, staging, prod) */
-  private String environment;
+    /**
+     * Deployment environment (e.g., dev, staging, prod)
+     */
+    private String environment;
 
-  /** Service version */
-  private String version;
+    /**
+     * Service version
+     */
+    private String version;
 
-  /** Additional instance metadata */
-  private Map<String, String> metadata;
+    /**
+     * Additional instance metadata
+     */
+    private Map<String, String> metadata;
 }

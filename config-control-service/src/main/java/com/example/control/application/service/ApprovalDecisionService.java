@@ -2,9 +2,10 @@ package com.example.control.application.service;
 
 import com.example.control.application.command.ApprovalDecisionCommandService;
 import com.example.control.application.query.ApprovalDecisionQueryService;
-import com.example.control.domain.object.ApprovalDecision;
+import com.example.control.domain.criteria.ApprovalDecisionCriteria;
 import com.example.control.domain.id.ApprovalDecisionId;
 import com.example.control.domain.id.ApprovalRequestId;
+import com.example.control.domain.object.ApprovalDecision;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -70,9 +71,11 @@ public class ApprovalDecisionService {
      * @return true if decision exists, false otherwise
      */
     public boolean existsByRequestAndApproverAndGate(ApprovalRequestId requestId,
-            String approverUserId,
-            String gate) {
-        return queryService.existsByRequestAndApproverAndGate(requestId, approverUserId, gate);
+                                                     String approverUserId,
+                                                     String gate) {
+        ApprovalDecisionCriteria criteria = ApprovalDecisionCriteria.forRequestApproverGate(
+                requestId.id(), approverUserId, gate);
+        return queryService.count(criteria) > 0;
     }
 
     /**
@@ -84,9 +87,11 @@ public class ApprovalDecisionService {
      * @return number of decisions of the specified type
      */
     public long countByRequestIdAndGateAndDecision(ApprovalRequestId requestId,
-            String gate,
-            ApprovalDecision.Decision decision) {
-        return queryService.countByRequestIdAndGateAndDecision(requestId, gate, decision);
+                                                   String gate,
+                                                   ApprovalDecision.Decision decision) {
+        ApprovalDecisionCriteria criteria = ApprovalDecisionCriteria.forRequestGateDecision(
+                requestId.id(), gate, decision);
+        return queryService.count(criteria);
     }
 
     /**
@@ -129,9 +134,9 @@ public class ApprovalDecisionService {
      */
     @Transactional
     public ApprovalDecision createSystemDecision(ApprovalRequestId requestId,
-            String gate,
-            ApprovalDecision.Decision decision,
-            String note) {
+                                                 String gate,
+                                                 ApprovalDecision.Decision decision,
+                                                 String note) {
         log.debug("Creating system decision for request: {}, gate: {}, decision: {}",
                 requestId, gate, decision);
 

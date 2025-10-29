@@ -3,14 +3,13 @@ package com.example.control.application.service;
 import com.example.control.application.command.ServiceShareCommandService;
 import com.example.control.application.query.ApplicationServiceQueryService;
 import com.example.control.application.query.ServiceShareQueryService;
-import com.example.control.config.security.DomainPermissionEvaluator;
-import com.example.control.config.security.UserContext;
+import com.example.control.infrastructure.config.security.DomainPermissionEvaluator;
+import com.example.control.infrastructure.config.security.UserContext;
 import com.example.control.domain.object.ApplicationService;
 import com.example.control.domain.object.ServiceShare;
 import com.example.control.domain.criteria.ServiceShareCriteria;
 import com.example.control.domain.id.ApplicationServiceId;
 import com.example.control.domain.id.ServiceShareId;
-import com.example.control.domain.port.ServiceShareRepositoryPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -48,7 +47,6 @@ import java.util.Optional;
 @Transactional(readOnly = true)
 public class ServiceShareService {
 
-    private final ServiceShareRepositoryPort shareRepository;
     private final ServiceShareCommandService commandService;
     private final ApplicationServiceQueryService applicationServiceQueryService;
     private final ServiceShareQueryService serviceShareQueryService;
@@ -74,12 +72,12 @@ public class ServiceShareService {
      */
     @Transactional
     public ServiceShare grantShare(String serviceId,
-            ServiceShare.GranteeType grantToType,
-            String grantToId,
-            List<ServiceShare.SharePermission> permissions,
-            List<String> environments,
-            Instant expiresAt,
-            UserContext userContext) {
+                                   ServiceShare.GranteeType grantToType,
+                                   String grantToId,
+                                   List<ServiceShare.SharePermission> permissions,
+                                   List<String> environments,
+                                   Instant expiresAt,
+                                   UserContext userContext) {
         log.info("Granting share for service: {} to {}:{} by user: {}",
                 serviceId, grantToType, grantToId, userContext.getUserId());
 
@@ -93,8 +91,8 @@ public class ServiceShareService {
             throw new IllegalStateException("User does not have permission to manage shares for this service");
         }
 
-        // Check if share already exists
-        if (shareRepository.existsByServiceAndGranteeAndEnvironments(
+        // Business logic: Check if share already exists
+        if (serviceShareQueryService.existsByServiceAndGranteeAndEnvironments(
                 serviceId, grantToType, grantToId, environments)) {
             throw new IllegalStateException("Share already exists for the specified criteria");
         }
@@ -175,7 +173,7 @@ public class ServiceShareService {
                 .serviceId(serviceId)
                 .userTeamIds(userContext.getTeamIds())
                 .build();
-        return shareRepository.findAll(criteria, Pageable.unpaged()).getContent();
+        return serviceShareQueryService.findAll(criteria, Pageable.unpaged()).getContent();
     }
 
     /**
@@ -187,8 +185,8 @@ public class ServiceShareService {
      * @return page of service shares
      */
     public Page<ServiceShare> findAll(ServiceShareCriteria criteria,
-            Pageable pageable,
-            UserContext userContext) {
+                                      Pageable pageable,
+                                      UserContext userContext) {
         log.debug("Listing service shares with criteria: {}, pageable: {}", criteria, pageable);
 
         // If filtering by service, check permission to view shares for that service
@@ -202,7 +200,7 @@ public class ServiceShareService {
             }
         }
 
-        return shareRepository.findAll(criteria, pageable);
+        return serviceShareQueryService.findAll(criteria, pageable);
     }
 
     /**
@@ -248,7 +246,7 @@ public class ServiceShareService {
         }
 
         share.setUpdatedAt(Instant.now());
-        return shareRepository.save(share);
+        return commandService.save(share);
     }
 
     /**
@@ -305,6 +303,14 @@ public class ServiceShareService {
      */
     public List<String> getSharedServiceIdsForTeams(List<String> teamIds) {
         log.debug("Getting shared service IDs for teams: {}", teamIds);
-        return serviceShareQueryService.getSharedServiceIdsForTeams(teamIds);
+        if (teamIds == null || teamIds.isEmpty()) {
+            return List.of();
+        }
+        ServiceShareCriteria criteria = ServiceShareCriteria.forTeams(teamIds);
+        List<ServiceShare> shares = serviceShareQueryService.findAll(criteria, Pageable.unpaged()).getContent();
+        return shares.stream()
+                .map(ServiceShare::getServiceId)
+                .distinct()
+                .toList();
     }
 }

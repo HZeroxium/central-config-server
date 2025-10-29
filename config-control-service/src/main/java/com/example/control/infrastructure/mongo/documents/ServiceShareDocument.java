@@ -42,64 +42,92 @@ import java.util.List;
 })
 public class ServiceShareDocument {
 
-    /** Document identifier: UUID string. */
+    /**
+     * Document identifier: UUID string.
+     */
     @Id
     private String id;
 
-    /** Level of resource being shared (stored as string value). */
+    /**
+     * Level of resource being shared (stored as string value).
+     */
     @Field("resourceLevel")
     private String resourceLevel;
 
-    /** Service ID being shared. */
+    /**
+     * Service ID being shared.
+     */
     @Indexed
     @Field("serviceId")
     private String serviceId;
 
-    /** Instance ID if sharing at instance level (optional). */
+    /**
+     * Instance ID if sharing at instance level (optional).
+     */
     @Field("instanceId")
     private String instanceId;
 
-    /** Type of grantee (stored as string value). */
+    /**
+     * Type of grantee (stored as string value).
+     */
     @Field("grantToType")
     private String grantToType;
 
-    /** ID of the grantee (team ID or user ID). */
+    /**
+     * ID of the grantee (team ID or user ID).
+     */
     @Indexed
     @Field("grantToId")
     private String grantToId;
 
-    /** Permissions being granted (stored as string values). */
+    /**
+     * Permissions being granted (stored as string values).
+     */
     @Field("permissions")
     private List<String> permissions;
 
-    /** Environment filter (optional, null means all environments). */
+    /**
+     * Environment filter (optional, null means all environments).
+     */
     @Field("environments")
     private List<String> environments;
 
-    /** User who created this share (Keycloak user ID). */
+    /**
+     * User who created this share (Keycloak user ID).
+     */
     @Field("grantedBy")
     private String grantedBy;
 
-    /** Timestamp when the share was created. */
+    /**
+     * Timestamp when the share was created.
+     */
     @Field("createdAt")
     @CreatedDate
     private Instant createdAt;
 
-    /** Optional expiration timestamp. */
+    /**
+     * Optional expiration timestamp.
+     */
     @Field("expiresAt")
     private Instant expiresAt;
 
-    /** User who created this share (Keycloak user ID). */
+    /**
+     * User who created this share (Keycloak user ID).
+     */
     @Field("createdBy")
     @CreatedBy
     private String createdBy;
 
-    /** User who last modified this share (Keycloak user ID). */
+    /**
+     * User who last modified this share (Keycloak user ID).
+     */
     @Field("updatedBy")
     @LastModifiedBy
     private String updatedBy;
 
-    /** Timestamp when the share was last updated. */
+    /**
+     * Timestamp when the share was last updated.
+     */
     @Field("updatedAt")
     @LastModifiedDate
     private Instant updatedAt;
@@ -121,8 +149,8 @@ public class ServiceShareDocument {
                 .grantToId(domain.getGrantToId())
                 .permissions(domain.getPermissions() != null
                         ? domain.getPermissions().stream()
-                                .map(Enum::name)
-                                .toList()
+                        .map(Enum::name)
+                        .toList()
                         : null)
                 .environments(domain.getEnvironments())
                 .grantedBy(domain.getGrantedBy())
@@ -150,8 +178,8 @@ public class ServiceShareDocument {
                 .grantToId(grantToId)
                 .permissions(permissions != null
                         ? permissions.stream()
-                                .map(ServiceShare.SharePermission::valueOf)
-                                .toList()
+                        .map(ServiceShare.SharePermission::valueOf)
+                        .toList()
                         : null)
                 .environments(environments)
                 .grantedBy(grantedBy)

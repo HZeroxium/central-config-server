@@ -48,5 +48,5 @@ public interface ApprovalDecisionRepositoryPort
      * @return number of decisions of the specified type
      */
     long countByRequestIdAndGateAndDecision(ApprovalRequestId requestId, String gate,
-            ApprovalDecision.Decision decision);
+                                            ApprovalDecision.Decision decision);
 }

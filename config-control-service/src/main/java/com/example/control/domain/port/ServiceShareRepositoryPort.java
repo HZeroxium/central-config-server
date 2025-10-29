@@ -29,9 +29,9 @@ public interface ServiceShareRepositoryPort extends RepositoryPort<ServiceShare,
      * @return true if share exists, false otherwise
      */
     boolean existsByServiceAndGranteeAndEnvironments(String serviceId,
-            ServiceShare.GranteeType grantToType,
-            String grantToId,
-            List<String> environments);
+                                                     ServiceShare.GranteeType grantToType,
+                                                     String grantToId,
+                                                     List<String> environments);
 
     /**
      * Find effective permissions for a user on a service in specific environments.
@@ -43,9 +43,9 @@ public interface ServiceShareRepositoryPort extends RepositoryPort<ServiceShare,
      * @return list of effective permissions
      */
     List<ServiceShare.SharePermission> findEffectivePermissions(String userId,
-            List<String> userTeamIds,
-            String serviceId,
-            List<String> environments);
+                                                                List<String> userTeamIds,
+                                                                String serviceId,
+                                                                List<String> environments);
 
     /**
      * Find all service IDs that are shared to specific teams.

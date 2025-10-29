@@ -66,7 +66,8 @@ public class IamTeamService {
      * @return list of teams containing the user
      */
     public List<IamTeam> findByMember(String userId) {
-        return queryService.findByMember(userId);
+        IamTeamCriteria criteria = IamTeamCriteria.forMember(userId);
+        return queryService.findAll(criteria, Pageable.unpaged()).getContent();
     }
 
     /**

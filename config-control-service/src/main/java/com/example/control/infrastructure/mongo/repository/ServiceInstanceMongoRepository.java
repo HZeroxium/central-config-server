@@ -14,11 +14,11 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface ServiceInstanceMongoRepository extends MongoRepository<ServiceInstanceDocument, String> {
 
-  /**
-   * Counts the total number of instances for a specific service.
-   *
-   * @param serviceId service ID to count
-   * @return number of instances belonging to the service
-   */
-  long countByServiceId(String serviceId);
+    /**
+     * Counts the total number of instances for a specific service.
+     *
+     * @param serviceId service ID to count
+     * @return number of instances belonging to the service
+     */
+    long countByServiceId(String serviceId);
 }

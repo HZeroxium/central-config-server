@@ -9,20 +9,22 @@ import com.example.control.domain.id.DriftEventId;
  */
 public interface DriftEventRepositoryPort extends RepositoryPort<DriftEvent, DriftEventId, DriftEventCriteria> {
 
-  /** Resolve all events for an instance. */
-  void resolveForInstance(String serviceName, String instanceId, String resolvedBy);
+    /**
+     * Resolve all events for an instance.
+     */
+    void resolveForInstance(String serviceName, String instanceId, String resolvedBy);
 
-  long countByStatus(DriftEvent.DriftStatus status);
+    long countByStatus(DriftEvent.DriftStatus status);
 
-  /**
-   * Bulk update teamId for all drift events with the given serviceId.
-   * <p>
-   * Used during ownership transfer to ensure all drift events are updated
-   * to reflect the new team ownership.
-   *
-   * @param serviceId the service ID to match
-   * @param newTeamId the new team ID to set
-   * @return number of drift events updated
-   */
-  long bulkUpdateTeamIdByServiceId(String serviceId, String newTeamId);
+    /**
+     * Bulk update teamId for all drift events with the given serviceId.
+     * <p>
+     * Used during ownership transfer to ensure all drift events are updated
+     * to reflect the new team ownership.
+     *
+     * @param serviceId the service ID to match
+     * @param newTeamId the new team ID to set
+     * @return number of drift events updated
+     */
+    long bulkUpdateTeamIdByServiceId(String serviceId, String newTeamId);
 }

@@ -1,17 +1,28 @@
 package com.example.control.application.service;
 
 import com.example.control.api.exception.exceptions.ConflictException;
-import com.example.control.config.security.DomainPermissionEvaluator;
-import com.example.control.config.security.UserContext;
-import com.example.control.domain.object.ApplicationService;
-import com.example.control.domain.object.ApprovalDecision;
-import com.example.control.domain.object.ApprovalRequest;
+import com.example.control.application.command.ApplicationServiceCommandService;
+import com.example.control.application.command.ApprovalDecisionCommandService;
+import com.example.control.application.command.ApprovalRequestCommandService;
+import com.example.control.application.command.DriftEventCommandService;
+import com.example.control.application.command.ServiceInstanceCommandService;
+import com.example.control.application.query.ApplicationServiceQueryService;
+import com.example.control.application.query.ApprovalDecisionQueryService;
+import com.example.control.application.query.ApprovalRequestQueryService;
+import com.example.control.infrastructure.config.security.DomainPermissionEvaluator;
+import com.example.control.infrastructure.config.security.UserContext;
+import com.example.control.domain.criteria.ApprovalDecisionCriteria;
 import com.example.control.domain.criteria.ApprovalRequestCriteria;
+import com.example.control.domain.event.ServiceOwnershipTransferred;
 import com.example.control.domain.id.ApplicationServiceId;
 import com.example.control.domain.id.ApprovalDecisionId;
 import com.example.control.domain.id.ApprovalRequestId;
+import com.example.control.domain.object.ApplicationService;
+import com.example.control.domain.object.ApprovalDecision;
+import com.example.control.domain.object.ApprovalRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -32,6 +43,9 @@ import java.util.UUID;
  * locking support, automatic status updates, and ownership transfer
  * orchestration.
  * </p>
+ * <p>
+ * This orchestrator ONLY calls Command/Query services, NOT other orchestrators.
+ * </p>
  */
 @Slf4j
 @Service
@@ -39,10 +53,21 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 public class ApprovalService {
 
-    private final ApprovalRequestService approvalRequestService;
-    private final ApprovalDecisionService approvalDecisionService;
-    private final ApplicationServiceService applicationServiceService;
+    // Command Services
+    private final ApprovalRequestCommandService approvalRequestCommandService;
+    private final ApprovalDecisionCommandService approvalDecisionCommandService;
+    private final ApplicationServiceCommandService applicationServiceCommandService;
+    private final ServiceInstanceCommandService serviceInstanceCommandService;
+    private final DriftEventCommandService driftEventCommandService;
+
+    // Query Services
+    private final ApprovalRequestQueryService approvalRequestQueryService;
+    private final ApprovalDecisionQueryService approvalDecisionQueryService;
+    private final ApplicationServiceQueryService applicationServiceQueryService;
+
+    // Other dependencies
     private final DomainPermissionEvaluator permissionEvaluator;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * Create a new approval request.
@@ -59,21 +84,21 @@ public class ApprovalService {
         log.info("Creating approval request for service: {} to team: {} by user: {}",
                 serviceId, targetTeamId, userContext.getUserId());
 
-        // Validate service exists and is orphaned (ownerTeamId == null)
-        ApplicationService service = applicationServiceService.findById(ApplicationServiceId.of(serviceId))
+        // Business logic: Validate service exists and is orphaned (ownerTeamId == null)
+        ApplicationService service = applicationServiceQueryService.findById(ApplicationServiceId.of(serviceId))
                 .orElseThrow(() -> new IllegalArgumentException("Service not found: " + serviceId));
 
-        // Only orphaned services can be requested
+        // Business logic: Only orphaned services can be requested
         if (service.getOwnerTeamId() != null) {
             throw new IllegalStateException("Service is already owned by team: " + service.getOwnerTeamId());
         }
 
-        // Check if user can create approval request
+        // Business logic: Check if user can create approval request
         if (!permissionEvaluator.canCreateApprovalRequest(userContext, serviceId)) {
             throw new IllegalStateException("User does not have permission to create approval request");
         }
 
-        // Create approval request with dynamic gates based on requester
+        // Business logic: Create approval request with dynamic gates based on requester
         List<ApprovalRequest.ApprovalGate> requiredGates = new java.util.ArrayList<>();
 
         // Always require SYS_ADMIN gate
@@ -91,10 +116,15 @@ public class ApprovalService {
             log.debug("Added LINE_MANAGER gate for requester with manager: {}", userContext.getManagerId());
         }
 
-        // Duplicate pending by same user for same service → 409 policy (throw
-        // IllegalState for now, mapped later)
-        if (approvalRequestService.getRepository().existsPendingByRequesterAndService(userContext.getUserId(),
-                serviceId)) {
+        // Business logic: Check for duplicate pending request (same user, same service)
+        ApprovalRequestCriteria duplicateCheckCriteria = ApprovalRequestCriteria
+                .pendingByRequester(userContext.getUserId());
+        Page<ApprovalRequest> existingPending = approvalRequestQueryService.findAll(duplicateCheckCriteria,
+                Pageable.unpaged());
+        boolean hasPendingForService = existingPending.getContent().stream()
+                .anyMatch(req -> req.getTarget().getServiceId().equals(serviceId));
+
+        if (hasPendingForService) {
             throw new ConflictException(
                     "approval.pending.duplicate",
                     "Requester already has a pending request for this service");
@@ -121,7 +151,7 @@ public class ApprovalService {
                 .version(0)
                 .build();
 
-        ApprovalRequest saved = approvalRequestService.save(request);
+        ApprovalRequest saved = approvalRequestCommandService.save(request);
         log.info("Successfully created approval request: {}", saved.getId());
         return saved;
     }
@@ -139,32 +169,37 @@ public class ApprovalService {
      * @return the approval decision
      */
     @Transactional
-    @Retryable(retryFor = { OptimisticLockingFailureException.class }, maxAttempts = 3, backoff = @Backoff(delay = 100))
+    @Retryable(retryFor = {OptimisticLockingFailureException.class}, maxAttempts = 3, backoff = @Backoff(delay = 100))
     public ApprovalDecision submitDecision(String requestId,
-            ApprovalDecision.Decision decision,
-            String gate,
-            String note,
-            UserContext userContext) {
+                                           ApprovalDecision.Decision decision,
+                                           String gate,
+                                           String note,
+                                           UserContext userContext) {
         log.info("Submitting decision for request: {} with decision: {} for gate: {} by user: {}",
                 requestId, decision, gate, userContext.getUserId());
 
         // Get the request
-        ApprovalRequest request = approvalRequestService.findById(ApprovalRequestId.of(requestId))
+        ApprovalRequestId requestIdObj = ApprovalRequestId.of(requestId);
+        ApprovalRequest request = approvalRequestQueryService.findById(requestIdObj)
                 .orElseThrow(() -> new IllegalArgumentException("Approval request not found: " + requestId));
 
-        // Validate request is still pending
+        // Business logic: Validate request is still pending
         if (request.getStatus() != ApprovalRequest.ApprovalStatus.PENDING) {
             throw new IllegalStateException("Approval request is no longer pending: " + requestId);
         }
 
-        // Check if user can approve for this gate
+        // Business logic: Check if user can approve for this gate
         if (!permissionEvaluator.canApprove(userContext, request, gate)) {
             throw new IllegalStateException("User does not have permission to approve for gate: " + gate);
         }
 
-        // Check if user already made a decision for this request and gate
-        if (approvalDecisionService.existsByRequestAndApproverAndGate(ApprovalRequestId.of(requestId),
-                userContext.getUserId(), gate)) {
+        // Business logic: Check if user already made a decision for this request and
+        // gate
+        ApprovalDecisionCriteria existingDecisionCriteria = ApprovalDecisionCriteria.forRequestApproverGate(
+                requestIdObj.id(), userContext.getUserId(), gate);
+        long existingDecisionCount = approvalDecisionQueryService.count(existingDecisionCriteria);
+
+        if (existingDecisionCount > 0) {
             throw new IllegalStateException("User has already made a decision for this request and gate");
         }
 
@@ -179,7 +214,7 @@ public class ApprovalService {
                 .note(note)
                 .build();
 
-        ApprovalDecision saved = approvalDecisionService.save(approvalDecision);
+        ApprovalDecision saved = approvalDecisionCommandService.save(approvalDecision);
         log.info("Successfully submitted decision: {}", saved.getId());
 
         // Check if all gates are satisfied
@@ -199,11 +234,15 @@ public class ApprovalService {
      * @return page of approval requests
      */
     public Page<ApprovalRequest> findAll(ApprovalRequestCriteria criteria,
-            Pageable pageable,
-            UserContext userContext) {
+                                         Pageable pageable,
+                                         UserContext userContext) {
         log.debug("Listing approval requests with criteria: {}, pageable: {}", criteria, pageable);
 
-        return approvalRequestService.findAll(criteria, pageable, userContext);
+        // Business logic: Apply user-based filtering
+        ApprovalRequestCriteria userCriteria = criteria.toBuilder()
+                .requesterUserId(userContext.isSysAdmin() ? null : userContext.getUserId())
+                .build();
+        return approvalRequestQueryService.findAll(userCriteria, pageable);
     }
 
     /**
@@ -214,7 +253,8 @@ public class ApprovalService {
      */
     public long countByStatus(ApprovalRequest.ApprovalStatus status) {
         log.debug("Counting approval requests by status: {}", status);
-        return approvalRequestService.countByStatus(status);
+        ApprovalRequestCriteria statusCriteria = ApprovalRequestCriteria.byStatus(status);
+        return approvalRequestQueryService.count(statusCriteria);
     }
 
     /**
@@ -228,7 +268,24 @@ public class ApprovalService {
      */
     public Optional<ApprovalRequest> findById(String requestId, UserContext userContext) {
         log.debug("Finding approval request by ID: {} for user: {}", requestId, userContext.getUserId());
-        return approvalRequestService.findById(ApprovalRequestId.of(requestId), userContext);
+        // Business logic: Find with permission check
+        Optional<ApprovalRequest> request = approvalRequestQueryService.findById(ApprovalRequestId.of(requestId));
+        if (request.isEmpty()) {
+            return Optional.empty();
+        }
+
+        ApprovalRequest approvalRequest = request.get();
+
+        // Business logic: Check permissions - user can view their own requests or be
+        // SYS_ADMIN
+        if (!approvalRequest.getRequesterUserId().equals(userContext.getUserId()) &&
+                !userContext.isSysAdmin()) {
+            log.warn("User {} attempted to access request {} without permission",
+                    userContext.getUserId(), requestId);
+            return Optional.empty();
+        }
+
+        return Optional.of(approvalRequest);
     }
 
     /**
@@ -243,7 +300,29 @@ public class ApprovalService {
     @Transactional
     public void cancelRequest(String requestId, UserContext userContext) {
         log.info("Cancelling approval request: {} by user: {}", requestId, userContext.getUserId());
-        approvalRequestService.cancelRequest(ApprovalRequestId.of(requestId), userContext);
+        // Business logic: Cancel request with permission check (inline from
+        // ApprovalRequestService)
+        ApprovalRequestId requestIdObj = ApprovalRequestId.of(requestId);
+        Optional<ApprovalRequest> requestOpt = approvalRequestQueryService.findById(requestIdObj);
+        if (requestOpt.isEmpty()) {
+            throw new IllegalArgumentException("Approval request not found: " + requestId);
+        }
+
+        ApprovalRequest request = requestOpt.get();
+
+        // Business logic: Check permissions
+        if (!permissionEvaluator.canCancelRequest(userContext, request)) {
+            throw new SecurityException("User " + userContext.getUserId() +
+                    " is not authorized to cancel request " + requestId);
+        }
+
+        // Business logic: Cancel the request
+        ApprovalRequest cancelledRequest = request.toBuilder()
+                .status(ApprovalRequest.ApprovalStatus.CANCELLED)
+                .cancelReason("Cancelled by " + userContext.getUserId())
+                .build();
+
+        approvalRequestCommandService.save(cancelledRequest);
         log.info("Successfully cancelled approval request: {}", requestId);
     }
 
@@ -259,17 +338,19 @@ public class ApprovalService {
     private void checkAndUpdateRequestStatus(String requestId) {
         log.debug("Checking if request {} can be approved or should be rejected", requestId);
 
-        ApprovalRequest request = approvalRequestService.findById(ApprovalRequestId.of(requestId))
+        ApprovalRequestId requestIdObj = ApprovalRequestId.of(requestId);
+        ApprovalRequest request = approvalRequestQueryService.findById(requestIdObj)
                 .orElseThrow(() -> new IllegalArgumentException("Approval request not found: " + requestId));
 
         if (request.getStatus() != ApprovalRequest.ApprovalStatus.PENDING) {
             return; // Request is no longer pending
         }
 
-        // Check for ANY REJECT decision - immediate rejection
+        // Business logic: Check for ANY REJECT decision - immediate rejection
         for (ApprovalRequest.ApprovalGate gate : request.getRequired()) {
-            long rejectCount = approvalDecisionService.countByRequestIdAndGateAndDecision(
-                    ApprovalRequestId.of(requestId), gate.getGate(), ApprovalDecision.Decision.REJECT);
+            ApprovalDecisionCriteria rejectCriteria = ApprovalDecisionCriteria.forRequestGateDecision(
+                    requestIdObj.id(), gate.getGate(), ApprovalDecision.Decision.REJECT);
+            long rejectCount = approvalDecisionQueryService.count(rejectCriteria);
 
             if (rejectCount > 0) {
                 log.info("Found rejection for request: {} at gate: {}, rejecting entire request",
@@ -279,11 +360,12 @@ public class ApprovalService {
             }
         }
 
-        // No rejections - check if all gates are satisfied for approval
+        // Business logic: No rejections - check if all gates are satisfied for approval
         boolean allGatesSatisfied = true;
         for (ApprovalRequest.ApprovalGate gate : request.getRequired()) {
-            long approveCount = approvalDecisionService.countByRequestIdAndGateAndDecision(
-                    ApprovalRequestId.of(requestId), gate.getGate(), ApprovalDecision.Decision.APPROVE);
+            ApprovalDecisionCriteria approveCriteria = ApprovalDecisionCriteria.forRequestGateDecision(
+                    requestIdObj.id(), gate.getGate(), ApprovalDecision.Decision.APPROVE);
+            long approveCount = approvalDecisionQueryService.count(approveCriteria);
 
             if (approveCount < gate.getMinApprovals()) {
                 allGatesSatisfied = false;
@@ -304,12 +386,13 @@ public class ApprovalService {
      * @param reason    the rejection reason
      */
     private void rejectRequest(String requestId, String reason) {
-        ApprovalRequest request = approvalRequestService.findById(ApprovalRequestId.of(requestId))
+        ApprovalRequestId requestIdObj = ApprovalRequestId.of(requestId);
+        ApprovalRequest request = approvalRequestQueryService.findById(requestIdObj)
                 .orElseThrow(() -> new IllegalArgumentException("Approval request not found: " + requestId));
 
         // Update request status to REJECTED
-        boolean updated = approvalRequestService.updateStatus(
-                ApprovalRequestId.of(requestId),
+        boolean updated = approvalRequestCommandService.updateStatusAndVersion(
+                requestIdObj,
                 ApprovalRequest.ApprovalStatus.REJECTED,
                 request.getVersion());
 
@@ -331,12 +414,13 @@ public class ApprovalService {
      * @param requestId the request ID
      */
     private void approveRequest(String requestId) {
-        ApprovalRequest request = approvalRequestService.findById(ApprovalRequestId.of(requestId))
+        ApprovalRequestId requestIdObj = ApprovalRequestId.of(requestId);
+        ApprovalRequest request = approvalRequestQueryService.findById(requestIdObj)
                 .orElseThrow(() -> new IllegalArgumentException("Approval request not found: " + requestId));
 
-        // Update request status
-        boolean updated = approvalRequestService.updateStatus(
-                ApprovalRequestId.of(requestId),
+        // Update request status with optimistic locking
+        boolean updated = approvalRequestCommandService.updateStatusAndVersion(
+                requestIdObj,
                 ApprovalRequest.ApprovalStatus.APPROVED,
                 request.getVersion());
 
@@ -347,54 +431,64 @@ public class ApprovalService {
                     .cancelReason("conflict – already assigned")
                     .updatedAt(Instant.now())
                     .build();
-            approvalRequestService.save(loser);
+            approvalRequestCommandService.save(loser);
             log.info("Request {} rejected due to ownership conflict", requestId);
             return;
         }
 
-        // Transfer service ownership via ApplicationServiceService orchestrator
-        // Create system user context for ownership transfer
-        UserContext systemUserContext = UserContext.builder()
-                .userId("system")
-                .username("system")
-                .email("system@internal")
-                .teamIds(List.of())
-                .roles(List.of("ROLE_SYS_ADMIN"))
-                .build();
+        // Business logic: Transfer service ownership (inline from
+        // ApplicationServiceService)
+        String serviceId = request.getTarget().getServiceId();
+        String newTeamId = request.getTarget().getTeamId();
 
-        applicationServiceService.transferOwnershipWithCascade(
-                request.getTarget().getServiceId(),
-                request.getTarget().getTeamId(),
-                systemUserContext);
+        log.info("Orchestrating ownership transfer of service {} to team {}", serviceId, newTeamId);
 
-        // Find all pending requests for this service before cascade
-        List<ApprovalRequest> pendingRequests = findPendingRequestsForService(
-                request.getTarget().getServiceId());
+        // 1. Update ApplicationService ownership
+        ApplicationService service = applicationServiceQueryService.findById(ApplicationServiceId.of(serviceId))
+                .orElseThrow(() -> new IllegalArgumentException("Application service not found: " + serviceId));
 
-        // Cascade: Update statuses in bulk
-        long approvedAuto = approvalRequestService.getRepository().cascadeApproveSameTeamPending(
-                request.getTarget().getServiceId(), request.getTarget().getTeamId());
-        long rejectedAuto = approvalRequestService.getRepository().cascadeRejectOtherTeamsPending(
-                request.getTarget().getServiceId(), request.getTarget().getTeamId(),
+        String oldTeamId = service.getOwnerTeamId();
+        service.setOwnerTeamId(newTeamId);
+        service.setUpdatedAt(Instant.now());
+
+        ApplicationService updatedService = applicationServiceCommandService.save(service);
+
+        // 2. Cascade updates to related entities
+        log.debug("Cascading teamId update to service instances and drift events for service: {}", serviceId);
+        serviceInstanceCommandService.bulkUpdateTeamIdByServiceId(serviceId, newTeamId);
+        driftEventCommandService.bulkUpdateTeamIdByServiceId(serviceId, newTeamId);
+
+        // 3. Publish ownership transfer event
+        eventPublisher.publishEvent(ServiceOwnershipTransferred.builder()
+                .serviceId(serviceId)
+                .oldTeamId(oldTeamId)
+                .newTeamId(newTeamId)
+                .transferredAt(Instant.now())
+                .build());
+
+        log.info("Successfully transferred ownership of service {} to team {}", serviceId, newTeamId);
+
+        // 4. Find all pending requests for this service (for cascade decision
+        // generation)
+        ApprovalRequestCriteria pendingServiceCriteria = ApprovalRequestCriteria.allPending();
+        List<ApprovalRequest> allPending = approvalRequestQueryService
+                .findAll(pendingServiceCriteria, Pageable.unpaged()).getContent();
+        List<ApprovalRequest> pendingRequests = allPending.stream()
+                .filter(req -> req.getTarget().getServiceId().equals(serviceId))
+                .toList();
+
+        // 5. Cascade: Update approval request statuses in bulk
+        long approvedAuto = approvalRequestCommandService.cascadeApproveSameTeamPending(serviceId, newTeamId);
+        long rejectedAuto = approvalRequestCommandService.cascadeRejectOtherTeamsPending(serviceId, newTeamId,
                 "auto-rejected: service ownership assigned to another team");
 
         log.info("Cascade results for service {}: autoApproved={}, autoRejected={}",
-                request.getTarget().getServiceId(), approvedAuto, rejectedAuto);
+                serviceId, approvedAuto, rejectedAuto);
 
-        // Create system decisions for cascaded requests
-        createSystemDecisionsForCascadedRequests(pendingRequests, request.getTarget().getTeamId());
+        // 6. Create system decisions for cascaded requests
+        createSystemDecisionsForCascadedRequests(pendingRequests, newTeamId);
 
         log.info("Successfully approved request: {} and transferred service ownership", requestId);
-    }
-
-    /**
-     * Find all pending requests for a specific service.
-     *
-     * @param serviceId the service ID
-     * @return list of pending requests
-     */
-    private List<ApprovalRequest> findPendingRequestsForService(String serviceId) {
-        return approvalRequestService.getRepository().findAllPendingByServiceId(serviceId);
     }
 
     /**
@@ -410,28 +504,39 @@ public class ApprovalService {
      * @param approvedTeamId  the team ID that won ownership
      */
     private void createSystemDecisionsForCascadedRequests(List<ApprovalRequest> pendingRequests,
-            String approvedTeamId) {
+                                                          String approvedTeamId) {
         for (ApprovalRequest pendingRequest : pendingRequests) {
             String targetTeamId = pendingRequest.getTarget().getTeamId();
 
             if (approvedTeamId.equals(targetTeamId)) {
                 // Same team - cascade approve: create APPROVE decision for all gates
                 for (ApprovalRequest.ApprovalGate gate : pendingRequest.getRequired()) {
-                    approvalDecisionService.createSystemDecision(
-                            pendingRequest.getId(),
-                            gate.getGate(),
-                            ApprovalDecision.Decision.APPROVE,
-                            "Auto-approved: service ownership assigned to team " + approvedTeamId);
+                    // Inline createSystemDecision logic
+                    ApprovalDecision systemDecision = ApprovalDecision.builder()
+                            .id(ApprovalDecisionId.of(UUID.randomUUID().toString()))
+                            .requestId(pendingRequest.getId())
+                            .approverUserId("SYSTEM")
+                            .gate(gate.getGate())
+                            .decision(ApprovalDecision.Decision.APPROVE)
+                            .decidedAt(Instant.now())
+                            .note("Auto-approved: service ownership assigned to team " + approvedTeamId)
+                            .build();
+                    approvalDecisionCommandService.save(systemDecision);
                 }
                 log.info("Created system APPROVE decisions for cascaded request: {}",
                         pendingRequest.getId());
             } else {
                 // Other team - cascade reject: create REJECT decision for SYS_ADMIN gate
-                approvalDecisionService.createSystemDecision(
-                        pendingRequest.getId(),
-                        "SYS_ADMIN",
-                        ApprovalDecision.Decision.REJECT,
-                        "Auto-rejected: service ownership assigned to team " + approvedTeamId);
+                ApprovalDecision systemDecision = ApprovalDecision.builder()
+                        .id(ApprovalDecisionId.of(UUID.randomUUID().toString()))
+                        .requestId(pendingRequest.getId())
+                        .approverUserId("SYSTEM")
+                        .gate("SYS_ADMIN")
+                        .decision(ApprovalDecision.Decision.REJECT)
+                        .decidedAt(Instant.now())
+                        .note("Auto-rejected: service ownership assigned to team " + approvedTeamId)
+                        .build();
+                approvalDecisionCommandService.save(systemDecision);
                 log.info("Created system REJECT decision for cascaded request: {}",
                         pendingRequest.getId());
             }

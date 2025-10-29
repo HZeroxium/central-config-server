@@ -28,117 +28,117 @@ import java.util.Map;
 @Schema(description = "Standardized error response following RFC-7807 Problem Details for HTTP APIs")
 public class ErrorResponse {
 
-  /**
-   * A URI reference that identifies the problem type.
-   */
-  @Schema(description = "A URI reference that identifies the problem type", 
-          example = "https://api.example.com/problems/validation-error")
-  private String type;
+    /**
+     * A URI reference that identifies the problem type.
+     */
+    @Schema(description = "A URI reference that identifies the problem type",
+            example = "https://api.example.com/problems/validation-error")
+    private String type;
 
-  /**
-   * A short, human-readable summary of the problem type.
-   */
-  @Schema(description = "A short, human-readable summary of the problem type", 
-          example = "Validation Failed")
-  private String title;
+    /**
+     * A short, human-readable summary of the problem type.
+     */
+    @Schema(description = "A short, human-readable summary of the problem type",
+            example = "Validation Failed")
+    private String title;
 
-  /**
-   * The HTTP status code.
-   */
-  @Schema(description = "The HTTP status code", 
-          example = "400")
-  private int status;
+    /**
+     * The HTTP status code.
+     */
+    @Schema(description = "The HTTP status code",
+            example = "400")
+    private int status;
 
-  /**
-   * A human-readable explanation specific to this occurrence of the problem.
-   */
-  @Schema(description = "A human-readable explanation specific to this occurrence of the problem", 
-          example = "Request validation failed")
-  private String detail;
+    /**
+     * A human-readable explanation specific to this occurrence of the problem.
+     */
+    @Schema(description = "A human-readable explanation specific to this occurrence of the problem",
+            example = "Request validation failed")
+    private String detail;
 
-  /**
-   * A URI reference that identifies the specific occurrence of the problem.
-   */
-  @Schema(description = "A URI reference that identifies the specific occurrence of the problem", 
-          example = "/api/application-services")
-  private String instance;
+    /**
+     * A URI reference that identifies the specific occurrence of the problem.
+     */
+    @Schema(description = "A URI reference that identifies the specific occurrence of the problem",
+            example = "/api/application-services")
+    private String instance;
 
-  /**
-   * Timestamp when the error occurred.
-   */
-  @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
-  @Schema(description = "Timestamp when the error occurred", 
-          example = "2024-01-15T10:30:45.123Z")
-  private Instant timestamp;
+    /**
+     * Timestamp when the error occurred.
+     */
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
+    @Schema(description = "Timestamp when the error occurred",
+            example = "2024-01-15T10:30:45.123Z")
+    private Instant timestamp;
 
-  /**
-   * Trace ID for correlation across services.
-   */
-  @Schema(description = "Trace ID for correlation across services", 
-          example = "550e8400-e29b-41d4-a716-446655440000")
-  private String traceId;
+    /**
+     * Trace ID for correlation across services.
+     */
+    @Schema(description = "Trace ID for correlation across services",
+            example = "550e8400-e29b-41d4-a716-446655440000")
+    private String traceId;
 
-  /**
-   * Additional context about the error.
-   */
-  @Schema(description = "Additional context about the error")
-  private Map<String, Object> context;
+    /**
+     * Additional context about the error.
+     */
+    @Schema(description = "Additional context about the error")
+    private Map<String, Object> context;
 
-  /**
-   * Validation errors (for validation failures).
-   */
-  @Schema(description = "Validation errors (for validation failures)")
-  private List<ValidationError> validationErrors;
+    /**
+     * Validation errors (for validation failures).
+     */
+    @Schema(description = "Validation errors (for validation failures)")
+    private List<ValidationError> validationErrors;
 
-  /**
-   * Individual validation error details.
-   */
-  @Data
-  @Builder
-  @NoArgsConstructor
-  @AllArgsConstructor
-  @Schema(description = "Individual validation error details")
-  public static class ValidationError {
-    @Schema(description = "The field that failed validation", 
-            example = "serviceId")
-    private String field;
-    
-    @Schema(description = "The value that was rejected", 
-            example = "invalid-service-id")
-    private Object rejectedValue;
-    
-    @Schema(description = "Human-readable error message", 
-            example = "Service ID must not exceed 100 characters")
-    private String message;
-    
-    @Schema(description = "Validation constraint code", 
-            example = "Size")
-    private String code;
-  }
+    /**
+     * Create a simple error response.
+     */
+    public static ErrorResponse of(String title, int status, String detail) {
+        return ErrorResponse.builder()
+                .title(title)
+                .status(status)
+                .detail(detail)
+                .timestamp(Instant.now())
+                .build();
+    }
 
-  /**
-   * Create a simple error response.
-   */
-  public static ErrorResponse of(String title, int status, String detail) {
-    return ErrorResponse.builder()
-        .title(title)
-        .status(status)
-        .detail(detail)
-        .timestamp(Instant.now())
-        .build();
-  }
+    /**
+     * Create an error response with type and instance.
+     */
+    public static ErrorResponse of(String type, String title, int status, String detail, String instance) {
+        return ErrorResponse.builder()
+                .type(type)
+                .title(title)
+                .status(status)
+                .detail(detail)
+                .instance(instance)
+                .timestamp(Instant.now())
+                .build();
+    }
 
-  /**
-   * Create an error response with type and instance.
-   */
-  public static ErrorResponse of(String type, String title, int status, String detail, String instance) {
-    return ErrorResponse.builder()
-        .type(type)
-        .title(title)
-        .status(status)
-        .detail(detail)
-        .instance(instance)
-        .timestamp(Instant.now())
-        .build();
-  }
+    /**
+     * Individual validation error details.
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(description = "Individual validation error details")
+    public static class ValidationError {
+        @Schema(description = "The field that failed validation",
+                example = "serviceId")
+        private String field;
+
+        @Schema(description = "The value that was rejected",
+                example = "invalid-service-id")
+        private Object rejectedValue;
+
+        @Schema(description = "Human-readable error message",
+                example = "Service ID must not exceed 100 characters")
+        private String message;
+
+        @Schema(description = "Validation constraint code",
+                example = "Size")
+        private String code;
+    }
 }

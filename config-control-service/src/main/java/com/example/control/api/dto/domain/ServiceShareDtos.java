@@ -56,7 +56,8 @@ public class ServiceShareDtos {
             @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
             @Schema(description = "Optional expiration timestamp", example = "2024-12-31T23:59:59.999Z")
             Instant expiresAt
-    ) {}
+    ) {
+    }
 
     /**
      * Response DTO for service share details.
@@ -104,7 +105,8 @@ public class ServiceShareDtos {
             @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
             @Schema(description = "Share expiration timestamp", example = "2024-12-31T23:59:59.999Z")
             Instant expiresAt
-    ) {}
+    ) {
+    }
 
     /**
      * Query filter DTO for searching service shares.
@@ -125,7 +127,8 @@ public class ServiceShareDtos {
 
             @Schema(description = "Filter by environments", example = "[\"dev\", \"staging\"]")
             List<String> environments
-    ) {}
+    ) {
+    }
 
     @Data
     @Builder
@@ -135,7 +138,7 @@ public class ServiceShareDtos {
     public static class ServiceSharePageResponse {
         @Schema(description = "List of service shares in current page")
         private List<ServiceShareDtos.Response> items;
-        
+
         @Schema(description = "Pagination metadata")
         private PageDtos.PageMetadata metadata;
     }

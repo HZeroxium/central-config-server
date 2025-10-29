@@ -1,6 +1,6 @@
 package com.example.control.domain.criteria;
 
-import com.example.control.config.security.UserContext;
+import com.example.control.infrastructure.config.security.UserContext;
 import com.example.control.domain.object.ServiceInstance;
 import lombok.Builder;
 import lombok.With;
@@ -141,6 +141,31 @@ public record ServiceInstanceCriteria(
     public static ServiceInstanceCriteria forEnvironment(String environment) {
         return ServiceInstanceCriteria.builder()
                 .environment(environment)
+                .build();
+    }
+
+    /**
+     * Creates criteria for drifted instances of a specific service.
+     *
+     * @param serviceId the service ID
+     * @return criteria for service with drift
+     */
+    public static ServiceInstanceCriteria forServiceWithDrift(String serviceId) {
+        return ServiceInstanceCriteria.builder()
+                .serviceId(serviceId)
+                .hasDrift(true)
+                .build();
+    }
+
+    /**
+     * Creates criteria for stale instances (not seen since threshold).
+     *
+     * @param threshold the timestamp threshold
+     * @return criteria for stale instances
+     */
+    public static ServiceInstanceCriteria staleInstances(Instant threshold) {
+        return ServiceInstanceCriteria.builder()
+                .lastSeenAtTo(threshold)
                 .build();
     }
 }

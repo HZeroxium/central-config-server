@@ -18,7 +18,6 @@ import java.util.List;
 import java.util.Map;
 
 
-
 /**
  * DTOs for ApplicationService API operations.
  * <p>
@@ -51,7 +50,7 @@ public class ApplicationServiceDtos {
 
             @NotNull(message = "Environments list is required")
             @Size(min = 1, message = "At least one environment must be specified")
-            @Schema(description = "List of environments where this service is deployed", 
+            @Schema(description = "List of environments where this service is deployed",
                     example = "[\"dev\", \"staging\", \"prod\"]")
             List<String> environments,
 
@@ -64,7 +63,8 @@ public class ApplicationServiceDtos {
 
             @Schema(description = "Additional service attributes", example = "{\"version\": \"1.2.0\", \"framework\": \"spring-boot\"}")
             Map<String, String> attributes
-    ) {}
+    ) {
+    }
 
     /**
      * Request DTO for updating an existing application service.
@@ -88,7 +88,8 @@ public class ApplicationServiceDtos {
 
             @Schema(description = "Additional service attributes", example = "{\"version\": \"2.0.0\", \"framework\": \"spring-boot\", \"javaVersion\": \"17\"}")
             Map<String, String> attributes
-    ) {}
+    ) {
+    }
 
     /**
      * Response DTO for application service details.
@@ -140,7 +141,8 @@ public class ApplicationServiceDtos {
             @JsonProperty("attributes")
             @Schema(description = "Additional service attributes", example = "{\"version\": \"1.2.0\", \"framework\": \"spring-boot\"}")
             Map<String, String> attributes
-    ) {}
+    ) {
+    }
 
     /**
      * Query filter DTO for searching application services.
@@ -161,7 +163,8 @@ public class ApplicationServiceDtos {
             @Size(max = 200, message = "Search term must not exceed 200 characters")
             @Schema(description = "Search term for service name or description", example = "payment", maxLength = 200)
             String search
-    ) {}
+    ) {
+    }
 
     @Data
     @Builder
@@ -171,7 +174,7 @@ public class ApplicationServiceDtos {
     public static class ApplicationServicePageResponse {
         @Schema(description = "List of application services in current page")
         private List<ApplicationServiceDtos.Response> items;
-        
+
         @Schema(description = "Pagination metadata")
         private PageDtos.PageMetadata metadata;
     }

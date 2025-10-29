@@ -23,7 +23,7 @@ import java.util.Map;
  * prevent
  * race conditions during concurrent approvals.
  * </p>
- * 
+ *
  * @see ApprovalDecision for individual approval decisions
  * @see ApprovalGate for gate configuration
  */
@@ -33,48 +33,70 @@ import java.util.Map;
 @AllArgsConstructor
 public class ApprovalRequest {
 
-    /** Unique request identifier. */
+    /**
+     * Unique request identifier.
+     */
     @NotNull(message = "Request ID is required")
     private ApprovalRequestId id;
 
-    /** User who created this request (Keycloak user ID). */
+    /**
+     * User who created this request (Keycloak user ID).
+     */
     @NotBlank(message = "Requester user ID is required")
     private String requesterUserId;
 
-    /** Type of request being made. */
+    /**
+     * Type of request being made.
+     */
     @NotNull(message = "Request type is required")
     private RequestType requestType;
 
-    /** Target information for the request. */
+    /**
+     * Target information for the request.
+     */
     @NotNull(message = "Target is required")
     @Valid
     private ApprovalTarget target;
 
-    /** Required approval gates with minimum approvals. */
+    /**
+     * Required approval gates with minimum approvals.
+     */
     @NotNull(message = "Required gates cannot be null")
     @Size(min = 1, message = "At least one approval gate must be specified")
     private List<ApprovalGate> required;
 
-    /** Current status of the request. */
+    /**
+     * Current status of the request.
+     */
     @Builder.Default
     private ApprovalStatus status = ApprovalStatus.PENDING;
 
-    /** Snapshot of requester information at request time. */
+    /**
+     * Snapshot of requester information at request time.
+     */
     @NotNull(message = "Requester snapshot is required")
     @Valid
     private RequesterSnapshot snapshot;
 
-    /** Current approval counts per gate. */
+    /**
+     * Current approval counts per gate.
+     */
     @NotNull(message = "Approval counts cannot be null")
     private Map<String, Integer> counts;
 
-    /** Timestamp when the request was created. */
+    /**
+     * Timestamp when the request was created.
+     */
     private Instant createdAt;
 
-    /** Timestamp when the request was last updated. */
+    /**
+     * Timestamp when the request was last updated.
+     */
     private Instant updatedAt;
 
-    /** Version for optimistic locking. */
+    /**
+     * Version for optimistic locking.
+     */
     @Builder.Default
     private Integer version = 0;
 
@@ -92,10 +114,14 @@ public class ApprovalRequest {
      */
     private String cancelReason;
 
-    /** Required approval gates with current status. */
+    /**
+     * Required approval gates with current status.
+     */
     private List<ApprovalGate> gates;
 
-    /** Alias for required gates for backward compatibility. */
+    /**
+     * Alias for required gates for backward compatibility.
+     */
     public List<ApprovalGate> getGates() {
         return gates != null ? gates : required;
     }
@@ -104,10 +130,14 @@ public class ApprovalRequest {
      * Request type enumeration.
      */
     public enum RequestType {
-        /** Request to assign a service to a team. */
+        /**
+         * Request to assign a service to a team.
+         */
         ASSIGN_SERVICE_TO_TEAM,
 
-        /** Request to transfer service ownership. */
+        /**
+         * Request to transfer service ownership.
+         */
         SERVICE_OWNERSHIP_TRANSFER
     }
 
@@ -115,16 +145,24 @@ public class ApprovalRequest {
      * Approval status enumeration.
      */
     public enum ApprovalStatus {
-        /** Request is pending approval. */
+        /**
+         * Request is pending approval.
+         */
         PENDING,
 
-        /** Request has been approved. */
+        /**
+         * Request has been approved.
+         */
         APPROVED,
 
-        /** Request has been rejected. */
+        /**
+         * Request has been rejected.
+         */
         REJECTED,
 
-        /** Request has been cancelled. */
+        /**
+         * Request has been cancelled.
+         */
         CANCELLED
     }
 
@@ -136,19 +174,27 @@ public class ApprovalRequest {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class ApprovalGate {
-        /** Gate name (e.g., SYS_ADMIN, LINE_MANAGER). */
+        /**
+         * Gate name (e.g., SYS_ADMIN, LINE_MANAGER).
+         */
         @NotBlank(message = "Gate name is required")
         private String gate;
 
-        /** Minimum number of approvals required from this gate. */
+        /**
+         * Minimum number of approvals required from this gate.
+         */
         @NotNull(message = "Minimum approvals is required")
         private Integer minApprovals;
 
-        /** Gate status. */
+        /**
+         * Gate status.
+         */
         @Builder.Default
         private GateStatus status = GateStatus.PENDING;
 
-        /** Alias for gate name for backward compatibility. */
+        /**
+         * Alias for gate name for backward compatibility.
+         */
         public String name() {
             return gate;
         }
@@ -171,11 +217,15 @@ public class ApprovalRequest {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class ApprovalTarget {
-        /** Service ID being requested. */
+        /**
+         * Service ID being requested.
+         */
         @NotBlank(message = "Service ID is required")
         private String serviceId;
 
-        /** Target team ID for assignment. */
+        /**
+         * Target team ID for assignment.
+         */
         @NotBlank(message = "Target team ID is required")
         private String teamId;
     }
@@ -188,13 +238,19 @@ public class ApprovalRequest {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class RequesterSnapshot {
-        /** Team IDs the requester belongs to. */
+        /**
+         * Team IDs the requester belongs to.
+         */
         private List<String> teamIds;
 
-        /** Manager ID of the requester. */
+        /**
+         * Manager ID of the requester.
+         */
         private String managerId;
 
-        /** Roles of the requester. */
+        /**
+         * Roles of the requester.
+         */
         private List<String> roles;
     }
 }

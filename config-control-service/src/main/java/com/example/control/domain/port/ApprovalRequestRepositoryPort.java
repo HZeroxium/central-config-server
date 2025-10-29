@@ -40,7 +40,7 @@ public interface ApprovalRequestRepositoryPort
      * Check if there is an existing PENDING request by requester for a service.
      *
      * @param requesterUserId requester user ID
-     * @param serviceId target service ID
+     * @param serviceId       target service ID
      * @return true if such a PENDING request exists
      */
     boolean existsPendingByRequesterAndService(String requesterUserId, String serviceId);

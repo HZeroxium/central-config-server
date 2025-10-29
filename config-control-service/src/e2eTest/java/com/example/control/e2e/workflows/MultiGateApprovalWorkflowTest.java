@@ -192,7 +192,7 @@ public class MultiGateApprovalWorkflowTest extends BaseE2ETest {
         // Verify both gates are present
         boolean hasSysAdminDecision = decisionsResponse.jsonPath().getList("items.gate").contains("SYS_ADMIN");
         boolean hasLineManagerDecision = decisionsResponse.jsonPath().getList("items.gate").contains("LINE_MANAGER");
-        
+
         assertTrue(hasSysAdminDecision, "Should have SYS_ADMIN decision");
         assertTrue(hasLineManagerDecision, "Should have LINE_MANAGER decision");
 

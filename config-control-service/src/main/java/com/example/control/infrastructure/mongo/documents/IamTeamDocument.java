@@ -32,40 +32,56 @@ import java.util.List;
 @Document(collection = "iam_teams")
 public class IamTeamDocument {
 
-    /** Document identifier: Keycloak group name (team ID). */
+    /**
+     * Document identifier: Keycloak group name (team ID).
+     */
     @Id
     @Field("teamId")
     private String teamId;
 
-    /** Display name of the team. */
+    /**
+     * Display name of the team.
+     */
     @Field("displayName")
     private String displayName;
 
-    /** List of member user IDs in this team. */
+    /**
+     * List of member user IDs in this team.
+     */
     @Field("members")
     private List<String> members;
 
-    /** Timestamp when this projection was created. */
+    /**
+     * Timestamp when this projection was created.
+     */
     @Field("createdAt")
     @CreatedDate
     private Instant createdAt;
 
-    /** Timestamp when this projection was last updated. */
+    /**
+     * Timestamp when this projection was last updated.
+     */
     @Field("updatedAt")
     @LastModifiedDate
     private Instant updatedAt;
 
-    /** Timestamp when this projection was last synced from Keycloak. */
+    /**
+     * Timestamp when this projection was last synced from Keycloak.
+     */
     @Field("syncedAt")
     @LastModifiedDate
     private Instant syncedAt;
 
-    /** User who created this projection (Keycloak user ID). */
+    /**
+     * User who created this projection (Keycloak user ID).
+     */
     @Field("createdBy")
     @CreatedBy
     private String createdBy;
 
-    /** User who last modified this projection (Keycloak user ID). */
+    /**
+     * User who last modified this projection (Keycloak user ID).
+     */
     @Field("updatedBy")
     @LastModifiedBy
     private String updatedBy;

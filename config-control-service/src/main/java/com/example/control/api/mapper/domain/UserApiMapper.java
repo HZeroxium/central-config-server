@@ -1,7 +1,7 @@
 package com.example.control.api.mapper.domain;
 
 import com.example.control.api.dto.domain.UserDtos;
-import com.example.control.config.security.UserContext;
+import com.example.control.infrastructure.config.security.UserContext;
 
 /**
  * Mapper for User API operations.

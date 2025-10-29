@@ -40,7 +40,7 @@ public class ServiceOwnershipEventListener {
     @Transactional
     @CacheEvict(value = {"service-instances", "drift-events"}, allEntries = true)
     public void handleServiceOwnershipTransferred(ServiceOwnershipTransferred event) {
-        log.info("Processing ServiceOwnershipTransferred event for service: {} from team: {} to team: {}", 
+        log.info("Processing ServiceOwnershipTransferred event for service: {} from team: {} to team: {}",
                 event.getServiceId(), event.getOldTeamId(), event.getNewTeamId());
 
         try {
@@ -54,11 +54,11 @@ public class ServiceOwnershipEventListener {
                     event.getServiceId(), event.getNewTeamId());
             log.info("Updated {} drift events for service: {}", driftEventCount, event.getServiceId());
 
-            log.info("Successfully processed ownership transfer for service: {} (instances: {}, drift events: {})", 
+            log.info("Successfully processed ownership transfer for service: {} (instances: {}, drift events: {})",
                     event.getServiceId(), instanceCount, driftEventCount);
 
         } catch (Exception e) {
-            log.error("Failed to process ServiceOwnershipTransferred event for service: {}", 
+            log.error("Failed to process ServiceOwnershipTransferred event for service: {}",
                     event.getServiceId(), e);
             // Note: We don't rethrow the exception to avoid rolling back the main transaction
             // The event processing failure should be handled separately (e.g., retry mechanism)

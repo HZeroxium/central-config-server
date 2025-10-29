@@ -46,7 +46,7 @@ public interface ApprovalRequestMongoRepository extends MongoRepository<Approval
      * Check existence of a pending request for a requester and service.
      */
     boolean existsByRequesterUserIdAndTargetServiceIdAndStatus(String requesterUserId, String targetServiceId,
-            String status);
+                                                               String status);
 
     /**
      * Cascade approve: set status APPROVED where PENDING and matches same team and

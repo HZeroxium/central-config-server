@@ -33,62 +33,88 @@ import java.util.List;
 @Document(collection = "iam_users")
 public class IamUserDocument {
 
-    /** Document identifier: Keycloak user ID (sub claim). */
+    /**
+     * Document identifier: Keycloak user ID (sub claim).
+     */
     @Id
     @Field("userId")
     private String userId;
 
-    /** Username. */
+    /**
+     * Username.
+     */
     @Field("username")
     private String username;
 
-    /** Email address. */
+    /**
+     * Email address.
+     */
     @Indexed
     @Field("email")
     private String email;
 
-    /** First name. */
+    /**
+     * First name.
+     */
     @Field("firstName")
     private String firstName;
 
-    /** Last name. */
+    /**
+     * Last name.
+     */
     @Field("lastName")
     private String lastName;
 
-    /** Team IDs the user belongs to. */
+    /**
+     * Team IDs the user belongs to.
+     */
     @Field("teamIds")
     private List<String> teamIds;
 
-    /** Manager ID (Keycloak user ID of line manager). */
+    /**
+     * Manager ID (Keycloak user ID of line manager).
+     */
     @Indexed
     @Field("managerId")
     private String managerId;
 
-    /** Roles assigned to the user. */
+    /**
+     * Roles assigned to the user.
+     */
     @Indexed
     @Field("roles")
     private List<String> roles;
 
-    /** Timestamp when this projection was created. */
+    /**
+     * Timestamp when this projection was created.
+     */
     @Field("createdAt")
     @CreatedDate
     private Instant createdAt;
 
-    /** Timestamp when this projection was last updated. */
+    /**
+     * Timestamp when this projection was last updated.
+     */
     @Field("updatedAt")
     @LastModifiedDate
     private Instant updatedAt;
 
-    /** Timestamp when this projection was last synced from Keycloak. */
+    /**
+     * Timestamp when this projection was last synced from Keycloak.
+     */
     @Field("syncedAt")
     private Instant syncedAt;
 
-    /** User who created this projection (Keycloak user ID). */
+    /**
+     * User who created this projection (Keycloak user ID).
+     */
     @Field("createdBy")
     @CreatedBy
     private String createdBy;
 
-    /** User who last modified this projection (Keycloak user ID). */
+    /**
+     * User who last modified this projection (Keycloak user ID).
+     */
     @Field("updatedBy")
     @LastModifiedBy
     private String updatedBy;

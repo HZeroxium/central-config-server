@@ -50,7 +50,7 @@ public class IamUserApiMapper {
         List<IamUserDtos.Response> items = page.getContent().stream()
                 .map(this::toResponse)
                 .toList();
-        
+
         return IamUserDtos.IamUserPageResponse.builder()
                 .items(items)
                 .metadata(PageDtos.PageMetadata.from(page))

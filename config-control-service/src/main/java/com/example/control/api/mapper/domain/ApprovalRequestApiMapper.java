@@ -2,7 +2,7 @@ package com.example.control.api.mapper.domain;
 
 import com.example.control.api.dto.common.PageDtos;
 import com.example.control.api.dto.domain.ApprovalRequestDtos;
-import com.example.control.config.security.UserContext;
+import com.example.control.infrastructure.config.security.UserContext;
 import com.example.control.domain.object.ApprovalRequest;
 import com.example.control.domain.criteria.ApprovalRequestCriteria;
 import org.springframework.data.domain.Page;
@@ -61,16 +61,16 @@ public final class ApprovalRequestApiMapper {
     /**
      * Map QueryFilter to domain criteria with team filtering.
      *
-     * @param filter the query filter
+     * @param filter      the query filter
      * @param userContext the user context for team filtering
      * @return the domain criteria
      */
     public static ApprovalRequestCriteria toCriteria(ApprovalRequestDtos.QueryFilter filter, UserContext userContext) {
         return ApprovalRequestCriteria.builder()
                 .requesterUserId(filter != null ? filter.requesterUserId() : null)
-                .status(filter != null && filter.status() != null ? 
+                .status(filter != null && filter.status() != null ?
                         ApprovalRequest.ApprovalStatus.valueOf(filter.status()) : null)
-                .requestType(filter != null && filter.requestType() != null ? 
+                .requestType(filter != null && filter.requestType() != null ?
                         ApprovalRequest.RequestType.valueOf(filter.requestType()) : null)
                 .fromDate(filter != null ? filter.fromDate() : null)
                 .toDate(filter != null ? filter.toDate() : null)
@@ -88,7 +88,7 @@ public final class ApprovalRequestApiMapper {
         List<ApprovalRequestDtos.Response> items = page.getContent().stream()
                 .map(ApprovalRequestApiMapper::toResponse)
                 .toList();
-        
+
         return ApprovalRequestDtos.ApprovalRequestPageResponse.builder()
                 .items(items)
                 .metadata(PageDtos.PageMetadata.from(page))

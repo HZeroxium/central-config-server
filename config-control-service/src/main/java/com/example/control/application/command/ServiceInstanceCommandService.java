@@ -41,61 +41,61 @@ import java.util.UUID;
 @Transactional
 public class ServiceInstanceCommandService {
 
-  private final ServiceInstanceRepositoryPort repository;
+    private final ServiceInstanceRepositoryPort repository;
 
-  /**
-   * Saves a service instance (create or update).
-   * <p>
-   * Automatically generates ID if null (new entity).
-   * Evicts all service-instances cache entries.
-   *
-   * @param instance the service instance to save (must be valid)
-   * @return the saved service instance with generated/updated fields
-   */
-  @CacheEvict(value = "service-instances", allEntries = true)
-  public ServiceInstance save(@Valid ServiceInstance instance) {
-    log.debug("Saving service instance: {}", instance.getId());
+    /**
+     * Saves a service instance (create or update).
+     * <p>
+     * Automatically generates ID if null (new entity).
+     * Evicts all service-instances cache entries.
+     *
+     * @param instance the service instance to save (must be valid)
+     * @return the saved service instance with generated/updated fields
+     */
+    @CacheEvict(value = "service-instances", allEntries = true)
+    public ServiceInstance save(@Valid ServiceInstance instance) {
+        log.debug("Saving service instance: {}", instance.getId());
 
-    // Generate UUID if ID is null (new instance)
-    if (instance.getId() == null) {
-      instance.setId(ServiceInstanceId.of(UUID.randomUUID().toString()));
-      log.debug("Generated new ID for service instance: {}", instance.getId());
+        // Generate UUID if ID is null (new instance)
+        if (instance.getId() == null) {
+            instance.setId(ServiceInstanceId.of(UUID.randomUUID().toString()));
+            log.debug("Generated new ID for service instance: {}", instance.getId());
+        }
+
+        ServiceInstance saved = repository.save(instance);
+        log.info("Saved service instance: {} for service: {}", saved.getId(), saved.getServiceId());
+        return saved;
     }
 
-    ServiceInstance saved = repository.save(instance);
-    log.info("Saved service instance: {} for service: {}", saved.getId(), saved.getServiceId());
-    return saved;
-  }
+    /**
+     * Deletes a service instance by ID.
+     * <p>
+     * Evicts all service-instances cache entries.
+     *
+     * @param id the service instance ID to delete
+     */
+    @CacheEvict(value = "service-instances", allEntries = true)
+    public void deleteById(ServiceInstanceId id) {
+        log.info("Deleting service instance: {}", id);
+        repository.deleteById(id);
+    }
 
-  /**
-   * Deletes a service instance by ID.
-   * <p>
-   * Evicts all service-instances cache entries.
-   *
-   * @param id the service instance ID to delete
-   */
-  @CacheEvict(value = "service-instances", allEntries = true)
-  public void deleteById(ServiceInstanceId id) {
-    log.info("Deleting service instance: {}", id);
-    repository.deleteById(id);
-  }
-
-  /**
-   * Bulk updates teamId for all service instances of a specific service.
-   * <p>
-   * Used during ownership transfer to propagate new team ownership.
-   * Evicts all service-instances cache entries.
-   *
-   * @param serviceId the service ID to match
-   * @param newTeamId the new team ID to set
-   * @return number of service instances updated
-   */
-  @CacheEvict(value = "service-instances", allEntries = true)
-  public long bulkUpdateTeamIdByServiceId(String serviceId, String newTeamId) {
-    log.info("Bulk updating teamId to {} for all instances of service: {}",
-        newTeamId, serviceId);
-    long count = repository.bulkUpdateTeamIdByServiceId(serviceId, newTeamId);
-    log.info("Updated {} service instances for service: {}", count, serviceId);
-    return count;
-  }
+    /**
+     * Bulk updates teamId for all service instances of a specific service.
+     * <p>
+     * Used during ownership transfer to propagate new team ownership.
+     * Evicts all service-instances cache entries.
+     *
+     * @param serviceId the service ID to match
+     * @param newTeamId the new team ID to set
+     * @return number of service instances updated
+     */
+    @CacheEvict(value = "service-instances", allEntries = true)
+    public long bulkUpdateTeamIdByServiceId(String serviceId, String newTeamId) {
+        log.info("Bulk updating teamId to {} for all instances of service: {}",
+                newTeamId, serviceId);
+        long count = repository.bulkUpdateTeamIdByServiceId(serviceId, newTeamId);
+        log.info("Updated {} service instances for service: {}", count, serviceId);
+        return count;
+    }
 }

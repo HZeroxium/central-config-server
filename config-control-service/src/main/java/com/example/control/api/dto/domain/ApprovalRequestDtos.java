@@ -43,7 +43,8 @@ public class ApprovalRequestDtos {
             @Size(max = 500, message = "Note must not exceed 500 characters")
             @Schema(description = "Optional note explaining the request", example = "Our team will be responsible for maintaining this service", maxLength = 500)
             String note
-    ) {}
+    ) {
+    }
 
     /**
      * Request DTO for submitting a decision on an approval request.
@@ -58,7 +59,8 @@ public class ApprovalRequestDtos {
             @Size(max = 500, message = "Note must not exceed 500 characters")
             @Schema(description = "Optional note explaining the decision", example = "Approved based on team capacity and expertise", maxLength = 500)
             String note
-    ) {}
+    ) {
+    }
 
     /**
      * Response DTO for approval request details.
@@ -102,7 +104,8 @@ public class ApprovalRequestDtos {
 
             @JsonProperty("cancelReason")
             String cancelReason
-    ) {}
+    ) {
+    }
 
     /**
      * Query filter DTO for searching approval requests.
@@ -123,7 +126,8 @@ public class ApprovalRequestDtos {
 
             @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
             Instant toDate
-    ) {}
+    ) {
+    }
 
     /**
      * Approval target information.
@@ -135,7 +139,8 @@ public class ApprovalRequestDtos {
 
             @JsonProperty("teamId")
             String teamId
-    ) {}
+    ) {
+    }
 
     /**
      * Approval gate information.
@@ -147,7 +152,8 @@ public class ApprovalRequestDtos {
 
             @JsonProperty("minApprovals")
             Integer minApprovals
-    ) {}
+    ) {
+    }
 
     /**
      * Requester snapshot information.
@@ -162,7 +168,8 @@ public class ApprovalRequestDtos {
 
             @JsonProperty("roles")
             List<String> roles
-    ) {}
+    ) {
+    }
 
     @Data
     @Builder
@@ -172,7 +179,7 @@ public class ApprovalRequestDtos {
     public static class ApprovalRequestPageResponse {
         @Schema(description = "List of approval requests in current page")
         private List<ApprovalRequestDtos.Response> items;
-        
+
         @Schema(description = "Pagination metadata")
         private PageDtos.PageMetadata metadata;
     }

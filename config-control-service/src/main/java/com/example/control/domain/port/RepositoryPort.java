@@ -13,7 +13,7 @@ import java.util.Optional;
  * Each specific repository port should extend this interface with appropriate
  * generic types.
  * </p>
- * 
+ *
  * @param <T>  the domain entity type
  * @param <ID> the entity identifier type
  * @param <F>  the filter criteria type

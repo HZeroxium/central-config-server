@@ -6,13 +6,13 @@ package com.example.control.api.exception.exceptions;
  */
 public class ConflictException extends ConfigControlException {
 
-  public ConflictException(String errorCode, String message) {
-    super(errorCode, message);
-  }
+    public ConflictException(String errorCode, String message) {
+        super(errorCode, message);
+    }
 
-  public ConflictException(String message) {
-    super("conflict", message);
-  }
+    public ConflictException(String message) {
+        super("conflict", message);
+    }
 }
 
 

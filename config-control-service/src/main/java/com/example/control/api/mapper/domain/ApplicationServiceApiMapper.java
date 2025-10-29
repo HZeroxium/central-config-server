@@ -2,7 +2,7 @@ package com.example.control.api.mapper.domain;
 
 import com.example.control.api.dto.common.PageDtos;
 import com.example.control.api.dto.domain.ApplicationServiceDtos;
-import com.example.control.config.security.UserContext;
+import com.example.control.infrastructure.config.security.UserContext;
 import com.example.control.domain.object.ApplicationService;
 import com.example.control.domain.criteria.ApplicationServiceCriteria;
 import com.example.control.domain.id.ApplicationServiceId;
@@ -98,7 +98,7 @@ public final class ApplicationServiceApiMapper {
      * @return the domain criteria
      */
     public static ApplicationServiceCriteria toCriteria(ApplicationServiceDtos.QueryFilter filter,
-            UserContext userContext) {
+                                                        UserContext userContext) {
         return ApplicationServiceCriteria.builder()
                 .ownerTeamId(filter != null ? filter.ownerTeamId() : null)
                 .lifecycle(filter != null && filter.lifecycle() != null

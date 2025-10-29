@@ -2,7 +2,11 @@ package com.example.control.application.service;
 
 import com.example.control.application.query.ApplicationServiceQueryService;
 import com.example.control.application.query.ServiceShareQueryService;
-import com.example.control.config.security.UserContext;
+import com.example.control.infrastructure.config.security.UserContext;
+import com.example.control.domain.criteria.ApplicationServiceCriteria;
+import com.example.control.domain.criteria.ServiceShareCriteria;
+import com.example.control.domain.object.ApplicationService;
+import com.example.control.domain.object.ServiceShare;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -11,6 +15,7 @@ import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -232,8 +237,12 @@ public class UserPermissionsService {
         }
 
         return userContext.getTeamIds().stream()
-                .flatMap(teamId -> applicationServiceQueryService.findByOwnerTeam(teamId).stream())
-                .map(service -> service.getId().id())
+                .flatMap(teamId -> {
+                    ApplicationServiceCriteria criteria = ApplicationServiceCriteria.forTeam(teamId);
+                    return applicationServiceQueryService.findAll(criteria, Pageable.unpaged())
+                            .getContent().stream();
+                })
+                .map(service -> ((ApplicationService) service).getId().id())
                 .toList();
     }
 
@@ -249,7 +258,12 @@ public class UserPermissionsService {
             return List.of();
         }
 
-        return serviceShareQueryService.getSharedServiceIdsForTeams(userContext.getTeamIds());
+        ServiceShareCriteria criteria = ServiceShareCriteria.forTeams(userContext.getTeamIds());
+        List<ServiceShare> shares = serviceShareQueryService.findAll(criteria, Pageable.unpaged()).getContent();
+        return shares.stream()
+                .map(ServiceShare::getServiceId)
+                .distinct()
+                .toList();
     }
 
     /**

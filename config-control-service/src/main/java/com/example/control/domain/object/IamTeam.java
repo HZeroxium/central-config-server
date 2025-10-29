@@ -24,22 +24,34 @@ import java.util.List;
 @AllArgsConstructor
 public class IamTeam {
 
-    /** Keycloak group name (team ID). */
+    /**
+     * Keycloak group name (team ID).
+     */
     @NotNull(message = "Team ID is required")
     private IamTeamId teamId;
 
-    /** Display name of the team. */
+    /**
+     * Display name of the team.
+     */
     private String displayName;
 
-    /** List of member user IDs in this team. */
+    /**
+     * List of member user IDs in this team.
+     */
     private List<String> members;
 
-    /** Timestamp when this projection was created. */
+    /**
+     * Timestamp when this projection was created.
+     */
     private Instant createdAt;
 
-    /** Timestamp when this projection was last updated. */
+    /**
+     * Timestamp when this projection was last updated.
+     */
     private Instant updatedAt;
 
-    /** Timestamp when this projection was last synced from Keycloak. */
+    /**
+     * Timestamp when this projection was last synced from Keycloak.
+     */
     private Instant syncedAt;
 }

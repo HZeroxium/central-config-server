@@ -12,7 +12,7 @@ import java.time.Instant;
  * DriftEvent)
  * to maintain data consistency across aggregates.
  * </p>
- * 
+ *
  * @param serviceId     the service ID that was transferred
  * @param oldTeamId     the previous owner team ID (null for orphaned services)
  * @param newTeamId     the new owner team ID

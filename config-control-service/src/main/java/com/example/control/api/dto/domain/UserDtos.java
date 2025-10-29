@@ -56,7 +56,8 @@ public class UserDtos {
             @JsonProperty("managerId")
             @Schema(description = "Manager user ID", example = "manager1")
             String managerId
-    ) {}
+    ) {
+    }
 
     /**
      * Response DTO for user permissions and allowed routes.
@@ -112,21 +113,22 @@ public class UserDtos {
             @JsonProperty("routes")
             @Schema(description = "Allowed frontend routes", example = "[\"/dashboard\", \"/services\", \"/approvals\"]")
             List<String> routes,           // Allowed frontend routes
-            
+
             @JsonProperty("servicePermissions")
             @Schema(description = "Service-specific permissions", example = "{\"payment-service\": [\"VIEW\", \"EDIT\"], \"user-service\": [\"VIEW\"]}")
             Map<String, List<String>> servicePermissions,  // serviceId -> [VIEW, EDIT]
-            
+
             @JsonProperty("canApproveRequests")
             @Schema(description = "Whether user can approve requests", example = "true")
             boolean canApproveRequests,
-            
+
             @JsonProperty("canManageAllServices")
             @Schema(description = "Whether user can manage all services", example = "false")
             boolean canManageAllServices,
-            
+
             @JsonProperty("ownedServiceIds")
             @Schema(description = "Service IDs owned by user's teams", example = "[\"payment-service\", \"user-service\"]")
             List<String> ownedServiceIds   // Services user's teams own
-    ) {}
+    ) {
+    }
 }

@@ -97,7 +97,7 @@ public class ApprovalRequestMongoAdapter
 
     @Override
     public boolean updateStatusAndVersion(ApprovalRequestId id, ApprovalRequest.ApprovalStatus status,
-            Integer version) {
+                                          Integer version) {
         log.debug("Updating approval request status and version: id={}, status={}, version={}",
                 id, status, version);
 

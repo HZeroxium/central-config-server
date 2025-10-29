@@ -70,7 +70,7 @@ public class ApplicationServiceSmokeTest extends BaseE2ETest {
         logTestData("User1 Service Count", String.valueOf(user1ServiceCount));
 
         // Admin should see more or equal services than regular users
-        assertTrue(adminServiceCount >= user1ServiceCount, 
+        assertTrue(adminServiceCount >= user1ServiceCount,
                 "Admin should see more or equal services than regular users");
 
         logTestResult("Service Listing", "Service listing with visibility filtering working correctly");
@@ -220,7 +220,7 @@ public class ApplicationServiceSmokeTest extends BaseE2ETest {
                     .extract().response();
 
             boolean canSeeOrphaned = userResponse.jsonPath().getList("items.id").contains(orphanedServiceId);
-            assertTrue(canSeeOrphaned, 
+            assertTrue(canSeeOrphaned,
                     String.format("%s should be able to see orphaned service", testUsers[i]));
         }
 

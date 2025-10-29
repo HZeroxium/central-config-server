@@ -1,5 +1,6 @@
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.*;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.net.URI;
@@ -35,7 +36,7 @@ import java.util.concurrent.TimeUnit;
  *   <li>Concurrency (concurrent switches, thread safety)</li>
  *   <li>Business logic integration (heartbeat, services)</li>
  * </ul>
- * 
+ *
  * @author Principal Software Engineer
  * @since 1.0.0
  */
@@ -43,10 +44,10 @@ import java.util.concurrent.TimeUnit;
 public class CacheE2ETest {
 
     private static final String BASE_URL = "http://localhost:8081/api/cache";
-    
+
     private static final HttpClient httpClient = HttpClient.newBuilder()
-        .connectTimeout(Duration.ofSeconds(10))
-        .build();
+            .connectTimeout(Duration.ofSeconds(10))
+            .build();
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private static ExecutorService executor;
@@ -59,7 +60,7 @@ public class CacheE2ETest {
         System.out.println("Base URL: " + BASE_URL);
         System.out.println();
         executor = Executors.newFixedThreadPool(10);
-        
+
         // Verify service is running
         try {
             HttpResponse<String> response = sendRequest("GET", "/health");
@@ -67,12 +68,12 @@ public class CacheE2ETest {
                 throw new RuntimeException("Service not running at " + BASE_URL + ". Status: " + response.statusCode());
             }
             System.out.println("✓ Service is running and accessible");
-            
+
             // Record initial state for cleanup
             Map<String, Object> status = parseJson(sendRequest("GET", "/status").body());
             initialProvider = (String) status.get("currentProvider");
             System.out.println("Initial provider: " + initialProvider);
-            
+
         } catch (Exception e) {
             throw new RuntimeException("Failed to connect to service at " + BASE_URL, e);
         }
@@ -83,7 +84,7 @@ public class CacheE2ETest {
         if (executor != null) {
             executor.shutdown();
         }
-        
+
         // Clean up: reset to initial provider and clear all caches
         try {
             clearAllCachesAndReset();
@@ -97,6 +98,124 @@ public class CacheE2ETest {
     // BASIC FUNCTIONALITY TESTS
     // ================================
 
+    /**
+     * Checks if Redis is available by attempting to switch to REDIS provider.
+     */
+    private static boolean isRedisAvailable() {
+        try {
+            HttpResponse<String> response = sendRequest("POST", "/providers/REDIS");
+            return response.statusCode() == 200;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    // ================================
+    // PROVIDER SWITCHING TESTS
+    // ================================
+
+    /**
+     * Sends HTTP request to cache endpoint.
+     */
+    private static HttpResponse<String> sendRequest(String method, String path) throws Exception {
+        return sendRequestWithBody(method, path, null);
+    }
+
+    // ================================
+    // CACHE OPERATIONS TESTS
+    // ================================
+
+    /**
+     * Sends HTTP request with body to cache endpoint.
+     */
+    private static HttpResponse<String> sendRequestWithBody(String method, String path, String body) throws Exception {
+        HttpRequest.Builder builder = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + path))
+                .timeout(Duration.ofSeconds(30));
+
+        switch (method.toUpperCase()) {
+            case "GET" -> builder.GET();
+            case "POST" ->
+                    builder.POST(body != null ? HttpRequest.BodyPublishers.ofString(body) : HttpRequest.BodyPublishers.noBody());
+            case "PUT" ->
+                    builder.PUT(body != null ? HttpRequest.BodyPublishers.ofString(body) : HttpRequest.BodyPublishers.noBody());
+            case "DELETE" -> builder.DELETE();
+            default -> throw new IllegalArgumentException("Unsupported method: " + method);
+        }
+
+        if (body != null) {
+            builder.header("Content-Type", "application/json");
+        }
+
+        HttpRequest request = builder.build();
+        return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+    }
+
+    // ================================
+    // EDGE CASES TESTS
+    // ================================
+
+    /**
+     * Parses JSON response into Map.
+     */
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> parseJson(String json) {
+        try {
+            return objectMapper.readValue(json, Map.class);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to parse JSON: " + json, e);
+        }
+    }
+
+    // ================================
+    // CONCURRENCY TESTS
+    // ================================
+
+    /**
+     * Switches to a cache provider and verifies the switch was successful.
+     */
+    private static void switchProvider(String provider) throws Exception {
+        HttpResponse<String> response = sendRequest("POST", "/providers/" + provider);
+        assertEquals(200, response.statusCode(), "Switch to " + provider + " should return 200");
+
+        Map<String, Object> result = parseJson(response.body());
+        assertEquals(provider, result.get("newProvider"), "Should switch to " + provider);
+
+        System.out.println("  Switched to: " + result.get("newProvider"));
+        System.out.println("  Cache Manager Type: " + result.get("cacheManagerType"));
+    }
+
+    // ================================
+    // CONFIGURATION TESTS
+    // ================================
+
+    /**
+     * Verifies that the current provider matches the expected provider.
+     */
+    private static void assertProviderIs(String expectedProvider) throws Exception {
+        HttpResponse<String> response = sendRequest("GET", "/status");
+        Map<String, Object> status = parseJson(response.body());
+        assertEquals(expectedProvider, status.get("currentProvider"),
+                "Current provider should be " + expectedProvider);
+    }
+
+    // ================================
+    // UTILITY METHODS
+    // ================================
+
+    /**
+     * Clears all caches and resets to the initial provider.
+     */
+    private static void clearAllCachesAndReset() throws Exception {
+        // Clear all caches
+        sendRequest("DELETE", "/all");
+
+        // Reset to initial provider
+        if (initialProvider != null) {
+            sendRequest("POST", "/providers/" + initialProvider);
+        }
+    }
+
     @Nested
     @DisplayName("Basic Functionality Tests")
     class BasicFunctionalityTests {
@@ -107,12 +226,12 @@ public class CacheE2ETest {
         void testGetCacheHealth() throws Exception {
             HttpResponse<String> response = sendRequest("GET", "/health");
             assertEquals(200, response.statusCode(), "Health endpoint should return 200");
-            
+
             Map<String, Object> health = parseJson(response.body());
             assertNotNull(health.get("provider"), "Health should contain provider");
             assertNotNull(health.get("healthy"), "Health should contain healthy status");
             assertNotNull(health.get("actualProvider"), "Health should contain actual provider");
-            
+
             System.out.println("  Provider: " + health.get("provider"));
             System.out.println("  Actual Provider: " + health.get("actualProvider"));
             System.out.println("  Healthy: " + health.get("healthy"));
@@ -124,13 +243,13 @@ public class CacheE2ETest {
         void testGetCacheStatus() throws Exception {
             HttpResponse<String> response = sendRequest("GET", "/status");
             assertEquals(200, response.statusCode(), "Status endpoint should return 200");
-            
+
             Map<String, Object> status = parseJson(response.body());
             assertNotNull(status.get("currentProvider"), "Status should contain currentProvider");
             assertNotNull(status.get("configuredProvider"), "Status should contain configuredProvider");
             assertNotNull(status.get("cacheNames"), "Status should contain cacheNames");
             assertNotNull(status.get("availableProviders"), "Status should contain availableProviders");
-            
+
             System.out.println("  Current Provider: " + status.get("currentProvider"));
             System.out.println("  Configured Provider: " + status.get("configuredProvider"));
             System.out.println("  Cache Names: " + status.get("cacheNames"));
@@ -142,24 +261,20 @@ public class CacheE2ETest {
         void testGetAvailableProviders() throws Exception {
             HttpResponse<String> response = sendRequest("GET", "/providers");
             assertEquals(200, response.statusCode(), "Providers endpoint should return 200");
-            
+
             Map<String, Object> providers = parseJson(response.body());
             assertNotNull(providers.get("current"), "Providers should contain current");
             assertNotNull(providers.get("providers"), "Providers should contain providers map");
-            
+
             @SuppressWarnings("unchecked")
             Map<String, Object> providerMap = (Map<String, Object>) providers.get("providers");
             assertTrue(providerMap.containsKey("CAFFEINE"), "Should have CAFFEINE provider");
             assertTrue(providerMap.containsKey("NOOP"), "Should have NOOP provider");
-            
+
             System.out.println("  Current Provider: " + providers.get("current"));
             System.out.println("  Available Providers: " + providerMap.keySet());
         }
     }
-
-    // ================================
-    // PROVIDER SWITCHING TESTS
-    // ================================
 
     @Nested
     @DisplayName("Provider Switching Tests")
@@ -211,12 +326,12 @@ public class CacheE2ETest {
         void testInvalidProvider() throws Exception {
             HttpResponse<String> response = sendRequest("POST", "/providers/INVALID");
             assertEquals(400, response.statusCode(), "Should return 400 for invalid provider");
-            
+
             Map<String, Object> error = parseJson(response.body());
             assertNotNull(error.get("error"), "Should contain error message");
-            assertTrue(((String) error.get("error")).contains("Invalid provider"), 
-                "Error should mention invalid provider");
-            
+            assertTrue(((String) error.get("error")).contains("Invalid provider"),
+                    "Error should mention invalid provider");
+
             System.out.println("  Error: " + error.get("error"));
         }
 
@@ -226,21 +341,17 @@ public class CacheE2ETest {
         void testProviderPersistence() throws Exception {
             // Set provider to CAFFEINE
             switchProvider("CAFFEINE");
-            
+
             // Perform cache operations
             sendRequest("POST", "/test");
             sendRequest("DELETE", "/all");
-            
+
             // Verify provider is still CAFFEINE
             assertProviderIs("CAFFEINE");
-            
+
             System.out.println("  Provider persisted through operations");
         }
     }
-
-    // ================================
-    // CACHE OPERATIONS TESTS
-    // ================================
 
     @Nested
     @DisplayName("Cache Operations Tests")
@@ -252,14 +363,14 @@ public class CacheE2ETest {
         void testCachePutAndGet() throws Exception {
             // Switch to CAFFEINE for reliable testing
             switchProvider("CAFFEINE");
-            
+
             // Test cache operation
             HttpResponse<String> testResponse = sendRequest("POST", "/test");
             assertEquals(200, testResponse.statusCode(), "Cache test should return 200");
-            
+
             Map<String, Object> result = parseJson(testResponse.body());
             assertTrue((Boolean) result.get("success"), "Cache test should succeed");
-            
+
             System.out.println("  Cache Test Success: " + result.get("success"));
             System.out.println("  Provider: " + result.get("provider"));
         }
@@ -271,11 +382,11 @@ public class CacheE2ETest {
             // Clear service-instances cache
             HttpResponse<String> response = sendRequest("DELETE", "/service-instances");
             assertEquals(200, response.statusCode(), "Clear cache should return 200");
-            
+
             Map<String, Object> result = parseJson(response.body());
-            assertEquals("Cache cleared successfully", result.get("message"), 
-                "Should return success message");
-            
+            assertEquals("Cache cleared successfully", result.get("message"),
+                    "Should return success message");
+
             System.out.println("  Message: " + result.get("message"));
         }
 
@@ -285,13 +396,13 @@ public class CacheE2ETest {
         void testClearAllCaches() throws Exception {
             HttpResponse<String> response = sendRequest("DELETE", "/all");
             assertEquals(200, response.statusCode(), "Clear all caches should return 200");
-            
+
             Map<String, Object> result = parseJson(response.body());
-            assertEquals("All caches cleared successfully", result.get("message"), 
-                "Should return success message");
-            assertTrue((Integer) result.get("clearedCount") > 0, 
-                "Should have cleared at least one cache");
-            
+            assertEquals("All caches cleared successfully", result.get("message"),
+                    "Should return success message");
+            assertTrue((Integer) result.get("clearedCount") > 0,
+                    "Should have cleared at least one cache");
+
             System.out.println("  Cleared Count: " + result.get("clearedCount"));
         }
 
@@ -301,12 +412,12 @@ public class CacheE2ETest {
         void testCacheStats() throws Exception {
             HttpResponse<String> response = sendRequest("GET", "/stats/service-instances");
             assertEquals(200, response.statusCode(), "Cache stats should return 200");
-            
+
             Map<String, Object> stats = parseJson(response.body());
-            assertEquals("service-instances", stats.get("cacheName"), 
-                "Should return stats for service-instances cache");
+            assertEquals("service-instances", stats.get("cacheName"),
+                    "Should return stats for service-instances cache");
             assertNotNull(stats.get("cacheType"), "Should contain cache type");
-            
+
             System.out.println("  Cache Name: " + stats.get("cacheName"));
             System.out.println("  Cache Type: " + stats.get("cacheType"));
         }
@@ -317,19 +428,15 @@ public class CacheE2ETest {
         void testCacheTest() throws Exception {
             HttpResponse<String> response = sendRequest("POST", "/test");
             assertEquals(200, response.statusCode(), "Cache test endpoint should return 200");
-            
+
             Map<String, Object> result = parseJson(response.body());
             assertNotNull(result.get("success"), "Should contain success status");
             assertNotNull(result.get("provider"), "Should contain provider info");
-            
+
             System.out.println("  Success: " + result.get("success"));
             System.out.println("  Provider: " + result.get("provider"));
         }
     }
-
-    // ================================
-    // EDGE CASES TESTS
-    // ================================
 
     @Nested
     @DisplayName("Edge Cases Tests")
@@ -341,11 +448,11 @@ public class CacheE2ETest {
         void testSwitchBackToOriginal() throws Exception {
             // Switch to NOOP first
             switchProvider("NOOP");
-            
+
             // Switch back to CAFFEINE
             switchProvider("CAFFEINE");
             assertProviderIs("CAFFEINE");
-            
+
             System.out.println("  Successfully switched back to original provider");
         }
 
@@ -354,14 +461,14 @@ public class CacheE2ETest {
         @DisplayName("Rapid Provider Switches")
         void testRapidProviderSwitches() throws Exception {
             String[] providers = {"CAFFEINE", "NOOP", "CAFFEINE", "NOOP"};
-            
+
             for (String provider : providers) {
                 switchProvider(provider);
                 assertProviderIs(provider);
                 // Small delay between switches
                 Thread.sleep(100);
             }
-            
+
             System.out.println("  Completed " + providers.length + " rapid switches");
         }
 
@@ -371,20 +478,20 @@ public class CacheE2ETest {
         void testCacheOperationsAfterSwitch() throws Exception {
             // Switch to NOOP
             switchProvider("NOOP");
-            
+
             // Test cache operations - NOOP might return 500 for /test endpoint
             HttpResponse<String> testResponse = sendRequest("POST", "/test");
             // Accept both 200 and 500 for NOOP provider as it disables caching
-            assertTrue(testResponse.statusCode() == 200 || testResponse.statusCode() == 500, 
-                "Cache test should return 200 or 500 for NOOP provider");
-            
+            assertTrue(testResponse.statusCode() == 200 || testResponse.statusCode() == 500,
+                    "Cache test should return 200 or 500 for NOOP provider");
+
             // Switch to CAFFEINE
             switchProvider("CAFFEINE");
-            
+
             // Immediately test cache operations again - should work with CAFFEINE
             testResponse = sendRequest("POST", "/test");
             assertEquals(200, testResponse.statusCode(), "Cache test should work after switch to CAFFEINE");
-            
+
             System.out.println("  Cache operations work immediately after provider switch");
         }
 
@@ -395,20 +502,16 @@ public class CacheE2ETest {
             // This test verifies graceful handling when Redis is unavailable
             HttpResponse<String> response = sendRequest("GET", "/providers");
             Map<String, Object> providers = parseJson(response.body());
-            
+
             @SuppressWarnings("unchecked")
             Map<String, Object> providerMap = (Map<String, Object>) providers.get("providers");
-            
+
             // Check that REDIS provider shows availability status
             assertNotNull(providerMap.get("REDIS"), "Redis provider should be listed");
-            
+
             System.out.println("  Provider availability check completed");
         }
     }
-
-    // ================================
-    // CONCURRENCY TESTS
-    // ================================
 
     @Nested
     @DisplayName("Concurrency Tests")
@@ -419,41 +522,41 @@ public class CacheE2ETest {
         @DisplayName("Concurrent Provider Switches")
         void testConcurrentProviderSwitches() throws Exception {
             List<CompletableFuture<Void>> futures = List.of(
-                CompletableFuture.runAsync(() -> {
-                    try {
-                        HttpResponse<String> response = sendRequest("POST", "/providers/CAFFEINE");
-                        assertEquals(200, response.statusCode(), "Switch to CAFFEINE should succeed");
-                    } catch (Exception e) {
-                        throw new RuntimeException("Concurrent switch failed", e);
-                    }
-                }, executor),
-                CompletableFuture.runAsync(() -> {
-                    try {
-                        Thread.sleep(100); // Stagger the switches
-                        HttpResponse<String> response = sendRequest("POST", "/providers/NOOP");
-                        assertEquals(200, response.statusCode(), "Switch to NOOP should succeed");
-                    } catch (Exception e) {
-                        throw new RuntimeException("Concurrent switch failed", e);
-                    }
-                }, executor),
-                CompletableFuture.runAsync(() -> {
-                    try {
-                        Thread.sleep(200); // Stagger the switches
-                        HttpResponse<String> response = sendRequest("POST", "/providers/CAFFEINE");
-                        assertEquals(200, response.statusCode(), "Switch to CAFFEINE should succeed");
-                    } catch (Exception e) {
-                        throw new RuntimeException("Concurrent switch failed", e);
-                    }
-                }, executor)
+                    CompletableFuture.runAsync(() -> {
+                        try {
+                            HttpResponse<String> response = sendRequest("POST", "/providers/CAFFEINE");
+                            assertEquals(200, response.statusCode(), "Switch to CAFFEINE should succeed");
+                        } catch (Exception e) {
+                            throw new RuntimeException("Concurrent switch failed", e);
+                        }
+                    }, executor),
+                    CompletableFuture.runAsync(() -> {
+                        try {
+                            Thread.sleep(100); // Stagger the switches
+                            HttpResponse<String> response = sendRequest("POST", "/providers/NOOP");
+                            assertEquals(200, response.statusCode(), "Switch to NOOP should succeed");
+                        } catch (Exception e) {
+                            throw new RuntimeException("Concurrent switch failed", e);
+                        }
+                    }, executor),
+                    CompletableFuture.runAsync(() -> {
+                        try {
+                            Thread.sleep(200); // Stagger the switches
+                            HttpResponse<String> response = sendRequest("POST", "/providers/CAFFEINE");
+                            assertEquals(200, response.statusCode(), "Switch to CAFFEINE should succeed");
+                        } catch (Exception e) {
+                            throw new RuntimeException("Concurrent switch failed", e);
+                        }
+                    }, executor)
             );
-            
+
             // Wait for all switches to complete
             CompletableFuture<Void> allSwitches = CompletableFuture.allOf(
-                futures.toArray(new CompletableFuture[0]));
-            
+                    futures.toArray(new CompletableFuture[0]));
+
             allSwitches.get(15, TimeUnit.SECONDS);
             System.out.println("  Completed " + futures.size() + " concurrent switches");
-            
+
             // Verify final state is consistent
             assertProviderIs("CAFFEINE");
         }
@@ -463,40 +566,40 @@ public class CacheE2ETest {
         @DisplayName("Concurrent Cache Operations")
         void testConcurrentCacheOperations() throws Exception {
             switchProvider("CAFFEINE");
-            
+
             List<CompletableFuture<Void>> futures = List.of(
-                CompletableFuture.runAsync(() -> {
-                    try {
-                        for (int i = 0; i < 5; i++) {
-                            sendRequest("POST", "/test");
+                    CompletableFuture.runAsync(() -> {
+                        try {
+                            for (int i = 0; i < 5; i++) {
+                                sendRequest("POST", "/test");
+                            }
+                        } catch (Exception e) {
+                            throw new RuntimeException("Concurrent cache operation failed", e);
                         }
-                    } catch (Exception e) {
-                        throw new RuntimeException("Concurrent cache operation failed", e);
-                    }
-                }, executor),
-                CompletableFuture.runAsync(() -> {
-                    try {
-                        for (int i = 0; i < 3; i++) {
-                            sendRequest("DELETE", "/service-instances");
+                    }, executor),
+                    CompletableFuture.runAsync(() -> {
+                        try {
+                            for (int i = 0; i < 3; i++) {
+                                sendRequest("DELETE", "/service-instances");
+                            }
+                        } catch (Exception e) {
+                            throw new RuntimeException("Concurrent cache operation failed", e);
                         }
-                    } catch (Exception e) {
-                        throw new RuntimeException("Concurrent cache operation failed", e);
-                    }
-                }, executor),
-                CompletableFuture.runAsync(() -> {
-                    try {
-                        for (int i = 0; i < 3; i++) {
-                            sendRequest("GET", "/stats/service-instances");
+                    }, executor),
+                    CompletableFuture.runAsync(() -> {
+                        try {
+                            for (int i = 0; i < 3; i++) {
+                                sendRequest("GET", "/stats/service-instances");
+                            }
+                        } catch (Exception e) {
+                            throw new RuntimeException("Concurrent cache operation failed", e);
                         }
-                    } catch (Exception e) {
-                        throw new RuntimeException("Concurrent cache operation failed", e);
-                    }
-                }, executor)
+                    }, executor)
             );
-            
+
             CompletableFuture<Void> allOperations = CompletableFuture.allOf(
-                futures.toArray(new CompletableFuture[0]));
-            
+                    futures.toArray(new CompletableFuture[0]));
+
             allOperations.get(10, TimeUnit.SECONDS);
             System.out.println("  Completed " + futures.size() + " concurrent operation sets");
         }
@@ -516,7 +619,7 @@ public class CacheE2ETest {
                     throw new RuntimeException("Operations failed", e);
                 }
             }, executor);
-            
+
             // Switch providers during operations
             CompletableFuture<Void> switches = CompletableFuture.runAsync(() -> {
                 try {
@@ -528,17 +631,13 @@ public class CacheE2ETest {
                     throw new RuntimeException("Switches failed", e);
                 }
             }, executor);
-            
+
             CompletableFuture<Void> allTasks = CompletableFuture.allOf(operations, switches);
             allTasks.get(15, TimeUnit.SECONDS);
-            
+
             System.out.println("  Completed provider switches during cache operations");
         }
     }
-
-    // ================================
-    // CONFIGURATION TESTS
-    // ================================
 
     @Nested
     @DisplayName("Configuration Tests")
@@ -551,11 +650,11 @@ public class CacheE2ETest {
             String configUpdate = "{\"enableFallback\": false}";
             HttpResponse<String> response = sendRequestWithBody("PUT", "/config", configUpdate);
             assertEquals(200, response.statusCode(), "Config update should return 200");
-            
+
             Map<String, Object> result = parseJson(response.body());
-            assertEquals("Cache configuration updated successfully", result.get("message"), 
-                "Should return success message");
-            
+            assertEquals("Cache configuration updated successfully", result.get("message"),
+                    "Should return success message");
+
             System.out.println("  Message: " + result.get("message"));
         }
 
@@ -567,112 +666,16 @@ public class CacheE2ETest {
             String configUpdate = "{\"enableFallback\": true}";
             HttpResponse<String> response = sendRequestWithBody("PUT", "/config", configUpdate);
             assertEquals(200, response.statusCode(), "Config update should return 200");
-            
+
             // Perform some operations
             sendRequest("POST", "/test");
             sendRequest("GET", "/status");
-            
+
             // Verify configuration is still applied
             Map<String, Object> status = parseJson(sendRequest("GET", "/status").body());
             assertNotNull(status.get("fallbackEnabled"), "Should show fallback configuration");
-            
+
             System.out.println("  Configuration persisted through operations");
-        }
-    }
-
-    // ================================
-    // UTILITY METHODS
-    // ================================
-
-    /**
-     * Checks if Redis is available by attempting to switch to REDIS provider.
-     */
-    private static boolean isRedisAvailable() {
-        try {
-            HttpResponse<String> response = sendRequest("POST", "/providers/REDIS");
-            return response.statusCode() == 200;
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
-    /**
-     * Sends HTTP request to cache endpoint.
-     */
-    private static HttpResponse<String> sendRequest(String method, String path) throws Exception {
-        return sendRequestWithBody(method, path, null);
-    }
-
-    /**
-     * Sends HTTP request with body to cache endpoint.
-     */
-    private static HttpResponse<String> sendRequestWithBody(String method, String path, String body) throws Exception {
-        HttpRequest.Builder builder = HttpRequest.newBuilder()
-            .uri(URI.create(BASE_URL + path))
-            .timeout(Duration.ofSeconds(30));
-
-        switch (method.toUpperCase()) {
-            case "GET" -> builder.GET();
-            case "POST" -> builder.POST(body != null ? HttpRequest.BodyPublishers.ofString(body) : HttpRequest.BodyPublishers.noBody());
-            case "PUT" -> builder.PUT(body != null ? HttpRequest.BodyPublishers.ofString(body) : HttpRequest.BodyPublishers.noBody());
-            case "DELETE" -> builder.DELETE();
-            default -> throw new IllegalArgumentException("Unsupported method: " + method);
-        }
-
-        if (body != null) {
-            builder.header("Content-Type", "application/json");
-        }
-
-        HttpRequest request = builder.build();
-        return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-    }
-
-    /**
-     * Parses JSON response into Map.
-     */
-    @SuppressWarnings("unchecked")
-    private static Map<String, Object> parseJson(String json) {
-        try {
-            return objectMapper.readValue(json, Map.class);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to parse JSON: " + json, e);
-        }
-    }
-
-    /**
-     * Switches to a cache provider and verifies the switch was successful.
-     */
-    private static void switchProvider(String provider) throws Exception {
-        HttpResponse<String> response = sendRequest("POST", "/providers/" + provider);
-        assertEquals(200, response.statusCode(), "Switch to " + provider + " should return 200");
-        
-        Map<String, Object> result = parseJson(response.body());
-        assertEquals(provider, result.get("newProvider"), "Should switch to " + provider);
-        
-        System.out.println("  Switched to: " + result.get("newProvider"));
-        System.out.println("  Cache Manager Type: " + result.get("cacheManagerType"));
-    }
-
-    /**
-     * Verifies that the current provider matches the expected provider.
-     */
-    private static void assertProviderIs(String expectedProvider) throws Exception {
-        HttpResponse<String> response = sendRequest("GET", "/status");
-        Map<String, Object> status = parseJson(response.body());
-        assertEquals(expectedProvider, status.get("currentProvider"), 
-            "Current provider should be " + expectedProvider);
-    }
-
-    /**
-     * Clears all caches and resets to the initial provider.
-     */
-    private static void clearAllCachesAndReset() throws Exception {
-        // Clear all caches
-        sendRequest("DELETE", "/all");
-        
-        // Reset to initial provider
-        if (initialProvider != null) {
-            sendRequest("POST", "/providers/" + initialProvider);
         }
     }
 }

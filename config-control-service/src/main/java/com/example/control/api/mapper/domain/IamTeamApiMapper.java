@@ -45,7 +45,7 @@ public class IamTeamApiMapper {
         List<IamTeamDtos.Response> items = page.getContent().stream()
                 .map(this::toResponse)
                 .toList();
-        
+
         return IamTeamDtos.IamTeamPageResponse.builder()
                 .items(items)
                 .metadata(PageDtos.PageMetadata.from(page))

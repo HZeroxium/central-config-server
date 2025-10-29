@@ -1,6 +1,6 @@
 package com.example.control.domain.criteria;
 
-import com.example.control.config.security.UserContext;
+import com.example.control.infrastructure.config.security.UserContext;
 import com.example.control.domain.object.ApprovalRequest;
 import lombok.Builder;
 import lombok.With;
@@ -16,12 +16,12 @@ import java.util.List;
  * </p>
  *
  * @param requesterUserId filter by requester user ID
- * @param status filter by approval status
- * @param requestType filter by request type
- * @param fromDate filter by creation date (from)
- * @param toDate filter by creation date (to)
- * @param gate filter by approval gate
- * @param userTeamIds team IDs for ABAC filtering (null for admin queries)
+ * @param status          filter by approval status
+ * @param requestType     filter by request type
+ * @param fromDate        filter by creation date (from)
+ * @param toDate          filter by creation date (to)
+ * @param gate            filter by approval gate
+ * @param userTeamIds     team IDs for ABAC filtering (null for admin queries)
  */
 @Builder(toBuilder = true)
 @With
@@ -32,8 +32,7 @@ public record ApprovalRequestCriteria(
         Instant fromDate,
         Instant toDate,
         String gate,
-        List<String> userTeamIds
-) {
+        List<String> userTeamIds) {
 
     /**
      * Creates criteria with no filtering (admin query).
@@ -71,7 +70,7 @@ public record ApprovalRequestCriteria(
     /**
      * Creates criteria for pending requests requiring a specific gate.
      *
-     * @param gate the approval gate
+     * @param gate    the approval gate
      * @param teamIds the team IDs for ABAC filtering
      * @return criteria for pending requests
      */
@@ -80,6 +79,57 @@ public record ApprovalRequestCriteria(
                 .status(ApprovalRequest.ApprovalStatus.PENDING)
                 .gate(gate)
                 .userTeamIds(teamIds)
+                .build();
+    }
+
+    /**
+     * Creates criteria for requests by a specific requester.
+     *
+     * @param requesterUserId the requester user ID
+     * @return criteria for requester's requests
+     */
+    public static ApprovalRequestCriteria forRequester(String requesterUserId) {
+        return ApprovalRequestCriteria.builder()
+                .requesterUserId(requesterUserId)
+                .build();
+    }
+
+    /**
+     * Creates criteria for requests by status.
+     *
+     * @param status the approval status
+     * @return criteria for requests with the given status
+     */
+    public static ApprovalRequestCriteria byStatus(ApprovalRequest.ApprovalStatus status) {
+        return ApprovalRequestCriteria.builder()
+                .status(status)
+                .build();
+    }
+
+    /**
+     * Creates criteria for pending requests by requester for a service.
+     * Used to check for duplicate pending requests.
+     *
+     * @param requesterUserId the requester user ID
+     * @param serviceId       the service ID (not in criteria, handled via
+     *                        repository)
+     * @return criteria for pending requests by requester
+     */
+    public static ApprovalRequestCriteria pendingByRequester(String requesterUserId) {
+        return ApprovalRequestCriteria.builder()
+                .requesterUserId(requesterUserId)
+                .status(ApprovalRequest.ApprovalStatus.PENDING)
+                .build();
+    }
+
+    /**
+     * Creates criteria for all pending requests.
+     *
+     * @return criteria for pending requests
+     */
+    public static ApprovalRequestCriteria allPending() {
+        return ApprovalRequestCriteria.builder()
+                .status(ApprovalRequest.ApprovalStatus.PENDING)
                 .build();
     }
 }

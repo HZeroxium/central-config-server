@@ -70,7 +70,7 @@ public class ServiceInstanceSmokeTest extends BaseE2ETest {
         logTestData("User1 Instance Count", String.valueOf(user1InstanceCount));
 
         // Admin should see more or equal instances than regular users
-        assertTrue(adminInstanceCount >= user1InstanceCount, 
+        assertTrue(adminInstanceCount >= user1InstanceCount,
                 "Admin should see more or equal instances than regular users");
 
         logTestResult("Instance Listing", "Instance listing with visibility filtering working correctly");

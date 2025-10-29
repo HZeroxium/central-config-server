@@ -28,7 +28,7 @@ public interface ServiceShareMongoRepository extends MongoRepository<ServiceShar
      */
     @Query("{'serviceId': ?0, 'grantToType': ?1, 'grantToId': ?2, '$or': [{'environments': null}, {'environments': {'$in': ?3}}]}")
     boolean existsByServiceAndGranteeAndEnvironments(String serviceId, String grantToType, String grantToId,
-            List<String> environments);
+                                                     List<String> environments);
 
     /**
      * Find effective permissions for a user on a service.
@@ -44,5 +44,5 @@ public interface ServiceShareMongoRepository extends MongoRepository<ServiceShar
      */
     @Query("{'serviceId': ?2, '$and': [{'$or': [{'grantToType': 'USER', 'grantToId': ?0}, {'grantToType': 'TEAM', 'grantToId': {'$in': ?1}}]}, {'$or': [{'environments': null}, {'environments': {'$in': ?3}}]}]}")
     List<ServiceShareDocument> findEffectivePermissions(String userId, List<String> userTeamIds, String serviceId,
-            List<String> environments);
+                                                        List<String> environments);
 }

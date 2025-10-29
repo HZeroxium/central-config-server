@@ -17,7 +17,7 @@ import java.time.Instant;
  * Each decision is tied to a specific approval request and gate. A user can
  * only make one decision per request per gate (enforced by unique constraint).
  * </p>
- * 
+ *
  * @see ApprovalRequest for the associated request
  */
 @Data
@@ -26,33 +26,49 @@ import java.time.Instant;
 @AllArgsConstructor
 public class ApprovalDecision {
 
-    /** Unique decision identifier. */
+    /**
+     * Unique decision identifier.
+     */
     @NotNull(message = "Decision ID is required")
     private ApprovalDecisionId id;
 
-    /** ID of the approval request this decision belongs to. */
+    /**
+     * ID of the approval request this decision belongs to.
+     */
     @NotNull(message = "Request ID is required")
     private ApprovalRequestId requestId;
 
-    /** User who made this decision (Keycloak user ID). */
+    /**
+     * User who made this decision (Keycloak user ID).
+     */
     @NotBlank(message = "Approver user ID is required")
     private String approverUserId;
 
-    /** Gate this decision is for (e.g., SYS_ADMIN, LINE_MANAGER). */
+    /**
+     * Gate this decision is for (e.g., SYS_ADMIN, LINE_MANAGER).
+     */
     @NotBlank(message = "Gate is required")
     private String gate;
 
-    /** Decision made (APPROVE or REJECT). */
+    /**
+     * Decision made (APPROVE or REJECT).
+     */
     @NotNull(message = "Decision is required")
     private Decision decision;
 
-    /** Timestamp when the decision was made. */
+    /**
+     * Timestamp when the decision was made.
+     */
     private Instant decidedAt;
 
-    /** Optional note from the approver. */
+    /**
+     * Optional note from the approver.
+     */
     private String note;
 
-    /** Alias for decidedAt for backward compatibility. */
+    /**
+     * Alias for decidedAt for backward compatibility.
+     */
     public Instant getCreatedAt() {
         return decidedAt;
     }
@@ -61,10 +77,14 @@ public class ApprovalDecision {
      * Decision enumeration.
      */
     public enum Decision {
-        /** Approve the request. */
+        /**
+         * Approve the request.
+         */
         APPROVE,
 
-        /** Reject the request. */
+        /**
+         * Reject the request.
+         */
         REJECT
     }
 }

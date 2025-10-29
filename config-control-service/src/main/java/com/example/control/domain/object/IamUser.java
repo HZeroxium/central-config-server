@@ -24,37 +24,59 @@ import java.util.List;
 @AllArgsConstructor
 public class IamUser {
 
-    /** Keycloak user ID (sub claim). */
+    /**
+     * Keycloak user ID (sub claim).
+     */
     @NotNull(message = "User ID is required")
     private IamUserId userId;
 
-    /** Username. */
+    /**
+     * Username.
+     */
     private String username;
 
-    /** Email address. */
+    /**
+     * Email address.
+     */
     private String email;
 
-    /** First name. */
+    /**
+     * First name.
+     */
     private String firstName;
 
-    /** Last name. */
+    /**
+     * Last name.
+     */
     private String lastName;
 
-    /** Team IDs the user belongs to. */
+    /**
+     * Team IDs the user belongs to.
+     */
     private List<String> teamIds;
 
-    /** Manager ID (Keycloak user ID of line manager). */
+    /**
+     * Manager ID (Keycloak user ID of line manager).
+     */
     private String managerId;
 
-    /** Roles assigned to the user. */
+    /**
+     * Roles assigned to the user.
+     */
     private List<String> roles;
 
-    /** Timestamp when this projection was created. */
+    /**
+     * Timestamp when this projection was created.
+     */
     private Instant createdAt;
 
-    /** Timestamp when this projection was last updated. */
+    /**
+     * Timestamp when this projection was last updated.
+     */
     private Instant updatedAt;
 
-    /** Timestamp when this projection was last synced from Keycloak. */
+    /**
+     * Timestamp when this projection was last synced from Keycloak.
+     */
     private Instant syncedAt;
 }

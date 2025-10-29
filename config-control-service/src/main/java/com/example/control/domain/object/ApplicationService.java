@@ -20,7 +20,7 @@ import java.util.Map;
  * and serves as the basis for service ownership and sharing. Each service
  * belongs to one team and can be requested for ownership transfer.
  * </p>
- * 
+ *
  * @see ServiceInstance for runtime instances of this service
  * @see ApprovalRequest for ownership transfer requests
  */
@@ -30,11 +30,15 @@ import java.util.Map;
 @AllArgsConstructor
 public class ApplicationService {
 
-    /** Unique service identifier. */
+    /**
+     * Unique service identifier.
+     */
     @NotNull(message = "Service ID is required")
     private ApplicationServiceId id;
 
-    /** Human-readable display name. */
+    /**
+     * Human-readable display name.
+     */
     @NotBlank(message = "Display name is required")
     @Size(max = 200, message = "Display name must not exceed 200 characters")
     private String displayName;
@@ -45,44 +49,66 @@ public class ApplicationService {
      */
     private String ownerTeamId;
 
-    /** List of environments where this service is deployed. */
+    /**
+     * List of environments where this service is deployed.
+     */
     @NotNull(message = "Environments list cannot be null")
     @Size(min = 1, message = "At least one environment must be specified")
     private List<String> environments;
 
-    /** Tags for categorization and filtering. */
+    /**
+     * Tags for categorization and filtering.
+     */
     private List<String> tags;
 
-    /** Repository URL for source code. */
+    /**
+     * Repository URL for source code.
+     */
     private String repoUrl;
 
-    /** Service lifecycle status. */
+    /**
+     * Service lifecycle status.
+     */
     @Builder.Default
     private ServiceLifecycle lifecycle = ServiceLifecycle.ACTIVE;
 
-    /** Timestamp when the service was first created. */
+    /**
+     * Timestamp when the service was first created.
+     */
     private Instant createdAt;
 
-    /** Timestamp when the service was last updated. */
+    /**
+     * Timestamp when the service was last updated.
+     */
     private Instant updatedAt;
 
-    /** User who created this service (Keycloak user ID). */
+    /**
+     * User who created this service (Keycloak user ID).
+     */
     private String createdBy;
 
-    /** Additional attributes as key-value pairs. */
+    /**
+     * Additional attributes as key-value pairs.
+     */
     private Map<String, String> attributes;
 
     /**
      * Service lifecycle enumeration.
      */
     public enum ServiceLifecycle {
-        /** Service is actively developed and deployed. */
+        /**
+         * Service is actively developed and deployed.
+         */
         ACTIVE,
 
-        /** Service is deprecated, no new features, maintenance only. */
+        /**
+         * Service is deprecated, no new features, maintenance only.
+         */
         DEPRECATED,
 
-        /** Service is retired, no longer in use. */
+        /**
+         * Service is retired, no longer in use.
+         */
         RETIRED
     }
 }

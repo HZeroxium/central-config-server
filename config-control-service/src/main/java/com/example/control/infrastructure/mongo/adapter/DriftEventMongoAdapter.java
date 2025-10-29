@@ -22,100 +22,100 @@ import java.time.Instant;
 @Slf4j
 @Component
 public class DriftEventMongoAdapter
-    extends
-    AbstractMongoAdapter<DriftEvent, DriftEventDocument, DriftEventId, DriftEventCriteria, DriftEventMongoRepository>
-    implements DriftEventRepositoryPort {
+        extends
+        AbstractMongoAdapter<DriftEvent, DriftEventDocument, DriftEventId, DriftEventCriteria, DriftEventMongoRepository>
+        implements DriftEventRepositoryPort {
 
-  public DriftEventMongoAdapter(DriftEventMongoRepository repository, MongoTemplate mongoTemplate) {
-    super(repository, mongoTemplate, DriftEventId::id);
-  }
-
-  @Override
-  protected DriftEventDocument toDocument(DriftEvent domain) {
-    return DriftEventDocument.fromDomain(domain);
-  }
-
-  @Override
-  protected DriftEvent toDomain(DriftEventDocument document) {
-    return document.toDomain();
-  }
-
-  @Override
-  protected Query buildQuery(DriftEventCriteria criteria) {
-    Query query = new Query();
-    if (criteria == null)
-      return query;
-
-    // Apply filters
-    if (criteria.serviceName() != null && !criteria.serviceName().isBlank()) {
-      query.addCriteria(Criteria.where("serviceName").is(criteria.serviceName()));
-    }
-    if (criteria.instanceId() != null && !criteria.instanceId().isBlank()) {
-      query.addCriteria(Criteria.where("instanceId").is(criteria.instanceId()));
-    }
-    if (criteria.status() != null) {
-      query.addCriteria(Criteria.where("status").is(criteria.status().name()));
-    }
-    if (criteria.severity() != null) {
-      query.addCriteria(Criteria.where("severity").is(criteria.severity().name()));
-    }
-    if (criteria.detectedAtFrom() != null) {
-      query.addCriteria(Criteria.where("detectedAt").gte(criteria.detectedAtFrom()));
-    }
-    if (criteria.detectedAtTo() != null) {
-      query.addCriteria(Criteria.where("detectedAt").lte(criteria.detectedAtTo()));
-    }
-    if (Boolean.TRUE.equals(criteria.unresolvedOnly())) {
-      query.addCriteria(Criteria.where("status").in("DETECTED", "ACKNOWLEDGED", "RESOLVING"));
+    public DriftEventMongoAdapter(DriftEventMongoRepository repository, MongoTemplate mongoTemplate) {
+        super(repository, mongoTemplate, DriftEventId::id);
     }
 
-    // ABAC: Team-based filtering
-    if (criteria.userTeamIds() != null && !criteria.userTeamIds().isEmpty()) {
-      query.addCriteria(Criteria.where("teamId").in(criteria.userTeamIds()));
+    @Override
+    protected DriftEventDocument toDocument(DriftEvent domain) {
+        return DriftEventDocument.fromDomain(domain);
     }
 
-    return query;
-  }
+    @Override
+    protected DriftEvent toDomain(DriftEventDocument document) {
+        return document.toDomain();
+    }
 
-  @Override
-  protected String getCollectionName() {
-    return "drift_events";
-  }
+    @Override
+    protected Query buildQuery(DriftEventCriteria criteria) {
+        Query query = new Query();
+        if (criteria == null)
+            return query;
 
-  @Override
-  public void resolveForInstance(String serviceName, String instanceId, String resolvedBy) {
-    log.debug("Resolving drift events for instance: {}:{}", serviceName, instanceId);
+        // Apply filters
+        if (criteria.serviceName() != null && !criteria.serviceName().isBlank()) {
+            query.addCriteria(Criteria.where("serviceName").is(criteria.serviceName()));
+        }
+        if (criteria.instanceId() != null && !criteria.instanceId().isBlank()) {
+            query.addCriteria(Criteria.where("instanceId").is(criteria.instanceId()));
+        }
+        if (criteria.status() != null) {
+            query.addCriteria(Criteria.where("status").is(criteria.status().name()));
+        }
+        if (criteria.severity() != null) {
+            query.addCriteria(Criteria.where("severity").is(criteria.severity().name()));
+        }
+        if (criteria.detectedAtFrom() != null) {
+            query.addCriteria(Criteria.where("detectedAt").gte(criteria.detectedAtFrom()));
+        }
+        if (criteria.detectedAtTo() != null) {
+            query.addCriteria(Criteria.where("detectedAt").lte(criteria.detectedAtTo()));
+        }
+        if (Boolean.TRUE.equals(criteria.unresolvedOnly())) {
+            query.addCriteria(Criteria.where("status").in("DETECTED", "ACKNOWLEDGED", "RESOLVING"));
+        }
 
-    Query query = new Query(
-        Criteria.where("serviceName").is(serviceName)
-            .and("instanceId").is(instanceId)
-            .and("status").in("DETECTED", "ACKNOWLEDGED", "RESOLVING") // Only unresolved events
-    );
+        // ABAC: Team-based filtering
+        if (criteria.userTeamIds() != null && !criteria.userTeamIds().isEmpty()) {
+            query.addCriteria(Criteria.where("teamId").in(criteria.userTeamIds()));
+        }
 
-    Update update = new Update()
-        .set("status", DriftEvent.DriftStatus.RESOLVED.name())
-        .set("resolvedAt", Instant.now())
-        .set("resolvedBy", resolvedBy);
+        return query;
+    }
 
-    UpdateResult result = mongoTemplate.updateMulti(
-        query, update, DriftEventDocument.class, getCollectionName());
+    @Override
+    protected String getCollectionName() {
+        return "drift_events";
+    }
 
-    log.info("Resolved {} drift events for instance {}:{}",
-        result.getModifiedCount(), serviceName, instanceId);
-  }
+    @Override
+    public void resolveForInstance(String serviceName, String instanceId, String resolvedBy) {
+        log.debug("Resolving drift events for instance: {}:{}", serviceName, instanceId);
 
-  @Override
-  public long countByStatus(DriftEvent.DriftStatus status) {
-    return repository.countByStatus(status.name());
-  }
+        Query query = new Query(
+                Criteria.where("serviceName").is(serviceName)
+                        .and("instanceId").is(instanceId)
+                        .and("status").in("DETECTED", "ACKNOWLEDGED", "RESOLVING") // Only unresolved events
+        );
 
-  @Override
-  public long bulkUpdateTeamIdByServiceId(String serviceId, String newTeamId) {
-    return super.bulkUpdateTeamIdByServiceId(serviceId, newTeamId);
-  }
+        Update update = new Update()
+                .set("status", DriftEvent.DriftStatus.RESOLVED.name())
+                .set("resolvedAt", Instant.now())
+                .set("resolvedBy", resolvedBy);
 
-  @Override
-  protected Class<DriftEventDocument> getDocumentClass() {
-    return DriftEventDocument.class;
-  }
+        UpdateResult result = mongoTemplate.updateMulti(
+                query, update, DriftEventDocument.class, getCollectionName());
+
+        log.info("Resolved {} drift events for instance {}:{}",
+                result.getModifiedCount(), serviceName, instanceId);
+    }
+
+    @Override
+    public long countByStatus(DriftEvent.DriftStatus status) {
+        return repository.countByStatus(status.name());
+    }
+
+    @Override
+    public long bulkUpdateTeamIdByServiceId(String serviceId, String newTeamId) {
+        return super.bulkUpdateTeamIdByServiceId(serviceId, newTeamId);
+    }
+
+    @Override
+    protected Class<DriftEventDocument> getDocumentClass() {
+        return DriftEventDocument.class;
+    }
 }

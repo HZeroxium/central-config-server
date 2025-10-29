@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/config-control-service/keycloak-providers/thrift-demo.config-control-service.keycloak-providers.main.iml" filepath="$PROJECT_DIR$/.idea/modules/config-control-service/keycloak-providers/thrift-demo.config-control-service.keycloak-providers.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/config-control-service/thrift-demo.config-control-service.main.iml" filepath="$PROJECT_DIR$/.idea/modules/config-control-service/thrift-demo.config-control-service.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/config-server/thrift-demo.config-server.main.iml" filepath="$PROJECT_DIR$/.idea/modules/config-server/thrift-demo.config-server.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/sample-service/thrift-demo.sample-service.main.iml" filepath="$PROJECT_DIR$/.idea/modules/sample-service/thrift-demo.sample-service.main.iml" />

@@ -38,11 +38,15 @@ import java.util.UUID;
 @CompoundIndex(def = "{'ownerTeamId': 1, 'createdAt': -1}")
 public class ApplicationServiceDocument {
 
-    /** Document identifier: UUID string. */
+    /**
+     * Document identifier: UUID string.
+     */
     @Id
     private String id;
 
-    /** Human-readable display name. */
+    /**
+     * Human-readable display name.
+     */
     @Indexed(unique = true)
     @Field("displayName")
     private String displayName;
@@ -54,44 +58,62 @@ public class ApplicationServiceDocument {
     @Field("ownerTeamId")
     private String ownerTeamId;
 
-    /** List of environments where this service is deployed. */
+    /**
+     * List of environments where this service is deployed.
+     */
     @Field("environments")
     private List<String> environments;
 
-    /** Tags for categorization and filtering. */
+    /**
+     * Tags for categorization and filtering.
+     */
     @Field("tags")
     private List<String> tags;
 
-    /** Repository URL for source code. */
+    /**
+     * Repository URL for source code.
+     */
     @Field("repoUrl")
     private String repoUrl;
 
-    /** Service lifecycle status (stored as string value). */
+    /**
+     * Service lifecycle status (stored as string value).
+     */
     @Indexed
     @Field("lifecycle")
     private String lifecycle;
 
-    /** Timestamp when the service was first created. */
+    /**
+     * Timestamp when the service was first created.
+     */
     @Field("createdAt")
     @CreatedDate
     private Instant createdAt;
 
-    /** Timestamp when the service was last updated. */
+    /**
+     * Timestamp when the service was last updated.
+     */
     @Field("updatedAt")
     @LastModifiedDate
     private Instant updatedAt;
 
-    /** User who created this service (Keycloak user ID). */
+    /**
+     * User who created this service (Keycloak user ID).
+     */
     @Field("createdBy")
     @CreatedBy
     private String createdBy;
 
-    /** User who last modified this service (Keycloak user ID). */
+    /**
+     * User who last modified this service (Keycloak user ID).
+     */
     @Field("updatedBy")
     @LastModifiedBy
     private String updatedBy;
 
-    /** Additional attributes as key-value pairs. */
+    /**
+     * Additional attributes as key-value pairs.
+     */
     @Field("attributes")
     private Map<String, String> attributes;
 

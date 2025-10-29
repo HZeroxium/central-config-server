@@ -49,5 +49,6 @@ public class ApprovalDecisionDtos {
             @JsonProperty("note")
             @Schema(description = "Decision notes", example = "Approved based on team capacity and expertise")
             String note
-    ) {}
+    ) {
+    }
 }

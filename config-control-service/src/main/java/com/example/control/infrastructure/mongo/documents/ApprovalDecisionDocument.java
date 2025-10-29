@@ -37,49 +37,69 @@ import java.time.Instant;
 @CompoundIndex(def = "{'requestId': 1, 'approverUserId': 1, 'gate': 1}", unique = true)
 public class ApprovalDecisionDocument {
 
-    /** Document identifier: UUID string. */
+    /**
+     * Document identifier: UUID string.
+     */
     @Id
     private String id;
 
-    /** ID of the approval request this decision belongs to. */
+    /**
+     * ID of the approval request this decision belongs to.
+     */
     @Indexed
     @Field("requestId")
     private String requestId;
 
-    /** User who made this decision (Keycloak user ID). */
+    /**
+     * User who made this decision (Keycloak user ID).
+     */
     @Indexed
     @Field("approverUserId")
     private String approverUserId;
 
-    /** Gate this decision is for (e.g., SYS_ADMIN, LINE_MANAGER). */
+    /**
+     * Gate this decision is for (e.g., SYS_ADMIN, LINE_MANAGER).
+     */
     @Indexed
     @Field("gate")
     private String gate;
 
-    /** Decision made (stored as string value). */
+    /**
+     * Decision made (stored as string value).
+     */
     @Field("decision")
     private String decision;
 
-    /** Timestamp when the decision was made. */
+    /**
+     * Timestamp when the decision was made.
+     */
     @Field("decidedAt")
     @CreatedDate
     private Instant decidedAt;
 
-    /** Optional note from the approver. */
+    /**
+     * Optional note from the approver.
+     */
     @Field("note")
     private String note;
 
-    /** User who created this decision (Keycloak user ID). */
+    /**
+     * User who created this decision (Keycloak user ID).
+     */
     @Field("createdBy")
     @CreatedBy
     private String createdBy;
 
-    /** User who last modified this decision (Keycloak user ID). */
+    /**
+     * User who last modified this decision (Keycloak user ID).
+     */
     @Field("updatedBy")
     @LastModifiedBy
     private String updatedBy;
 
-    /** Timestamp when the decision was last updated. */
+    /**
+     * Timestamp when the decision was last updated.
+     */
     @Field("updatedAt")
     @LastModifiedDate
     private Instant updatedAt;

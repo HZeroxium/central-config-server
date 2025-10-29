@@ -59,42 +59,6 @@ public class DriftEventQueryService {
     }
 
     /**
-     * Find all drift events that are not resolved.
-     *
-     * @return list of unresolved drift events
-     */
-    @Cacheable(value = "drift-events", key = "'unresolved'")
-    public List<DriftEvent> findUnresolved() {
-        log.debug("Finding unresolved drift events");
-        return repository.findAll(DriftEventCriteria.unresolved(), Pageable.unpaged()).getContent();
-    }
-
-    /**
-     * Find unresolved drift events for a specific service.
-     *
-     * @param serviceName service name
-     * @return list of unresolved events
-     */
-    @Cacheable(value = "drift-events", key = "'unresolved:' + #serviceName")
-    public List<DriftEvent> findUnresolvedByService(String serviceName) {
-        log.debug("Finding unresolved drift events for service: {}", serviceName);
-        return repository.findAll(DriftEventCriteria.unresolvedForService(serviceName), Pageable.unpaged())
-                .getContent();
-    }
-
-    /**
-     * Find all drift events by service name.
-     *
-     * @param serviceName service name
-     * @return list of drift events
-     */
-    @Cacheable(value = "drift-events", key = "'service:' + #serviceName")
-    public List<DriftEvent> findByService(String serviceName) {
-        log.debug("Finding drift events for service: {}", serviceName);
-        return repository.findAll(DriftEventCriteria.forService(serviceName), Pageable.unpaged()).getContent();
-    }
-
-    /**
      * Count all drift events.
      *
      * @return total drift event count
@@ -117,15 +81,4 @@ public class DriftEventQueryService {
         return repository.count(criteria);
     }
 
-    /**
-     * Count drift events by their current status.
-     *
-     * @param status drift status
-     * @return count of events with the given status
-     */
-    @Cacheable(value = "drift-events", key = "'countByStatus:' + #status")
-    public long countByStatus(DriftEvent.DriftStatus status) {
-        log.debug("Counting drift events by status: {}", status);
-        return repository.count(DriftEventCriteria.withStatus(status));
-    }
 }

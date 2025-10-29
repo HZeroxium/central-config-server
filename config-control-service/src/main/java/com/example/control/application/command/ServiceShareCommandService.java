@@ -29,39 +29,39 @@ import java.util.UUID;
 @Transactional
 public class ServiceShareCommandService {
 
-  private final ServiceShareRepositoryPort repository;
+    private final ServiceShareRepositoryPort repository;
 
-  /**
-   * Saves a service share (create or update).
-   * Automatically generates ID if null.
-   * Evicts all service-shares cache entries.
-   *
-   * @param share the service share to save
-   * @return the saved service share
-   */
-  @CacheEvict(value = "service-shares", allEntries = true)
-  public ServiceShare save(@Valid ServiceShare share) {
-    log.debug("Saving service share: {}", share.getId());
+    /**
+     * Saves a service share (create or update).
+     * Automatically generates ID if null.
+     * Evicts all service-shares cache entries.
+     *
+     * @param share the service share to save
+     * @return the saved service share
+     */
+    @CacheEvict(value = "service-shares", allEntries = true)
+    public ServiceShare save(@Valid ServiceShare share) {
+        log.debug("Saving service share: {}", share.getId());
 
-    if (share.getId() == null) {
-      share.setId(ServiceShareId.of(UUID.randomUUID().toString()));
-      log.debug("Generated new ID for service share: {}", share.getId());
+        if (share.getId() == null) {
+            share.setId(ServiceShareId.of(UUID.randomUUID().toString()));
+            log.debug("Generated new ID for service share: {}", share.getId());
+        }
+
+        ServiceShare saved = repository.save(share);
+        log.info("Saved service share: {} for service: {}", saved.getId(), saved.getServiceId());
+        return saved;
     }
 
-    ServiceShare saved = repository.save(share);
-    log.info("Saved service share: {} for service: {}", saved.getId(), saved.getServiceId());
-    return saved;
-  }
-
-  /**
-   * Deletes a service share by ID.
-   * Evicts all service-shares cache entries.
-   *
-   * @param id the service share ID to delete
-   */
-  @CacheEvict(value = "service-shares", allEntries = true)
-  public void deleteById(ServiceShareId id) {
-    log.info("Deleting service share: {}", id);
-    repository.deleteById(id);
-  }
+    /**
+     * Deletes a service share by ID.
+     * Evicts all service-shares cache entries.
+     *
+     * @param id the service share ID to delete
+     */
+    @CacheEvict(value = "service-shares", allEntries = true)
+    public void deleteById(ServiceShareId id) {
+        log.info("Deleting service share: {}", id);
+        repository.deleteById(id);
+    }
 }

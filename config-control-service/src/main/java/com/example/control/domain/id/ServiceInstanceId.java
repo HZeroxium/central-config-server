@@ -39,17 +39,6 @@ public record ServiceInstanceId(String instanceId) implements Serializable {
     }
 
     /**
-     * Converts this ID to a MongoDB document ID string.
-     * <p>
-     * Since instanceId is globally unique, we use it directly as the document ID.
-     *
-     * @return the MongoDB document ID
-     */
-    public String toDocumentId() {
-        return instanceId;
-    }
-
-    /**
      * Creates ServiceInstanceId from a MongoDB document ID string.
      *
      * @param documentId the MongoDB document ID (instanceId)
@@ -62,6 +51,17 @@ public record ServiceInstanceId(String instanceId) implements Serializable {
         }
 
         return new ServiceInstanceId(documentId);
+    }
+
+    /**
+     * Converts this ID to a MongoDB document ID string.
+     * <p>
+     * Since instanceId is globally unique, we use it directly as the document ID.
+     *
+     * @return the MongoDB document ID
+     */
+    public String toDocumentId() {
+        return instanceId;
     }
 
     /**

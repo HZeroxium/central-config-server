@@ -5,11 +5,13 @@ import com.example.control.application.command.DriftEventCommandService;
 import com.example.control.application.command.ServiceInstanceCommandService;
 import com.example.control.application.query.ApplicationServiceQueryService;
 import com.example.control.application.query.ServiceShareQueryService;
-import com.example.control.config.security.UserContext;
-import com.example.control.domain.event.ServiceOwnershipTransferred;
-import com.example.control.domain.object.ApplicationService;
+import com.example.control.infrastructure.config.security.UserContext;
 import com.example.control.domain.criteria.ApplicationServiceCriteria;
+import com.example.control.domain.criteria.ServiceShareCriteria;
+import com.example.control.domain.event.ServiceOwnershipTransferred;
 import com.example.control.domain.id.ApplicationServiceId;
+import com.example.control.domain.object.ApplicationService;
+import com.example.control.domain.object.ServiceShare;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -116,7 +118,9 @@ public class ApplicationServiceService {
     public ApplicationService findOrCreateByDisplayName(String displayName) {
         log.debug("Finding or creating application service by display name: {}", displayName);
 
-        Optional<ApplicationService> existing = queryService.findByDisplayName(displayName);
+        ApplicationServiceCriteria criteria = ApplicationServiceCriteria.byDisplayName(displayName);
+        Page<ApplicationService> results = queryService.findAll(criteria, Pageable.unpaged());
+        Optional<ApplicationService> existing = results.getContent().stream().findFirst();
         if (existing.isPresent()) {
             return existing.get();
         }
@@ -150,7 +154,8 @@ public class ApplicationServiceService {
      */
     public List<ApplicationService> findByOwnerTeam(String ownerTeamId) {
         log.debug("Finding application services by owner team: {}", ownerTeamId);
-        return queryService.findByOwnerTeam(ownerTeamId);
+        ApplicationServiceCriteria criteria = ApplicationServiceCriteria.forTeam(ownerTeamId);
+        return queryService.findAll(criteria, Pageable.unpaged()).getContent();
     }
 
     /**
@@ -175,8 +180,8 @@ public class ApplicationServiceService {
      * @return page of application services visible to the user
      */
     public Page<ApplicationService> findAll(ApplicationServiceCriteria criteria,
-            Pageable pageable,
-            UserContext userContext) {
+                                            Pageable pageable,
+                                            UserContext userContext) {
         log.debug("Listing application services with criteria: {} for user: {}", criteria, userContext.getUserId());
 
         // System admins can see all services - no filtering
@@ -190,7 +195,19 @@ public class ApplicationServiceService {
         // services
 
         // Get services shared to user's teams
-        List<String> sharedServiceIds = serviceShareQueryService.getSharedServiceIdsForTeams(userContext.getTeamIds());
+        // Get shared service IDs via criteria + mapping
+        List<String> sharedServiceIds;
+        if (userContext.getTeamIds() == null || userContext.getTeamIds().isEmpty()) {
+            sharedServiceIds = List.of();
+        } else {
+            ServiceShareCriteria shareCriteria = ServiceShareCriteria.forTeams(userContext.getTeamIds());
+            List<ServiceShare> shares = serviceShareQueryService.findAll(shareCriteria, Pageable.unpaged())
+                    .getContent();
+            sharedServiceIds = shares.stream()
+                    .map(ServiceShare::getServiceId)
+                    .distinct()
+                    .toList();
+        }
         log.debug("Found {} services shared to user {} teams: {}",
                 sharedServiceIds.size(), userContext.getUserId(), userContext.getTeamIds());
 
@@ -255,7 +272,7 @@ public class ApplicationServiceService {
      */
     @Transactional
     public ApplicationService transferOwnershipWithCascade(String serviceId, String newTeamId,
-            UserContext userContext) {
+                                                           UserContext userContext) {
         log.info("Orchestrating ownership transfer of service {} to team {} by user {}",
                 serviceId, newTeamId, userContext.getUserId());
 

@@ -1,6 +1,6 @@
 package com.example.control.domain.criteria;
 
-import com.example.control.config.security.UserContext;
+import com.example.control.infrastructure.config.security.UserContext;
 import lombok.Builder;
 import lombok.With;
 
@@ -14,7 +14,7 @@ import java.util.List;
  * </p>
  *
  * @param displayName exact display name match
- * @param members list of member user IDs to filter by
+ * @param members     list of member user IDs to filter by
  * @param userTeamIds team IDs for ABAC filtering (null for admin queries)
  */
 @Builder(toBuilder = true)
@@ -22,8 +22,7 @@ import java.util.List;
 public record IamTeamCriteria(
         String displayName,
         List<String> members,
-        List<String> userTeamIds
-) {
+        List<String> userTeamIds) {
 
     /**
      * Creates criteria with no filtering (admin query).
@@ -55,6 +54,18 @@ public record IamTeamCriteria(
     public static IamTeamCriteria forUser(UserContext userContext) {
         return IamTeamCriteria.builder()
                 .userTeamIds(userContext != null ? userContext.getTeamIds() : null)
+                .build();
+    }
+
+    /**
+     * Creates criteria for teams containing a specific user.
+     *
+     * @param userId the user ID
+     * @return criteria for teams with the user as a member
+     */
+    public static IamTeamCriteria forMember(String userId) {
+        return IamTeamCriteria.builder()
+                .members(List.of(userId))
                 .build();
     }
 }

@@ -10,6 +10,7 @@
           <set>
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/config-control-service" />
+            <option value="$PROJECT_DIR$/config-control-service/keycloak-providers" />
             <option value="$PROJECT_DIR$/config-server" />
             <option value="$PROJECT_DIR$/sample-service" />
             <option value="$PROJECT_DIR$/zcm-spring-sdk-starter" />

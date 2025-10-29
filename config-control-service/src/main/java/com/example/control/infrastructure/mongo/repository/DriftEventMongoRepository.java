@@ -13,11 +13,11 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface DriftEventMongoRepository extends MongoRepository<DriftEventDocument, String> {
 
-  /**
-   * Counts all drift events matching a specific status.
-   *
-   * @param status drift event status (DETECTED, RESOLVED, etc.)
-   * @return total count
-   */
-  long countByStatus(String status);
+    /**
+     * Counts all drift events matching a specific status.
+     *
+     * @param status drift event status (DETECTED, RESOLVED, etc.)
+     * @return total count
+     */
+    long countByStatus(String status);
 }

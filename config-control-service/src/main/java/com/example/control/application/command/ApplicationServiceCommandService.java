@@ -29,39 +29,39 @@ import java.util.UUID;
 @Transactional
 public class ApplicationServiceCommandService {
 
-  private final ApplicationServiceRepositoryPort repository;
+    private final ApplicationServiceRepositoryPort repository;
 
-  /**
-   * Saves an application service (create or update).
-   * Automatically generates ID if null.
-   * Evicts all application-services cache entries.
-   *
-   * @param service the application service to save
-   * @return the saved application service
-   */
-  @CacheEvict(value = "application-services", allEntries = true)
-  public ApplicationService save(@Valid ApplicationService service) {
-    log.debug("Saving application service: {}", service.getId());
+    /**
+     * Saves an application service (create or update).
+     * Automatically generates ID if null.
+     * Evicts all application-services cache entries.
+     *
+     * @param service the application service to save
+     * @return the saved application service
+     */
+    @CacheEvict(value = "application-services", allEntries = true)
+    public ApplicationService save(@Valid ApplicationService service) {
+        log.debug("Saving application service: {}", service.getId());
 
-    if (service.getId() == null) {
-      service.setId(ApplicationServiceId.of(UUID.randomUUID().toString()));
-      log.debug("Generated new ID for application service: {}", service.getId());
+        if (service.getId() == null) {
+            service.setId(ApplicationServiceId.of(UUID.randomUUID().toString()));
+            log.debug("Generated new ID for application service: {}", service.getId());
+        }
+
+        ApplicationService saved = repository.save(service);
+        log.info("Saved application service: {} (displayName: {})", saved.getId(), saved.getDisplayName());
+        return saved;
     }
 
-    ApplicationService saved = repository.save(service);
-    log.info("Saved application service: {} (displayName: {})", saved.getId(), saved.getDisplayName());
-    return saved;
-  }
-
-  /**
-   * Deletes an application service by ID.
-   * Evicts all application-services cache entries.
-   *
-   * @param id the application service ID to delete
-   */
-  @CacheEvict(value = "application-services", allEntries = true)
-  public void deleteById(ApplicationServiceId id) {
-    log.info("Deleting application service: {}", id);
-    repository.deleteById(id);
-  }
+    /**
+     * Deletes an application service by ID.
+     * Evicts all application-services cache entries.
+     *
+     * @param id the application service ID to delete
+     */
+    @CacheEvict(value = "application-services", allEntries = true)
+    public void deleteById(ApplicationServiceId id) {
+        log.info("Deleting application service: {}", id);
+        repository.deleteById(id);
+    }
 }

@@ -43,18 +43,6 @@ public class ServiceInstanceQueryService {
     }
 
     /**
-     * Find all instances belonging to a service.
-     *
-     * @param serviceId the service ID
-     * @return list of instances
-     */
-    @Cacheable(value = "service-instances", key = "'service:' + #serviceId")
-    public List<ServiceInstance> findByServiceId(String serviceId) {
-        log.debug("Finding service instances for service: {}", serviceId);
-        return repository.findAll(ServiceInstanceCriteria.forService(serviceId), Pageable.unpaged()).getContent();
-    }
-
-    /**
      * Find all service instances with filtering and pagination.
      * <p>
      * This method does NOT apply user-based filtering - it returns raw data.
@@ -68,58 +56,6 @@ public class ServiceInstanceQueryService {
     public Page<ServiceInstance> findAll(ServiceInstanceCriteria criteria, Pageable pageable) {
         log.debug("Finding all service instances with criteria: {}", criteria);
         return repository.findAll(criteria, pageable);
-    }
-
-    /**
-     * Returns all instances currently marked as drifted.
-     *
-     * @return list of drifted instances
-     */
-    @Cacheable(value = "service-instances", key = "'drifted'")
-    public List<ServiceInstance> findAllWithDrift() {
-        log.debug("Finding all service instances with drift");
-        return repository.findAll(ServiceInstanceCriteria.withDrift(), Pageable.unpaged()).getContent();
-    }
-
-    /**
-     * Returns drifted instances for a specific service.
-     *
-     * @param serviceId service ID
-     * @return list of drifted instances
-     */
-    @Cacheable(value = "service-instances", key = "'drifted:' + #serviceId")
-    public List<ServiceInstance> findByServiceWithDrift(String serviceId) {
-        log.debug("Finding drifted service instances for service: {}", serviceId);
-        ServiceInstanceCriteria criteria = ServiceInstanceCriteria.forService(serviceId)
-                .withHasDrift(true);
-        return repository.findAll(criteria, Pageable.unpaged()).getContent();
-    }
-
-    /**
-     * Find instances that have become stale (inactive).
-     *
-     * @param threshold timestamp cutoff
-     * @return list of stale instances
-     */
-    @Cacheable(value = "service-instances", key = "'stale:' + #threshold")
-    public List<ServiceInstance> findStaleInstances(java.time.Instant threshold) {
-        log.debug("Finding stale service instances before: {}", threshold);
-        ServiceInstanceCriteria criteria = ServiceInstanceCriteria.builder()
-                .lastSeenAtTo(threshold)
-                .build();
-        return repository.findAll(criteria, Pageable.unpaged()).getContent();
-    }
-
-    /**
-     * Count instances for a given service.
-     *
-     * @param serviceId the service ID
-     * @return count of instances
-     */
-    @Cacheable(value = "service-instances", key = "'count:' + #serviceId")
-    public long countByServiceId(String serviceId) {
-        log.debug("Counting service instances for service: {}", serviceId);
-        return repository.count(ServiceInstanceCriteria.forService(serviceId));
     }
 
     /**
