@@ -20,8 +20,11 @@ services:
   #     - infra-network
 
   keycloak:
-    image: quay.io/keycloak/keycloak:26.4.0
+    image: hzeroxium/keycloak-custom:26.4.0
     container_name: keycloak
+    build:
+      context: ./config-control-service/keycloak
+      dockerfile: Dockerfile.keycloak
     # depends_on:
     #   postgres:
     #     condition: service_healthy
@@ -46,8 +49,12 @@ services:
       KC_METRICS_ENABLED: "true"
       KC_PROXY: "passthrough"
 
+      # Optional but explicit (if supported by your Keycloak version)
+      KC_HOSTNAME_URL: http://keycloak:8080
+
     command:
       - start-dev
+      - --log-level=com.example.keycloak.login:DEBUG,com.example.keycloak.registration:DEBUG,root:INFO
 
     ports:
       - "8080:8080"   # HTTP (dev)
@@ -88,4 +95,5 @@ volumes:
 
 networks:
   infra-network:
+    external: true
     name: infra-network
