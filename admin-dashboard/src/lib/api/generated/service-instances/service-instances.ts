@@ -41,6 +41,7 @@ import type {
 import type {
   ErrorResponse,
   FindAllServiceInstancesParams,
+  ServiceInstanceCreateRequest,
   ServiceInstancePageResponse,
   ServiceInstanceResponse,
   ServiceInstanceUpdateRequest
@@ -390,3 +391,75 @@ export function useFindAllServiceInstances<TData = Awaited<ReturnType<typeof fin
 
 
 
+/**
+ * Create a new service instance for an application service.
+
+**Required Permissions:**
+- Team members: Can create instances for services owned by their team
+- Shared access: Can create instances for services shared with EDIT_INSTANCE permission
+- SYS_ADMIN: Can create instances for any service
+
+ * @summary Create service instance
+ */
+export const createServiceInstance = (
+    serviceInstanceCreateRequest: ServiceInstanceCreateRequest,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<ServiceInstanceResponse>(
+      {url: `/api/service-instances`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: serviceInstanceCreateRequest, signal
+    },
+      options);
+    }
+  
+
+
+export const getCreateServiceInstanceMutationOptions = <TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createServiceInstance>>, TError,{data: ServiceInstanceCreateRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof createServiceInstance>>, TError,{data: ServiceInstanceCreateRequest}, TContext> => {
+
+const mutationKey = ['createServiceInstance'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createServiceInstance>>, {data: ServiceInstanceCreateRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createServiceInstance(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateServiceInstanceMutationResult = NonNullable<Awaited<ReturnType<typeof createServiceInstance>>>
+    export type CreateServiceInstanceMutationBody = ServiceInstanceCreateRequest
+    export type CreateServiceInstanceMutationError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse
+
+    /**
+ * @summary Create service instance
+ */
+export const useCreateServiceInstance = <TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createServiceInstance>>, TError,{data: ServiceInstanceCreateRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof createServiceInstance>>,
+        TError,
+        {data: ServiceInstanceCreateRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getCreateServiceInstanceMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    

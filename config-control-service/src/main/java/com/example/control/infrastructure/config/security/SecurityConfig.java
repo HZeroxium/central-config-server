@@ -383,7 +383,7 @@ public class SecurityConfig {
          */
         @Override
         public Collection<GrantedAuthority> convert(Jwt jwt) {
-            return java.util.List.copyOf(keycloakAuthoritiesStatic().convert(jwt));
+            return List.copyOf(keycloakAuthoritiesStatic().convert(jwt));
         }
     }
 }

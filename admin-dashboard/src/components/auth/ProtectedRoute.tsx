@@ -2,6 +2,7 @@ import React from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@features/auth/context";
 import { CircularProgress, Box } from "@mui/material";
+import { mapFrontendToBackendRoute } from "@lib/utils/routeMapping";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -61,7 +62,9 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   // Check route permission against backend-provided allowedUiRoutes
   if (requiredRoute && permissions) {
-    const hasRouteAccess = permissions.allowedUiRoutes.includes(requiredRoute);
+    // Map frontend route to backend route name for permission check
+    const backendRoute = mapFrontendToBackendRoute(requiredRoute);
+    const hasRouteAccess = permissions.allowedUiRoutes.includes(backendRoute);
     if (!hasRouteAccess) {
       return <Navigate to="/unauthorized" replace />;
     }

@@ -57,7 +57,7 @@ public class ApprovalRequestController {
          * @param jwt       the JWT token
          * @return the created request
          */
-        @PostMapping("/application-services/{serviceId}/approval-requests")
+        @PostMapping
         @Operation(summary = "Create approval request", description = """
                         Create a new approval request for service ownership.
 
@@ -82,13 +82,12 @@ public class ApprovalRequestController {
                         @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
         })
         public ResponseEntity<ApprovalRequestDtos.Response> create(
-                        @Parameter(description = "Service ID to request ownership for", example = "payment-service") @PathVariable String serviceId,
                         @Parameter(description = "Approval request creation data", schema = @Schema(implementation = ApprovalRequestDtos.CreateRequest.class)) @Valid @RequestBody ApprovalRequestDtos.CreateRequest request,
                         @AuthenticationPrincipal Jwt jwt) {
-                log.info("Creating approval request for service: {} to team: {}", serviceId, request.targetTeamId());
+                log.info("Creating approval request for service: {} to team: {}", request.serviceId(), request.targetTeamId());
 
                 UserContext userContext = UserContext.fromJwt(jwt);
-                ApprovalRequest approvalRequest = approvalService.createRequest(serviceId, request.targetTeamId(),
+                ApprovalRequest approvalRequest = approvalService.createRequest(request.serviceId(), request.targetTeamId(),
                                 userContext);
                 ApprovalRequestDtos.Response response = ApprovalRequestApiMapper.toResponse(approvalRequest);
 
@@ -203,7 +202,7 @@ public class ApprovalRequestController {
                         @SecurityRequirement(name = "oauth2_password")
         }, operationId = "submitApprovalDecision")
         @ApiResponses(value = {
-                        @ApiResponse(responseCode = "200", description = "Decision submitted successfully", content = @Content(schema = @Schema(implementation = ApprovalRequestDtos.Response.class))),
+                        @ApiResponse(responseCode = "201", description = "Decision submitted successfully", content = @Content(schema = @Schema(implementation = ApprovalRequestDtos.Response.class))),
                         @ApiResponse(responseCode = "400", description = "Invalid decision data", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
                         @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
                         @ApiResponse(responseCode = "403", description = "Forbidden - Not authorized to approve this request", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
@@ -238,7 +237,7 @@ public class ApprovalRequestController {
                 }
 
                 ApprovalRequestDtos.Response response = ApprovalRequestApiMapper.toResponse(updatedRequest.get());
-                return ResponseEntity.ok(response);
+                return ResponseEntity.status(HttpStatus.CREATED).body(response);
         }
 
         /**

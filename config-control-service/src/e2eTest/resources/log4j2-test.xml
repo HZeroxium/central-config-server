@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+  <Appenders>
+    <Console name="Console" target="SYSTEM_OUT">
+      <PatternLayout pattern="%d{ISO8601} %-5level %logger - %msg%n"/>
+    </Console>
+    <RollingFile name="E2EFile"
+                 fileName="build/logs/e2e-test.log"
+                 filePattern="build/logs/e2e-test.%d{yyyy-MM-dd}.log.gz">
+      <PatternLayout pattern="%d{ISO8601} %-5level %logger - %msg%n"/>
+      <Policies>
+        <TimeBasedTriggeringPolicy interval="1" />
+      </Policies>
+      <DefaultRolloverStrategy max="7"/>
+    </RollingFile>
+  </Appenders>
+
+  <Loggers>
+    <!-- Enable DEBUG for E2E package -->
+    <Logger name="com.example.control.e2e" level="DEBUG" additivity="false">
+      <AppenderRef ref="Console"/>
+      <AppenderRef ref="E2EFile"/>
+    </Logger>
+
+    <!-- Reduce noise from REST Assured if needed -->
+    <Logger name="io.restassured" level="DEBUG" additivity="false">
+      <AppenderRef ref="Console"/>
+      <AppenderRef ref="E2EFile"/>
+    </Logger>
+
+    <Root level="info">
+      <AppenderRef ref="Console"/>
+      <AppenderRef ref="E2EFile"/>
+    </Root>
+  </Loggers>
+</Configuration>

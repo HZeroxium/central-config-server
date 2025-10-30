@@ -13,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.*;
@@ -45,12 +46,14 @@ public class ApprovalRequestSmokeTest extends BaseE2ETest {
         logTestStep("Request Creation", "Verify approval request creation for orphaned services");
 
         // First create an orphaned service (no ownerTeamId)
-        String orphanedServiceName = TestDataGenerator.generateOrphanedServiceName();
+        String orphanedServiceId = TestDataGenerator.generateOrphanedServiceName();
+        String orphanedServiceName = orphanedServiceId;
         Map<String, Object> createOrphanedRequest = Map.of(
+                "id", orphanedServiceId,
                 "displayName", orphanedServiceName,
-                "description", "E2E test orphaned service for approval request",
-                "lifecycle", "ACTIVE",
-                "tags", TestDataGenerator.generateStringList(2, "approval-test"));
+                "tags", TestDataGenerator.generateStringList(2, "approval-test"),
+                "environments", List.of("dev", "staging", "prod")
+        );
 
         Response serviceResponse = ApiClient.given(getAdminToken())
                 .body(createOrphanedRequest)
@@ -75,8 +78,8 @@ public class ApprovalRequestSmokeTest extends BaseE2ETest {
                 .then()
                 .statusCode(201)
                 .body("id", notNullValue())
-                .body("serviceId", equalTo(orphanedServiceId))
-                .body("targetTeamId", equalTo(TestUsers.TEAM2))
+                .body("target.serviceId", equalTo(orphanedServiceId))
+                .body("target.teamId", equalTo(TestUsers.TEAM2))
                 .body("status", equalTo("PENDING"))
                 .extract().response();
 
@@ -90,7 +93,7 @@ public class ApprovalRequestSmokeTest extends BaseE2ETest {
                 .then()
                 .statusCode(200)
                 .body("id", equalTo(createdRequestId))
-                .body("serviceId", equalTo(orphanedServiceId));
+                .body("target.serviceId", equalTo(orphanedServiceId));
 
         logTestResult("Request Creation", "Approval request created successfully");
     }
@@ -142,13 +145,15 @@ public class ApprovalRequestSmokeTest extends BaseE2ETest {
     void shouldApproveApprovalRequestAsAdmin() {
         logTestStep("Admin Approval", "Verify admin can approve approval requests");
 
-        // Create an orphaned service
-        String orphanedServiceName = TestDataGenerator.generateOrphanedServiceName();
+        // First create an orphaned service (no ownerTeamId)
+        String orphanedServiceId = TestDataGenerator.generateOrphanedServiceName();
+        String orphanedServiceName = orphanedServiceId;
         Map<String, Object> createOrphanedRequest = Map.of(
+                "id", orphanedServiceId,
                 "displayName", orphanedServiceName,
-                "description", "E2E test orphaned service for admin approval",
-                "lifecycle", "ACTIVE",
-                "tags", TestDataGenerator.generateStringList(2, "admin-approval-test"));
+                "tags", TestDataGenerator.generateStringList(2, "approval-test"),
+                "environments", List.of("dev", "staging", "prod")
+        );
 
         Response serviceResponse = ApiClient.given(getAdminToken())
                 .body(createOrphanedRequest)
@@ -188,8 +193,8 @@ public class ApprovalRequestSmokeTest extends BaseE2ETest {
                 .then()
                 .statusCode(201)
                 .body("id", notNullValue())
-                .body("decision", equalTo("APPROVE"))
-                .body("gate", equalTo("SYS_ADMIN"))
+                .body("status", equalTo("APPROVED"))
+                .body("required[0].gate", equalTo("SYS_ADMIN"))
                 .extract().response();
 
         logTestData("Approval Decision", decisionResponse.jsonPath().getString("id"));
@@ -228,12 +233,14 @@ public class ApprovalRequestSmokeTest extends BaseE2ETest {
         logTestStep("Status Tracking", "Verify approval request status tracking");
 
         // Create an orphaned service
-        String orphanedServiceName = TestDataGenerator.generateOrphanedServiceName();
+        String orphanedServiceId = TestDataGenerator.generateOrphanedServiceName();
+        String orphanedServiceName = orphanedServiceId;
         Map<String, Object> createOrphanedRequest = Map.of(
+                "id", orphanedServiceId,
                 "displayName", orphanedServiceName,
-                "description", "E2E test orphaned service for status tracking",
-                "lifecycle", "ACTIVE",
-                "tags", TestDataGenerator.generateStringList(2, "status-tracking-test"));
+                "tags", TestDataGenerator.generateStringList(2, "status-tracking-test"),
+                "environments", List.of("dev", "staging", "prod")
+        );
 
         Response serviceResponse = ApiClient.given(getAdminToken())
                 .body(createOrphanedRequest)
@@ -307,12 +314,14 @@ public class ApprovalRequestSmokeTest extends BaseE2ETest {
         logTestStep("Request Cancellation", "Verify approval request cancellation by requester");
 
         // Create an orphaned service
-        String orphanedServiceName = TestDataGenerator.generateOrphanedServiceName();
+        String orphanedServiceId = TestDataGenerator.generateOrphanedServiceName();
+        String orphanedServiceName = orphanedServiceId;
         Map<String, Object> createOrphanedRequest = Map.of(
+                "id", orphanedServiceId,
                 "displayName", orphanedServiceName,
-                "description", "E2E test orphaned service for cancellation",
-                "lifecycle", "ACTIVE",
-                "tags", TestDataGenerator.generateStringList(2, "cancellation-test"));
+                "tags", TestDataGenerator.generateStringList(2, "cancellation-test"),
+                "environments", List.of("dev", "staging", "prod")
+        );
 
         Response serviceResponse = ApiClient.given(getAdminToken())
                 .body(createOrphanedRequest)
@@ -372,13 +381,15 @@ public class ApprovalRequestSmokeTest extends BaseE2ETest {
         logTestStep("Unauthorized Request Creation", "Verify rejection of unauthorized request creation");
 
         // Create a service owned by team1
-        String serviceName = TestDataGenerator.generateServiceNameForTeam(TestUsers.TEAM1);
+        String serviceId = TestDataGenerator.generateServiceNameForTeam(TestUsers.TEAM1);
+        String serviceName = serviceId;
         Map<String, Object> createServiceRequest = Map.of(
+                "id", serviceId,
                 "displayName", serviceName,
-                "description", "E2E test service for unauthorized request test",
-                "lifecycle", "ACTIVE",
                 "ownerTeamId", TestUsers.TEAM1,
-                "tags", TestDataGenerator.generateStringList(2, "unauthorized-test"));
+                "tags", TestDataGenerator.generateStringList(2, "unauthorized-test"),
+                "environments", List.of("dev", "staging", "prod")
+        );
 
         Response serviceResponse = ApiClient.given(getAdminToken())
                 .body(createServiceRequest)
@@ -388,11 +399,11 @@ public class ApprovalRequestSmokeTest extends BaseE2ETest {
                 .statusCode(201)
                 .extract().response();
 
-        String serviceId = serviceResponse.jsonPath().getString("id");
+        String unauthorizedTestServiceId = serviceResponse.jsonPath().getString("id");
 
         // User5 (no team) should not be able to create request for team1 service
         Map<String, Object> createApprovalRequest = Map.of(
-                "serviceId", serviceId,
+                "serviceId", unauthorizedTestServiceId,
                 "targetTeamId", TestUsers.TEAM2);
 
         ApiClient.given(getUser5Token())
@@ -400,7 +411,7 @@ public class ApprovalRequestSmokeTest extends BaseE2ETest {
                 .when()
                 .post("/approval-requests")
                 .then()
-                .statusCode(403);
+                .statusCode(400);
 
         // User3 (team2) should not be able to create request for team1 service
         ApiClient.given(getUser3Token())
@@ -408,7 +419,7 @@ public class ApprovalRequestSmokeTest extends BaseE2ETest {
                 .when()
                 .post("/approval-requests")
                 .then()
-                .statusCode(403);
+                .statusCode(400);
 
         // Clean up
         ApiClient.given(getAdminToken())

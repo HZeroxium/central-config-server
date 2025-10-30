@@ -329,13 +329,14 @@ export default function ServiceInstanceDetailPage() {
                 </Typography>
                 <Box
                   component="pre"
-                  sx={{
-                    bgcolor: "grey.100",
+                  sx={theme => ({
+                    bgcolor: theme.palette.mode === "dark" ? "grey.900" : "grey.100",
+                    color: theme.palette.mode === "dark" ? "grey.100" : "grey.900",
                     p: 2,
                     borderRadius: 1,
                     overflow: "auto",
                     fontSize: "0.875rem",
-                  }}
+                  })}
                 >
                   {JSON.stringify(instance.metadata, null, 2)}
                 </Box>

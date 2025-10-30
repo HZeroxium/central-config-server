@@ -65,7 +65,6 @@ public class DriftDetectionWorkflowTest extends BaseE2ETest {
         String instanceId = TestDataGenerator.generateInstanceId();
         String initialHash = TestDataGenerator.generateTestHash();
         Map<String, Object> createInstanceRequest = Map.of(
-                "serviceName", serviceName,
                 "instanceId", instanceId,
                 "serviceId", serviceId,
                 "host", TestDataGenerator.generateTestHost(),
@@ -240,7 +239,6 @@ public class DriftDetectionWorkflowTest extends BaseE2ETest {
         String instanceId = TestDataGenerator.generateInstanceId();
         String initialHash = TestDataGenerator.generateTestHash();
         Map<String, Object> createInstanceRequest = Map.of(
-                "serviceName", serviceName,
                 "instanceId", instanceId,
                 "serviceId", serviceId,
                 "host", TestDataGenerator.generateTestHost(),
@@ -350,7 +348,6 @@ public class DriftDetectionWorkflowTest extends BaseE2ETest {
         // Create an instance
         String instanceId = TestDataGenerator.generateInstanceId();
         Map<String, Object> createInstanceRequest = Map.of(
-                "serviceName", serviceName,
                 "instanceId", instanceId,
                 "serviceId", serviceId,
                 "host", TestDataGenerator.generateTestHost(),
@@ -466,7 +463,6 @@ public class DriftDetectionWorkflowTest extends BaseE2ETest {
         // Create an instance
         String instanceId = TestDataGenerator.generateInstanceId();
         Map<String, Object> createInstanceRequest = Map.of(
-                "serviceName", serviceName,
                 "instanceId", instanceId,
                 "serviceId", serviceId,
                 "host", TestDataGenerator.generateTestHost(),

@@ -65,14 +65,13 @@ public class MultiGateApprovalWorkflowTest extends BaseE2ETest {
 
         // Step 2: User2 (has manager user1) requests ownership for team1
         Map<String, Object> createApprovalRequest = Map.of(
-                "serviceId", serviceId,
                 "targetTeamId", TestUsers.TEAM1
         );
 
         Response approvalResponse = ApiClient.given(getUser2Token())
                 .body(createApprovalRequest)
                 .when()
-                .post("/approval-requests")
+                .post("/approval-requests/application-services/" + serviceId + "/approval-requests")
                 .then()
                 .statusCode(201)
                 .body("id", notNullValue())
@@ -234,14 +233,13 @@ public class MultiGateApprovalWorkflowTest extends BaseE2ETest {
 
         // User2 creates approval request
         Map<String, Object> createApprovalRequest = Map.of(
-                "serviceId", serviceId,
                 "targetTeamId", TestUsers.TEAM1
         );
 
         Response approvalResponse = ApiClient.given(getUser2Token())
                 .body(createApprovalRequest)
                 .when()
-                .post("/approval-requests")
+                .post("/approval-requests/application-services/" + serviceId + "/approval-requests")
                 .then()
                 .statusCode(201)
                 .extract().response();
@@ -316,14 +314,13 @@ public class MultiGateApprovalWorkflowTest extends BaseE2ETest {
 
         // User2 creates approval request
         Map<String, Object> createApprovalRequest = Map.of(
-                "serviceId", serviceId,
                 "targetTeamId", TestUsers.TEAM1
         );
 
         Response approvalResponse = ApiClient.given(getUser2Token())
                 .body(createApprovalRequest)
                 .when()
-                .post("/approval-requests")
+                .post("/approval-requests/application-services/" + serviceId + "/approval-requests")
                 .then()
                 .statusCode(201)
                 .extract().response();
@@ -412,14 +409,13 @@ public class MultiGateApprovalWorkflowTest extends BaseE2ETest {
 
         // User2 creates approval request
         Map<String, Object> createApprovalRequest = Map.of(
-                "serviceId", serviceId,
                 "targetTeamId", TestUsers.TEAM1
         );
 
         Response approvalResponse = ApiClient.given(getUser2Token())
                 .body(createApprovalRequest)
                 .when()
-                .post("/approval-requests")
+                .post("/approval-requests/application-services/" + serviceId + "/approval-requests")
                 .then()
                 .statusCode(201)
                 .extract().response();

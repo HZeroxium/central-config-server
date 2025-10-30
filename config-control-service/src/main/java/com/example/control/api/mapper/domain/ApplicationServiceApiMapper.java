@@ -38,9 +38,7 @@ public final class ApplicationServiceApiMapper {
                 .tags(request.tags() != null ? request.tags() : List.of())
                 .repoUrl(request.repoUrl())
                 .lifecycle(ApplicationService.ServiceLifecycle.ACTIVE)
-                .createdAt(Instant.now())
-                .updatedAt(Instant.now())
-                .createdBy("system") // Will be set by service layer
+                // createdAt, updatedAt, createdBy will be set by service layer
                 .attributes(request.attributes() != null ? request.attributes() : Map.of())
                 .build();
     }

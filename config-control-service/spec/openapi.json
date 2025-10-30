@@ -82,7 +82,9 @@
   "paths": {
     "/api/service-instances/{instanceId}": {
       "get": {
-        "tags": ["Service Instances"],
+        "tags": [
+          "Service Instances"
+        ],
         "summary": "Get service instance by ID",
         "description": "Retrieve a specific service instance by instance ID.\n\n**Access Control:**\n- Team members: Can view instances of services owned by their team\n- Shared access: Can view instances of services shared with their team\n- SYS_ADMIN: Can view all instances\n",
         "operationId": "findByIdServiceInstance",
@@ -109,18 +111,8 @@
               }
             }
           },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Service instance not found",
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
             "content": {
               "application/json": {
                 "schema": {
@@ -139,8 +131,18 @@
               }
             }
           },
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
+          "404": {
+            "description": "Service instance not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -160,7 +162,9 @@
         ]
       },
       "put": {
-        "tags": ["Service Instances"],
+        "tags": [
+          "Service Instances"
+        ],
         "summary": "Update service instance",
         "description": "Update an existing service instance.\n\n**Required Permissions:**\n- Team members: Can update instances of services owned by their team\n- SYS_ADMIN: Can update any instance\n- Updates include configuration hash, status, and drift information\n",
         "operationId": "updateServiceInstance",
@@ -197,6 +201,36 @@
               }
             }
           },
+          "400": {
+            "description": "Invalid request data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Service instance not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "200": {
             "description": "Service instance updated successfully",
             "content": {
@@ -216,36 +250,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "description": "Invalid request data",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Service instance not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
           }
         },
         "security": [
@@ -258,7 +262,9 @@
         ]
       },
       "delete": {
-        "tags": ["Service Instances"],
+        "tags": [
+          "Service Instances"
+        ],
         "summary": "Delete service instance",
         "description": "Delete a service instance permanently.\n\n**Required Permissions:**\n- Team members: Can delete instances of services owned by their team\n- SYS_ADMIN: Can delete any instance\n- This action is irreversible\n",
         "operationId": "deleteServiceInstance",
@@ -288,8 +294,8 @@
           "200": {
             "description": "Service instance deleted successfully"
           },
-          "500": {
-            "description": "Internal server error",
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
             "content": {
               "application/json": {
                 "schema": {
@@ -308,8 +314,8 @@
               }
             }
           },
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -331,7 +337,9 @@
     },
     "/api/application-services/{id}": {
       "get": {
-        "tags": ["Application Services"],
+        "tags": [
+          "Application Services"
+        ],
         "summary": "Get application service by ID",
         "description": "Retrieve a specific application service by its ID.\n\n**Access Control:**\n- **Authentication required** - Unauthenticated requests will receive 401\n- **Visibility rules apply** - Users can only access:\n  - Orphaned services (ownerTeamId=null)\n  - Services owned by their teams\n  - Services shared to their teams\n- Returns 404 if service doesn't exist or user lacks permission\n",
         "operationId": "findApplicationServiceById",
@@ -368,22 +376,22 @@
               }
             }
           },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "200": {
             "description": "Application service found",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApplicationServiceResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -399,7 +407,9 @@
         ]
       },
       "put": {
-        "tags": ["Application Services"],
+        "tags": [
+          "Application Services"
+        ],
         "summary": "Update application service",
         "description": "Update an existing application service.\n\n**Required Permissions:**\n- SYS_ADMIN: Can update any service\n- Team members: Can update services owned by their team\n- Partial updates are supported (only provided fields are updated)\n",
         "operationId": "updateApplicationService",
@@ -436,36 +446,6 @@
               }
             }
           },
-          "200": {
-            "description": "Application service updated successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApplicationServiceResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Application service not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "400": {
             "description": "Invalid request data",
             "content": {
@@ -485,6 +465,36 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Application service not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Application service updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationServiceResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -497,7 +507,9 @@
         ]
       },
       "delete": {
-        "tags": ["Application Services"],
+        "tags": [
+          "Application Services"
+        ],
         "summary": "Delete application service",
         "description": "Delete an application service permanently.\n\n**Required Permissions:**\n- SYS_ADMIN: Only system administrators can delete services\n- This action is irreversible and will remove all associated data\n",
         "operationId": "deleteApplicationService",
@@ -524,15 +536,8 @@
               }
             }
           },
-          "403": {
-            "description": "Forbidden - SYS_ADMIN role required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+          "204": {
+            "description": "Application service deleted successfully"
           },
           "404": {
             "description": "Application service not found",
@@ -544,11 +549,18 @@
               }
             }
           },
-          "204": {
-            "description": "Application service deleted successfully"
-          },
           "500": {
             "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - SYS_ADMIN role required",
             "content": {
               "application/json": {
                 "schema": {
@@ -570,7 +582,9 @@
     },
     "/api/service-shares": {
       "get": {
-        "tags": ["Service Shares"],
+        "tags": [
+          "Service Shares"
+        ],
         "summary": "List service shares",
         "description": "Retrieve a paginated list of service shares.\n\n**Access Control:**\n- Team members: Can view shares for services owned by their team\n- SYS_ADMIN: Can view all shares\n- Results are automatically filtered based on user permissions\n",
         "operationId": "findAllServiceShares",
@@ -600,7 +614,10 @@
               "type": "string",
               "description": "Filter by grantee type",
               "example": "TEAM",
-              "enum": ["TEAM", "USER"]
+              "enum": [
+                "TEAM",
+                "USER"
+              ]
             },
             "example": "TEAM"
           },
@@ -626,9 +643,15 @@
             "schema": {
               "type": "string",
               "description": "Filter by environments",
-              "example": ["dev", "staging"]
+              "example": [
+                "dev",
+                "staging"
+              ]
             },
-            "example": ["dev", "staging"]
+            "example": [
+              "dev",
+              "staging"
+            ]
           },
           {
             "name": "page",
@@ -676,8 +699,8 @@
               }
             }
           },
-          "500": {
-            "description": "Internal server error",
+          "400": {
+            "description": "Invalid request parameters",
             "content": {
               "application/json": {
                 "schema": {
@@ -696,8 +719,8 @@
               }
             }
           },
-          "400": {
-            "description": "Invalid request parameters",
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -717,7 +740,9 @@
         ]
       },
       "post": {
-        "tags": ["Service Shares"],
+        "tags": [
+          "Service Shares"
+        ],
         "summary": "Grant service share",
         "description": "Grant fine-grained permissions for a service to another team or user.\n\n**Permission Types:**\n- VIEW_INSTANCE: View service instances\n- EDIT_INSTANCE: Edit service instances\n- VIEW_DRIFT: View drift events\n- EDIT_DRIFT: Edit drift events\n\n**Access Control:**\n- Team members: Can share services owned by their team\n- SYS_ADMIN: Can share any service\n- Permissions can be environment-specific (dev, staging, prod)\n",
         "operationId": "grantServiceShare",
@@ -734,6 +759,26 @@
         "responses": {
           "401": {
             "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
             "content": {
               "application/json": {
                 "schema": {
@@ -771,1304 +816,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "description": "Invalid request data",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "oauth2_auth_code": []
-          },
-          {
-            "oauth2_password": []
-          }
-        ]
-      }
-    },
-    "/api/heartbeat": {
-      "post": {
-        "tags": ["Heartbeat"],
-        "summary": "Process heartbeat from service instance",
-        "description": "Receives periodic heartbeat signals from running service instances.\nThis endpoint tracks instance liveness, detects configuration drift,\nand can trigger automatic configuration refreshes.\n\n**Public Endpoint:** No authentication required for SDK integration\n**Drift Detection:** Compares current config hash with last applied hash\n**Auto-Refresh:** Can trigger config refresh if drift is detected\n",
-        "operationId": "processHeartbeat",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/HeartbeatPayload"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid heartbeat payload",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error during heartbeat processing",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "200": {
-            "description": "Heartbeat processed successfully",
-            "content": {
-              "application/json": {
-                "examples": {
-                  "Successful Heartbeat": {
-                    "description": "Successful Heartbeat",
-                    "value": {
-                      "status": "ok",
-                      "message": "Heartbeat processed",
-                      "instance": {
-                        "serviceName": "payment-service",
-                        "instanceId": "payment-dev-1",
-                        "status": "HEALTHY",
-                        "hasDrift": false,
-                        "configHash": "abc123def456",
-                        "lastAppliedHash": "abc123def456"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "oauth2_auth_code": []
-          },
-          {
-            "oauth2_password": []
-          }
-        ]
-      }
-    },
-    "/api/drift-events": {
-      "get": {
-        "tags": ["Drift Events"],
-        "summary": "List drift events with filters and pagination",
-        "description": "Retrieve a paginated list of drift events with optional filtering.\n\n**Access Control:**\n- Team members: Can view drift events for services owned by their team\n- SYS_ADMIN: Can view all drift events\n- Shared access: Can view drift events for services shared with their team\n- Results are automatically filtered based on user permissions\n",
-        "operationId": "findAllDriftEvents",
-        "parameters": [
-          {
-            "name": "serviceName",
-            "in": "query",
-            "description": "Filter by service name",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "description": "Filter by service name",
-              "example": "payment-service"
-            },
-            "example": "payment-service"
-          },
-          {
-            "name": "instanceId",
-            "in": "query",
-            "description": "Filter by instance ID",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "description": "Filter by instance ID",
-              "example": "payment-dev-1"
-            },
-            "example": "payment-dev-1"
-          },
-          {
-            "name": "status",
-            "in": "query",
-            "description": "Filter by drift status",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "description": "Filter by drift status",
-              "example": "DETECTED",
-              "enum": ["DETECTED", "RESOLVED", "IGNORED"]
-            },
-            "example": "DETECTED"
-          },
-          {
-            "name": "severity",
-            "in": "query",
-            "description": "Filter by severity level",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "description": "Filter by severity level",
-              "example": "HIGH",
-              "enum": ["LOW", "MEDIUM", "HIGH", "CRITICAL"]
-            },
-            "example": "HIGH"
-          },
-          {
-            "name": "detectedAtFrom",
-            "in": "query",
-            "description": "Filter events detected after this timestamp",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "description": "Filter events detected after this timestamp",
-              "example": "2024-01-15T00:00:00Z"
-            },
-            "example": "2024-01-15T00:00:00Z"
-          },
-          {
-            "name": "detectedAtTo",
-            "in": "query",
-            "description": "Filter events detected before this timestamp",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "description": "Filter events detected before this timestamp",
-              "example": "2024-01-15T23:59:59Z"
-            },
-            "example": "2024-01-15T23:59:59Z"
-          },
-          {
-            "name": "unresolvedOnly",
-            "in": "query",
-            "description": "Show only unresolved events",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "description": "Show only unresolved events",
-              "example": true
-            },
-            "example": true
-          },
-          {
-            "name": "page",
-            "in": "query",
-            "description": "Zero-based page index (0..N)",
-            "required": false,
-            "schema": {
-              "minimum": 0,
-              "type": "integer",
-              "default": 0
-            }
-          },
-          {
-            "name": "size",
-            "in": "query",
-            "description": "The size of the page to be returned",
-            "required": false,
-            "schema": {
-              "minimum": 1,
-              "type": "integer",
-              "default": 20
-            }
-          },
-          {
-            "name": "sort",
-            "in": "query",
-            "description": "Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.",
-            "required": false,
-            "schema": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            }
-          }
-        ],
-        "responses": {
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "200": {
-            "description": "Drift events retrieved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DriftEventPageResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid request parameters",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "oauth2_auth_code": []
-          },
-          {
-            "oauth2_password": []
-          }
-        ]
-      },
-      "post": {
-        "tags": ["Drift Events"],
-        "summary": "Create drift event",
-        "description": "Create a new drift event when configuration drift is detected.\n\n**Access Control:**\n- Team members: Can create drift events for services owned by their team\n- SYS_ADMIN: Can create drift events for any service\n- System: Can create drift events automatically during heartbeat processing\n",
-        "operationId": "createDriftEvent",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DriftEventCreateRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "200": {
-            "description": "Drift event created successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DriftEventResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid request data",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "oauth2_auth_code": []
-          },
-          {
-            "oauth2_password": []
-          }
-        ]
-      }
-    },
-    "/api/approval-requests/{id}/decisions": {
-      "post": {
-        "tags": ["Approval Requests"],
-        "summary": "Submit approval decision",
-        "description": "Submit a decision (approve/reject) for an approval request.\n\n**Multi-Gate Approval:**\n- SYS_ADMIN: Can approve/reject any request\n- LINE_MANAGER: Can approve/reject requests from their direct reports\n- Request status is updated based on required approvals from configured gates\n\n**Access Control:**\n- Only authorized approvers can submit decisions\n- Decision is recorded with approver information and timestamp\n",
-        "operationId": "submitApprovalDecision",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "description": "Approval request ID",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "example": "request-12345"
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ApprovalRequestDecisionRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Approval request not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid decision data",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "200": {
-            "description": "Decision submitted successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApprovalRequestResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden - Not authorized to approve this request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "oauth2_auth_code": []
-          },
-          {
-            "oauth2_password": []
-          }
-        ]
-      }
-    },
-    "/api/approval-requests/application-services/{serviceId}/approval-requests": {
-      "post": {
-        "tags": ["Approval Requests"],
-        "summary": "Create approval request",
-        "description": "Create a new approval request for service ownership.\n\n**Multi-Gate Approval Flow:**\n- SYS_ADMIN: Can approve/reject any request\n- LINE_MANAGER: Can approve requests from their direct reports\n- Request requires approval from configured gates before service ownership is transferred\n\n**Access Control:**\n- Team members: Can create requests for services not owned by their team\n- SYS_ADMIN: Can create requests for any service\n",
-        "operationId": "createApprovalRequest",
-        "parameters": [
-          {
-            "name": "serviceId",
-            "in": "path",
-            "description": "Service ID to request ownership for",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "example": "payment-service"
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ApprovalRequestCreateRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "201": {
-            "description": "Approval request created successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApprovalRequestResponse"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Conflict - Request already exists",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid request data",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "oauth2_auth_code": []
-          },
-          {
-            "oauth2_password": []
-          }
-        ]
-      }
-    },
-    "/api/application-services": {
-      "get": {
-        "tags": ["Application Services"],
-        "summary": "List all application services",
-        "description": "Retrieve a paginated list of application services visible to the authenticated user.\n\n**Access Control & Visibility Rules:**\n- **Authentication required** - Unauthenticated requests will receive 401\n- **System admins** see all services (no filtering)\n- **Regular users** see:\n  - Orphaned services (ownerTeamId=null) - for ownership request workflow\n  - Services owned by their teams\n  - Services shared to their teams via ServiceShare grants\n- Server-side filtering ensures users only see authorized services\n\n**Use Cases:**\n- Service discovery and catalog browsing\n- Requesting ownership of orphaned services\n- Viewing team-owned and shared services\n",
-        "operationId": "findAllApplicationServices",
-        "parameters": [
-          {
-            "name": "ownerTeamId",
-            "in": "query",
-            "description": "Filter by owner team ID",
-            "required": false,
-            "schema": {
-              "maxLength": 100,
-              "minLength": 0,
-              "type": "string",
-              "description": "Filter by owner team ID",
-              "example": "team_core"
-            },
-            "example": "team_core"
-          },
-          {
-            "name": "lifecycle",
-            "in": "query",
-            "description": "Filter by lifecycle stage",
-            "required": false,
-            "schema": {
-              "maxLength": 50,
-              "minLength": 0,
-              "type": "string",
-              "description": "Filter by lifecycle stage",
-              "example": "ACTIVE",
-              "enum": ["ACTIVE", "DEPRECATED", "RETIRED"]
-            },
-            "example": "ACTIVE"
-          },
-          {
-            "name": "tags",
-            "in": "query",
-            "description": "Filter by tags",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "description": "Filter by tags",
-              "example": ["microservice", "payment"]
-            },
-            "example": ["microservice", "payment"]
-          },
-          {
-            "name": "search",
-            "in": "query",
-            "description": "Search term for service name or description",
-            "required": false,
-            "schema": {
-              "maxLength": 200,
-              "minLength": 0,
-              "type": "string",
-              "description": "Search term for service name or description",
-              "example": "payment"
-            },
-            "example": "payment"
-          },
-          {
-            "name": "page",
-            "in": "query",
-            "description": "Zero-based page index (0..N)",
-            "required": false,
-            "schema": {
-              "minimum": 0,
-              "type": "integer",
-              "default": 0
-            }
-          },
-          {
-            "name": "size",
-            "in": "query",
-            "description": "The size of the page to be returned",
-            "required": false,
-            "schema": {
-              "minimum": 1,
-              "type": "integer",
-              "default": 20
-            }
-          },
-          {
-            "name": "sort",
-            "in": "query",
-            "description": "Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.",
-            "required": false,
-            "schema": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            }
-          }
-        ],
-        "responses": {
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "200": {
-            "description": "Successfully retrieved application services",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApplicationServicePageResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid request parameters",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "oauth2_auth_code": []
-          },
-          {
-            "oauth2_password": []
-          }
-        ]
-      },
-      "post": {
-        "tags": ["Application Services"],
-        "summary": "Create a new application service",
-        "description": "Create a new application service with team ownership.\n\n**Required Permissions:**\n- SYS_ADMIN: Can create services for any team\n- Team members: Can create services for their own team\n- Service ID must be unique across the system\n",
-        "operationId": "createApplicationService",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ApplicationServiceCreateRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Conflict - Service ID already exists",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid request data",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "201": {
-            "description": "Application service created successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApplicationServiceResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "oauth2_auth_code": []
-          },
-          {
-            "oauth2_password": []
-          }
-        ]
-      }
-    },
-    "/api/admin/seed/seed": {
-      "post": {
-        "tags": ["Data Seeding"],
-        "summary": "Seed new mock data",
-        "description": "Generates and saves new mock data (services, instances, drift events, etc.) based on seeding configuration. Does not clean existing data first.",
-        "operationId": "seedData",
-        "responses": {
-          "500": {
-            "description": "Internal server error during seeding operation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SeedResult"
-                }
-              }
-            }
-          },
-          "200": {
-            "description": "Data seeded successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SeedResult"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden: Requires SYS_ADMIN role or dev profile",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SeedResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/admin/seed/clean-and-seed": {
-      "post": {
-        "tags": ["Data Seeding"],
-        "summary": "Clean and seed mock data",
-        "description": "Atomically removes all existing mock data and generates fresh data. This is the recommended endpoint for environment resets.",
-        "operationId": "cleanAndSeedData",
-        "responses": {
-          "200": {
-            "description": "Data cleaned and seeded successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CombinedResult"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden: Requires SYS_ADMIN role or dev profile",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CombinedResult"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error during clean-and-seed operation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CombinedResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/drift-events/{id}": {
-      "get": {
-        "tags": ["Drift Events"],
-        "summary": "Get drift event by ID",
-        "description": "Retrieve a specific drift event by its ID.\n\n**Access Control:**\n- Team members: Can view drift events for services owned by their team\n- SYS_ADMIN: Can view any drift event\n- Shared access: Can view drift events for services shared with their team\n",
-        "operationId": "findDriftEventById",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "description": "Drift event ID",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "example": "drift-12345"
-          }
-        ],
-        "responses": {
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "200": {
-            "description": "Drift event found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DriftEventResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Drift event not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "oauth2_auth_code": []
-          },
-          {
-            "oauth2_password": []
-          }
-        ]
-      },
-      "patch": {
-        "tags": ["Drift Events"],
-        "summary": "Update drift event",
-        "description": "Update an existing drift event (status and notes).\n\n**Access Control:**\n- Team members: Can update drift events for services owned by their team\n- SYS_ADMIN: Can update any drift event\n- Updates include status changes (DETECTED, RESOLVED, IGNORED) and resolution notes\n",
-        "operationId": "updateDriftEvent",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "description": "Drift event ID",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "example": "drift-12345"
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DriftEventUpdateRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid request data",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "200": {
-            "description": "Drift event updated successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DriftEventResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Drift event not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "oauth2_auth_code": []
-          },
-          {
-            "oauth2_password": []
-          }
-        ]
-      }
-    },
-    "/api/user/whoami": {
-      "get": {
-        "tags": ["User Management"],
-        "summary": "Get current user information",
-        "description": "Retrieve detailed information about the currently authenticated user.\nThis includes user ID, username, email, names, team memberships, roles, and manager ID.\n",
-        "operationId": "findCurrentUserInformation",
-        "responses": {
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "200": {
-            "description": "User information retrieved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MeResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "oauth2_auth_code": []
-          },
-          {
-            "oauth2_password": []
-          }
-        ]
-      }
-    },
-    "/api/user/me/permissions": {
-      "get": {
-        "tags": ["User Management"],
-        "summary": "Get user permissions and routes",
-        "description": "Retrieve comprehensive permission information for the current user.\nThis includes allowed API routes, UI routes, roles, teams, actions, and service access.\n\n**Permission Matrix:**\n- API routes: Endpoints the user can access\n- UI routes: Frontend pages the user can navigate to\n- Actions: Specific operations the user can perform\n- Services: Owned and shared services the user can access\n",
-        "operationId": "findCurrentUserPermissions",
-        "responses": {
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "200": {
-            "description": "User permissions retrieved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PermissionsResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "oauth2_auth_code": []
-          },
-          {
-            "oauth2_password": []
-          }
-        ]
-      }
-    },
-    "/api/service-shares/{id}": {
-      "get": {
-        "tags": ["Service Shares"],
-        "summary": "Get service share by ID",
-        "description": "Retrieve a specific service share by its ID.\n\n**Access Control:**\n- Team members: Can view shares for services owned by their team\n- SYS_ADMIN: Can view any share\n- Shared access: Can view shares granted to their team\n",
-        "operationId": "findByIdServiceShare",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "description": "Service share ID",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "example": "share-12345"
-          }
-        ],
-        "responses": {
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "200": {
-            "description": "Service share found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ServiceShareResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Service share not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "oauth2_auth_code": []
-          },
-          {
-            "oauth2_password": []
-          }
-        ]
-      },
-      "delete": {
-        "tags": ["Service Shares"],
-        "summary": "Revoke service share",
-        "description": "Revoke a service share, removing all granted permissions.\n\n**Access Control:**\n- Team members: Can revoke shares for services owned by their team\n- SYS_ADMIN: Can revoke any share\n- Share creator: Can revoke shares they created\n\n**Note:** This action is irreversible\n",
-        "operationId": "revokeServiceShare",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "description": "Service share ID",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "example": "share-12345"
-          }
-        ],
-        "responses": {
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Service share not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "204": {
-            "description": "Service share revoked successfully"
-          },
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
           }
         },
         "security": [
@@ -2083,7 +830,9 @@
     },
     "/api/service-instances": {
       "get": {
-        "tags": ["Service Instances"],
+        "tags": [
+          "Service Instances"
+        ],
         "summary": "List service instances with filters and pagination",
         "description": "Retrieve a paginated list of service instances with optional filtering.\n\n**Access Control:**\n- Team members: Can view instances of services owned by their team\n- Shared access: Can view instances of services shared with their team\n- SYS_ADMIN: Can view all instances\n- Results are automatically filtered based on user permissions\n",
         "operationId": "findAllServiceInstances",
@@ -2121,7 +870,12 @@
               "type": "string",
               "description": "Filter by instance status",
               "example": "HEALTHY",
-              "enum": ["HEALTHY", "UNHEALTHY", "DRIFT", "UNKNOWN"]
+              "enum": [
+                "HEALTHY",
+                "UNHEALTHY",
+                "DRIFT",
+                "UNKNOWN"
+              ]
             },
             "example": "HEALTHY"
           },
@@ -2146,7 +900,11 @@
               "type": "string",
               "description": "Filter by environment",
               "example": "dev",
-              "enum": ["dev", "staging", "prod"]
+              "enum": [
+                "dev",
+                "staging",
+                "prod"
+              ]
             },
             "example": "dev"
           },
@@ -2242,8 +1000,351 @@
               }
             }
           },
+          "400": {
+            "description": "Invalid request parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "oauth2_auth_code": []
+          },
+          {
+            "oauth2_password": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Service Instances"
+        ],
+        "summary": "Create service instance",
+        "description": "Create a new service instance for an application service.\n\n**Required Permissions:**\n- Team members: Can create instances for services owned by their team\n- Shared access: Can create instances for services shared with EDIT_INSTANCE permission\n- SYS_ADMIN: Can create instances for any service\n",
+        "operationId": "createServiceInstance",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ServiceInstanceCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Service instance created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceInstanceResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "ApplicationService not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "oauth2_auth_code": []
+          },
+          {
+            "oauth2_password": []
+          }
+        ]
+      }
+    },
+    "/api/heartbeat": {
+      "post": {
+        "tags": [
+          "Heartbeat"
+        ],
+        "summary": "Process heartbeat from service instance",
+        "description": "Receives periodic heartbeat signals from running service instances.\nThis endpoint tracks instance liveness, detects configuration drift,\nand can trigger automatic configuration refreshes.\n\n**Public Endpoint:** No authentication required for SDK integration\n**Drift Detection:** Compares current config hash with last applied hash\n**Auto-Refresh:** Can trigger config refresh if drift is detected\n",
+        "operationId": "processHeartbeat",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HeartbeatPayload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Heartbeat processed successfully",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "Successful Heartbeat": {
+                    "description": "Successful Heartbeat",
+                    "value": {
+                      "status": "ok",
+                      "message": "Heartbeat processed",
+                      "instance": {
+                        "serviceName": "payment-service",
+                        "instanceId": "payment-dev-1",
+                        "status": "HEALTHY",
+                        "hasDrift": false,
+                        "configHash": "abc123def456",
+                        "lastAppliedHash": "abc123def456"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid heartbeat payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error during heartbeat processing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "oauth2_auth_code": []
+          },
+          {
+            "oauth2_password": []
+          }
+        ]
+      }
+    },
+    "/api/drift-events": {
+      "get": {
+        "tags": [
+          "Drift Events"
+        ],
+        "summary": "List drift events with filters and pagination",
+        "description": "Retrieve a paginated list of drift events with optional filtering.\n\n**Access Control:**\n- Team members: Can view drift events for services owned by their team\n- SYS_ADMIN: Can view all drift events\n- Shared access: Can view drift events for services shared with their team\n- Results are automatically filtered based on user permissions\n",
+        "operationId": "findAllDriftEvents",
+        "parameters": [
+          {
+            "name": "serviceName",
+            "in": "query",
+            "description": "Filter by service name",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "Filter by service name",
+              "example": "payment-service"
+            },
+            "example": "payment-service"
+          },
+          {
+            "name": "instanceId",
+            "in": "query",
+            "description": "Filter by instance ID",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "Filter by instance ID",
+              "example": "payment-dev-1"
+            },
+            "example": "payment-dev-1"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Filter by drift status",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "Filter by drift status",
+              "example": "DETECTED",
+              "enum": [
+                "DETECTED",
+                "RESOLVED",
+                "IGNORED"
+              ]
+            },
+            "example": "DETECTED"
+          },
+          {
+            "name": "severity",
+            "in": "query",
+            "description": "Filter by severity level",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "Filter by severity level",
+              "example": "HIGH",
+              "enum": [
+                "LOW",
+                "MEDIUM",
+                "HIGH",
+                "CRITICAL"
+              ]
+            },
+            "example": "HIGH"
+          },
+          {
+            "name": "detectedAtFrom",
+            "in": "query",
+            "description": "Filter events detected after this timestamp",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "Filter events detected after this timestamp",
+              "example": "2024-01-15T00:00:00Z"
+            },
+            "example": "2024-01-15T00:00:00Z"
+          },
+          {
+            "name": "detectedAtTo",
+            "in": "query",
+            "description": "Filter events detected before this timestamp",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "Filter events detected before this timestamp",
+              "example": "2024-01-15T23:59:59Z"
+            },
+            "example": "2024-01-15T23:59:59Z"
+          },
+          {
+            "name": "unresolvedOnly",
+            "in": "query",
+            "description": "Show only unresolved events",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "Show only unresolved events",
+              "example": true
+            },
+            "example": true
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Zero-based page index (0..N)",
+            "required": false,
+            "schema": {
+              "minimum": 0,
+              "type": "integer",
+              "default": 0
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "The size of the page to be returned",
+            "required": false,
+            "schema": {
+              "minimum": 1,
+              "type": "integer",
+              "default": 20
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -2254,6 +1355,1208 @@
           },
           "400": {
             "description": "Invalid request parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Drift events retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DriftEventPageResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "oauth2_auth_code": []
+          },
+          {
+            "oauth2_password": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Drift Events"
+        ],
+        "summary": "Create drift event",
+        "description": "Create a new drift event when configuration drift is detected.\n\n**Access Control:**\n- Team members: Can create drift events for services owned by their team\n- SYS_ADMIN: Can create drift events for any service\n- System: Can create drift events automatically during heartbeat processing\n",
+        "operationId": "createDriftEvent",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DriftEventCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Drift event created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DriftEventResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "oauth2_auth_code": []
+          },
+          {
+            "oauth2_password": []
+          }
+        ]
+      }
+    },
+    "/api/approval-requests": {
+      "get": {
+        "tags": [
+          "Approval Requests"
+        ],
+        "summary": "List approval requests",
+        "description": "Retrieve a paginated list of approval requests.\n\n**Access Control:**\n- Team members: Can view their own requests\n- SYS_ADMIN: Can view all requests\n- LINE_MANAGER: Can view requests from their direct reports\n- Results are automatically filtered based on user permissions\n",
+        "operationId": "findAllApprovalRequests",
+        "parameters": [
+          {
+            "name": "requesterUserId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "maxLength": 100,
+              "minLength": 0,
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "maxLength": 20,
+              "minLength": 0,
+              "type": "string"
+            }
+          },
+          {
+            "name": "requestType",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "maxLength": 50,
+              "minLength": 0,
+              "type": "string"
+            }
+          },
+          {
+            "name": "fromDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "toDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Zero-based page index (0..N)",
+            "required": false,
+            "schema": {
+              "minimum": 0,
+              "type": "integer",
+              "default": 0
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "The size of the page to be returned",
+            "required": false,
+            "schema": {
+              "minimum": 1,
+              "type": "integer",
+              "default": 20
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Approval requests retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalRequestPageResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "oauth2_auth_code": []
+          },
+          {
+            "oauth2_password": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Approval Requests"
+        ],
+        "summary": "Create approval request",
+        "description": "Create a new approval request for service ownership.\n\n**Multi-Gate Approval Flow:**\n- SYS_ADMIN: Can approve/reject any request\n- LINE_MANAGER: Can approve requests from their direct reports\n- Request requires approval from configured gates before service ownership is transferred\n\n**Access Control:**\n- Team members: Can create requests for services not owned by their team\n- SYS_ADMIN: Can create requests for any service\n",
+        "operationId": "createApprovalRequest",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApprovalRequestCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Approval request created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalRequestResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict - Request already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "oauth2_auth_code": []
+          },
+          {
+            "oauth2_password": []
+          }
+        ]
+      }
+    },
+    "/api/approval-requests/{id}/decisions": {
+      "post": {
+        "tags": [
+          "Approval Requests"
+        ],
+        "summary": "Submit approval decision",
+        "description": "Submit a decision (approve/reject) for an approval request.\n\n**Multi-Gate Approval:**\n- SYS_ADMIN: Can approve/reject any request\n- LINE_MANAGER: Can approve/reject requests from their direct reports\n- Request status is updated based on required approvals from configured gates\n\n**Access Control:**\n- Only authorized approvers can submit decisions\n- Decision is recorded with approver information and timestamp\n",
+        "operationId": "submitApprovalDecision",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Approval request ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "request-12345"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApprovalRequestDecisionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "403": {
+            "description": "Forbidden - Not authorized to approve this request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Decision submitted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalRequestResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid decision data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Approval request not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "oauth2_auth_code": []
+          },
+          {
+            "oauth2_password": []
+          }
+        ]
+      }
+    },
+    "/api/application-services": {
+      "get": {
+        "tags": [
+          "Application Services"
+        ],
+        "summary": "List all application services",
+        "description": "Retrieve a paginated list of application services visible to the authenticated user.\n\n**Access Control & Visibility Rules:**\n- **Authentication required** - Unauthenticated requests will receive 401\n- **System admins** see all services (no filtering)\n- **Regular users** see:\n  - Orphaned services (ownerTeamId=null) - for ownership request workflow\n  - Services owned by their teams\n  - Services shared to their teams via ServiceShare grants\n- Server-side filtering ensures users only see authorized services\n\n**Use Cases:**\n- Service discovery and catalog browsing\n- Requesting ownership of orphaned services\n- Viewing team-owned and shared services\n",
+        "operationId": "findAllApplicationServices",
+        "parameters": [
+          {
+            "name": "ownerTeamId",
+            "in": "query",
+            "description": "Filter by owner team ID",
+            "required": false,
+            "schema": {
+              "maxLength": 100,
+              "minLength": 0,
+              "type": "string",
+              "description": "Filter by owner team ID",
+              "example": "team_core"
+            },
+            "example": "team_core"
+          },
+          {
+            "name": "lifecycle",
+            "in": "query",
+            "description": "Filter by lifecycle stage",
+            "required": false,
+            "schema": {
+              "maxLength": 50,
+              "minLength": 0,
+              "type": "string",
+              "description": "Filter by lifecycle stage",
+              "example": "ACTIVE",
+              "enum": [
+                "ACTIVE",
+                "DEPRECATED",
+                "RETIRED"
+              ]
+            },
+            "example": "ACTIVE"
+          },
+          {
+            "name": "tags",
+            "in": "query",
+            "description": "Filter by tags",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "Filter by tags",
+              "example": [
+                "microservice",
+                "payment"
+              ]
+            },
+            "example": [
+              "microservice",
+              "payment"
+            ]
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Search term for service name or description",
+            "required": false,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 0,
+              "type": "string",
+              "description": "Search term for service name or description",
+              "example": "payment"
+            },
+            "example": "payment"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Zero-based page index (0..N)",
+            "required": false,
+            "schema": {
+              "minimum": 0,
+              "type": "integer",
+              "default": 0
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "The size of the page to be returned",
+            "required": false,
+            "schema": {
+              "minimum": 1,
+              "type": "integer",
+              "default": 20
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Successfully retrieved application services",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationServicePageResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "oauth2_auth_code": []
+          },
+          {
+            "oauth2_password": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Application Services"
+        ],
+        "summary": "Create a new application service",
+        "description": "Create a new application service with team ownership.\n\n**Required Permissions:**\n- SYS_ADMIN: Can create services for any team\n- Team members: Can create services for their own team\n- Service ID must be unique across the system\n",
+        "operationId": "createApplicationService",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplicationServiceCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "409": {
+            "description": "Conflict - Service ID already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Application service created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationServiceResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "oauth2_auth_code": []
+          },
+          {
+            "oauth2_password": []
+          }
+        ]
+      }
+    },
+    "/api/admin/seed/seed": {
+      "post": {
+        "tags": [
+          "Data Seeding"
+        ],
+        "summary": "Seed new mock data",
+        "description": "Generates and saves new mock data (services, instances, drift events, etc.) based on seeding configuration. Does not clean existing data first.",
+        "operationId": "seedData",
+        "responses": {
+          "200": {
+            "description": "Data seeded successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeedResult"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error during seeding operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeedResult"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden: Requires SYS_ADMIN role or dev profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeedResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/seed/clean-and-seed": {
+      "post": {
+        "tags": [
+          "Data Seeding"
+        ],
+        "summary": "Clean and seed mock data",
+        "description": "Atomically removes all existing mock data and generates fresh data. This is the recommended endpoint for environment resets.",
+        "operationId": "cleanAndSeedData",
+        "responses": {
+          "200": {
+            "description": "Data cleaned and seeded successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CombinedResult"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden: Requires SYS_ADMIN role or dev profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CombinedResult"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error during clean-and-seed operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CombinedResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/drift-events/{id}": {
+      "get": {
+        "tags": [
+          "Drift Events"
+        ],
+        "summary": "Get drift event by ID",
+        "description": "Retrieve a specific drift event by its ID.\n\n**Access Control:**\n- Team members: Can view drift events for services owned by their team\n- SYS_ADMIN: Can view any drift event\n- Shared access: Can view drift events for services shared with their team\n",
+        "operationId": "findDriftEventById",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Drift event ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "drift-12345"
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "Drift event not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Drift event found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DriftEventResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "oauth2_auth_code": []
+          },
+          {
+            "oauth2_password": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "Drift Events"
+        ],
+        "summary": "Update drift event",
+        "description": "Update an existing drift event (status and notes).\n\n**Access Control:**\n- Team members: Can update drift events for services owned by their team\n- SYS_ADMIN: Can update any drift event\n- Updates include status changes (DETECTED, RESOLVED, IGNORED) and resolution notes\n",
+        "operationId": "updateDriftEvent",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Drift event ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "drift-12345"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DriftEventUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "404": {
+            "description": "Drift event not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Drift event updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DriftEventResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "oauth2_auth_code": []
+          },
+          {
+            "oauth2_password": []
+          }
+        ]
+      }
+    },
+    "/api/user/whoami": {
+      "get": {
+        "tags": [
+          "User Management"
+        ],
+        "summary": "Get current user information",
+        "description": "Retrieve detailed information about the currently authenticated user.\nThis includes user ID, username, email, names, team memberships, roles, and manager ID.\n",
+        "operationId": "findCurrentUserInformation",
+        "responses": {
+          "200": {
+            "description": "User information retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "oauth2_auth_code": []
+          },
+          {
+            "oauth2_password": []
+          }
+        ]
+      }
+    },
+    "/api/user/me/permissions": {
+      "get": {
+        "tags": [
+          "User Management"
+        ],
+        "summary": "Get user permissions and routes",
+        "description": "Retrieve comprehensive permission information for the current user.\nThis includes allowed API routes, UI routes, roles, teams, actions, and service access.\n\n**Permission Matrix:**\n- API routes: Endpoints the user can access\n- UI routes: Frontend pages the user can navigate to\n- Actions: Specific operations the user can perform\n- Services: Owned and shared services the user can access\n",
+        "operationId": "findCurrentUserPermissions",
+        "responses": {
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "User permissions retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionsResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "oauth2_auth_code": []
+          },
+          {
+            "oauth2_password": []
+          }
+        ]
+      }
+    },
+    "/api/service-shares/{id}": {
+      "get": {
+        "tags": [
+          "Service Shares"
+        ],
+        "summary": "Get service share by ID",
+        "description": "Retrieve a specific service share by its ID.\n\n**Access Control:**\n- Team members: Can view shares for services owned by their team\n- SYS_ADMIN: Can view any share\n- Shared access: Can view shares granted to their team\n",
+        "operationId": "findByIdServiceShare",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Service share ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "share-12345"
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Service share found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceShareResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Service share not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "oauth2_auth_code": []
+          },
+          {
+            "oauth2_password": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Service Shares"
+        ],
+        "summary": "Revoke service share",
+        "description": "Revoke a service share, removing all granted permissions.\n\n**Access Control:**\n- Team members: Can revoke shares for services owned by their team\n- SYS_ADMIN: Can revoke any share\n- Share creator: Can revoke shares they created\n\n**Note:** This action is irreversible\n",
+        "operationId": "revokeServiceShare",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Service share ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "share-12345"
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "Service share revoked successfully"
+          },
+          "404": {
+            "description": "Service share not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -2275,31 +2578,13 @@
     },
     "/api/registry/services": {
       "get": {
-        "tags": ["Service Registry"],
+        "tags": [
+          "Service Registry"
+        ],
         "summary": "List all registered services",
         "description": "Retrieves a list of all services registered with Consul.\nThis provides an overview of available services in the ecosystem.\n",
         "operationId": "listServiceRegistryServices",
         "responses": {
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error or Consul unreachable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "200": {
             "description": "Successfully retrieved service list",
             "content": {
@@ -2310,8 +2595,28 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "403": {
             "description": "Forbidden - Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error or Consul unreachable",
             "content": {
               "application/json": {
                 "schema": {
@@ -2333,7 +2638,9 @@
     },
     "/api/registry/services/{serviceName}/instances": {
       "get": {
-        "tags": ["Service Registry"],
+        "tags": [
+          "Service Registry"
+        ],
         "summary": "Get service instances",
         "description": "Retrieves instances of a specific service from Consul.\nCan filter to show only healthy instances or all instances.\n",
         "operationId": "getServiceRegistryServiceInstances",
@@ -2361,8 +2668,28 @@
           }
         ],
         "responses": {
+          "200": {
+            "description": "Service instances retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceInstancesRegistryResponse"
+                }
+              }
+            }
+          },
           "401": {
             "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
             "content": {
               "application/json": {
                 "schema": {
@@ -2390,26 +2717,6 @@
                 }
               }
             }
-          },
-          "200": {
-            "description": "Service instances retrieved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ServiceInstancesRegistryResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
           }
         },
         "security": [
@@ -2424,7 +2731,9 @@
     },
     "/api/iam/users": {
       "get": {
-        "tags": ["IAM Users"],
+        "tags": [
+          "IAM Users"
+        ],
         "summary": "List IAM users",
         "description": "Retrieve a paginated list of cached IAM user projections from Keycloak.\nThis endpoint is restricted to system administrators.\n",
         "operationId": "findAllIamUsers",
@@ -2548,16 +2857,6 @@
               }
             }
           },
-          "403": {
-            "description": "Forbidden - SYS_ADMIN role required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "200": {
             "description": "Successfully retrieved IAM users",
             "content": {
@@ -2570,6 +2869,16 @@
           },
           "500": {
             "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - SYS_ADMIN role required",
             "content": {
               "application/json": {
                 "schema": {
@@ -2594,7 +2903,9 @@
     },
     "/api/iam/users/{userId}": {
       "get": {
-        "tags": ["IAM Users"],
+        "tags": [
+          "IAM Users"
+        ],
         "summary": "Get IAM user by ID",
         "description": "Retrieve a specific IAM user by their ID from cached Keycloak projections.\nThis endpoint is restricted to system administrators.\n",
         "operationId": "findByIdIamUser",
@@ -2611,28 +2922,18 @@
           }
         ],
         "responses": {
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden - SYS_ADMIN role required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "404": {
             "description": "IAM user not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -2660,6 +2961,16 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Forbidden - SYS_ADMIN role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2677,23 +2988,15 @@
     },
     "/api/iam/users/stats": {
       "get": {
-        "tags": ["IAM Users"],
+        "tags": [
+          "IAM Users"
+        ],
         "summary": "Get user statistics",
         "description": "Retrieve user count statistics from cached IAM data.\nThis endpoint is restricted to system administrators.\n",
         "operationId": "getStatsIamUser",
         "responses": {
           "401": {
             "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden - SYS_ADMIN role required",
             "content": {
               "application/json": {
                 "schema": {
@@ -2721,6 +3024,16 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Forbidden - SYS_ADMIN role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2738,7 +3051,9 @@
     },
     "/api/iam/users/by-team/{teamId}": {
       "get": {
-        "tags": ["IAM Users"],
+        "tags": [
+          "IAM Users"
+        ],
         "summary": "List users by team",
         "description": "Retrieve all users belonging to a specific team from cached IAM data.\nThis endpoint is restricted to system administrators.\n",
         "operationId": "findByTeamIamUser",
@@ -2757,16 +3072,6 @@
         "responses": {
           "401": {
             "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden - SYS_ADMIN role required",
             "content": {
               "application/json": {
                 "schema": {
@@ -2794,6 +3099,16 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Forbidden - SYS_ADMIN role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2811,7 +3126,9 @@
     },
     "/api/iam/users/by-manager/{managerId}": {
       "get": {
-        "tags": ["IAM Users"],
+        "tags": [
+          "IAM Users"
+        ],
         "summary": "List users by manager",
         "description": "Retrieve all users reporting to a specific manager from cached IAM data.\nThis endpoint is restricted to system administrators.\n",
         "operationId": "findByManagerIamUser",
@@ -2830,16 +3147,6 @@
         "responses": {
           "401": {
             "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden - SYS_ADMIN role required",
             "content": {
               "application/json": {
                 "schema": {
@@ -2867,6 +3174,16 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Forbidden - SYS_ADMIN role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2884,7 +3201,9 @@
     },
     "/api/iam/teams": {
       "get": {
-        "tags": ["IAM Teams"],
+        "tags": [
+          "IAM Teams"
+        ],
         "summary": "List IAM teams",
         "description": "Retrieve a paginated list of cached IAM team projections from Keycloak.\nThis endpoint is restricted to system administrators.\n",
         "operationId": "findAllIamTeams",
@@ -2955,26 +3274,6 @@
           }
         ],
         "responses": {
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden - SYS_ADMIN role required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "200": {
             "description": "Successfully retrieved IAM teams",
             "content": {
@@ -2985,8 +3284,28 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - SYS_ADMIN role required",
             "content": {
               "application/json": {
                 "schema": {
@@ -3011,7 +3330,9 @@
     },
     "/api/iam/teams/{teamId}": {
       "get": {
-        "tags": ["IAM Teams"],
+        "tags": [
+          "IAM Teams"
+        ],
         "summary": "Get IAM team by ID",
         "description": "Retrieve a specific IAM team by its ID from cached Keycloak projections.\nThis endpoint is restricted to system administrators.\n",
         "operationId": "findByIdIamTeam",
@@ -3028,6 +3349,16 @@
           }
         ],
         "responses": {
+          "200": {
+            "description": "IAM team found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IamTeamResponse"
+                }
+              }
+            }
+          },
           "401": {
             "description": "Unauthorized - Authentication required",
             "content": {
@@ -3038,8 +3369,8 @@
               }
             }
           },
-          "403": {
-            "description": "Forbidden - SYS_ADMIN role required",
+          "404": {
+            "description": "IAM team not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -3058,18 +3389,8 @@
               }
             }
           },
-          "200": {
-            "description": "IAM team found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IamTeamResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "IAM team not found",
+          "403": {
+            "description": "Forbidden - SYS_ADMIN role required",
             "content": {
               "application/json": {
                 "schema": {
@@ -3094,31 +3415,13 @@
     },
     "/api/iam/teams/stats": {
       "get": {
-        "tags": ["IAM Teams"],
+        "tags": [
+          "IAM Teams"
+        ],
         "summary": "Get team statistics",
         "description": "Retrieve team count statistics from cached IAM data.\nThis endpoint is restricted to system administrators.\n",
         "operationId": "getStatsIamTeam",
         "responses": {
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden - SYS_ADMIN role required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "200": {
             "description": "Team statistics retrieved successfully",
             "content": {
@@ -3129,8 +3432,28 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - SYS_ADMIN role required",
             "content": {
               "application/json": {
                 "schema": {
@@ -3155,7 +3478,9 @@
     },
     "/api/iam/teams/by-member/{userId}": {
       "get": {
-        "tags": ["IAM Teams"],
+        "tags": [
+          "IAM Teams"
+        ],
         "summary": "List teams by member",
         "description": "Retrieve all teams that contain a specific user as a member.\nThis endpoint is restricted to system administrators.\n",
         "operationId": "findByMemberIamTeam",
@@ -3182,12 +3507,12 @@
               }
             }
           },
-          "403": {
-            "description": "Forbidden - SYS_ADMIN role required",
+          "200": {
+            "description": "Teams containing the user found",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "type": "string"
                 }
               }
             }
@@ -3202,12 +3527,12 @@
               }
             }
           },
-          "200": {
-            "description": "Teams containing the user found",
+          "403": {
+            "description": "Forbidden - SYS_ADMIN role required",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "string"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -3228,21 +3553,13 @@
     },
     "/api/heartbeat/health": {
       "get": {
-        "tags": ["Heartbeat"],
+        "tags": [
+          "Heartbeat"
+        ],
         "summary": "Health check endpoint",
         "description": "Simple health check to verify that the heartbeat controller is operational.\nThis endpoint is used for monitoring and load balancer health checks.\n",
         "operationId": "heartbeatHealth",
         "responses": {
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "200": {
             "description": "Heartbeat controller is healthy",
             "content": {
@@ -3255,6 +3572,16 @@
                       "service": "heartbeat-controller"
                     }
                   }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -3272,11 +3599,23 @@
     },
     "/api/config-server/info": {
       "get": {
-        "tags": ["Config Server"],
+        "tags": [
+          "Config Server"
+        ],
         "summary": "Get Config Server information",
         "description": "Retrieves basic information about the Config Server instance.\nThis includes URL, status, and version information.\n",
         "operationId": "getInfoConfigServer",
         "responses": {
+          "200": {
+            "description": "Config Server information retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigServerInfo"
+                }
+              }
+            }
+          },
           "401": {
             "description": "Unauthorized - Authentication required",
             "content": {
@@ -3296,16 +3635,6 @@
                 }
               }
             }
-          },
-          "200": {
-            "description": "Config Server information retrieved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ConfigServerInfo"
-                }
-              }
-            }
           }
         },
         "security": [
@@ -3320,27 +3649,29 @@
     },
     "/api/config-server/health": {
       "get": {
-        "tags": ["Config Server"],
+        "tags": [
+          "Config Server"
+        ],
         "summary": "Get Config Server health status",
         "description": "Retrieves the health status of the underlying Spring Cloud Config Server.\nThis provides information about the Config Server's operational state.\n",
         "operationId": "getHealthConfigServer",
         "responses": {
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "200": {
             "description": "Config Server health status retrieved successfully",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ConfigServerActuatorHealthResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -3368,7 +3699,9 @@
     },
     "/api/config-server/environment/{application}/{profile}": {
       "get": {
-        "tags": ["Config Server"],
+        "tags": [
+          "Config Server"
+        ],
         "summary": "Get configuration environment",
         "description": "Retrieves the configuration properties for a given application and profile from the Config Server.\nThis acts as a proxy to the underlying Spring Cloud Config Server.\n",
         "operationId": "getEnvironmentConfigServer",
@@ -3415,32 +3748,22 @@
               }
             }
           },
-          "404": {
-            "description": "Configuration not found for the specified application/profile",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error or Config Server unreachable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "200": {
             "description": "Successfully retrieved configuration environment",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ConfigServerEnvironmentResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -3455,8 +3778,18 @@
               }
             }
           },
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
+          "404": {
+            "description": "Configuration not found for the specified application/profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error or Config Server unreachable",
             "content": {
               "application/json": {
                 "schema": {
@@ -3478,7 +3811,9 @@
     },
     "/api/config-server/actuator/{path}": {
       "get": {
-        "tags": ["Config Server"],
+        "tags": [
+          "Config Server"
+        ],
         "summary": "Proxy to Config Server actuator endpoint",
         "description": "Proxies requests to the underlying Spring Cloud Config Server actuator endpoints.\nThis allows access to Config Server management and monitoring endpoints.\n",
         "operationId": "getActuatorEndpointConfigServer",
@@ -3495,26 +3830,6 @@
           }
         ],
         "responses": {
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error or Config Server unreachable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "200": {
             "description": "Actuator endpoint response retrieved successfully",
             "content": {
@@ -3535,118 +3850,6 @@
               }
             }
           },
-          "404": {
-            "description": "Actuator endpoint not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "oauth2_auth_code": []
-          },
-          {
-            "oauth2_password": []
-          }
-        ]
-      }
-    },
-    "/api/approval-requests": {
-      "get": {
-        "tags": ["Approval Requests"],
-        "summary": "List approval requests",
-        "description": "Retrieve a paginated list of approval requests.\n\n**Access Control:**\n- Team members: Can view their own requests\n- SYS_ADMIN: Can view all requests\n- LINE_MANAGER: Can view requests from their direct reports\n- Results are automatically filtered based on user permissions\n",
-        "operationId": "findAllApprovalRequests",
-        "parameters": [
-          {
-            "name": "requesterUserId",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "maxLength": 100,
-              "minLength": 0,
-              "type": "string"
-            }
-          },
-          {
-            "name": "status",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "maxLength": 20,
-              "minLength": 0,
-              "type": "string"
-            }
-          },
-          {
-            "name": "requestType",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "maxLength": 50,
-              "minLength": 0,
-              "type": "string"
-            }
-          },
-          {
-            "name": "fromDate",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "date-time"
-            }
-          },
-          {
-            "name": "toDate",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "date-time"
-            }
-          },
-          {
-            "name": "page",
-            "in": "query",
-            "description": "Zero-based page index (0..N)",
-            "required": false,
-            "schema": {
-              "minimum": 0,
-              "type": "integer",
-              "default": 0
-            }
-          },
-          {
-            "name": "size",
-            "in": "query",
-            "description": "The size of the page to be returned",
-            "required": false,
-            "schema": {
-              "minimum": 1,
-              "type": "integer",
-              "default": 20
-            }
-          },
-          {
-            "name": "sort",
-            "in": "query",
-            "description": "Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.",
-            "required": false,
-            "schema": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            }
-          }
-        ],
-        "responses": {
           "401": {
             "description": "Unauthorized - Authentication required",
             "content": {
@@ -3657,18 +3860,8 @@
               }
             }
           },
-          "200": {
-            "description": "Approval requests retrieved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApprovalRequestPageResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
+          "404": {
+            "description": "Actuator endpoint not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -3677,8 +3870,8 @@
               }
             }
           },
-          "400": {
-            "description": "Invalid request parameters",
+          "500": {
+            "description": "Internal server error or Config Server unreachable",
             "content": {
               "application/json": {
                 "schema": {
@@ -3700,7 +3893,9 @@
     },
     "/api/approval-requests/{id}": {
       "get": {
-        "tags": ["Approval Requests"],
+        "tags": [
+          "Approval Requests"
+        ],
         "summary": "Get approval request by ID",
         "description": "Retrieve a specific approval request by its ID.\n\n**Access Control:**\n- Team members: Can view their own requests\n- SYS_ADMIN: Can view any request\n- LINE_MANAGER: Can view requests from their direct reports\n",
         "operationId": "findApprovalRequestById",
@@ -3727,8 +3922,18 @@
               }
             }
           },
-          "404": {
-            "description": "Approval request not found",
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -3747,18 +3952,8 @@
               }
             }
           },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
+          "404": {
+            "description": "Approval request not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -3778,7 +3973,9 @@
         ]
       },
       "delete": {
-        "tags": ["Approval Requests"],
+        "tags": [
+          "Approval Requests"
+        ],
         "summary": "Cancel approval request",
         "description": "Cancel an approval request.\n\n**Access Control:**\n- Requester: Can cancel their own requests\n- SYS_ADMIN: Can cancel any request\n- Request must be in PENDING status to be cancelled\n\n**Note:** Once cancelled, the request cannot be reactivated\n",
         "operationId": "cancelApprovalRequest",
@@ -3795,8 +3992,8 @@
           }
         ],
         "responses": {
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "403": {
+            "description": "Forbidden - Not authorized to cancel this request",
             "content": {
               "application/json": {
                 "schema": {
@@ -3805,8 +4002,8 @@
               }
             }
           },
-          "404": {
-            "description": "Approval request not found",
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -3838,8 +4035,8 @@
               }
             }
           },
-          "403": {
-            "description": "Forbidden - Not authorized to cancel this request",
+          "404": {
+            "description": "Approval request not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -3861,7 +4058,9 @@
     },
     "/api/approval-decisions": {
       "get": {
-        "tags": ["Approval Decisions"],
+        "tags": [
+          "Approval Decisions"
+        ],
         "summary": "List approval decisions",
         "description": "Retrieve a paginated list of approval decisions with optional filtering.\n\n**Access Control:**\n- Users can view decisions for requests they have access to\n- SYS_ADMIN can view all decisions\n- Results are automatically filtered based on user permissions\n",
         "operationId": "findAllApprovalDecisions",
@@ -3905,7 +4104,10 @@
               "type": "string",
               "description": "Filter by approval gate",
               "example": "SYS_ADMIN",
-              "enum": ["SYS_ADMIN", "LINE_MANAGER"]
+              "enum": [
+                "SYS_ADMIN",
+                "LINE_MANAGER"
+              ]
             },
             "example": "SYS_ADMIN"
           },
@@ -3920,7 +4122,10 @@
               "type": "string",
               "description": "Filter by decision type",
               "example": "APPROVE",
-              "enum": ["APPROVE", "REJECT"]
+              "enum": [
+                "APPROVE",
+                "REJECT"
+              ]
             },
             "example": "APPROVE"
           },
@@ -3970,6 +4175,16 @@
               }
             }
           },
+          "400": {
+            "description": "Invalid request parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "200": {
             "description": "Approval decisions retrieved successfully",
             "content": {
@@ -3982,16 +4197,6 @@
           },
           "500": {
             "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid request parameters",
             "content": {
               "application/json": {
                 "schema": {
@@ -4013,7 +4218,9 @@
     },
     "/api/approval-decisions/{id}": {
       "get": {
-        "tags": ["Approval Decisions"],
+        "tags": [
+          "Approval Decisions"
+        ],
         "summary": "Get approval decision by ID",
         "description": "Retrieve a specific approval decision by its ID.\n\n**Access Control:**\n- Users can view decisions for requests they have access to\n- SYS_ADMIN can view any decision\n",
         "operationId": "findApprovalDecisionById",
@@ -4030,12 +4237,12 @@
           }
         ],
         "responses": {
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "200": {
+            "description": "Approval decision found",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "$ref": "#/components/schemas/ApprovalDecisionResponse"
                 }
               }
             }
@@ -4050,8 +4257,8 @@
               }
             }
           },
-          "500": {
-            "description": "Internal server error",
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -4070,12 +4277,12 @@
               }
             }
           },
-          "200": {
-            "description": "Approval decision found",
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApprovalDecisionResponse"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -4093,7 +4300,9 @@
     },
     "/api/approval-decisions/request/{requestId}": {
       "get": {
-        "tags": ["Approval Decisions"],
+        "tags": [
+          "Approval Decisions"
+        ],
         "summary": "List decisions for a request",
         "description": "Retrieve all approval decisions for a specific approval request.\n\n**Access Control:**\n- Users can view decisions for requests they have access to\n- SYS_ADMIN can view decisions for any request\n",
         "operationId": "findApprovalDecisionsByRequestId",
@@ -4154,6 +4363,16 @@
               }
             }
           },
+          "400": {
+            "description": "Invalid request parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "200": {
             "description": "Approval decisions retrieved successfully",
             "content": {
@@ -4166,16 +4385,6 @@
           },
           "500": {
             "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid request parameters",
             "content": {
               "application/json": {
                 "schema": {
@@ -4197,7 +4406,9 @@
     },
     "/api/admin/seed/clean": {
       "delete": {
-        "tags": ["Data Seeding"],
+        "tags": [
+          "Data Seeding"
+        ],
         "summary": "Clean all mock data",
         "description": "Removes all application services, instances, drift events, shares, approval requests, and decisions. IAM data (users/teams) is preserved.",
         "operationId": "cleanData",
@@ -4212,8 +4423,8 @@
               }
             }
           },
-          "403": {
-            "description": "Forbidden: Requires SYS_ADMIN role or dev profile",
+          "200": {
+            "description": "Data cleaned successfully",
             "content": {
               "application/json": {
                 "schema": {
@@ -4222,8 +4433,8 @@
               }
             }
           },
-          "200": {
-            "description": "Data cleaned successfully",
+          "403": {
+            "description": "Forbidden: Requires SYS_ADMIN role or dev profile",
             "content": {
               "application/json": {
                 "schema": {
@@ -4256,7 +4467,11 @@
             "type": "string",
             "description": "Deployment environment",
             "example": "dev",
-            "enum": ["dev", "staging", "prod"]
+            "enum": [
+              "dev",
+              "staging",
+              "prod"
+            ]
           },
           "version": {
             "type": "string",
@@ -4428,7 +4643,11 @@
             "type": "string",
             "description": "Deployment environment",
             "example": "dev",
-            "enum": ["dev", "staging", "prod"]
+            "enum": [
+              "dev",
+              "staging",
+              "prod"
+            ]
           },
           "version": {
             "type": "string",
@@ -4527,12 +4746,21 @@
             "type": "string",
             "description": "Service lifecycle stage",
             "example": "ACTIVE",
-            "enum": ["ACTIVE", "DEPRECATED", "RETIRED"]
+            "enum": [
+              "ACTIVE",
+              "DEPRECATED",
+              "RETIRED"
+            ]
           },
           "tags": {
             "type": "array",
             "description": "Optional tags for categorization",
-            "example": ["microservice", "payment", "critical", "updated"],
+            "example": [
+              "microservice",
+              "payment",
+              "critical",
+              "updated"
+            ],
             "items": {
               "type": "string",
               "description": "Optional tags for categorization",
@@ -4584,7 +4812,11 @@
           "environments": {
             "type": "array",
             "description": "List of environments where this service is deployed",
-            "example": ["dev", "staging", "prod"],
+            "example": [
+              "dev",
+              "staging",
+              "prod"
+            ],
             "items": {
               "type": "string",
               "description": "List of environments where this service is deployed",
@@ -4594,7 +4826,11 @@
           "tags": {
             "type": "array",
             "description": "Service tags for categorization",
-            "example": ["microservice", "payment", "critical"],
+            "example": [
+              "microservice",
+              "payment",
+              "critical"
+            ],
             "items": {
               "type": "string",
               "description": "Service tags for categorization",
@@ -4610,7 +4846,11 @@
             "type": "string",
             "description": "Service lifecycle stage",
             "example": "ACTIVE",
-            "enum": ["ACTIVE", "DEPRECATED", "RETIRED"]
+            "enum": [
+              "ACTIVE",
+              "DEPRECATED",
+              "RETIRED"
+            ]
           },
           "createdAt": {
             "type": "string",
@@ -4646,7 +4886,12 @@
         "description": "Application service details response"
       },
       "ServiceShareCreateRequest": {
-        "required": ["grantToId", "grantToType", "permissions", "serviceId"],
+        "required": [
+          "grantToId",
+          "grantToType",
+          "permissions",
+          "serviceId"
+        ],
         "type": "object",
         "properties": {
           "serviceId": {
@@ -4662,7 +4907,10 @@
             "type": "string",
             "description": "Type of grantee",
             "example": "TEAM",
-            "enum": ["TEAM", "USER"]
+            "enum": [
+              "TEAM",
+              "USER"
+            ]
           },
           "grantToId": {
             "maxLength": 100,
@@ -4676,7 +4924,10 @@
             "minItems": 1,
             "type": "array",
             "description": "List of permissions to grant",
-            "example": ["VIEW_INSTANCE", "VIEW_DRIFT"],
+            "example": [
+              "VIEW_INSTANCE",
+              "VIEW_DRIFT"
+            ],
             "items": {
               "type": "string",
               "description": "List of permissions to grant",
@@ -4686,7 +4937,10 @@
           "environments": {
             "type": "array",
             "description": "Environments where permissions apply",
-            "example": ["dev", "staging"],
+            "example": [
+              "dev",
+              "staging"
+            ],
             "items": {
               "type": "string",
               "description": "Environments where permissions apply",
@@ -4724,7 +4978,10 @@
             "type": "string",
             "description": "Type of grantee",
             "example": "TEAM",
-            "enum": ["TEAM", "USER"]
+            "enum": [
+              "TEAM",
+              "USER"
+            ]
           },
           "grantToId": {
             "type": "string",
@@ -4734,7 +4991,10 @@
           "permissions": {
             "type": "array",
             "description": "Granted permissions",
-            "example": ["VIEW_INSTANCE", "VIEW_DRIFT"],
+            "example": [
+              "VIEW_INSTANCE",
+              "VIEW_DRIFT"
+            ],
             "items": {
               "type": "string",
               "description": "Granted permissions",
@@ -4744,7 +5004,10 @@
           "environments": {
             "type": "array",
             "description": "Environments where permissions apply",
-            "example": ["dev", "staging"],
+            "example": [
+              "dev",
+              "staging"
+            ],
             "items": {
               "type": "string",
               "description": "Environments where permissions apply",
@@ -4771,8 +5034,85 @@
         },
         "description": "Service share details response"
       },
+      "ServiceInstanceCreateRequest": {
+        "required": [
+          "instanceId",
+          "serviceId"
+        ],
+        "type": "object",
+        "properties": {
+          "serviceId": {
+            "type": "string",
+            "description": "ID of the service",
+            "example": "payment-service"
+          },
+          "instanceId": {
+            "type": "string",
+            "description": "Unique instance identifier",
+            "example": "payment-dev-1"
+          },
+          "host": {
+            "type": "string",
+            "description": "Instance host address",
+            "example": "payment-dev-1.internal.company.com"
+          },
+          "port": {
+            "type": "integer",
+            "description": "Instance port number",
+            "format": "int32",
+            "example": 8080
+          },
+          "environment": {
+            "type": "string",
+            "description": "Deployment environment",
+            "example": "dev",
+            "enum": [
+              "dev",
+              "staging",
+              "prod"
+            ]
+          },
+          "version": {
+            "type": "string",
+            "description": "Service version",
+            "example": "1.2.0"
+          },
+          "configHash": {
+            "type": "string",
+            "description": "Current configuration hash",
+            "example": "abc123def456"
+          },
+          "lastAppliedHash": {
+            "type": "string",
+            "description": "Last applied configuration hash",
+            "example": "abc123def456"
+          },
+          "expectedHash": {
+            "type": "string",
+            "description": "Expected configuration hash",
+            "example": "abc123def456"
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "Instance metadata",
+              "example": "{\"region\":\"us-east-1\",\"zone\":\"us-east-1a\"}"
+            },
+            "description": "Instance metadata",
+            "example": {
+              "region": "us-east-1",
+              "zone": "us-east-1a"
+            }
+          }
+        },
+        "description": "Service instance creation request"
+      },
       "HeartbeatPayload": {
-        "required": ["instanceId", "serviceName"],
+        "required": [
+          "instanceId",
+          "serviceName"
+        ],
         "type": "object",
         "properties": {
           "serviceName": {
@@ -4807,7 +5147,10 @@
         "description": "Heartbeat payload with service instance information and config hash"
       },
       "DriftEventCreateRequest": {
-        "required": ["instanceId", "serviceName"],
+        "required": [
+          "instanceId",
+          "serviceName"
+        ],
         "type": "object",
         "properties": {
           "serviceName": {
@@ -4966,27 +5309,36 @@
         },
         "description": "Drift event details response"
       },
-      "ApprovalRequestDecisionRequest": {
-        "required": ["decision"],
+      "ApprovalRequestCreateRequest": {
+        "required": [
+          "serviceId",
+          "targetTeamId"
+        ],
         "type": "object",
         "properties": {
-          "decision": {
-            "maxLength": 20,
+          "serviceId": {
+            "maxLength": 100,
             "minLength": 0,
             "type": "string",
-            "description": "Approval decision",
-            "example": "APPROVE",
-            "enum": ["APPROVE", "REJECT"]
+            "description": "Service ID to request ownership for",
+            "example": "payment-service"
+          },
+          "targetTeamId": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": "string",
+            "description": "Team requesting ownership",
+            "example": "team_core"
           },
           "note": {
             "maxLength": 500,
             "minLength": 0,
             "type": "string",
-            "description": "Optional note explaining the decision",
-            "example": "Approved based on team capacity and expertise"
+            "description": "Optional note explaining the request",
+            "example": "Our team will be responsible for maintaining this service"
           }
         },
-        "description": "Decision data (approve/reject with optional note)"
+        "description": "Approval request creation data"
       },
       "ApprovalRequestApprovalGate": {
         "type": "object",
@@ -5085,36 +5437,38 @@
         },
         "description": "Approval request details response"
       },
-      "ApprovalRequestCreateRequest": {
-        "required": ["serviceId", "targetTeamId"],
+      "ApprovalRequestDecisionRequest": {
+        "required": [
+          "decision"
+        ],
         "type": "object",
         "properties": {
-          "serviceId": {
-            "maxLength": 100,
+          "decision": {
+            "maxLength": 20,
             "minLength": 0,
             "type": "string",
-            "description": "Service ID to request ownership for",
-            "example": "payment-service"
-          },
-          "targetTeamId": {
-            "maxLength": 100,
-            "minLength": 0,
-            "type": "string",
-            "description": "Team requesting ownership",
-            "example": "team_core"
+            "description": "Approval decision",
+            "example": "APPROVE",
+            "enum": [
+              "APPROVE",
+              "REJECT"
+            ]
           },
           "note": {
             "maxLength": 500,
             "minLength": 0,
             "type": "string",
-            "description": "Optional note explaining the request",
-            "example": "Our team will be responsible for maintaining this service"
+            "description": "Optional note explaining the decision",
+            "example": "Approved based on team capacity and expertise"
           }
         },
-        "description": "Approval request creation data"
+        "description": "Decision data (approve/reject with optional note)"
       },
       "ApplicationServiceCreateRequest": {
-        "required": ["displayName", "environments", "id", "ownerTeamId"],
+        "required": [
+          "displayName",
+          "id"
+        ],
         "type": "object",
         "properties": {
           "id": {
@@ -5135,25 +5489,33 @@
             "maxLength": 100,
             "minLength": 0,
             "type": "string",
-            "description": "Team that owns this service",
+            "description": "Team that owns this service (null for orphaned services, only SYS_ADMIN can create orphaned)",
             "example": "team_core"
           },
           "environments": {
             "maxItems": 2147483647,
             "minItems": 1,
             "type": "array",
-            "description": "List of environments where this service is deployed",
-            "example": ["dev", "staging", "prod"],
+            "description": "List of environments where this service is deployed (defaults to [\"dev\", \"staging\", \"prod\"] if not provided)",
+            "example": [
+              "dev",
+              "staging",
+              "prod"
+            ],
             "items": {
               "type": "string",
-              "description": "List of environments where this service is deployed",
+              "description": "List of environments where this service is deployed (defaults to [\"dev\", \"staging\", \"prod\"] if not provided)",
               "example": "[\"dev\",\"staging\",\"prod\"]"
             }
           },
           "tags": {
             "type": "array",
             "description": "Optional tags for categorization",
-            "example": ["microservice", "payment", "critical"],
+            "example": [
+              "microservice",
+              "payment",
+              "critical"
+            ],
             "items": {
               "type": "string",
               "description": "Optional tags for categorization",
@@ -5325,7 +5687,9 @@
           "teamIds": {
             "type": "array",
             "description": "List of team IDs user belongs to",
-            "example": ["team_core"],
+            "example": [
+              "team_core"
+            ],
             "items": {
               "type": "string",
               "description": "List of team IDs user belongs to",
@@ -5335,7 +5699,9 @@
           "roles": {
             "type": "array",
             "description": "User roles",
-            "example": ["USER"],
+            "example": [
+              "USER"
+            ],
             "items": {
               "type": "string",
               "description": "User roles",
@@ -5356,7 +5722,10 @@
           "allowedApiRoutes": {
             "type": "array",
             "description": "API routes user can access",
-            "example": ["/api/application-services", "/api/service-instances"],
+            "example": [
+              "/api/application-services",
+              "/api/service-instances"
+            ],
             "items": {
               "type": "string",
               "description": "API routes user can access",
@@ -5366,7 +5735,10 @@
           "allowedUiRoutes": {
             "type": "array",
             "description": "UI routes user can access",
-            "example": ["/dashboard", "/services"],
+            "example": [
+              "/dashboard",
+              "/services"
+            ],
             "items": {
               "type": "string",
               "description": "UI routes user can access",
@@ -5376,7 +5748,9 @@
           "roles": {
             "type": "array",
             "description": "User roles",
-            "example": ["USER"],
+            "example": [
+              "USER"
+            ],
             "items": {
               "type": "string",
               "description": "User roles",
@@ -5386,7 +5760,9 @@
           "teams": {
             "type": "array",
             "description": "User team memberships",
-            "example": ["team_core"],
+            "example": [
+              "team_core"
+            ],
             "items": {
               "type": "string",
               "description": "User team memberships",
@@ -5412,8 +5788,13 @@
               "type": "array",
               "description": "Actions user can perform",
               "example": {
-                "service": ["VIEW", "EDIT"],
-                "approval": ["APPROVE"]
+                "service": [
+                  "VIEW",
+                  "EDIT"
+                ],
+                "approval": [
+                  "APPROVE"
+                ]
               },
               "items": {
                 "type": "string",
@@ -5423,14 +5804,22 @@
             },
             "description": "Actions user can perform",
             "example": {
-              "service": ["VIEW", "EDIT"],
-              "approval": ["APPROVE"]
+              "service": [
+                "VIEW",
+                "EDIT"
+              ],
+              "approval": [
+                "APPROVE"
+              ]
             }
           },
           "ownedServiceIds": {
             "type": "array",
             "description": "Service IDs owned by user's teams",
-            "example": ["payment-service", "user-service"],
+            "example": [
+              "payment-service",
+              "user-service"
+            ],
             "items": {
               "type": "string",
               "description": "Service IDs owned by user's teams",
@@ -5440,7 +5829,9 @@
           "sharedServiceIds": {
             "type": "array",
             "description": "Service IDs shared with user",
-            "example": ["analytics-service"],
+            "example": [
+              "analytics-service"
+            ],
             "items": {
               "type": "string",
               "description": "Service IDs shared with user",
@@ -5498,10 +5889,10 @@
             "description": "Whether the page is empty",
             "example": false
           },
-          "first": {
+          "last": {
             "type": "boolean"
           },
-          "last": {
+          "first": {
             "type": "boolean"
           }
         },
@@ -5548,8 +5939,14 @@
               "type": "array",
               "description": "Map of service names to their tags",
               "example": {
-                "payment-service": ["v1", "production"],
-                "order-service": ["v2", "staging"]
+                "payment-service": [
+                  "v1",
+                  "production"
+                ],
+                "order-service": [
+                  "v2",
+                  "staging"
+                ]
               },
               "items": {
                 "type": "string",
@@ -5559,8 +5956,14 @@
             },
             "description": "Map of service names to their tags",
             "example": {
-              "payment-service": ["v1", "production"],
-              "order-service": ["v2", "staging"]
+              "payment-service": [
+                "v1",
+                "production"
+              ],
+              "order-service": [
+                "v2",
+                "staging"
+              ]
             }
           }
         },
@@ -5661,7 +6064,9 @@
           "teamIds": {
             "type": "array",
             "description": "List of team IDs user belongs to",
-            "example": ["team_core"],
+            "example": [
+              "team_core"
+            ],
             "items": {
               "type": "string",
               "description": "List of team IDs user belongs to",
@@ -5676,7 +6081,9 @@
           "roles": {
             "type": "array",
             "description": "User roles",
-            "example": ["USER"],
+            "example": [
+              "USER"
+            ],
             "items": {
               "type": "string",
               "description": "User roles",
@@ -5754,7 +6161,11 @@
           "members": {
             "type": "array",
             "description": "List of team member user IDs",
-            "example": ["user1", "user2", "user3"],
+            "example": [
+              "user1",
+              "user2",
+              "user3"
+            ],
             "items": {
               "type": "string",
               "description": "List of team member user IDs",
@@ -5811,7 +6222,9 @@
         "description": "Page response for drift events"
       },
       "ConfigServerInfo": {
-        "required": ["url"],
+        "required": [
+          "url"
+        ],
         "type": "object",
         "properties": {
           "url": {
@@ -5823,7 +6236,11 @@
             "type": "string",
             "description": "Current operational status of the Config Server",
             "example": "UP",
-            "enum": ["UP", "DOWN", "UNKNOWN"]
+            "enum": [
+              "UP",
+              "DOWN",
+              "UNKNOWN"
+            ]
           },
           "version": {
             "type": "string",
@@ -5834,14 +6251,21 @@
         "description": "Basic information about the Config Server instance"
       },
       "ConfigServerActuatorHealthResponse": {
-        "required": ["status"],
+        "required": [
+          "status"
+        ],
         "type": "object",
         "properties": {
           "status": {
             "type": "string",
             "description": "Overall health status of the Config Server",
             "example": "UP",
-            "enum": ["UP", "DOWN", "OUT_OF_SERVICE", "UNKNOWN"]
+            "enum": [
+              "UP",
+              "DOWN",
+              "OUT_OF_SERVICE",
+              "UNKNOWN"
+            ]
           },
           "components": {
             "type": "object",
@@ -5857,7 +6281,9 @@
         "description": "Health status response from Config Server actuator endpoint"
       },
       "ConfigServerEnvironmentResponse": {
-        "required": ["name"],
+        "required": [
+          "name"
+        ],
         "type": "object",
         "properties": {
           "name": {
@@ -5868,7 +6294,11 @@
           "profiles": {
             "type": "array",
             "description": "List of active Spring profiles for this configuration",
-            "example": ["dev", "kafka", "mysql"],
+            "example": [
+              "dev",
+              "kafka",
+              "mysql"
+            ],
             "items": {
               "type": "string",
               "description": "List of active Spring profiles for this configuration",
@@ -5889,7 +6319,10 @@
             "type": "string",
             "description": "Current state of the configuration",
             "example": "ACTIVE",
-            "enum": ["ACTIVE", "INACTIVE"]
+            "enum": [
+              "ACTIVE",
+              "INACTIVE"
+            ]
           },
           "propertySources": {
             "type": "array",
@@ -5982,13 +6415,19 @@
             "type": "string",
             "description": "Approval gate",
             "example": "SYS_ADMIN",
-            "enum": ["SYS_ADMIN", "LINE_MANAGER"]
+            "enum": [
+              "SYS_ADMIN",
+              "LINE_MANAGER"
+            ]
           },
           "decision": {
             "type": "string",
             "description": "Decision made",
             "example": "APPROVE",
-            "enum": ["APPROVE", "REJECT"]
+            "enum": [
+              "APPROVE",
+              "REJECT"
+            ]
           },
           "decidedAt": {
             "type": "string",

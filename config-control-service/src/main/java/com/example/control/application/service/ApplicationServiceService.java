@@ -48,21 +48,52 @@ public class ApplicationServiceService {
     /**
      * Save or update an application service.
      * <p>
-     * Business logic: Initializes timestamps and ID if needed, then delegates to
-     * CommandService.
+     * Business logic: Initializes timestamps and ID if needed, validates permissions,
+     * applies default environments if needed, then delegates to CommandService.
      *
      * @param service     the application service to save
      * @param userContext the current user context
      * @return the saved application service
+     * @throws IllegalStateException if user lacks permission to create orphaned service
      */
     @Transactional
     public ApplicationService save(ApplicationService service, UserContext userContext) {
         log.info("Orchestrating save for application service: {} by user: {}", service.getId(),
                 userContext.getUserId());
 
+        // Business logic: Permission check for orphaned services
+        // Only SYS_ADMIN can create orphaned services (ownerTeamId=null)
+        if (service.getOwnerTeamId() == null) {
+            if (!userContext.isSysAdmin()) {
+                throw new IllegalStateException("Only system administrators can create orphaned services (ownerTeamId=null)");
+            }
+            log.debug("Creating orphaned service by admin: {}", userContext.getUserId());
+        } else {
+            // Business logic: Team members can only create services for their own team
+            if (!userContext.isSysAdmin()) {
+                List<String> userTeamIds = userContext.getTeamIds();
+                if (userTeamIds == null || userTeamIds.isEmpty()) {
+                    throw new IllegalStateException(
+                            String.format("User %s has no team membership and cannot create services. Only system administrators can create services.",
+                                    userContext.getUserId()));
+                }
+                if (!userTeamIds.contains(service.getOwnerTeamId())) {
+                    throw new IllegalStateException(
+                            String.format("User %s cannot create service for team %s. Users can only create services for their own teams.",
+                                    userContext.getUserId(), service.getOwnerTeamId()));
+                }
+            }
+        }
+
         // Business logic: Generate ID if null
         if (service.getId() == null) {
             service.setId(ApplicationServiceId.of(UUID.randomUUID().toString()));
+        }
+
+        // Business logic: Apply default environments if null or empty
+        if (service.getEnvironments() == null || service.getEnvironments().isEmpty()) {
+            service.setEnvironments(List.of("dev", "staging", "prod"));
+            log.debug("Applied default environments [dev, staging, prod] to service: {}", service.getId());
         }
 
         // Business logic: Initialize timestamps

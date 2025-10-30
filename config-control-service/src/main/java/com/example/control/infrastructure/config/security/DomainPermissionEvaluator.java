@@ -109,7 +109,7 @@ public class DomainPermissionEvaluator {
      */
     public boolean canViewInstance(UserContext userContext, ServiceInstance instance) {
         log.debug("Checking if user {} can view instance {} of service {}",
-                userContext.getUserId(), instance.getInstanceId());
+                userContext.getUserId(), instance.getInstanceId(), instance.getServiceId());
 
         // System admins can view all instances
         if (userContext.isSysAdmin()) {
@@ -136,6 +136,50 @@ public class DomainPermissionEvaluator {
     }
 
     /**
+     * Check if user can create a service instance for an application service.
+     * <p>
+     * Checks permission based on ApplicationService before instance is created.
+     * SYS_ADMIN can always create. Team members can create if service is owned by their team.
+     * Users can create if service is shared with EDIT_INSTANCE permission.
+     *
+     * @param userContext the user context
+     * @param service     the application service
+     * @param environment the environment for the instance (used for share permission checks)
+     * @return true if user can create instance for the service
+     */
+    public boolean canCreateInstance(UserContext userContext, ApplicationService service, String environment) {
+        log.debug("Checking if user {} can create instance for service {} in environment {}",
+                userContext.getUserId(), service.getId(), environment);
+
+        // System admins can create instances for any service
+        if (userContext.isSysAdmin()) {
+            return true;
+        }
+
+        // Team members can create instances for services owned by their team
+        if (service.getOwnerTeamId() != null && userContext.isMemberOfTeam(service.getOwnerTeamId())) {
+            log.debug("User {} is member of owning team {}, can create instance",
+                    userContext.getUserId(), service.getOwnerTeamId());
+            return true;
+        }
+
+        // Check service shares for EDIT_INSTANCE permission
+        if (environment != null) {
+            List<ServiceShare.SharePermission> permissions = findEffectivePermissions(
+                    userContext, service.getId().id(), List.of(environment));
+            if (permissions.contains(ServiceShare.SharePermission.EDIT_INSTANCE)) {
+                log.debug("User {} granted EDIT_INSTANCE permission via service share for service {}",
+                        userContext.getUserId(), service.getId());
+                return true;
+            }
+        }
+
+        log.debug("User {} cannot create instance for service {} - not owned, not shared with EDIT_INSTANCE",
+                userContext.getUserId(), service.getId());
+        return false;
+    }
+
+    /**
      * Check if user can edit a service instance.
      * <p>
      * Similar to view permissions but requires EDIT_INSTANCE share permission.
@@ -146,7 +190,7 @@ public class DomainPermissionEvaluator {
      */
     public boolean canEditInstance(UserContext userContext, ServiceInstance instance) {
         log.debug("Checking if user {} can edit instance {} of service {}",
-                userContext.getUserId(), instance.getInstanceId());
+                userContext.getUserId(), instance.getInstanceId(), instance.getServiceId());
 
         // System admins can edit all instances
         if (userContext.isSysAdmin()) {

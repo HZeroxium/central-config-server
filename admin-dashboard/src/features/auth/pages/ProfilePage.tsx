@@ -24,7 +24,7 @@ import ErrorFallback from "@components/common/ErrorFallback";
 import { getErrorMessage } from "@lib/api/errorHandler";
 
 export default function ProfilePage() {
-  const { hasRole } = useAuth();
+  const { hasRole, permissions } = useAuth();
   const {
     data: userInfo,
     isLoading,
@@ -35,6 +35,11 @@ export default function ProfilePage() {
   if (isLoading) return <DetailPageSkeleton />;
   if (error)
     return <ErrorFallback message={getErrorMessage(error)} onRetry={refetch} />;
+
+  // Get service counts from permissions
+  const ownedServiceCount = permissions?.ownedServiceIds?.length || 0;
+  const sharedServiceCount = permissions?.sharedServiceIds?.length || 0;
+  const teamServiceCount = userInfo?.teamIds?.length || 0;
 
   const handleChangePassword = () => {
     // Keycloak account management would be handled here
@@ -209,7 +214,7 @@ export default function ProfilePage() {
                   <Typography variant="h6">Owned Services</Typography>
                 </Box>
                 <Typography variant="h3" color="primary.main">
-                  0
+                  {ownedServiceCount}
                 </Typography>
                 <Typography
                   variant="body2"
@@ -230,7 +235,7 @@ export default function ProfilePage() {
                   <Typography variant="h6">Shared Services</Typography>
                 </Box>
                 <Typography variant="h3" color="success.main">
-                  0
+                  {sharedServiceCount}
                 </Typography>
                 <Typography
                   variant="body2"
@@ -251,7 +256,7 @@ export default function ProfilePage() {
                   <Typography variant="h6">Team Services</Typography>
                 </Box>
                 <Typography variant="h3" color="info.main">
-                  0
+                  {teamServiceCount}
                 </Typography>
                 <Typography
                   variant="body2"

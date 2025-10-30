@@ -292,7 +292,7 @@ kv:
 # Service Instance Cleanup Configuration
 service-instance:
   cleanup:
-    enabled: true
+    enabled: false
     stale-threshold-minutes: 10
     cleanup-threshold-days: 30
     schedule-cron: "0 */5 * * * *" # Every 5 minutes

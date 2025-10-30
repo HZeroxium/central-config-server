@@ -19,7 +19,7 @@ const keycloakConfig = {
   // Additional config for proper callback handling
   flow: "standard",
   responseMode: "fragment",
-  scope: "openid profile email",
+  scope: "openid profile email extended_profile",
 };
 
 export const keycloak = new Keycloak(keycloakConfig);

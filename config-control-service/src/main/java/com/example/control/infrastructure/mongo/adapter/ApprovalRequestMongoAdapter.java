@@ -90,8 +90,12 @@ public class ApprovalRequestMongoAdapter
         }
 
         // ABAC: Team-based filtering
-        if (criteria.userTeamIds() != null && !criteria.userTeamIds().isEmpty()) {
-            query.addCriteria(Criteria.where("requesterUserId").in(criteria.userTeamIds()));
+        // Only apply team filtering if requesterUserId is not set to avoid duplicate criteria
+        // When userTeamIds is provided without requesterUserId, filter by targetTeamId
+        // to show requests targeting the user's teams
+        if (criteria.userTeamIds() != null && !criteria.userTeamIds().isEmpty() 
+                && criteria.requesterUserId() == null) {
+            query.addCriteria(Criteria.where("targetTeamId").in(criteria.userTeamIds()));
         }
 
         return query;

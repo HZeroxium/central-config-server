@@ -295,6 +295,36 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Handle IllegalStateException (typically permission/authorization errors).
+     */
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalStateException(IllegalStateException ex, WebRequest request) {
+        log.warn("IllegalStateException: {}", ex.getMessage());
+
+        // Check if it's a permission-related error
+        boolean isPermissionError = ex.getMessage() != null &&
+                (ex.getMessage().contains("cannot create") ||
+                        ex.getMessage().contains("Only system administrators") ||
+                        ex.getMessage().contains("lacks permission") ||
+                        ex.getMessage().contains("cannot"));
+
+        HttpStatus status = isPermissionError ? HttpStatus.FORBIDDEN : HttpStatus.BAD_REQUEST;
+        String errorType = isPermissionError ? "https://api.example.com/problems/forbidden" : BAD_REQUEST_TYPE;
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .type(errorType)
+                .title(isPermissionError ? "Forbidden" : "Invalid State")
+                .status(status.value())
+                .detail(ex.getMessage())
+                .instance(request.getDescription(false))
+                .timestamp(Instant.now())
+                .traceId(generateTraceId())
+                .build();
+
+        return ResponseEntity.status(status).body(errorResponse);
+    }
+
+    /**
      * Handle database access exceptions.
      */
     @ExceptionHandler(DataAccessException.class)

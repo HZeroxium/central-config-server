@@ -122,7 +122,6 @@ public class ServiceSharingWorkflowTest extends BaseE2ETest {
         // Step 6: Verify team2 can create instances for the shared service
         String instanceId = TestDataGenerator.generateInstanceId();
         Map<String, Object> createInstanceRequest = Map.of(
-                "serviceName", serviceName,
                 "instanceId", instanceId,
                 "serviceId", serviceId,
                 "host", TestDataGenerator.generateTestHost(),

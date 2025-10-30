@@ -1,5 +1,5 @@
 import { Suspense, lazy } from "react";
-import { createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter, Navigate } from "react-router-dom";
 import MainLayout from "@layout/MainLayout";
 import Loading from "@components/common/Loading";
 import ErrorBoundary from "@components/ErrorBoundary";
@@ -105,6 +105,10 @@ export const router = createBrowserRouter([
         ),
       },
       {
+        path: "services",
+        element: <Navigate to="/application-services" replace />,
+      },
+      {
         path: "application-services",
         children: [
           {
@@ -153,6 +157,10 @@ export const router = createBrowserRouter([
             ),
           },
         ],
+      },
+      {
+        path: "instances",
+        element: <Navigate to="/service-instances" replace />,
       },
       {
         path: "service-instances",

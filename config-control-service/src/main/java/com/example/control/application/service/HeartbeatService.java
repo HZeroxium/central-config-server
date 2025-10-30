@@ -144,18 +144,38 @@ public class HeartbeatService {
                     log.debug("Found existing ApplicationService: {} for display name: {}",
                             appService.getId(), payload.getServiceName());
                 }
+                
+                // Business logic: Merge environments when new instance has different environment
+                if (payload.getEnvironment() != null && !payload.getEnvironment().isEmpty()) {
+                    List<String> currentEnvironments = appService.getEnvironments();
+                    if (currentEnvironments == null || !currentEnvironments.contains(payload.getEnvironment())) {
+                        List<String> mergedEnvironments = mergeEnvironments(currentEnvironments, payload.getEnvironment());
+                        appService.setEnvironments(mergedEnvironments);
+                        appService.setUpdatedAt(Instant.now());
+                        appService = applicationServiceCommandService.save(appService);
+                        log.info("Merged environment {} into ApplicationService {} environments: {}",
+                                payload.getEnvironment(), appService.getId(), mergedEnvironments);
+                    }
+                }
             } else {
                 // Business logic: Recreate orphaned ApplicationService if instance exists but
                 // service is missing
                 // This handles edge case where ApplicationService was deleted but instance
                 // still exists
                 if (isFirstHeartbeat || instance.getServiceId() == null) {
-                    // Create orphaned service
+                    // Create orphaned service with environment from payload
+                    List<String> initialEnvironments;
+                    if (payload.getEnvironment() != null && !payload.getEnvironment().isEmpty()) {
+                        initialEnvironments = List.of(payload.getEnvironment());
+                    } else {
+                        initialEnvironments = List.of("dev", "staging", "prod"); // Default if no environment
+                    }
+                    
                     ApplicationService orphanedService = ApplicationService.builder()
                             .id(ApplicationServiceId.of(UUID.randomUUID().toString()))
                             .displayName(payload.getServiceName())
                             .ownerTeamId(null) // Orphaned - requires approval workflow
-                            .environments(List.of("dev", "staging", "prod")) // Default environments
+                            .environments(initialEnvironments)
                             .lifecycle(ApplicationService.ServiceLifecycle.ACTIVE)
                             .createdAt(Instant.now())
                             .createdBy("system") // System-created
@@ -164,8 +184,8 @@ public class HeartbeatService {
                     appService = applicationServiceCommandService.save(orphanedService);
                     if (isFirstHeartbeat) {
                         log.warn(
-                                "Auto-created orphaned ApplicationService: {} (displayName: {}) - requires approval workflow for team assignment",
-                                appService.getId(), payload.getServiceName());
+                                "Auto-created orphaned ApplicationService: {} (displayName: {}, environment: {}) - requires approval workflow for team assignment",
+                                appService.getId(), payload.getServiceName(), payload.getEnvironment());
                     } else {
                         log.warn(
                                 "Recreated orphaned ApplicationService: {} (displayName: {}) - ApplicationService was missing but instance exists",
@@ -179,11 +199,18 @@ public class HeartbeatService {
                             "ApplicationService not found for displayName: {} but instance has serviceId: {}, recreating orphaned service",
                             payload.getServiceName(), instance.getServiceId());
 
+                    List<String> initialEnvironments;
+                    if (payload.getEnvironment() != null && !payload.getEnvironment().isEmpty()) {
+                        initialEnvironments = List.of(payload.getEnvironment());
+                    } else {
+                        initialEnvironments = List.of("dev", "staging", "prod"); // Default if no environment
+                    }
+
                     ApplicationService orphanedService = ApplicationService.builder()
                             .id(ApplicationServiceId.of(instance.getServiceId())) // Try to reuse same ID if possible
                             .displayName(payload.getServiceName())
                             .ownerTeamId(null) // Orphaned - requires approval workflow
-                            .environments(List.of("dev", "staging", "prod")) // Default environments
+                            .environments(initialEnvironments)
                             .lifecycle(ApplicationService.ServiceLifecycle.ACTIVE)
                             .createdAt(Instant.now())
                             .createdBy("system") // System-created
@@ -398,6 +425,32 @@ public class HeartbeatService {
             @SpanTag("service.name") String serviceName,
             @SpanTag("environment") String environment) {
         return configProxyService.getEffectiveConfigHash(serviceName, environment);
+    }
+
+    /**
+     * Merges a new environment into the existing environments list.
+     * <p>
+     * If currentEnvironments is null or empty, returns a list with just the new environment.
+     * Otherwise, adds the new environment if it doesn't already exist.
+     *
+     * @param currentEnvironments the current environments list (may be null or empty)
+     * @param newEnvironment      the new environment to merge
+     * @return merged list of environments
+     */
+    private List<String> mergeEnvironments(List<String> currentEnvironments, String newEnvironment) {
+        if (currentEnvironments == null || currentEnvironments.isEmpty()) {
+            return List.of(newEnvironment);
+        }
+        if (currentEnvironments.contains(newEnvironment)) {
+            return currentEnvironments; // Already present, no change needed
+        }
+        // Create new list with merged environments
+        return java.util.stream.Stream.concat(
+                        currentEnvironments.stream(),
+                        java.util.stream.Stream.of(newEnvironment))
+                .sorted()
+                .distinct()
+                .toList();
     }
 
     /**

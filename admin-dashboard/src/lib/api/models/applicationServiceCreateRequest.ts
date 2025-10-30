@@ -38,17 +38,17 @@ export interface ApplicationServiceCreateRequest {
    */
   displayName: string;
   /**
-   * Team that owns this service
+   * Team that owns this service (null for orphaned services, only SYS_ADMIN can create orphaned)
    * @minLength 0
    * @maxLength 100
    */
-  ownerTeamId: string;
+  ownerTeamId?: string;
   /**
-   * List of environments where this service is deployed
+   * List of environments where this service is deployed (defaults to ["dev", "staging", "prod"] if not provided)
    * @minItems 1
    * @maxItems 2147483647
    */
-  environments: string[];
+  environments?: string[];
   /** Optional tags for categorization */
   tags?: string[];
   /**

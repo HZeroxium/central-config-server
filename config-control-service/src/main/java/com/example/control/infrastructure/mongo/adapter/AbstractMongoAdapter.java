@@ -175,7 +175,7 @@ public abstract class AbstractMongoAdapter<T, D, ID, F, R extends MongoRepositor
         // Build page from documents and pagination info
         Page<T> result = new PageImpl<>(entities, pageable, total);
 
-        log.debug("Found {} entities out of {} total", entities.size(), total);
+        log.debug("Found {} entities out of {} total in collection: {}", entities.size(), total, getCollectionName());
         return result;
     }
 

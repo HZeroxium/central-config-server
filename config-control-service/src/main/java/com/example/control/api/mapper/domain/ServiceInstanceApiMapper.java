@@ -3,6 +3,7 @@ package com.example.control.api.mapper.domain;
 import com.example.control.api.dto.common.PageDtos;
 import com.example.control.api.dto.domain.ServiceInstanceDtos;
 import com.example.control.infrastructure.config.security.UserContext;
+import com.example.control.domain.object.ApplicationService;
 import com.example.control.domain.object.ServiceInstance;
 import com.example.control.domain.criteria.ServiceInstanceCriteria;
 import com.example.control.domain.id.ServiceInstanceId;
@@ -57,6 +58,34 @@ public final class ServiceInstanceApiMapper {
     public static ServiceInstanceDtos.Response toResponse(ServiceInstance si) {
         return ServiceInstanceDtos.Response.builder()
                 .serviceName(si.getServiceId())
+                .instanceId(si.getInstanceId())
+                .host(si.getHost())
+                .port(si.getPort())
+                .environment(si.getEnvironment())
+                .version(si.getVersion())
+                .configHash(si.getConfigHash())
+                .lastAppliedHash(si.getLastAppliedHash())
+                .expectedHash(si.getExpectedHash())
+                .status(si.getStatus())
+                .lastSeenAt(si.getLastSeenAt())
+                .createdAt(si.getCreatedAt())
+                .updatedAt(si.getUpdatedAt())
+                .metadata(si.getMetadata())
+                .hasDrift(si.getHasDrift())
+                .driftDetectedAt(si.getDriftDetectedAt())
+                .build();
+    }
+
+    /**
+     * Map ServiceInstance to Response DTO with ApplicationService display name.
+     *
+     * @param si      the service instance
+     * @param service the application service (for display name)
+     * @return the response DTO
+     */
+    public static ServiceInstanceDtos.Response toResponse(ServiceInstance si, ApplicationService service) {
+        return ServiceInstanceDtos.Response.builder()
+                .serviceName(service.getDisplayName())
                 .instanceId(si.getInstanceId())
                 .host(si.getHost())
                 .port(si.getPort())

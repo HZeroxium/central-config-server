@@ -4,8 +4,10 @@ import com.example.control.application.command.ServiceInstanceCommandService;
 import com.example.control.application.query.ServiceInstanceQueryService;
 import com.example.control.infrastructure.config.security.DomainPermissionEvaluator;
 import com.example.control.infrastructure.config.security.UserContext;
+import com.example.control.domain.object.ApplicationService;
 import com.example.control.domain.object.ServiceInstance;
 import com.example.control.domain.criteria.ServiceInstanceCriteria;
+import com.example.control.domain.id.ApplicationServiceId;
 import com.example.control.domain.id.ServiceInstanceId;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,6 +37,7 @@ public class ServiceInstanceService {
     private final ServiceInstanceCommandService commandService;
     private final ServiceInstanceQueryService queryService;
     private final DomainPermissionEvaluator permissionEvaluator;
+    private final ApplicationServiceService applicationServiceService;
 
     /**
      * Saves or updates a {@link ServiceInstance} record.
@@ -262,45 +265,42 @@ public class ServiceInstanceService {
      * @param instance    the instance to create
      * @param userContext the user context for permission checking
      * @return the created instance
-     * @throws SecurityException if user lacks permission to create instance
+     * @throws IllegalArgumentException if ApplicationService not found
+     * @throws SecurityException        if user lacks permission to create instance
      */
-    // @Transactional
-    // @CacheEvict(value = "service-instances", allEntries = true)
-    // public ServiceInstance create(ServiceInstance instance, UserContext
-    // userContext) {
-    // log.debug("Creating service instance {} for user {}", instance.getId(),
-    // userContext.getUserId());
+    @Transactional
+    public ServiceInstance create(ServiceInstance instance, UserContext userContext) {
+        log.debug("Creating service instance {} for user {}", instance.getId(), userContext.getUserId());
 
-    // // Validate serviceId exists and get ApplicationService
-    // if (instance.getServiceId() == null) {
-    // throw new IllegalArgumentException("ServiceId is required for instance
-    // creation");
-    // }
+        // Validate serviceId exists and get ApplicationService
+        if (instance.getServiceId() == null) {
+            throw new IllegalArgumentException("ServiceId is required for instance creation");
+        }
 
-    // ApplicationService service =
-    // applicationServiceService.findById(ApplicationServiceId.of(instance.getServiceId()))
-    // .orElseThrow(() -> new IllegalArgumentException("ApplicationService not
-    // found: " + instance.getServiceId()));
+        ApplicationService service = applicationServiceService.findById(ApplicationServiceId.of(instance.getServiceId()))
+                .orElseThrow(() -> new IllegalArgumentException("ApplicationService not found: " + instance.getServiceId()));
 
-    // // Set teamId from ApplicationService
-    // instance.setTeamId(service.getOwnerTeamId());
+        // Set teamId from ApplicationService
+        instance.setTeamId(service.getOwnerTeamId());
 
-    // // Check if user can edit instances for this service
-    // if (!permissionEvaluator.canEditInstance(userContext, instance)) {
-    // log.warn("User {} denied permission to create instance for service {}",
-    // userContext.getUserId(), instance.getServiceId());
-    // throw new SecurityException("Insufficient permissions to create instance for
-    // service: " + instance.getServiceId());
-    // }
+        // Set serviceId from ApplicationService to ensure consistency
+        instance.setServiceId(service.getId().id());
 
-    // // Initialize timestamps
-    // if (instance.getCreatedAt() == null) {
-    // instance.setCreatedAt(Instant.now());
-    // }
-    // instance.setUpdatedAt(Instant.now());
+        // Check if user can create instances for this service
+        if (!permissionEvaluator.canCreateInstance(userContext, service, instance.getEnvironment())) {
+            log.warn("User {} denied permission to create instance for service {}",
+                    userContext.getUserId(), instance.getServiceId());
+            throw new SecurityException("Insufficient permissions to create instance for service: " + instance.getServiceId());
+        }
 
-    // return repository.save(instance);
-    // }
+        // Initialize timestamps
+        if (instance.getCreatedAt() == null) {
+            instance.setCreatedAt(Instant.now());
+        }
+        instance.setUpdatedAt(Instant.now());
+
+        return commandService.save(instance);
+    }
 
     /**
      * Updates an existing service instance with permission validation.

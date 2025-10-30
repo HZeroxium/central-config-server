@@ -71,13 +71,12 @@ public class ServiceOwnershipWorkflowTest extends BaseE2ETest {
 
         // Step 2: User5 requests ownership for team2
         Map<String, Object> createApprovalRequest = Map.of(
-                "serviceId", serviceId,
                 "targetTeamId", TestUsers.TEAM2);
 
         Response approvalResponse = ApiClient.given(getUser5Token())
                 .body(createApprovalRequest)
                 .when()
-                .post("/approval-requests")
+                .post("/approval-requests/application-services/" + serviceId + "/approval-requests")
                 .then()
                 .statusCode(201)
                 .body("id", notNullValue())
@@ -163,7 +162,6 @@ public class ServiceOwnershipWorkflowTest extends BaseE2ETest {
         // Step 9: Verify team2 can create instances for the service
         String instanceId = TestDataGenerator.generateInstanceId();
         Map<String, Object> createInstanceRequest = Map.of(
-                "serviceName", orphanedServiceName,
                 "instanceId", instanceId,
                 "serviceId", serviceId,
                 "host", TestDataGenerator.generateTestHost(),
@@ -242,42 +240,39 @@ public class ServiceOwnershipWorkflowTest extends BaseE2ETest {
         ApiClient.given(getUser5Token())
                 .body(invalidRequest1)
                 .when()
-                .post("/approval-requests")
+                .post("/approval-requests/application-services/invalid-service-id/approval-requests")
                 .then()
                 .statusCode(400);
 
         // Test 2: Missing targetTeamId should fail
-        Map<String, Object> invalidRequest2 = Map.of(
-                "serviceId", serviceId);
+        Map<String, Object> invalidRequest2 = Map.of();
 
         ApiClient.given(getUser5Token())
                 .body(invalidRequest2)
                 .when()
-                .post("/approval-requests")
+                .post("/approval-requests/application-services/" + serviceId + "/approval-requests")
                 .then()
                 .statusCode(400);
 
         // Test 3: Invalid serviceId should fail
         Map<String, Object> invalidRequest3 = Map.of(
-                "serviceId", "invalid-service-id",
                 "targetTeamId", TestUsers.TEAM2);
 
         ApiClient.given(getUser5Token())
                 .body(invalidRequest3)
                 .when()
-                .post("/approval-requests")
+                .post("/approval-requests/application-services/invalid-service-id/approval-requests")
                 .then()
                 .statusCode(404);
 
         // Test 4: Valid request should succeed
         Map<String, Object> validRequest = Map.of(
-                "serviceId", serviceId,
                 "targetTeamId", TestUsers.TEAM2);
 
         Response validResponse = ApiClient.given(getUser5Token())
                 .body(validRequest)
                 .when()
-                .post("/approval-requests")
+                .post("/approval-requests/application-services/" + serviceId + "/approval-requests")
                 .then()
                 .statusCode(201)
                 .extract().response();
@@ -327,13 +322,12 @@ public class ServiceOwnershipWorkflowTest extends BaseE2ETest {
 
         // User5 requests ownership for team1
         Map<String, Object> request1 = Map.of(
-                "serviceId", serviceId,
                 "targetTeamId", TestUsers.TEAM1);
 
         Response response1 = ApiClient.given(getUser5Token())
                 .body(request1)
                 .when()
-                .post("/approval-requests")
+                .post("/approval-requests/application-services/" + serviceId + "/approval-requests")
                 .then()
                 .statusCode(201)
                 .extract().response();
@@ -342,13 +336,12 @@ public class ServiceOwnershipWorkflowTest extends BaseE2ETest {
 
         // User5 requests ownership for team2 (should be allowed)
         Map<String, Object> request2 = Map.of(
-                "serviceId", serviceId,
                 "targetTeamId", TestUsers.TEAM2);
 
         Response response2 = ApiClient.given(getUser5Token())
                 .body(request2)
                 .when()
-                .post("/approval-requests")
+                .post("/approval-requests/application-services/" + serviceId + "/approval-requests")
                 .then()
                 .statusCode(201)
                 .extract().response();
@@ -448,13 +441,12 @@ public class ServiceOwnershipWorkflowTest extends BaseE2ETest {
 
         // User5 requests ownership
         Map<String, Object> createApprovalRequest = Map.of(
-                "serviceId", serviceId,
                 "targetTeamId", TestUsers.TEAM2);
 
         Response approvalResponse = ApiClient.given(getUser5Token())
                 .body(createApprovalRequest)
                 .when()
-                .post("/approval-requests")
+                .post("/approval-requests/application-services/" + serviceId + "/approval-requests")
                 .then()
                 .statusCode(201)
                 .extract().response();

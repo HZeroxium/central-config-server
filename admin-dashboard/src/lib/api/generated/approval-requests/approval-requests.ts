@@ -55,158 +55,6 @@ type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 
 /**
- * Submit a decision (approve/reject) for an approval request.
-
-**Multi-Gate Approval:**
-- SYS_ADMIN: Can approve/reject any request
-- LINE_MANAGER: Can approve/reject requests from their direct reports
-- Request status is updated based on required approvals from configured gates
-
-**Access Control:**
-- Only authorized approvers can submit decisions
-- Decision is recorded with approver information and timestamp
-
- * @summary Submit approval decision
- */
-export const submitApprovalDecision = (
-    id: string,
-    approvalRequestDecisionRequest: ApprovalRequestDecisionRequest,
- options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
-) => {
-      
-      
-      return customInstance<ApprovalRequestResponse>(
-      {url: `/api/approval-requests/${id}/decisions`, method: 'POST',
-      headers: {'Content-Type': 'application/json', },
-      data: approvalRequestDecisionRequest, signal
-    },
-      options);
-    }
-  
-
-
-export const getSubmitApprovalDecisionMutationOptions = <TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitApprovalDecision>>, TError,{id: string;data: ApprovalRequestDecisionRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof submitApprovalDecision>>, TError,{id: string;data: ApprovalRequestDecisionRequest}, TContext> => {
-
-const mutationKey = ['submitApprovalDecision'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-      
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof submitApprovalDecision>>, {id: string;data: ApprovalRequestDecisionRequest}> = (props) => {
-          const {id,data} = props ?? {};
-
-          return  submitApprovalDecision(id,data,requestOptions)
-        }
-
-        
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type SubmitApprovalDecisionMutationResult = NonNullable<Awaited<ReturnType<typeof submitApprovalDecision>>>
-    export type SubmitApprovalDecisionMutationBody = ApprovalRequestDecisionRequest
-    export type SubmitApprovalDecisionMutationError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse
-
-    /**
- * @summary Submit approval decision
- */
-export const useSubmitApprovalDecision = <TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitApprovalDecision>>, TError,{id: string;data: ApprovalRequestDecisionRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof submitApprovalDecision>>,
-        TError,
-        {id: string;data: ApprovalRequestDecisionRequest},
-        TContext
-      > => {
-
-      const mutationOptions = getSubmitApprovalDecisionMutationOptions(options);
-
-      return useMutation(mutationOptions, queryClient);
-    }
-    /**
- * Create a new approval request for service ownership.
-
-**Multi-Gate Approval Flow:**
-- SYS_ADMIN: Can approve/reject any request
-- LINE_MANAGER: Can approve requests from their direct reports
-- Request requires approval from configured gates before service ownership is transferred
-
-**Access Control:**
-- Team members: Can create requests for services not owned by their team
-- SYS_ADMIN: Can create requests for any service
-
- * @summary Create approval request
- */
-export const createApprovalRequest = (
-    serviceId: string,
-    approvalRequestCreateRequest: ApprovalRequestCreateRequest,
- options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
-) => {
-      
-      
-      return customInstance<ApprovalRequestResponse>(
-      {url: `/api/approval-requests/application-services/${serviceId}/approval-requests`, method: 'POST',
-      headers: {'Content-Type': 'application/json', },
-      data: approvalRequestCreateRequest, signal
-    },
-      options);
-    }
-  
-
-
-export const getCreateApprovalRequestMutationOptions = <TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createApprovalRequest>>, TError,{serviceId: string;data: ApprovalRequestCreateRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof createApprovalRequest>>, TError,{serviceId: string;data: ApprovalRequestCreateRequest}, TContext> => {
-
-const mutationKey = ['createApprovalRequest'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-      
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createApprovalRequest>>, {serviceId: string;data: ApprovalRequestCreateRequest}> = (props) => {
-          const {serviceId,data} = props ?? {};
-
-          return  createApprovalRequest(serviceId,data,requestOptions)
-        }
-
-        
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type CreateApprovalRequestMutationResult = NonNullable<Awaited<ReturnType<typeof createApprovalRequest>>>
-    export type CreateApprovalRequestMutationBody = ApprovalRequestCreateRequest
-    export type CreateApprovalRequestMutationError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse
-
-    /**
- * @summary Create approval request
- */
-export const useCreateApprovalRequest = <TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createApprovalRequest>>, TError,{serviceId: string;data: ApprovalRequestCreateRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof createApprovalRequest>>,
-        TError,
-        {serviceId: string;data: ApprovalRequestCreateRequest},
-        TContext
-      > => {
-
-      const mutationOptions = getCreateApprovalRequestMutationOptions(options);
-
-      return useMutation(mutationOptions, queryClient);
-    }
-    /**
  * Retrieve a paginated list of approval requests.
 
 **Access Control:**
@@ -307,6 +155,157 @@ export function useFindAllApprovalRequests<TData = Awaited<ReturnType<typeof fin
 
 
 /**
+ * Create a new approval request for service ownership.
+
+**Multi-Gate Approval Flow:**
+- SYS_ADMIN: Can approve/reject any request
+- LINE_MANAGER: Can approve requests from their direct reports
+- Request requires approval from configured gates before service ownership is transferred
+
+**Access Control:**
+- Team members: Can create requests for services not owned by their team
+- SYS_ADMIN: Can create requests for any service
+
+ * @summary Create approval request
+ */
+export const createApprovalRequest = (
+    approvalRequestCreateRequest: ApprovalRequestCreateRequest,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<ApprovalRequestResponse>(
+      {url: `/api/approval-requests`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: approvalRequestCreateRequest, signal
+    },
+      options);
+    }
+  
+
+
+export const getCreateApprovalRequestMutationOptions = <TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createApprovalRequest>>, TError,{data: ApprovalRequestCreateRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof createApprovalRequest>>, TError,{data: ApprovalRequestCreateRequest}, TContext> => {
+
+const mutationKey = ['createApprovalRequest'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createApprovalRequest>>, {data: ApprovalRequestCreateRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createApprovalRequest(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateApprovalRequestMutationResult = NonNullable<Awaited<ReturnType<typeof createApprovalRequest>>>
+    export type CreateApprovalRequestMutationBody = ApprovalRequestCreateRequest
+    export type CreateApprovalRequestMutationError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse
+
+    /**
+ * @summary Create approval request
+ */
+export const useCreateApprovalRequest = <TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createApprovalRequest>>, TError,{data: ApprovalRequestCreateRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof createApprovalRequest>>,
+        TError,
+        {data: ApprovalRequestCreateRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getCreateApprovalRequestMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    /**
+ * Submit a decision (approve/reject) for an approval request.
+
+**Multi-Gate Approval:**
+- SYS_ADMIN: Can approve/reject any request
+- LINE_MANAGER: Can approve/reject requests from their direct reports
+- Request status is updated based on required approvals from configured gates
+
+**Access Control:**
+- Only authorized approvers can submit decisions
+- Decision is recorded with approver information and timestamp
+
+ * @summary Submit approval decision
+ */
+export const submitApprovalDecision = (
+    id: string,
+    approvalRequestDecisionRequest: ApprovalRequestDecisionRequest,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<ApprovalRequestResponse>(
+      {url: `/api/approval-requests/${id}/decisions`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: approvalRequestDecisionRequest, signal
+    },
+      options);
+    }
+  
+
+
+export const getSubmitApprovalDecisionMutationOptions = <TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitApprovalDecision>>, TError,{id: string;data: ApprovalRequestDecisionRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof submitApprovalDecision>>, TError,{id: string;data: ApprovalRequestDecisionRequest}, TContext> => {
+
+const mutationKey = ['submitApprovalDecision'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof submitApprovalDecision>>, {id: string;data: ApprovalRequestDecisionRequest}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  submitApprovalDecision(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SubmitApprovalDecisionMutationResult = NonNullable<Awaited<ReturnType<typeof submitApprovalDecision>>>
+    export type SubmitApprovalDecisionMutationBody = ApprovalRequestDecisionRequest
+    export type SubmitApprovalDecisionMutationError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse
+
+    /**
+ * @summary Submit approval decision
+ */
+export const useSubmitApprovalDecision = <TError = ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse | ErrorResponse,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitApprovalDecision>>, TError,{id: string;data: ApprovalRequestDecisionRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof submitApprovalDecision>>,
+        TError,
+        {id: string;data: ApprovalRequestDecisionRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getSubmitApprovalDecisionMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    /**
  * Retrieve a specific approval request by its ID.
 
 **Access Control:**

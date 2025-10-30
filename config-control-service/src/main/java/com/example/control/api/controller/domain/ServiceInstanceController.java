@@ -2,10 +2,13 @@ package com.example.control.api.controller.domain;
 
 import com.example.control.api.dto.domain.ServiceInstanceDtos;
 import com.example.control.api.mapper.domain.ServiceInstanceApiMapper;
+import com.example.control.application.service.ApplicationServiceService;
 import com.example.control.application.service.ServiceInstanceService;
 import com.example.control.infrastructure.config.security.UserContext;
+import com.example.control.domain.object.ApplicationService;
 import com.example.control.domain.object.ServiceInstance;
 import com.example.control.domain.criteria.ServiceInstanceCriteria;
+import com.example.control.domain.id.ApplicationServiceId;
 import com.example.control.domain.id.ServiceInstanceId;
 import com.example.control.api.exception.ErrorResponse;
 import io.micrometer.core.annotation.Timed;
@@ -37,18 +40,56 @@ import java.util.Optional;
 public class ServiceInstanceController {
 
     private final ServiceInstanceService service;
+    private final ApplicationServiceService applicationServiceService;
 
-    // @PostMapping
-    // @Operation(summary = "Create instance")
-    // public ResponseEntity<ApiResponseDto.ApiResponse<ServiceInstanceDtos.Response>> create(
-    //     @Valid @RequestBody ServiceInstanceDtos.CreateRequest request,
-    //     @AuthenticationPrincipal Jwt jwt) {
-    //   UserContext userContext = UserContext.fromJwt(jwt);
-    //   ServiceInstance toSave = ServiceInstanceApiMapper.toDomain(request);
-    //   ServiceInstance saved = service.create(toSave, userContext);
-    //   return ResponseEntity.ok(ApiResponseDto.ApiResponse.success(
-    //       ServiceInstanceApiMapper.toResponse(saved)));
-    // }
+    @PostMapping
+    @Operation(
+            summary = "Create service instance",
+            description = """
+                    Create a new service instance for an application service.
+                    
+                    **Required Permissions:**
+                    - Team members: Can create instances for services owned by their team
+                    - Shared access: Can create instances for services shared with EDIT_INSTANCE permission
+                    - SYS_ADMIN: Can create instances for any service
+                    """,
+            security = {
+                    @SecurityRequirement(name = "oauth2_auth_code"),
+                    @SecurityRequirement(name = "oauth2_password")
+            },
+            operationId = "createServiceInstance"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Service instance created successfully",
+                    content = @Content(schema = @Schema(implementation = ServiceInstanceDtos.Response.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid request data",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Insufficient permissions",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "404", description = "ApplicationService not found",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "500", description = "Internal server error",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    public ResponseEntity<ServiceInstanceDtos.Response> create(
+            @Parameter(description = "Service instance creation request",
+                    schema = @Schema(implementation = ServiceInstanceDtos.CreateRequest.class))
+            @Valid @RequestBody ServiceInstanceDtos.CreateRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        UserContext userContext = UserContext.fromJwt(jwt);
+        ServiceInstance toSave = ServiceInstanceApiMapper.toDomain(request);
+        ServiceInstance saved = service.create(toSave, userContext);
+        
+        // Lookup ApplicationService for response mapping
+        ApplicationService applicationService = applicationServiceService.findById(
+                ApplicationServiceId.of(saved.getServiceId()))
+                .orElseThrow(() -> new IllegalStateException("ApplicationService not found after instance creation: " + saved.getServiceId()));
+        
+        return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED)
+                .body(ServiceInstanceApiMapper.toResponse(saved, applicationService));
+    }
 
     @GetMapping("/{instanceId}")
     @Operation(
@@ -153,7 +194,7 @@ public class ServiceInstanceController {
             operationId = "deleteServiceInstance"
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Service instance deleted successfully",
+            @ApiResponse(responseCode = "204", description = "Service instance deleted successfully",
                     content = @Content(schema = @Schema(implementation = Void.class))),
             @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
@@ -170,7 +211,7 @@ public class ServiceInstanceController {
             @AuthenticationPrincipal Jwt jwt) {
         UserContext userContext = UserContext.fromJwt(jwt);
         service.delete(ServiceInstanceId.of(instanceId), userContext);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping

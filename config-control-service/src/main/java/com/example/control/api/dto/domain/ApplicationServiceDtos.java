@@ -6,7 +6,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -43,14 +42,12 @@ public class ApplicationServiceDtos {
             @Schema(description = "Human-readable service name", example = "Payment Service", maxLength = 200)
             String displayName,
 
-            @NotBlank(message = "Owner team ID is required")
             @Size(max = 100, message = "Owner team ID must not exceed 100 characters")
-            @Schema(description = "Team that owns this service", example = "team_core", maxLength = 100)
+            @Schema(description = "Team that owns this service (null for orphaned services, only SYS_ADMIN can create orphaned)", example = "team_core", maxLength = 100)
             String ownerTeamId,
 
-            @NotNull(message = "Environments list is required")
-            @Size(min = 1, message = "At least one environment must be specified")
-            @Schema(description = "List of environments where this service is deployed",
+            @Size(min = 1, message = "If provided, at least one environment must be specified")
+            @Schema(description = "List of environments where this service is deployed (defaults to [\"dev\", \"staging\", \"prod\"] if not provided)",
                     example = "[\"dev\", \"staging\", \"prod\"]")
             List<String> environments,
 
