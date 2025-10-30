@@ -14,6 +14,7 @@ import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
+import org.springframework.data.redis.serializer.RedisSerializer;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
@@ -94,14 +95,48 @@ public class CacheManagerFactory {
     private final Optional<CacheInvalidationPublisher> invalidationPublisher;
 
     /**
+     * Optional cache operation executor for resilience patterns.
+     */
+    private final Optional<CacheOperationExecutor> cacheOperationExecutor;
+
+    /**
+     * Optional cache metrics for tracking L1/L2 hits.
+     */
+    private final Optional<CacheMetrics> cacheMetrics;
+
+    /**
+     * Constructor with invalidation publisher, operation executor, and metrics
+     * support.
+     */
+    public CacheManagerFactory(CacheProperties cacheProperties,
+            Optional<RedisConnectionFactory> redisConnectionFactory,
+            Optional<CacheInvalidationPublisher> invalidationPublisher,
+            Optional<CacheOperationExecutor> cacheOperationExecutor,
+            Optional<CacheMetrics> cacheMetrics) {
+        this.cacheProperties = cacheProperties;
+        this.redisConnectionFactory = redisConnectionFactory;
+        this.invalidationPublisher = invalidationPublisher;
+        this.cacheOperationExecutor = cacheOperationExecutor;
+        this.cacheMetrics = cacheMetrics;
+    }
+
+    /**
+     * Constructor with invalidation publisher and operation executor support.
+     */
+    public CacheManagerFactory(CacheProperties cacheProperties,
+            Optional<RedisConnectionFactory> redisConnectionFactory,
+            Optional<CacheInvalidationPublisher> invalidationPublisher,
+            Optional<CacheOperationExecutor> cacheOperationExecutor) {
+        this(cacheProperties, redisConnectionFactory, invalidationPublisher, cacheOperationExecutor, Optional.empty());
+    }
+
+    /**
      * Constructor with invalidation publisher support.
      */
     public CacheManagerFactory(CacheProperties cacheProperties,
             Optional<RedisConnectionFactory> redisConnectionFactory,
             Optional<CacheInvalidationPublisher> invalidationPublisher) {
-        this.cacheProperties = cacheProperties;
-        this.redisConnectionFactory = redisConnectionFactory;
-        this.invalidationPublisher = invalidationPublisher;
+        this(cacheProperties, redisConnectionFactory, invalidationPublisher, Optional.empty());
     }
 
     /**
@@ -109,7 +144,7 @@ public class CacheManagerFactory {
      */
     public CacheManagerFactory(CacheProperties cacheProperties,
             Optional<RedisConnectionFactory> redisConnectionFactory) {
-        this(cacheProperties, redisConnectionFactory, Optional.empty());
+        this(cacheProperties, redisConnectionFactory, Optional.empty(), Optional.empty());
     }
 
     /**
@@ -268,7 +303,17 @@ public class CacheManagerFactory {
                 .allowIfBaseType(Object.class) // NOTE: broad; see Security Note in class JavaDoc
                 .build();
         mapper.activateDefaultTyping(ptv, ObjectMapper.DefaultTyping.NON_FINAL, JsonTypeInfo.As.PROPERTY);
-        GenericJackson2JsonRedisSerializer serializer = new GenericJackson2JsonRedisSerializer(mapper);
+        GenericJackson2JsonRedisSerializer baseSerializer = new GenericJackson2JsonRedisSerializer(mapper);
+
+        // Wrap with compression if enabled
+        RedisSerializer<Object> serializer = baseSerializer;
+        CacheProperties.CompressionConfig compressionConfig = cacheProperties.getCompression();
+        if (compressionConfig.isEnabled()) {
+            serializer = new CacheCompressionSerializer<>(baseSerializer,
+                    compressionConfig.getThreshold(), compressionConfig.getAlgorithm());
+            log.info("Cache compression enabled: threshold={} bytes, algorithm={}",
+                    compressionConfig.getThreshold(), compressionConfig.getAlgorithm());
+        }
 
         // Default config (value serializer + default TTL). Key serializer can also be
         // customized if needed.
@@ -289,6 +334,19 @@ public class CacheManagerFactory {
             if (!cacheConfig.isAllowNullValues()) {
                 specificConfig = specificConfig.disableCachingNullValues();
             }
+
+            // Apply per-cache compression if configured
+            if (cacheConfig.getCompression() != null && cacheConfig.getCompression().isEnabled()) {
+                CacheCompressionSerializer<Object> perCacheCompression = new CacheCompressionSerializer<>(
+                        baseSerializer,
+                        cacheConfig.getCompression().getThreshold(),
+                        cacheConfig.getCompression().getAlgorithm());
+                specificConfig = specificConfig.serializeValuesWith(
+                        RedisSerializationContext.SerializationPair.fromSerializer(perCacheCompression));
+                log.debug("Per-cache compression enabled for cache: {} (threshold: {} bytes)",
+                        cacheName, cacheConfig.getCompression().getThreshold());
+            }
+
             cacheConfigs.put(cacheName, specificConfig);
         });
 
@@ -334,7 +392,9 @@ public class CacheManagerFactory {
         }
 
         return new TwoLevelCacheManager(l1Cache, l2Cache, cacheProperties.getTwoLevel(),
-                invalidationPublisher.orElse(null));
+                invalidationPublisher.orElse(null),
+                cacheOperationExecutor.orElse(null),
+                cacheMetrics.orElse(null));
     }
 
     /**

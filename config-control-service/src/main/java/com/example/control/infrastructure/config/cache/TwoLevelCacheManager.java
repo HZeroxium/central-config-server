@@ -73,14 +73,37 @@ public class TwoLevelCacheManager implements CacheManager {
     private final CacheInvalidationPublisher invalidationPublisher;
 
     /**
-     * Constructor with invalidation publisher support.
+     * Optional cache operation executor for resilience patterns (retry + circuit
+     * breaker).
+     */
+    private final CacheOperationExecutor cacheOperationExecutor;
+
+
+    /**
+     * Optional cache metrics for tracking L1/L2 hits.
+     */
+    private final CacheMetrics cacheMetrics;
+
+    /**
+     * Constructor with invalidation publisher and operation executor support.
      */
     public TwoLevelCacheManager(CacheManager l1CacheManager, CacheManager l2CacheManager,
-            CacheProperties.TwoLevelConfig config, CacheInvalidationPublisher invalidationPublisher) {
+            CacheProperties.TwoLevelConfig config, CacheInvalidationPublisher invalidationPublisher,
+            CacheOperationExecutor cacheOperationExecutor, CacheMetrics cacheMetrics) {
         this.l1CacheManager = l1CacheManager;
         this.l2CacheManager = l2CacheManager;
         this.config = config;
         this.invalidationPublisher = invalidationPublisher;
+        this.cacheOperationExecutor = cacheOperationExecutor;
+        this.cacheMetrics = cacheMetrics;
+    }
+
+    /**
+     * Constructor with invalidation publisher support.
+     */
+    public TwoLevelCacheManager(CacheManager l1CacheManager, CacheManager l2CacheManager,
+            CacheProperties.TwoLevelConfig config, CacheInvalidationPublisher invalidationPublisher) {
+        this(l1CacheManager, l2CacheManager, config, invalidationPublisher, null, null);
     }
 
     /**
@@ -88,7 +111,7 @@ public class TwoLevelCacheManager implements CacheManager {
      */
     public TwoLevelCacheManager(CacheManager l1CacheManager, CacheManager l2CacheManager,
             CacheProperties.TwoLevelConfig config) {
-        this(l1CacheManager, l2CacheManager, config, null);
+        this(l1CacheManager, l2CacheManager, config, null, null, null);
     }
 
     /**
@@ -119,7 +142,15 @@ public class TwoLevelCacheManager implements CacheManager {
             return l2Cache; // Fallback to L2 only
         }
 
-        return new TwoLevelCache(name, l1Cache, l2Cache, config, invalidationPublisher);
+        Cache twoLevelCache = new TwoLevelCache(name, l1Cache, l2Cache, config, invalidationPublisher,
+                cacheOperationExecutor, cacheMetrics);
+
+        // Wrap with transaction-aware cache if deferL2Writes is enabled
+        if (config.isDeferL2Writes() && l2Cache != null) {
+            return new TransactionAwareTwoLevelCache(twoLevelCache, l2Cache, name);
+        }
+
+        return twoLevelCache;
     }
 
     /**
@@ -196,22 +227,52 @@ public class TwoLevelCacheManager implements CacheManager {
         private final CacheInvalidationPublisher invalidationPublisher;
 
         /**
-         * Constructor with invalidation publisher support.
+         * Optional cache operation executor for resilience patterns.
+         */
+        private final CacheOperationExecutor cacheOperationExecutor;
+
+        /**
+         * Optional cache metrics for tracking L1/L2 hits.
+         */
+        private final CacheMetrics cacheMetrics;
+
+        /**
+         * Constructor with invalidation publisher and operation executor support.
          */
         public TwoLevelCache(String name, Cache l1Cache, Cache l2Cache,
-                CacheProperties.TwoLevelConfig config, CacheInvalidationPublisher invalidationPublisher) {
+                CacheProperties.TwoLevelConfig config, CacheInvalidationPublisher invalidationPublisher,
+                CacheOperationExecutor cacheOperationExecutor, CacheMetrics cacheMetrics) {
             this.name = name;
             this.l1Cache = l1Cache;
             this.l2Cache = l2Cache;
             this.config = config;
             this.invalidationPublisher = invalidationPublisher;
+            this.cacheOperationExecutor = cacheOperationExecutor;
+            this.cacheMetrics = cacheMetrics;
+        }
+
+        /**
+         * Constructor with invalidation publisher and operation executor support.
+         */
+        public TwoLevelCache(String name, Cache l1Cache, Cache l2Cache,
+                CacheProperties.TwoLevelConfig config, CacheInvalidationPublisher invalidationPublisher,
+                CacheOperationExecutor cacheOperationExecutor) {
+            this(name, l1Cache, l2Cache, config, invalidationPublisher, cacheOperationExecutor, null);
+        }
+
+        /**
+         * Constructor with invalidation publisher support.
+         */
+        public TwoLevelCache(String name, Cache l1Cache, Cache l2Cache,
+                CacheProperties.TwoLevelConfig config, CacheInvalidationPublisher invalidationPublisher) {
+            this(name, l1Cache, l2Cache, config, invalidationPublisher, null, null);
         }
 
         /**
          * Constructor without invalidation publisher (for backward compatibility).
          */
         public TwoLevelCache(String name, Cache l1Cache, Cache l2Cache, CacheProperties.TwoLevelConfig config) {
-            this(name, l1Cache, l2Cache, config, null);
+            this(name, l1Cache, l2Cache, config, null, null, null);
         }
 
         /**
@@ -259,17 +320,26 @@ public class TwoLevelCacheManager implements CacheManager {
                 // Try L1 first (fastest)
                 ValueWrapper l1Value = l1Cache.get(key);
                 if (l1Value != null) {
+                    if (cacheMetrics != null) {
+                        cacheMetrics.recordL1Hit(name);
+                    }
                     log.debug("Cache hit in L1 for key: {}", key);
                     return l1Value;
                 }
 
                 // Try L2 if available
                 if (l2Cache != null) {
-                    ValueWrapper l2Value = l2Cache.get(key);
+                    ValueWrapper l2Value = cacheOperationExecutor != null
+                            ? cacheOperationExecutor.execute(name, () -> l2Cache.get(key))
+                            : l2Cache.get(key);
+
                     if (l2Value != null) {
                         log.debug("Cache hit in L2 for key: {}, promoting to L1", key);
                         // Promote to L1 for faster future access
                         l1Cache.put(key, l2Value.get());
+                        if (cacheMetrics != null) {
+                            cacheMetrics.recordL2Hit(name);
+                        }
                         return l2Value;
                     }
                 }
@@ -371,8 +441,17 @@ public class TwoLevelCacheManager implements CacheManager {
 
                 // Write to L2 if available and write-through is enabled
                 if (l2Cache != null && config.isWriteThrough()) {
-                    l2Cache.put(key, value);
-                    log.debug("Cached value in L2 for key: {}", key);
+                    if (cacheOperationExecutor != null) {
+                        // Use executor for resilience (retry + circuit breaker)
+                        cacheOperationExecutor.executeVoid(name, () -> {
+                            l2Cache.put(key, value);
+                            log.debug("Cached value in L2 for key: {}", key);
+                        });
+                    } else {
+                        // Direct write (no resilience wrapper)
+                        l2Cache.put(key, value);
+                        log.debug("Cached value in L2 for key: {}", key);
+                    }
 
                     // Publish invalidation event to notify other instances
                     if (invalidationPublisher != null && config.isInvalidateL1OnL2Update()) {
@@ -411,18 +490,24 @@ public class TwoLevelCacheManager implements CacheManager {
 
                 // Check L2 if available
                 if (l2Cache != null) {
-                    existing = l2Cache.get(key);
-                    if (existing != null) {
+                    ValueWrapper l2Existing = cacheOperationExecutor != null
+                            ? cacheOperationExecutor.execute(name, () -> l2Cache.get(key))
+                            : l2Cache.get(key);
+
+                    if (l2Existing != null) {
                         // Promote to L1
-                        l1Cache.put(key, existing.get());
-                        return existing;
+                        l1Cache.put(key, l2Existing.get());
+                        return l2Existing;
                     }
 
                     // Put in L2 if absent
-                    existing = l2Cache.putIfAbsent(key, value);
-                    if (existing != null) {
-                        l1Cache.put(key, existing.get());
-                        return existing;
+                    ValueWrapper l2PutResult = cacheOperationExecutor != null
+                            ? cacheOperationExecutor.execute(name, () -> l2Cache.putIfAbsent(key, value))
+                            : l2Cache.putIfAbsent(key, value);
+
+                    if (l2PutResult != null) {
+                        l1Cache.put(key, l2PutResult.get());
+                        return l2PutResult;
                     }
                 }
 
@@ -452,7 +537,11 @@ public class TwoLevelCacheManager implements CacheManager {
                 log.debug("Evicted from L1 cache for key: {}", key);
 
                 if (l2Cache != null) {
-                    l2Cache.evict(key);
+                    if (cacheOperationExecutor != null) {
+                        cacheOperationExecutor.executeVoid(name, () -> l2Cache.evict(key));
+                    } else {
+                        l2Cache.evict(key);
+                    }
                     log.debug("Evicted from L2 cache for key: {}", key);
 
                     // Publish invalidation event to notify other instances

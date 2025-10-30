@@ -5,7 +5,6 @@ import com.example.control.api.exception.exceptions.ValidationException;
 import com.example.control.application.external.ConfigProxyService;
 import com.example.control.application.command.ApplicationServiceCommandService;
 import com.example.control.application.query.ApplicationServiceQueryService;
-import com.example.control.domain.criteria.ApplicationServiceCriteria;
 import com.example.control.domain.id.ApplicationServiceId;
 import com.example.control.domain.id.DriftEventId;
 import com.example.control.domain.id.ServiceInstanceId;
@@ -20,8 +19,6 @@ import io.micrometer.tracing.annotation.SpanTag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -109,12 +106,20 @@ public class HeartbeatService {
         String id = payload.getServiceName() + ":" + payload.getInstanceId();
 
         // 2️⃣ Load or initialize ServiceInstance domain object
+        // Ensure instance always has a valid ID to prevent NPE in getInstanceId()
+        ServiceInstanceId instanceId = ServiceInstanceId.of(payload.getInstanceId());
         ServiceInstance instance = serviceInstanceService
-                .findById(ServiceInstanceId.of(payload.getInstanceId()))
+                .findById(instanceId)
                 .orElse(ServiceInstance.builder()
-                        .id(ServiceInstanceId.of(payload.getInstanceId()))
+                        .id(instanceId)
                         .status(ServiceInstance.InstanceStatus.HEALTHY)
                         .build());
+
+        // Validate instance ID is set (should never be null after above)
+        if (instance.getId() == null) {
+            log.error("ServiceInstance ID is null for instanceId: {}, setting it", payload.getInstanceId());
+            instance.setId(instanceId);
+        }
 
         Instant now = Instant.now();
 
@@ -129,15 +134,13 @@ public class HeartbeatService {
         // consistency
         // This handles cases where ApplicationService ownership changes after instance
         // creation
+        ApplicationService appService = null;
         try {
-            // Business logic: Find or create ApplicationService by display name
-            ApplicationServiceCriteria criteria = ApplicationServiceCriteria
-                    .byDisplayName(payload.getServiceName());
-            Page<ApplicationService> results = applicationServiceQueryService.findAll(criteria,
-                    Pageable.unpaged());
-            Optional<ApplicationService> existing = results.getContent().stream().findFirst();
+            // Business logic: Find ApplicationService by exact display name match
+            // Use exact match lookup for better performance and accuracy
+            Optional<ApplicationService> existing = applicationServiceQueryService
+                    .findByDisplayName(payload.getServiceName());
 
-            ApplicationService appService;
             if (existing.isPresent()) {
                 appService = existing.get();
                 if (isFirstHeartbeat) {
@@ -224,40 +227,76 @@ public class HeartbeatService {
                             appService.getId(), payload.getServiceName());
                 }
             }
-
-            if (appService != null) {
-                String previousServiceId = instance.getServiceId();
-                String previousTeamId = instance.getTeamId();
-
-                instance.setServiceId(appService.getId().id());
-                instance.setTeamId(appService.getOwnerTeamId()); // May be null for orphaned services
-
-                if (isFirstHeartbeat) {
-                    if (appService.getOwnerTeamId() == null) {
-                        log.warn(
-                                "Auto-linked instance {} to orphaned ApplicationService {} - requires approval workflow for team assignment",
-                                id, appService.getId());
+        } catch (Exception e) {
+            log.error("Failed to sync serviceId and teamId for instance {}: {}", id, e.getMessage(), e);
+            // If lookup fails, ensure we still create an orphaned service to maintain
+            // consistency
+            // This ensures instance always has a valid serviceId (even if null) and
+            // prevents NPE
+            if (appService == null) {
+                try {
+                    List<String> initialEnvironments;
+                    if (payload.getEnvironment() != null && !payload.getEnvironment().isEmpty()) {
+                        initialEnvironments = List.of(payload.getEnvironment());
                     } else {
-                        log.info("Auto-populated serviceId={} and teamId={} for instance {}",
-                                appService.getId().id(), appService.getOwnerTeamId(), id);
+                        initialEnvironments = List.of("dev", "staging", "prod");
                     }
-                } else {
-                    // Subsequent heartbeat - log if teamId changed
-                    if (previousServiceId != null && !previousServiceId.equals(appService.getId().id())) {
-                        log.info("ServiceId changed for instance {}: {} -> {}", id, previousServiceId,
-                                appService.getId().id());
-                    }
-                    if (previousTeamId != null && !previousTeamId.equals(appService.getOwnerTeamId())) {
-                        log.info("TeamId synced for instance {}: {} -> {} (ownership changed)",
-                                id, previousTeamId, appService.getOwnerTeamId());
-                    } else if (previousTeamId == null && appService.getOwnerTeamId() != null) {
-                        log.info("TeamId synced for instance {}: null -> {} (ownership assigned)",
-                                id, appService.getOwnerTeamId());
-                    }
+
+                    ApplicationService orphanedService = ApplicationService.builder()
+                            .id(ApplicationServiceId.of(UUID.randomUUID().toString()))
+                            .displayName(payload.getServiceName())
+                            .ownerTeamId(null) // Orphaned - requires approval workflow
+                            .environments(initialEnvironments)
+                            .lifecycle(ApplicationService.ServiceLifecycle.ACTIVE)
+                            .createdAt(Instant.now())
+                            .createdBy("system") // System-created
+                            .build();
+
+                    appService = applicationServiceCommandService.save(orphanedService);
+                    log.warn("Created fallback orphaned ApplicationService: {} (displayName: {}) due to lookup failure",
+                            appService.getId(), payload.getServiceName());
+                } catch (Exception fallbackException) {
+                    log.error("Failed to create fallback orphaned ApplicationService for instance {}: {}", id,
+                            fallbackException.getMessage(), fallbackException);
+                    // If fallback also fails, instance will have null serviceId - this is
+                    // acceptable
+                    // for orphaned instances that will be linked later
                 }
             }
-        } catch (Exception e) {
-            log.warn("Failed to sync serviceId and teamId for instance {}: {}", id, e.getMessage());
+        }
+
+        // Sync serviceId and teamId if appService was successfully resolved (after
+        // catch block)
+        if (appService != null) {
+            String previousServiceId = instance.getServiceId();
+            String previousTeamId = instance.getTeamId();
+
+            instance.setServiceId(appService.getId().id());
+            instance.setTeamId(appService.getOwnerTeamId()); // May be null for orphaned services
+
+            if (isFirstHeartbeat) {
+                if (appService.getOwnerTeamId() == null) {
+                    log.warn(
+                            "Auto-linked instance {} to orphaned ApplicationService {} - requires approval workflow for team assignment",
+                            id, appService.getId());
+                } else {
+                    log.info("Auto-populated serviceId={} and teamId={} for instance {}",
+                            appService.getId().id(), appService.getOwnerTeamId(), id);
+                }
+            } else {
+                // Subsequent heartbeat - log if teamId changed
+                if (previousServiceId != null && !previousServiceId.equals(appService.getId().id())) {
+                    log.info("ServiceId changed for instance {}: {} -> {}", id, previousServiceId,
+                            appService.getId().id());
+                }
+                if (previousTeamId != null && !previousTeamId.equals(appService.getOwnerTeamId())) {
+                    log.info("TeamId synced for instance {}: {} -> {} (ownership changed)",
+                            id, previousTeamId, appService.getOwnerTeamId());
+                } else if (previousTeamId == null && appService.getOwnerTeamId() != null) {
+                    log.info("TeamId synced for instance {}: null -> {} (ownership assigned)",
+                            id, appService.getOwnerTeamId());
+                }
+            }
         }
 
         // 4️⃣ Update runtime metadata (host, port, version, hashes)

@@ -57,8 +57,8 @@ services:
       - --log-level=com.example.keycloak.login:DEBUG,com.example.keycloak.registration:DEBUG,root:INFO
 
     ports:
-      - "8080:8080"   # HTTP (dev)
-      - "9000:9000"   # health/metrics
+      - "8080:8080" # HTTP (dev)
+      - "9000:9000" # health/metrics
     volumes:
       - keycloak_data:/opt/keycloak/data
     restart: unless-stopped
@@ -89,6 +89,17 @@ services:
       - KEYCLOAK_HEALTH_URL=http://keycloak:9000
       - KEYCLOAK_ADMIN=admin
       - KEYCLOAK_ADMIN_PASSWORD=admin
+
+  # Mailpit for email testing (dev)
+  mailpit:
+    image: axllent/mailpit:v1.27
+    container_name: mailpit
+    ports:
+      - "8025:8025" # Web UI
+      - "1025:1025" # SMTP
+    networks:
+      - infra-network
+    restart: unless-stopped
 
 volumes:
   keycloak_data:

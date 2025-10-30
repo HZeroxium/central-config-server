@@ -8,19 +8,25 @@ import java.util.Collection;
 import java.util.stream.Collectors;
 
 /**
- * Utility class for generating safe, deterministic cache keys.
+ * Utility class for generating safe, deterministic cache keys with standardized
+ * format.
+ * <p>
+ * Key format: {@code {applicationName}::{cacheName}:v{version}:{keyHash}}
  * <p>
  * Provides methods to generate cache keys that are:
  * <ul>
  * <li>Deterministic: same input produces same key</li>
- * <li>Collision-resistant: uses hashing for complex objects</li>
+ * <li>Collision-resistant: uses hashing for complex/long keys</li>
  * <li>Stable: not affected by object identity or hashCode() variations</li>
+ * <li>Versioned: includes cache version for invalidation</li>
+ * <li>Namespaced: includes application name to avoid conflicts</li>
  * </ul>
  * 
  * <h2>Key Generation Strategies</h2>
  * <ul>
+ * <li><b>Short keys (&lt;255 chars):</b> Full key string preserved</li>
+ * <li><b>Long keys (&gt;=255 chars):</b> SHA-256 hash used for brevity</li>
  * <li><b>Collections:</b> Sorted and joined with delimiter</li>
- * <li><b>Objects:</b> String representation or JSON serialization</li>
  * <li><b>Complex objects:</b> SHA-256 hash for deterministic keys</li>
  * </ul>
  *
@@ -29,8 +35,35 @@ import java.util.stream.Collectors;
 @Slf4j
 public final class CacheKeyGenerator {
 
+  private static final int MAX_KEY_LENGTH = 255;
+
   private CacheKeyGenerator() {
     // Utility class - prevent instantiation
+  }
+
+  /**
+   * Generate a standardized cache key with format:
+   * {applicationName}::{cacheName}:v{version}:{keyHash}
+   * 
+   * @param applicationName application name (namespace)
+   * @param cacheName       cache name
+   * @param version         cache version
+   * @param keyParts        key parts to include (will be hashed if too long)
+   * @return standardized cache key
+   */
+  public static String generateStandardKey(String applicationName, String cacheName, int version, String... keyParts) {
+    String keyContent = String.join(":", keyParts);
+    String keyHash;
+
+    if (keyContent.length() > MAX_KEY_LENGTH) {
+      // Hash long keys
+      keyHash = sha256Hash(keyContent);
+    } else {
+      // Use key content directly for short keys
+      keyHash = keyContent;
+    }
+
+    return String.format("%s::%s:v%d:%s", applicationName, cacheName, version, keyHash);
   }
 
   /**
@@ -41,7 +74,10 @@ public final class CacheKeyGenerator {
    * @param prefix     key prefix (e.g., "userIds")
    * @param collection collection of strings to include in key
    * @return deterministic cache key
+   * @deprecated Use {@link #generateStandardKey(String, String, int, String...)}
+   *             instead
    */
+  @Deprecated
   public static String generateKey(String prefix, Collection<String> collection) {
     if (collection == null || collection.isEmpty()) {
       return prefix + ":empty";
@@ -156,7 +192,7 @@ public final class CacheKeyGenerator {
    * @param input input string
    * @return hexadecimal hash string (first 16 characters for brevity)
    */
-  private static String sha256Hash(String input) {
+  static String sha256Hash(String input) {
     try {
       MessageDigest digest = MessageDigest.getInstance("SHA-256");
       byte[] hashBytes = digest.digest(input.getBytes());

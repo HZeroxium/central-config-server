@@ -12,6 +12,7 @@ import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cache.interceptor.KeyGenerator;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.context.annotation.Primary;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -193,11 +194,15 @@ public class UnifiedCacheConfig {
 
     @Bean("delegatingCacheManager")
     @Primary
-    public DelegatingCacheManager delegatingCacheManager(CacheInvalidationPublisher cacheInvalidationPublisher) {
+    public DelegatingCacheManager delegatingCacheManager(CacheInvalidationPublisher cacheInvalidationPublisher,
+            Optional<CacheOperationExecutor> cacheOperationExecutor,
+            @Lazy Optional<CacheMetrics> cacheMetrics) {
         CacheManagerFactory factory = new CacheManagerFactory(
                 cacheProperties,
                 redisConnectionFactory,
-                Optional.of(cacheInvalidationPublisher));
+                Optional.of(cacheInvalidationPublisher),
+                cacheOperationExecutor,
+                cacheMetrics);
         CacheManager initialManager = factory.createCacheManager();
 
         log.info("Initialized DelegatingCacheManager with provider: {}",
@@ -221,9 +226,22 @@ public class UnifiedCacheConfig {
      * @return a singleton {@link CacheManagerFactory}
      */
     @Bean
-    public CacheManagerFactory cacheManagerFactory(CacheInvalidationPublisher cacheInvalidationPublisher) {
+    public CacheManagerFactory cacheManagerFactory(CacheInvalidationPublisher cacheInvalidationPublisher,
+            Optional<CacheOperationExecutor> cacheOperationExecutor,
+            @Lazy Optional<CacheMetrics> cacheMetrics) {
         return new CacheManagerFactory(cacheProperties, redisConnectionFactory,
-                Optional.of(cacheInvalidationPublisher));
+                Optional.of(cacheInvalidationPublisher), cacheOperationExecutor, cacheMetrics);
+    }
+
+    /**
+     * Cache operation executor for resilience patterns (retry + circuit breaker).
+     */
+    @Bean
+    public CacheOperationExecutor cacheOperationExecutor(
+            io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry circuitBreakerRegistry,
+            io.github.resilience4j.retry.RetryRegistry retryRegistry,
+            @Lazy Optional<CacheMetrics> cacheMetrics) {
+        return new CacheOperationExecutor(circuitBreakerRegistry, retryRegistry, cacheProperties, cacheMetrics);
     }
 
     /**
@@ -258,30 +276,57 @@ public class UnifiedCacheConfig {
     @Bean
     public KeyGenerator keyGenerator() {
         return (target, method, params) -> {
-            StringBuilder keyBuilder = new StringBuilder();
-            keyBuilder.append(target.getClass().getSimpleName())
-                    .append(":")
-                    .append(method.getName())
-                    .append(":v1:");
+            String applicationName = cacheProperties.getApplicationName();
+            String cacheName = inferCacheName(target, method);
+            int version = cacheProperties.getDefaultVersion();
 
-            if (params.length > 0) {
-                keyBuilder.append(Arrays.deepToString(params));
+            // Get per-cache version if available
+            CacheProperties.CacheConfig cacheConfig = cacheProperties.getCaches().get(cacheName);
+            if (cacheConfig != null && cacheConfig.getVersion() != null) {
+                version = cacheConfig.getVersion();
             }
 
-            String key = keyBuilder.toString();
-            log.debug("Generated cache key: {}", key);
-            return key;
+            // Build key parts
+            String[] keyParts = new String[params.length + 2];
+            keyParts[0] = target.getClass().getSimpleName();
+            keyParts[1] = method.getName();
+            for (int i = 0; i < params.length; i++) {
+                keyParts[i + 2] = params[i] != null ? params[i].toString() : "null";
+            }
+
+            return CacheKeyGenerator.generateStandardKey(applicationName, cacheName, version, keyParts);
         };
     }
 
     /**
+     * Infer cache name from target class and method.
+     * This is a best-effort approach - actual cache names come from @Cacheable
+     * annotations.
+     */
+    private String inferCacheName(Object target, java.lang.reflect.Method method) {
+        // Try to extract from class name or method name
+        String className = target.getClass().getSimpleName();
+        if (className.contains("Query")) {
+            return className.replace("QueryService", "").toLowerCase().replace("service", "");
+        }
+        return "default";
+    }
+
+    /**
      * Cache metrics collector bean.
+     * <p>
+     * Initialization is deferred until after the application context is fully
+     * initialized
+     * to avoid circular dependency issues. The {@link CacheMetrics} class uses
+     * {@link ApplicationReadyEvent} listener to initialize metrics once the
+     * {@link CacheManager} is ready.
      */
     @Bean
-    public CacheMetrics cacheMetrics(MeterRegistry meterRegistry, CacheManager cacheManager) {
-        CacheMetrics metrics = new CacheMetrics(meterRegistry, cacheManager);
-        metrics.initialize();
-        return metrics;
+    public CacheMetrics cacheMetrics(MeterRegistry meterRegistry, @Lazy CacheManager cacheManager) {
+        // Defer initialization to avoid circular dependency - CacheMetrics will
+        // initialize
+        // itself via ApplicationReadyEvent listener
+        return new CacheMetrics(meterRegistry, cacheManager);
     }
 
     /**

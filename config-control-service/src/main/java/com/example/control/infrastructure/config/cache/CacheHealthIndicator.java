@@ -280,6 +280,25 @@ public class CacheHealthIndicator implements HealthIndicator {
                 Map<String, Object> cacheMetricDetails = new HashMap<>();
                 cacheMetricDetails.put("hitRatio", this.cacheMetrics.getHitRatio(cacheName));
                 cacheMetricDetails.put("missRate", 1.0 - this.cacheMetrics.getHitRatio(cacheName));
+                cacheMetricDetails.put("errorRate", this.cacheMetrics.getErrorRate(cacheName));
+
+                // Latency percentiles
+                Map<String, Double> latencyPercentiles = new HashMap<>();
+                latencyPercentiles.put("p50", this.cacheMetrics.getLatencyPercentile(cacheName, 0.5));
+                latencyPercentiles.put("p95", this.cacheMetrics.getLatencyPercentile(cacheName, 0.95));
+                latencyPercentiles.put("p99", this.cacheMetrics.getLatencyPercentile(cacheName, 0.99));
+                cacheMetricDetails.put("latencyPercentiles", latencyPercentiles);
+
+                // L1/L2 hit ratios (for two-level cache)
+                double l1HitRatio = this.cacheMetrics.getL1HitRatio(cacheName);
+                double l2HitRatio = this.cacheMetrics.getL2HitRatio(cacheName);
+                if (l1HitRatio > 0 || l2HitRatio > 0) {
+                    Map<String, Double> hitDistribution = new HashMap<>();
+                    hitDistribution.put("l1HitRatio", l1HitRatio);
+                    hitDistribution.put("l2HitRatio", l2HitRatio);
+                    cacheMetricDetails.put("hitDistribution", hitDistribution);
+                }
+
                 perCacheMetrics.put(cacheName, cacheMetricDetails);
             });
 

@@ -171,9 +171,21 @@ app:
       maximum-expected-value: 1m
   cache:
     # provider: CAFFEINE  # Default to local cache
-    provider: TWO_LEVEL
+    provider: REDIS
+    application-name: ${spring.application.name:config-control-service}
+    default-version: 1
     cache-name-prefix: "{spring.application.name:config-control-service}::"
     enable-fallback: true
+    error-handling:
+      enable-retry: true
+      max-attempts: 3
+      initial-delay: 100ms
+      max-delay: 1s
+      multiplier: 2.0
+    compression:
+      enabled: false # Enable per-cache if needed
+      threshold: 1024 # bytes
+      algorithm: GZIP
     caffeine:
       maximum-size: 10000
       expire-after-write: 10m
@@ -187,6 +199,7 @@ app:
     two-level:
       write-through: true
       invalidate-l1-on-l2-update: true
+      defer-l2-writes: true
     caches:
       service-instances:
         ttl: 5m
@@ -416,6 +429,11 @@ resilience4j:
         failureRateThreshold: 50
         slowCallDurationThreshold: 5s
         waitDurationInOpenState: 30s
+      cache-redis:
+        baseConfig: default
+        failureRateThreshold: 50
+        slowCallDurationThreshold: 3s
+        waitDurationInOpenState: 30s
 
   # Retry Configuration with Exponential Backoff + Jitter
   retry:
@@ -445,6 +463,14 @@ resilience4j:
         baseConfig: default
         maxAttempts: 3
         waitDuration: 300ms
+      cache-redis:
+        baseConfig: default
+        maxAttempts: 3
+        waitDuration: 100ms
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 2.0
+        enableRandomizedWait: true
+        randomizedWaitFactor: 0.5
       keycloak:
         baseConfig: default
         maxAttempts: 2

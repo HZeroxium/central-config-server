@@ -132,6 +132,18 @@ public class CacheProperties {
     private CacheProvider provider = CacheProvider.CAFFEINE;
 
     /**
+     * Application name used for cache key prefix. Defaults to
+     * spring.application.name.
+     */
+    private String applicationName = "config-control-service";
+
+    /**
+     * Default cache version for all caches. Can be overridden per-cache.
+     */
+    @Min(1)
+    private int defaultVersion = 1;
+
+    /**
      * When {@code true}, allows the system to fall back to a secondary provider
      * (e.g., Caffeine)
      * if the primary provider (e.g., Redis) becomes unavailable. This can improve
@@ -139,6 +151,12 @@ public class CacheProperties {
      * cost of temporarily reduced consistency across instances.
      */
     private boolean enableFallback = true;
+
+    /**
+     * Error handling configuration for cache operations (retry and circuit
+     * breaker).
+     */
+    private ErrorHandlingConfig errorHandling = new ErrorHandlingConfig();
 
     /**
      * Global defaults for the Caffeine (local in-memory) cache provider.
@@ -187,12 +205,17 @@ public class CacheProperties {
      * Per-cache overrides keyed by logical cache name (e.g.,
      * {@code service-instances}, {@code drift-events}).
      * <p>
-     * Each entry can override TTL, maximum size, null handling, and even select a
-     * different provider
-     * than the default {@link #provider}.
+     * Each entry can override TTL, maximum size, null handling, version,
+     * compression,
+     * and even select a different provider than the default {@link #provider}.
      */
     private Map<String, CacheConfig> caches = new HashMap<>();
     private String cacheNamePrefix = "config-control-service::";
+
+    /**
+     * Compression configuration for cache values.
+     */
+    private CompressionConfig compression = new CompressionConfig();
 
     /**
      * Initializes default per-cache configurations tailored for the
@@ -483,6 +506,14 @@ public class CacheProperties {
         private CaffeineConfig l1 = new CaffeineConfig();
 
         /**
+         * If {@code true}, defers L2 (Redis) writes until transaction commit
+         * (AFTER_COMMIT).
+         * L1 writes happen immediately. This ensures cache consistency with database
+         * transactions.
+         */
+        private boolean deferL2Writes = true;
+
+        /**
          * L2 cache (distributed) configuration.
          */
         private RedisConfig l2 = new RedisConfig();
@@ -585,5 +616,92 @@ public class CacheProperties {
          * the global {@link #provider}.
          */
         private CacheProvider providerOverride;
+
+        /**
+         * Cache version for this specific cache. If not specified, uses global
+         * defaultVersion.
+         * Version changes invalidate all entries for this cache.
+         */
+        @Min(1)
+        private Integer version;
+
+        /**
+         * Per-cache compression configuration. If not specified, uses global
+         * compression config.
+         */
+        private CompressionConfig compression;
+    }
+
+    /**
+     * Error handling configuration for cache operations (retry and circuit
+     * breaker).
+     */
+    @Data
+    public static class ErrorHandlingConfig {
+        /**
+         * Enable retry for transient cache operation failures.
+         */
+        private boolean enableRetry = true;
+
+        /**
+         * Maximum number of retry attempts.
+         */
+        @Min(1)
+        private int maxAttempts = 3;
+
+        /**
+         * Initial delay before first retry.
+         */
+        @NotNull
+        private Duration initialDelay = Duration.ofMillis(100);
+
+        /**
+         * Maximum delay between retries (exponential backoff caps at this).
+         */
+        @NotNull
+        private Duration maxDelay = Duration.ofSeconds(1);
+
+        /**
+         * Exponential backoff multiplier.
+         */
+        @Min(1)
+        private double multiplier = 2.0;
+    }
+
+    /**
+     * Compression configuration for cache values.
+     */
+    @Data
+    public static class CompressionConfig {
+        /**
+         * Enable compression for cache values above threshold.
+         */
+        private boolean enabled = false;
+
+        /**
+         * Minimum size (in bytes) to trigger compression. Values below this are not
+         * compressed.
+         */
+        @Min(1)
+        private int threshold = 1024;
+
+        /**
+         * Compression algorithm to use.
+         */
+        private CompressionAlgorithm algorithm = CompressionAlgorithm.GZIP;
+    }
+
+    /**
+     * Supported compression algorithms.
+     */
+    public enum CompressionAlgorithm {
+        /**
+         * GZIP compression (Java built-in, good compression ratio).
+         */
+        GZIP,
+        /**
+         * LZ4 compression (faster, lower compression ratio).
+         */
+        LZ4
     }
 }

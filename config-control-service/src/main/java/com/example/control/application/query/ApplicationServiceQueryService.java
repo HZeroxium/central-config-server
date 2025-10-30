@@ -4,7 +4,6 @@ import com.example.control.domain.object.ApplicationService;
 import com.example.control.domain.criteria.ApplicationServiceCriteria;
 import com.example.control.domain.id.ApplicationServiceId;
 import com.example.control.domain.port.ApplicationServiceRepositoryPort;
-import com.example.control.infrastructure.config.cache.CacheKeyGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -68,5 +67,22 @@ public class ApplicationServiceQueryService {
     public List<ApplicationService> findAll() {
         log.debug("Finding all application services");
         return repository.findAll(null, Pageable.unpaged()).getContent();
+    }
+
+    /**
+     * Find application service by exact display name.
+     * <p>
+     * This method provides O(1) lookup for service name resolution during heartbeat
+     * processing.
+     * Used for auto-linking service instances to their corresponding application
+     * services.
+     *
+     * @param displayName the exact display name to search for
+     * @return the application service if found, empty otherwise
+     */
+    @Cacheable(value = "application-services", key = "'displayName:' + #displayName")
+    public Optional<ApplicationService> findByDisplayName(String displayName) {
+        log.debug("Finding application service by display name: {}", displayName);
+        return repository.findByDisplayName(displayName);
     }
 }
