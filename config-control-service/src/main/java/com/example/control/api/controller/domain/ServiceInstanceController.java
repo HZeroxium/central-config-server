@@ -2,13 +2,10 @@ package com.example.control.api.controller.domain;
 
 import com.example.control.api.dto.domain.ServiceInstanceDtos;
 import com.example.control.api.mapper.domain.ServiceInstanceApiMapper;
-import com.example.control.application.service.ApplicationServiceService;
 import com.example.control.application.service.ServiceInstanceService;
 import com.example.control.infrastructure.config.security.UserContext;
-import com.example.control.domain.object.ApplicationService;
 import com.example.control.domain.object.ServiceInstance;
 import com.example.control.domain.criteria.ServiceInstanceCriteria;
-import com.example.control.domain.id.ApplicationServiceId;
 import com.example.control.domain.id.ServiceInstanceId;
 import com.example.control.api.exception.ErrorResponse;
 import io.micrometer.core.annotation.Timed;
@@ -40,7 +37,6 @@ import java.util.Optional;
 public class ServiceInstanceController {
 
     private final ServiceInstanceService service;
-    private final ApplicationServiceService applicationServiceService;
 
     @PostMapping
     @Operation(
@@ -81,14 +77,9 @@ public class ServiceInstanceController {
         UserContext userContext = UserContext.fromJwt(jwt);
         ServiceInstance toSave = ServiceInstanceApiMapper.toDomain(request);
         ServiceInstance saved = service.create(toSave, userContext);
-        
-        // Lookup ApplicationService for response mapping
-        ApplicationService applicationService = applicationServiceService.findById(
-                ApplicationServiceId.of(saved.getServiceId()))
-                .orElseThrow(() -> new IllegalStateException("ApplicationService not found after instance creation: " + saved.getServiceId()));
-        
+        ServiceInstanceDtos.Response response = ServiceInstanceApiMapper.toResponse(saved);
         return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED)
-                .body(ServiceInstanceApiMapper.toResponse(saved, applicationService));
+                .body(response);
     }
 
     @GetMapping("/{instanceId}")

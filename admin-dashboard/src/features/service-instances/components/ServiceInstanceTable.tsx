@@ -48,13 +48,13 @@ export function ServiceInstanceTable({
 
   const columns: GridColDef<ServiceInstanceResponse>[] = [
     {
-      field: "serviceName",
-      headerName: "Service Name",
+      field: "serviceId",
+      headerName: "Service ID",
       flex: 1,
       minWidth: 180,
       renderCell: (params) => (
         <Box sx={{ fontWeight: 600, color: "primary.main" }}>
-          {params.value}
+          {params.row.serviceId}
         </Box>
       ),
     },
@@ -103,7 +103,7 @@ export function ServiceInstanceTable({
         <DriftIndicator
           hasDrift={params.value}
           driftDetectedAt={params.row.driftDetectedAt}
-          serviceId={params.row.serviceName}
+          serviceId={params.row.serviceId}
           instanceId={params.row.instanceId}
         />
       ),
@@ -152,7 +152,7 @@ export function ServiceInstanceTable({
           />,
         ];
 
-        if (canDelete(params.row.serviceName)) {
+        if (canDelete(params.row.serviceId)) {
           actions.push(
             <GridActionsCellItem
               key="delete"
@@ -172,7 +172,7 @@ export function ServiceInstanceTable({
   // Create rows with unique id for DataGrid
   const rows = instances.map((instance) => ({
     ...instance,
-    id: instance.instanceId || `${instance.serviceName}-${Math.random()}`,
+    id: instance.instanceId || `${instance.serviceId}-${Math.random()}`,
   }));
 
   return (

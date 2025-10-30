@@ -129,33 +129,8 @@ public final class ApiResponseDto {
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class ServiceSummary {
-        private String serviceName;
-        private Integer instanceCount;
-        private Integer healthyInstanceCount;
-        private String status;
-        private Long lastUpdated;
-    }
-
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
     public static class ServiceInstancesRegistryResponse {
         private String serviceName;
         private List<ServiceInstanceSummary> instances;
-    }
-
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class ConfigSummary {
-        private String application;
-        private String profile;
-        private String label;
-        private String version;
-        private Integer propertySourceCount;
-        private Long lastUpdated;
     }
 }

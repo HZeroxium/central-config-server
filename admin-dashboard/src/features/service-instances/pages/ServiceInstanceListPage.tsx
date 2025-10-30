@@ -96,10 +96,16 @@ export default function ServiceInstanceListPage() {
     if (statusFilter) params.set("status", statusFilter);
     if (driftFilter) params.set("drift", driftFilter);
     if (lastSeenAtFrom) {
-      params.set("lastSeenAtFrom", formatISO(lastSeenAtFrom, { representation: "date" }));
+      params.set(
+        "lastSeenAtFrom",
+        formatISO(lastSeenAtFrom, { representation: "date" })
+      );
     }
     if (lastSeenAtTo) {
-      params.set("lastSeenAtTo", formatISO(lastSeenAtTo, { representation: "date" }));
+      params.set(
+        "lastSeenAtTo",
+        formatISO(lastSeenAtTo, { representation: "date" })
+      );
     }
     if (page > 0) params.set("page", page.toString());
     if (pageSize !== 20) params.set("size", pageSize.toString());
@@ -202,7 +208,10 @@ export default function ServiceInstanceListPage() {
     setSearchParams({}, { replace: true });
   };
 
-  const handleDateRangeChange = (startDate: Date | null, endDate: Date | null) => {
+  const handleDateRangeChange = (
+    startDate: Date | null,
+    endDate: Date | null
+  ) => {
     setLastSeenAtFrom(startDate);
     setLastSeenAtTo(endDate);
     setPage(0);
@@ -320,7 +329,9 @@ export default function ServiceInstanceListPage() {
                 fullWidth
                 variant="outlined"
                 onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                endIcon={showAdvancedFilters ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                endIcon={
+                  showAdvancedFilters ? <ExpandLessIcon /> : <ExpandMoreIcon />
+                }
                 sx={{ height: "56px" }}
                 aria-label="Toggle advanced filters"
               >
@@ -383,7 +394,7 @@ export default function ServiceInstanceListPage() {
                 );
                 if (instance) {
                   navigate(
-                    `/service-instances/${instance.serviceName}/${instance.instanceId}`
+                    `/service-instances/${instance.serviceId}/${instance.instanceId}`
                   );
                 }
               }}

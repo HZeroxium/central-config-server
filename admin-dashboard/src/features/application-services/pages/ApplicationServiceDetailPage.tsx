@@ -237,7 +237,6 @@ export default function ApplicationServiceDetailPage() {
 
     createApprovalRequestMutation.mutate(
       {
-        serviceId: id,
         data: {
           serviceId: id,
           targetTeamId: userInfo.teamIds[0],
@@ -280,7 +279,6 @@ export default function ApplicationServiceDetailPage() {
 
     createApprovalRequestMutation.mutate(
       {
-        serviceId: id,
         data: {
           serviceId: id,
           targetTeamId: userInfo.teamIds[0],

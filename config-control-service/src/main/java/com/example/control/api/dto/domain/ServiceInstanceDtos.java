@@ -145,8 +145,8 @@ public final class ServiceInstanceDtos {
     @AllArgsConstructor
     @Schema(name = "ServiceInstanceResponse", description = "Service instance details response")
     public static class Response {
-        @Schema(description = "Name of the service", example = "payment-service")
-        private String serviceName;
+        @Schema(description = "ID of the service", example = "payment-service")
+        private String serviceId;
 
         @Schema(description = "Unique instance identifier", example = "payment-dev-1")
         private String instanceId;

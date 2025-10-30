@@ -105,7 +105,7 @@ export default function ServiceInstanceDetailPage() {
     <Box>
       <PageHeader
         title={`Instance: ${instance.instanceId}`}
-        subtitle={`Service: ${instance.serviceName}`}
+        subtitle={`Service: ${instance.serviceId}`}
         actions={
           <>
             <Button
@@ -143,10 +143,10 @@ export default function ServiceInstanceDetailPage() {
                 color="text.secondary"
                 gutterBottom
               >
-                Service Name
+                Service ID
               </Typography>
               <Typography variant="body1" fontWeight={600} gutterBottom>
-                {instance.serviceName}
+                {instance.serviceId}
               </Typography>
             </Grid>
 
@@ -329,9 +329,11 @@ export default function ServiceInstanceDetailPage() {
                 </Typography>
                 <Box
                   component="pre"
-                  sx={theme => ({
-                    bgcolor: theme.palette.mode === "dark" ? "grey.900" : "grey.100",
-                    color: theme.palette.mode === "dark" ? "grey.100" : "grey.900",
+                  sx={(theme) => ({
+                    bgcolor:
+                      theme.palette.mode === "dark" ? "grey.900" : "grey.100",
+                    color:
+                      theme.palette.mode === "dark" ? "grey.100" : "grey.900",
                     p: 2,
                     borderRadius: 1,
                     overflow: "auto",

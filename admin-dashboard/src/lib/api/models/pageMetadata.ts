@@ -40,6 +40,6 @@ export interface PageMetadata {
   numberOfElements?: number;
   /** Whether the page is empty */
   empty?: boolean;
-  last?: boolean;
   first?: boolean;
+  last?: boolean;
 }

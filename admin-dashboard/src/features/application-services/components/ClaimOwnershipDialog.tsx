@@ -102,7 +102,6 @@ export const ClaimOwnershipDialog: React.FC<ClaimOwnershipDialogProps> = ({
     setError(null);
 
     createApprovalRequestMutation.mutate({
-      serviceId: serviceId || "",
       data: {
         serviceId: serviceId || "",
         targetTeamId: data.targetTeamId,

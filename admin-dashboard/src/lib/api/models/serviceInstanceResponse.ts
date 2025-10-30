@@ -27,8 +27,8 @@ import type { ServiceInstanceResponseMetadata } from './serviceInstanceResponseM
  * Service instance details response
  */
 export interface ServiceInstanceResponse {
-  /** Name of the service */
-  serviceName?: string;
+  /** ID of the service */
+  serviceId?: string;
   /** Unique instance identifier */
   instanceId?: string;
   /** Instance host address */

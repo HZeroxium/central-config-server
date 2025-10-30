@@ -24,7 +24,7 @@ import java.util.Map;
 public class ServiceInstance {
 
     /**
-     * Composite identifier combining serviceName and instanceId.
+     * Composite identifier combining serviceId and instanceId.
      */
     private ServiceInstanceId id;
 
