@@ -1,12 +1,14 @@
 package com.example.control.application.external;
 
+import com.example.control.infrastructure.resilience.ResilienceDecoratorsFactory;
+import com.example.control.application.external.fallback.ConsulFallback;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.MediaType;
@@ -17,111 +19,91 @@ import java.time.Duration;
 import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
- * Client for interacting with Consul HTTP API
+ * Resilience-enabled client for Consul HTTP API.
+ * <p>
+ * Read operations use Circuit Breaker, Retry, Bulkhead with cached fallbacks.
+ * Write operations use Circuit Breaker and Bulkhead only (no retry for
+ * idempotency).
+ * </p>
  */
 @Component("customConsulClient")
-@RequiredArgsConstructor
+@Slf4j
 public class ConsulClient {
 
-    private static final Logger log = LoggerFactory.getLogger(ConsulClient.class);
-    private final RestClient restClient = RestClient.create();
+    private static final String SERVICE_NAME = "consul";
+
+    private final ResilienceDecoratorsFactory resilienceFactory;
+    private final RestClient restClient;
 
     @Value("${consul.url:http://localhost:8500}")
     private String consulUrl;
 
+    private final ConsulFallback consulFallback;
+
+    public ConsulClient(
+            ResilienceDecoratorsFactory resilienceFactory,
+            @Qualifier("consulRestClient") RestClient restClient,
+            ConsulFallback consulFallback) {
+        this.resilienceFactory = resilienceFactory;
+        this.restClient = restClient;
+        this.consulFallback = consulFallback;
+    }
+
     /**
-     * Get all services from Consul catalog
+     * Get all services from Consul catalog with resilience.
      */
     @Cacheable(value = "consul-services", key = "'catalog'")
     public String getServices() {
-        String url = consulUrl + "/v1/catalog/services";
-        log.debug("Getting services from: {}", url);
-        try {
-            return restClient.get()
-                    .uri(url)
-                    .accept(MediaType.APPLICATION_JSON)
-                    .retrieve()
-                    .body(String.class);
-        } catch (Exception e) {
-            log.error("Failed to get services from Consul", e);
-            throw new RuntimeException("Consul API call failed: getServices", e);
-        }
+        return executeReadWithResilience(
+                consulUrl + "/v1/catalog/services",
+                "{}",
+                "getServices");
     }
 
     /**
-     * Get service details by name
+     * Get service details by name with resilience.
      */
     @Cacheable(value = "consul-services", key = "#serviceName")
     public String getService(String serviceName) {
-        String url = consulUrl + "/v1/catalog/service/" + serviceName;
-        log.debug("Getting service details from: {}", url);
-        try {
-            return restClient.get()
-                    .uri(url)
-                    .accept(MediaType.APPLICATION_JSON)
-                    .retrieve()
-                    .body(String.class);
-        } catch (Exception e) {
-            log.error("Failed to get service details for: {}", serviceName, e);
-            throw new RuntimeException("Consul API call failed: getService", e);
-        }
+        return executeReadWithResilience(
+                consulUrl + "/v1/catalog/service/" + serviceName,
+                "[]",
+                "getService:" + serviceName);
     }
 
     /**
-     * Get all instances of a service (including unhealthy)
+     * Get all instances of a service (including unhealthy) with resilience.
      */
     public String getServiceInstances(String serviceName) {
-        String url = consulUrl + "/v1/health/service/" + serviceName;
-        log.debug("Getting service instances from: {}", url);
-        try {
-            return restClient.get()
-                    .uri(url)
-                    .accept(MediaType.APPLICATION_JSON)
-                    .retrieve()
-                    .body(String.class);
-        } catch (Exception e) {
-            log.error("Failed to get service instances for: {}", serviceName, e);
-            throw new RuntimeException("Consul API call failed: getServiceInstances", e);
-        }
+        return executeReadWithResilience(
+                consulUrl + "/v1/health/service/" + serviceName,
+                "[]",
+                "getServiceInstances:" + serviceName);
     }
 
     /**
-     * Get only healthy instances of a service
+     * Get only healthy instances of a service with resilience.
      */
     public String getHealthyServiceInstances(String serviceName) {
-        String url = consulUrl + "/v1/health/service/" + serviceName + "?passing";
-        log.debug("Getting healthy service instances from: {}", url);
-        try {
-            return restClient.get()
-                    .uri(url)
-                    .accept(MediaType.APPLICATION_JSON)
-                    .retrieve()
-                    .body(String.class);
-        } catch (Exception e) {
-            log.error("Failed to get healthy service instances for: {}", serviceName, e);
-            throw new RuntimeException("Consul API call failed: getHealthyServiceInstances", e);
-        }
+        return executeReadWithResilience(
+                consulUrl + "/v1/health/service/" + serviceName + "?passing",
+                "[]",
+                "getHealthyServiceInstances:" + serviceName);
     }
 
     /**
-     * Get health checks for a service
+     * Get health checks for a service with resilience.
      */
     @Cacheable(value = "consul-health", key = "#serviceName")
     public String getServiceHealth(String serviceName) {
-        String url = consulUrl + "/v1/health/checks/" + serviceName;
-        log.debug("Getting service health from: {}", url);
-        try {
-            return restClient.get()
-                    .uri(url)
-                    .accept(MediaType.APPLICATION_JSON)
-                    .retrieve()
-                    .body(String.class);
-        } catch (Exception e) {
-            log.error("Failed to get service health for: {}", serviceName, e);
-            throw new RuntimeException("Consul API call failed: getServiceHealth", e);
-        }
+        return executeReadWithResilience(
+                consulUrl + "/v1/health/checks/" + serviceName,
+                "[]",
+                "getServiceHealth:" + serviceName);
     }
 
     /**
@@ -693,5 +675,147 @@ public class ConsulClient {
      * Result of a blocking query.
      */
     public record WatchResult(String data, long index) {
+    }
+
+    /**
+     * Execute read operation (GET) with full resilience patterns (CB, Retry,
+     * Bulkhead).
+     */
+    private String executeReadWithResilience(String url, String fallback, String operation) {
+        Supplier<String> apiCall = () -> {
+            try {
+                log.debug("Consul GET {}: {}", operation, url);
+                String result = restClient.get()
+                        .uri(url)
+                        .accept(MediaType.APPLICATION_JSON)
+                        .retrieve()
+                        .body(String.class);
+
+                // Cache successful response for future fallback
+                cacheSuccessfulResponse(url, operation, result);
+
+                return result;
+            } catch (Exception e) {
+                log.error("Consul API call failed: {}", operation, e);
+                throw new RuntimeException("Consul API call failed: " + operation, e);
+            }
+        };
+
+        Function<Throwable, String> fallbackFunction = (Throwable t) -> {
+            log.warn("Consul fallback for {} due to: {}", operation, t.getMessage());
+
+            // Try to get cached fallback based on operation type
+            String cachedFallback = getCachedFallback(url, operation);
+            if (cachedFallback != null && !cachedFallback.equals("{}") && !cachedFallback.equals("[]")) {
+                return cachedFallback;
+            }
+
+            // Use provided fallback or empty default
+            return fallback != null ? fallback : (operation.contains("health") ? "[]" : "{}");
+        };
+        Supplier<String> decoratedCall = resilienceFactory.decorateSupplier(
+                SERVICE_NAME,
+                apiCall,
+                fallbackFunction);
+
+        return decoratedCall.get();
+    }
+
+    /**
+     * Cache successful response based on URL pattern.
+     */
+    private void cacheSuccessfulResponse(String url, String operation, String result) {
+        try {
+            if (url.contains("/v1/catalog/services")) {
+                consulFallback.saveServiceToCache("catalog", result);
+            } else if (url.contains("/v1/catalog/service/")) {
+                String serviceName = extractServiceNameFromUrl(url, "/v1/catalog/service/");
+                if (serviceName != null) {
+                    consulFallback.saveServiceToCache(serviceName, result);
+                }
+            } else if (url.contains("/v1/health/service/")) {
+                String serviceName = extractServiceNameFromUrl(url, "/v1/health/service/");
+                if (serviceName != null) {
+                    consulFallback.saveHealthToCache(serviceName, result);
+                }
+            } else if (url.contains("/v1/health/checks/")) {
+                String serviceName = extractServiceNameFromUrl(url, "/v1/health/checks/");
+                if (serviceName != null) {
+                    consulFallback.saveHealthToCache(serviceName, result);
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Failed to cache Consul response for {}: {}", operation, e.getMessage());
+        }
+    }
+
+    /**
+     * Get cached fallback based on URL pattern.
+     */
+    private String getCachedFallback(String url, String operation) {
+        try {
+            if (url.contains("/v1/catalog/services")) {
+                return consulFallback.getFallbackServices();
+            } else if (url.contains("/v1/catalog/service/")) {
+                String serviceName = extractServiceNameFromUrl(url, "/v1/catalog/service/");
+                if (serviceName != null) {
+                    return consulFallback.getFallbackService(serviceName);
+                }
+            } else if (url.contains("/v1/health/service/")) {
+                String serviceName = extractServiceNameFromUrl(url, "/v1/health/service/");
+                if (serviceName != null) {
+                    return consulFallback.getFallbackHealth(serviceName);
+                }
+            } else if (url.contains("/v1/health/checks/")) {
+                String serviceName = extractServiceNameFromUrl(url, "/v1/health/checks/");
+                if (serviceName != null) {
+                    return consulFallback.getFallbackHealth(serviceName);
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Failed to get cached fallback for {}: {}", operation, e.getMessage());
+        }
+        return null;
+    }
+
+    /**
+     * Extract service name from URL.
+     */
+    private String extractServiceNameFromUrl(String url, String prefix) {
+        try {
+            int index = url.indexOf(prefix);
+            if (index >= 0) {
+                String remaining = url.substring(index + prefix.length());
+                // Remove query parameters and trailing slashes
+                int queryIndex = remaining.indexOf('?');
+                if (queryIndex >= 0) {
+                    remaining = remaining.substring(0, queryIndex);
+                }
+                remaining = remaining.replaceAll("/$", "");
+                return remaining.isEmpty() ? null : remaining;
+            }
+        } catch (Exception e) {
+            log.debug("Failed to extract service name from URL: {}", url, e);
+        }
+        return null;
+    }
+
+    /**
+     * Execute write operation (PUT/POST/DELETE) without retry (idempotency
+     * concern).
+     */
+    private boolean executeWriteWithResilience(Supplier<Boolean> writeOperation, String operation) {
+        Supplier<Boolean> decoratedCall = resilienceFactory.decorateSupplierWithoutRetry(
+                SERVICE_NAME,
+                writeOperation,
+                false // Fallback to false on failure
+        );
+
+        try {
+            return decoratedCall.get();
+        } catch (Exception e) {
+            log.error("Consul write operation failed: {}", operation, e);
+            return false;
+        }
     }
 }

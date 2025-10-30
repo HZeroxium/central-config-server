@@ -24,7 +24,7 @@
         <module name="thrift-demo.zcm-spring-sdk-starter.main" />
       </profile>
     </annotationProcessing>
-    <bytecodeTargetLevel>
+    <bytecodeTargetLevel target="21">
       <module name="thrift-demo.shared-common" target="21" />
       <module name="thrift-demo.shared-common.main" target="21" />
       <module name="thrift-demo.shared-common.test" target="21" />
@@ -49,6 +49,12 @@
       <module name="thrift-demo.user-watcher-service" target="21" />
       <module name="thrift-demo.user-watcher-service.main" target="21" />
       <module name="thrift-demo.user-watcher-service.test" target="21" />
+      <module name="user-rest-spring-service" target="21" />
+      <module name="user-rest-spring-service.main" target="21" />
+      <module name="user-rest-spring-service.test" target="21" />
+      <module name="user-rpc-thrift-service" target="21" />
+      <module name="user-rpc-thrift-service.main" target="21" />
+      <module name="user-rpc-thrift-service.test" target="21" />
     </bytecodeTargetLevel>
   </component>
   <component name="JavacSettings">

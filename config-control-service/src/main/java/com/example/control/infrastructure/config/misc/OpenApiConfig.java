@@ -1,4 +1,4 @@
-package com.example.control.infrastructure.config;
+package com.example.control.infrastructure.config.misc;
 
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;

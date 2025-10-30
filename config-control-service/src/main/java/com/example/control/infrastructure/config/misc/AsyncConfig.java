@@ -1,4 +1,4 @@
-package com.example.control.infrastructure.config;
+package com.example.control.infrastructure.config.misc;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableAsync;

@@ -1,4 +1,4 @@
-package com.example.control.infrastructure.config;
+package com.example.control.infrastructure.config.mongo;
 
 import com.example.control.infrastructure.config.security.UserContext;
 import lombok.RequiredArgsConstructor;

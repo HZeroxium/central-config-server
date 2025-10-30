@@ -44,6 +44,8 @@ dependencies {
     implementation libs.spring.boot.starter.data.mongodb
     implementation libs.spring.boot.starter.data.redis
     implementation libs.spring.boot.starter.cache
+    implementation 'org.springframework.boot:spring-boot-starter-mail'
+    implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
     
     // Spring Security OAuth2 Resource Server
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
@@ -103,6 +105,15 @@ dependencies {
     
     // AspectJ for AOP profiling
     implementation libs.aspectjweaver
+    
+    // Resilience4j for circuit breaker, retry, bulkhead, rate limiter
+    implementation libs.bundles.resilience4j
+    implementation 'io.github.resilience4j:resilience4j-micrometer:2.2.0'
+    implementation 'io.github.resilience4j:resilience4j-reactor:2.2.0'
+    implementation 'io.github.resilience4j:resilience4j-ratelimiter:2.2.0'
+    implementation 'io.github.resilience4j:resilience4j-bulkhead:2.2.0'
+    implementation 'io.github.resilience4j:resilience4j-all:2.2.0'
+    implementation 'org.springframework.cloud:spring-cloud-starter-circuitbreaker-resilience4j'
     
     // Datafaker for mock data generation
     implementation 'net.datafaker:datafaker:2.1.0'

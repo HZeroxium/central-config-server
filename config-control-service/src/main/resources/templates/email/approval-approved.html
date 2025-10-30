@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Approval Request Approved</title>
+  </head>
+  <body
+    style="
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+    "
+  >
+    <div
+      style="
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        padding: 30px;
+        margin-bottom: 20px;
+      "
+    >
+      <h1 style="color: #28a745; margin-top: 0">
+        ✅ Approval Request Approved
+      </h1>
+
+      <p style="font-size: 16px">
+        Hello <strong th:text="${requesterName}">User</strong>,
+      </p>
+
+      <p style="font-size: 16px">
+        Your approval request has been approved! The service ownership has been
+        successfully transferred.
+      </p>
+
+      <div
+        style="
+          background-color: #ffffff;
+          border-left: 4px solid #28a745;
+          padding: 15px;
+          margin: 20px 0;
+        "
+      >
+        <h2 style="margin-top: 0; color: #28a745">Request Details</h2>
+        <table style="width: 100%; border-collapse: collapse">
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold; width: 150px">
+              Service Name:
+            </td>
+            <td style="padding: 8px 0" th:text="${serviceName}">
+              Service Name
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold">Service ID:</td>
+            <td style="padding: 8px 0" th:text="${serviceId}">service-id</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold">Request ID:</td>
+            <td style="padding: 8px 0" th:text="${requestId}">request-id</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold">Target Team:</td>
+            <td style="padding: 8px 0" th:text="${targetTeamId}">team-id</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold">Approved By:</td>
+            <td style="padding: 8px 0" th:text="${approverName}">
+              Approver Name
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold">Approved At:</td>
+            <td style="padding: 8px 0" th:text="${approvedAt}">
+              Date and Time
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <p style="font-size: 16px">
+        The service <strong th:text="${serviceName}">Service Name</strong> is
+        now owned by team <strong th:text="${targetTeamId}">team-id</strong>.
+        Your team now has full access to manage this service.
+      </p>
+
+      <div
+        style="
+          background-color: #e7f3ff;
+          border-radius: 4px;
+          padding: 15px;
+          margin: 20px 0;
+        "
+      >
+        <p style="margin: 0; font-size: 14px; color: #004085">
+          <strong>Next Steps:</strong><br />
+          • You can now manage service instances and configurations<br />
+          • View and resolve configuration drift events<br />
+          • Share service access with other teams if needed
+        </p>
+      </div>
+
+      <p style="font-size: 14px; color: #666; margin-top: 30px">
+        If you have any questions, please contact your system administrator.
+      </p>
+
+      <hr style="border: none; border-top: 1px solid #dee2e6; margin: 30px 0" />
+
+      <p style="font-size: 12px; color: #999; text-align: center">
+        This is an automated notification from Config Control Service.<br />
+        Please do not reply to this email.
+      </p>
+    </div>
+  </body>
+</html>

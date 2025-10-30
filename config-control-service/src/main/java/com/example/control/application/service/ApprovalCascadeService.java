@@ -6,9 +6,11 @@ import com.example.control.application.command.ApprovalRequestCommandService;
 import com.example.control.application.command.DriftEventCommandService;
 import com.example.control.application.command.ServiceInstanceCommandService;
 import com.example.control.application.query.ApplicationServiceQueryService;
+import com.example.control.application.query.ApprovalDecisionQueryService;
 import com.example.control.application.query.ApprovalRequestQueryService;
 import com.example.control.domain.criteria.ApprovalRequestCriteria;
 import com.example.control.domain.event.ServiceOwnershipTransferred;
+import com.example.control.domain.event.ApprovalRequestApprovedEvent;
 import com.example.control.domain.id.ApplicationServiceId;
 import com.example.control.domain.id.ApprovalDecisionId;
 import com.example.control.domain.id.ApprovalRequestId;
@@ -42,6 +44,7 @@ public class ApprovalCascadeService {
   private final ApprovalRequestQueryService approvalRequestQueryService;
   private final ApprovalRequestCommandService approvalRequestCommandService;
   private final ApprovalDecisionCommandService approvalDecisionCommandService;
+  private final ApprovalDecisionQueryService approvalDecisionQueryService;
   private final ApplicationServiceCommandService applicationServiceCommandService;
   private final ApplicationServiceQueryService applicationServiceQueryService;
   private final ServiceInstanceCommandService serviceInstanceCommandService;
@@ -151,6 +154,38 @@ public class ApprovalCascadeService {
     createSystemDecisionsForCascadedRequests(cascadedApprovedRequests, cascadedRejectedRequests, newTeamId);
 
     log.info("Successfully approved request: {} and transferred service ownership", requestId);
+
+    // 7. Publish approval event for email notification
+    eventPublisher.publishEvent(ApprovalRequestApprovedEvent.builder()
+        .requestId(requestId)
+        .requesterUserId(request.getRequesterUserId())
+        .serviceId(serviceId)
+        .targetTeamId(newTeamId)
+        .approverUserId(getApproverUserId(request))
+        .approvedAt(Instant.now())
+        .build());
+  }
+
+  /**
+   * Gets the approver user ID from the approval decisions.
+   * Returns the first human approver (not SYSTEM), or "SYSTEM" if no human
+   * approver found.
+   *
+   * @param request the approval request
+   * @return approver user ID
+   */
+  private String getApproverUserId(ApprovalRequest request) {
+    // Fetch approval decisions for this request
+    var decisions = approvalDecisionQueryService.findAll(
+        com.example.control.domain.criteria.ApprovalDecisionCriteria.forRequest(request.getId().id()),
+        org.springframework.data.domain.Pageable.unpaged()).getContent();
+
+    // Find the first human approver (not SYSTEM)
+    return decisions.stream()
+        .filter(decision -> !"SYSTEM".equals(decision.getApproverUserId()))
+        .map(ApprovalDecision::getApproverUserId)
+        .findFirst()
+        .orElse("SYSTEM");
   }
 
   /**

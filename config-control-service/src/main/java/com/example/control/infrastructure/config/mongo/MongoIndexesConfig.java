@@ -1,4 +1,4 @@
-package com.example.control.infrastructure.mongo.config;
+package com.example.control.infrastructure.config.mongo;
 
 import com.example.control.infrastructure.mongo.documents.ApplicationServiceDocument;
 import com.example.control.infrastructure.mongo.documents.ApprovalRequestDocument;

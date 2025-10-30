@@ -7,9 +7,6 @@
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/config-server/thrift-demo.config-server.main.iml" filepath="$PROJECT_DIR$/.idea/modules/config-server/thrift-demo.config-server.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/sample-service/thrift-demo.sample-service.main.iml" filepath="$PROJECT_DIR$/.idea/modules/sample-service/thrift-demo.sample-service.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/zcm-spring-sdk-starter/thrift-demo.zcm-spring-sdk-starter.main.iml" filepath="$PROJECT_DIR$/.idea/modules/zcm-spring-sdk-starter/thrift-demo.zcm-spring-sdk-starter.main.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/user-rest-spring-service.main.iml" filepath="$PROJECT_DIR$/.idea/modules/user-rest-spring-service.main.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/user-rest-spring-service.test.iml" filepath="$PROJECT_DIR$/.idea/modules/user-rest-spring-service.test.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/user-rpc-thrift-service.main.iml" filepath="$PROJECT_DIR$/.idea/modules/user-rpc-thrift-service.main.iml" />
     </modules>
   </component>
 </project>
