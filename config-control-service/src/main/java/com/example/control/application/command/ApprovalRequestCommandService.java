@@ -34,12 +34,12 @@ public class ApprovalRequestCommandService {
     /**
      * Saves an approval request (create or update).
      * Automatically generates ID if null.
-     * Evicts all approval-requests cache entries.
+     * Evicts specific approval-requests cache entry by ID.
      *
      * @param request the approval request to save
      * @return the saved approval request
      */
-    @CacheEvict(value = "approval-requests", allEntries = true)
+    @CacheEvict(value = "approval-requests", key = "#request.id")
     public ApprovalRequest save(@Valid ApprovalRequest request) {
         log.debug("Saving approval request: {}", request.getId());
 
@@ -56,11 +56,11 @@ public class ApprovalRequestCommandService {
 
     /**
      * Deletes an approval request by ID.
-     * Evicts all approval-requests cache entries.
+     * Evicts specific approval-requests cache entry by ID.
      *
      * @param id the approval request ID to delete
      */
-    @CacheEvict(value = "approval-requests", allEntries = true)
+    @CacheEvict(value = "approval-requests", key = "#id")
     public void deleteById(ApprovalRequestId id) {
         log.info("Deleting approval request: {}", id);
         repository.deleteById(id);
@@ -70,14 +70,16 @@ public class ApprovalRequestCommandService {
      * Updates status and version for optimistic locking.
      * <p>
      * Used to atomically transition request status while preventing lost updates.
+     * Evicts specific approval-requests cache entry by ID.
      *
      * @param id      the approval request ID
      * @param status  the new status to set
      * @param version the expected current version for optimistic locking
      * @return true if update succeeded (version matched), false otherwise
      */
-    @CacheEvict(value = "approval-requests", allEntries = true)
-    public boolean updateStatusAndVersion(ApprovalRequestId id, ApprovalRequest.ApprovalStatus status, Integer version) {
+    @CacheEvict(value = "approval-requests", key = "#id")
+    public boolean updateStatusAndVersion(ApprovalRequestId id, ApprovalRequest.ApprovalStatus status,
+            Integer version) {
         log.info("Updating approval request: {} to status: {} with version: {}", id, status, version);
         return repository.updateStatusAndVersion(id, status, version);
     }
@@ -89,6 +91,8 @@ public class ApprovalRequestCommandService {
      * When one team's request is approved, other requests from the same team for
      * the same service
      * should also be auto-approved to avoid duplicate ownership requests.
+     * Evicts all approval-requests cache entries since we don't know which requests
+     * were affected.
      *
      * @param serviceId      target service ID
      * @param approvedTeamId the team whose requests should be cascaded
@@ -108,6 +112,8 @@ public class ApprovalRequestCommandService {
      * <p>
      * When a team is granted ownership, all competing requests from other teams
      * should be rejected.
+     * Evicts all approval-requests cache entries since we don't know which requests
+     * were affected.
      *
      * @param serviceId       target service ID
      * @param approvedTeamId  the team that was approved

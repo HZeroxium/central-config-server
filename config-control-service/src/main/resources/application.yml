@@ -171,7 +171,7 @@ app:
       maximum-expected-value: 1m
   cache:
     # provider: CAFFEINE  # Default to local cache
-    provider: NOOP
+    provider: TWO_LEVEL
     cache-name-prefix: "{spring.application.name:config-control-service}::"
     enable-fallback: true
     caffeine:
@@ -207,6 +207,30 @@ app:
       consul-health:
         ttl: 30s
         maximum-size: 1000
+        allow-null-values: false
+      iam-users:
+        ttl: 15m
+        maximum-size: 5000
+        allow-null-values: false
+      iam-teams:
+        ttl: 30m
+        maximum-size: 500
+        allow-null-values: false
+      application-services:
+        ttl: 10m
+        maximum-size: 1000
+        allow-null-values: false
+      approval-requests:
+        ttl: 5m
+        maximum-size: 2000
+        allow-null-values: false
+      approval-decisions:
+        ttl: 10m
+        maximum-size: 5000
+        allow-null-values: false
+      service-shares:
+        ttl: 10m
+        maximum-size: 2000
         allow-null-values: false
 
 # Config Server client configuration

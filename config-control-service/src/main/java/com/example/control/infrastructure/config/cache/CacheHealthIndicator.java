@@ -1,6 +1,5 @@
 package com.example.control.infrastructure.config.cache;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthIndicator;
@@ -62,12 +61,28 @@ import java.util.Map;
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class CacheHealthIndicator implements HealthIndicator {
 
     private final CacheManagerFactory cacheManagerFactory;
     private final CacheProperties cacheProperties;
     private final DelegatingCacheManager delegatingCacheManager;
+    private final CacheMetrics cacheMetrics; // Optional - may be null if metrics not enabled
+
+    public CacheHealthIndicator(CacheManagerFactory cacheManagerFactory,
+            CacheProperties cacheProperties,
+            DelegatingCacheManager delegatingCacheManager) {
+        this(cacheManagerFactory, cacheProperties, delegatingCacheManager, null);
+    }
+
+    public CacheHealthIndicator(CacheManagerFactory cacheManagerFactory,
+            CacheProperties cacheProperties,
+            DelegatingCacheManager delegatingCacheManager,
+            CacheMetrics cacheMetrics) {
+        this.cacheManagerFactory = cacheManagerFactory;
+        this.cacheProperties = cacheProperties;
+        this.delegatingCacheManager = delegatingCacheManager;
+        this.cacheMetrics = cacheMetrics;
+    }
 
     /**
      * Compute and return the overall cache health.
@@ -80,7 +95,7 @@ public class CacheHealthIndicator implements HealthIndicator {
      * :contentReference[oaicite:2]{index=2}
      *
      * @return a {@link Health} instance with {@code UP}/{@code DOWN} status and
-     * diagnostic details
+     *         diagnostic details
      */
     @Override
     public Health health() {
@@ -101,7 +116,7 @@ public class CacheHealthIndicator implements HealthIndicator {
      * human-readable {@code status} message.
      *
      * @return immutable-like map of diagnostic details for inclusion in
-     * {@link Health}
+     *         {@link Health}
      */
     public Map<String, Object> getHealthDetails() {
         try {
@@ -115,6 +130,11 @@ public class CacheHealthIndicator implements HealthIndicator {
             details.put("availableProviders", getAvailableProviders());
             details.put("healthy", isHealthy);
             details.put("cacheManagerType", delegatingCacheManager.getCurrentDelegateType());
+
+            // Add detailed metrics if available
+            if (cacheMetrics != null) {
+                details.put("metrics", getCacheMetricsDetails());
+            }
 
             if (isHealthy) {
                 details.put("status", "Cache provider is healthy");
@@ -143,7 +163,7 @@ public class CacheHealthIndicator implements HealthIndicator {
      * delegate exposed by {@link DelegatingCacheManager}.
      *
      * @return a best-effort mapping to a {@link CacheProperties.CacheProvider}
-     * name; otherwise the raw type name
+     *         name; otherwise the raw type name
      */
     private String getCurrentProviderFromManager() {
         String managerType = delegatingCacheManager.getCurrentDelegateType();
@@ -240,5 +260,35 @@ public class CacheHealthIndicator implements HealthIndicator {
         }
 
         return providers;
+    }
+
+    /**
+     * Get detailed cache metrics for health reporting.
+     */
+    private Map<String, Object> getCacheMetricsDetails() {
+        Map<String, Object> metrics = new HashMap<>();
+
+        if (cacheMetrics == null) {
+            return metrics;
+        }
+
+        try {
+            metrics.put("overallHitRatio", cacheMetrics.getOverallHitRatio());
+
+            Map<String, Object> perCacheMetrics = new HashMap<>();
+            delegatingCacheManager.getCacheNames().forEach(cacheName -> {
+                Map<String, Object> cacheMetricDetails = new HashMap<>();
+                cacheMetricDetails.put("hitRatio", this.cacheMetrics.getHitRatio(cacheName));
+                cacheMetricDetails.put("missRate", 1.0 - this.cacheMetrics.getHitRatio(cacheName));
+                perCacheMetrics.put(cacheName, cacheMetricDetails);
+            });
+
+            metrics.put("perCache", perCacheMetrics);
+        } catch (Exception e) {
+            log.warn("Error gathering cache metrics", e);
+            metrics.put("error", "Failed to gather metrics: " + e.getMessage());
+        }
+
+        return metrics;
     }
 }

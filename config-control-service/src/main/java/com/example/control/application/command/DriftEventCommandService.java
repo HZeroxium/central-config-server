@@ -47,12 +47,12 @@ public class DriftEventCommandService {
      * Saves a drift event (create or update).
      * <p>
      * Automatically generates ID if null (new entity).
-     * Evicts all drift-events cache entries.
+     * Evicts specific drift-events cache entry by ID.
      *
      * @param event the drift event to save (must be valid)
      * @return the saved drift event with generated/updated fields
      */
-    @CacheEvict(value = "drift-events", allEntries = true)
+    @CacheEvict(value = "drift-events", key = "#event.id")
     public DriftEvent save(@Valid DriftEvent event) {
         log.debug("Saving drift event: {}", event.getId());
 
@@ -70,11 +70,11 @@ public class DriftEventCommandService {
     /**
      * Deletes a drift event by ID.
      * <p>
-     * Evicts all drift-events cache entries.
+     * Evicts specific drift-events cache entry by ID.
      *
      * @param id the drift event ID to delete
      */
-    @CacheEvict(value = "drift-events", allEntries = true)
+    @CacheEvict(value = "drift-events", key = "#id")
     public void deleteById(DriftEventId id) {
         log.info("Deleting drift event: {}", id);
         repository.deleteById(id);
@@ -86,7 +86,8 @@ public class DriftEventCommandService {
      * Updates status to RESOLVED and sets resolvedBy/resolvedAt fields.
      * Typically called after verifying instance configuration is up-to-date.
      * <p>
-     * Evicts all drift-events cache entries.
+     * Evicts all drift-events cache entries since we don't know which events were
+     * affected.
      *
      * @param serviceName the service name
      * @param instanceId  the instance identifier
@@ -103,7 +104,8 @@ public class DriftEventCommandService {
      * Bulk updates teamId for all drift events of a specific service.
      * <p>
      * Used during ownership transfer to propagate new team ownership.
-     * Evicts all drift-events cache entries.
+     * Evicts all drift-events cache entries since we don't know which events were
+     * affected.
      *
      * @param serviceId the service ID to match
      * @param newTeamId the new team ID to set

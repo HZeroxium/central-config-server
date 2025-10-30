@@ -4,6 +4,7 @@ import com.example.control.domain.object.DriftEvent;
 import com.example.control.domain.criteria.DriftEventCriteria;
 import com.example.control.domain.id.DriftEventId;
 import com.example.control.domain.port.DriftEventRepositoryPort;
+import com.example.control.infrastructure.config.cache.CacheKeyGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -51,7 +52,7 @@ public class DriftEventQueryService {
      * @param pageable pagination information
      * @return page of drift events
      */
-    @Cacheable(value = "drift-events", key = "'all:' + #criteria.hashCode() + ':' + #pageable")
+    @Cacheable(value = "drift-events", key = "T(com.example.control.infrastructure.config.cache.CacheKeyGenerator).generateKey('all', #criteria, #pageable)")
     public Page<DriftEvent> findAll(DriftEventCriteria criteria, Pageable pageable) {
         log.debug("Finding all drift events with criteria: {}", criteria);
         return repository.findAll(criteria, pageable);
@@ -74,7 +75,7 @@ public class DriftEventQueryService {
      * @param criteria filter criteria
      * @return count of events matching criteria
      */
-    @Cacheable(value = "drift-events", key = "'count:' + #criteria.hashCode()")
+    @Cacheable(value = "drift-events", key = "T(com.example.control.infrastructure.config.cache.CacheKeyGenerator).generateKeyFromHash('count', #criteria)")
     public long count(DriftEventCriteria criteria) {
         log.debug("Counting drift events with criteria: {}", criteria);
         return repository.count(criteria);

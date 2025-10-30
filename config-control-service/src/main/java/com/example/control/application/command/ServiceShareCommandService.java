@@ -34,12 +34,12 @@ public class ServiceShareCommandService {
     /**
      * Saves a service share (create or update).
      * Automatically generates ID if null.
-     * Evicts all service-shares cache entries.
+     * Evicts specific service-shares cache entry by ID.
      *
      * @param share the service share to save
      * @return the saved service share
      */
-    @CacheEvict(value = "service-shares", allEntries = true)
+    @CacheEvict(value = "service-shares", key = "#share.id")
     public ServiceShare save(@Valid ServiceShare share) {
         log.debug("Saving service share: {}", share.getId());
 
@@ -55,11 +55,11 @@ public class ServiceShareCommandService {
 
     /**
      * Deletes a service share by ID.
-     * Evicts all service-shares cache entries.
+     * Evicts specific service-shares cache entry by ID.
      *
      * @param id the service share ID to delete
      */
-    @CacheEvict(value = "service-shares", allEntries = true)
+    @CacheEvict(value = "service-shares", key = "#id")
     public void deleteById(ServiceShareId id) {
         log.info("Deleting service share: {}", id);
         repository.deleteById(id);

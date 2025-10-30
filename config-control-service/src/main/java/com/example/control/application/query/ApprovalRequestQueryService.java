@@ -4,6 +4,7 @@ import com.example.control.domain.criteria.ApprovalRequestCriteria;
 import com.example.control.domain.id.ApprovalRequestId;
 import com.example.control.domain.object.ApprovalRequest;
 import com.example.control.domain.port.ApprovalRequestRepositoryPort;
+import com.example.control.infrastructure.config.cache.CacheKeyGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -51,7 +52,7 @@ public class ApprovalRequestQueryService {
      * @param pageable pagination information
      * @return page of approval requests
      */
-    @Cacheable(value = "approval-requests", key = "'list:' + #criteria.hashCode() + ':' + #pageable")
+    @Cacheable(value = "approval-requests", key = "T(com.example.control.infrastructure.config.cache.CacheKeyGenerator).generateKey('list', #criteria, #pageable)")
     public Page<ApprovalRequest> findAll(ApprovalRequestCriteria criteria, Pageable pageable) {
         log.debug("Listing approval requests with criteria: {}", criteria);
         return repository.findAll(criteria, pageable);
@@ -63,7 +64,7 @@ public class ApprovalRequestQueryService {
      * @param criteria the filter criteria
      * @return count of matching requests
      */
-    @Cacheable(value = "approval-requests", key = "'count:' + #criteria.hashCode()")
+    @Cacheable(value = "approval-requests", key = "T(com.example.control.infrastructure.config.cache.CacheKeyGenerator).generateKeyFromHash('count', #criteria)")
     public long count(ApprovalRequestCriteria criteria) {
         log.debug("Counting approval requests with criteria: {}", criteria);
         return repository.count(criteria);

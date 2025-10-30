@@ -47,12 +47,12 @@ public class ServiceInstanceCommandService {
      * Saves a service instance (create or update).
      * <p>
      * Automatically generates ID if null (new entity).
-     * Evicts all service-instances cache entries.
+     * Evicts specific service-instances cache entry by ID.
      *
      * @param instance the service instance to save (must be valid)
      * @return the saved service instance with generated/updated fields
      */
-    @CacheEvict(value = "service-instances", allEntries = true)
+    @CacheEvict(value = "service-instances", key = "#instance.id")
     public ServiceInstance save(@Valid ServiceInstance instance) {
         log.debug("Saving service instance: {}", instance.getId());
 
@@ -70,11 +70,11 @@ public class ServiceInstanceCommandService {
     /**
      * Deletes a service instance by ID.
      * <p>
-     * Evicts all service-instances cache entries.
+     * Evicts specific service-instances cache entry by ID.
      *
      * @param id the service instance ID to delete
      */
-    @CacheEvict(value = "service-instances", allEntries = true)
+    @CacheEvict(value = "service-instances", key = "#id")
     public void deleteById(ServiceInstanceId id) {
         log.info("Deleting service instance: {}", id);
         repository.deleteById(id);
@@ -84,7 +84,8 @@ public class ServiceInstanceCommandService {
      * Bulk updates teamId for all service instances of a specific service.
      * <p>
      * Used during ownership transfer to propagate new team ownership.
-     * Evicts all service-instances cache entries.
+     * Evicts all service-instances cache entries since we don't know which
+     * instances were affected.
      *
      * @param serviceId the service ID to match
      * @param newTeamId the new team ID to set

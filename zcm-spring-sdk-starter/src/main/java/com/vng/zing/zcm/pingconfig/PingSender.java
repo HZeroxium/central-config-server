@@ -14,18 +14,21 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Orchestrates periodic heartbeat ("ping") requests to a centralized control service.
+ * Orchestrates periodic heartbeat ("ping") requests to a centralized control
+ * service.
  * <p>
  * This mechanism helps the control plane monitor the liveness and configuration
- * consistency of SDK-enabled services. The ping payload includes metadata such as:
+ * consistency of SDK-enabled services. The ping payload includes metadata such
+ * as:
  * <ul>
- *   <li>Service name and instance ID</li>
- *   <li>Configuration hash</li>
- *   <li>Host and port information</li>
- *   <li>Active profile and version</li>
+ * <li>Service name and instance ID</li>
+ * <li>Configuration hash</li>
+ * <li>Host and port information</li>
+ * <li>Active profile and version</li>
  * </ul>
  *
- * <p>The PingSender uses a pluggable strategy pattern to support multiple
+ * <p>
+ * The PingSender uses a pluggable strategy pattern to support multiple
  * communication protocols (HTTP REST, Thrift RPC, gRPC) and integrates with
  * service discovery for endpoint resolution with fallback to direct URLs.
  */
@@ -41,17 +44,21 @@ public class PingSender {
   /**
    * Creates a new {@code PingSender}.
    *
-   * @param pingStrategy      the ping strategy implementation for the selected protocol
-   * @param discoveryClient   service discovery client for finding control service instances
-   * @param props            configuration properties for SDK (contains control URL, ping options, etc.)
-   * @param hash             computes a SHA-256 hash of the current configuration
-   * @param environment      Spring {@link Environment} for resolving runtime information
+   * @param pingStrategy    the ping strategy implementation for the selected
+   *                        protocol
+   * @param discoveryClient service discovery client for finding control service
+   *                        instances
+   * @param props           configuration properties for SDK (contains control
+   *                        URL, ping options, etc.)
+   * @param hash            computes a SHA-256 hash of the current configuration
+   * @param environment     Spring {@link Environment} for resolving runtime
+   *                        information
    */
-  public PingSender(PingStrategy pingStrategy, 
-                    DiscoveryClient discoveryClient,
-                    SdkProperties props, 
-                    ConfigHashCalculator hash, 
-                    Environment environment) {
+  public PingSender(PingStrategy pingStrategy,
+      DiscoveryClient discoveryClient,
+      SdkProperties props,
+      ConfigHashCalculator hash,
+      Environment environment) {
     this.pingStrategy = pingStrategy;
     this.discoveryClient = discoveryClient;
     this.props = props;
@@ -60,10 +67,13 @@ public class PingSender {
   }
 
   /**
-   * Sends the heartbeat request to the control service using the configured strategy.
+   * Sends the heartbeat request to the control service using the configured
+   * strategy.
    * <p>
-   * If pinging is disabled or no endpoint can be resolved, it logs a warning and returns silently.
-   * On network or protocol failure, exceptions are caught and logged, ensuring no disruption
+   * If pinging is disabled or no endpoint can be resolved, it logs a warning and
+   * returns silently.
+   * On network or protocol failure, exceptions are caught and logged, ensuring no
+   * disruption
    * to scheduled tasks.
    */
   public void send() {
@@ -81,18 +91,20 @@ public class PingSender {
     HeartbeatPayload payload = buildPayload();
 
     try {
+      log.info("ZCM ping sending payload: {}", payload);
       pingStrategy.sendHeartbeat(endpoint, payload);
-      log.info("ZCM ping sent successfully using {} to {}", 
+      log.info("ZCM ping sent successfully using {} to {}",
           pingStrategy.getName(), endpoint);
     } catch (Exception e) {
-      log.error("ZCM ping failed using {}: {}", 
+      log.error("ZCM ping failed using {}: {}",
           pingStrategy.getName(), e.getMessage());
       // Swallow exception to prevent scheduler interruption
     }
   }
 
   /**
-   * Resolves the endpoint for sending heartbeat using service discovery or direct URL.
+   * Resolves the endpoint for sending heartbeat using service discovery or direct
+   * URL.
    * 
    * @return resolved endpoint or null if no endpoint can be determined
    */
@@ -206,13 +218,15 @@ public class PingSender {
   }
 
   /**
-   * Resolves the service instance ID used for identification in heartbeat payloads.
+   * Resolves the service instance ID used for identification in heartbeat
+   * payloads.
    * <p>
    * The resolution order is:
    * <ol>
-   *   <li>{@code zcm.sdk.instance.id}</li>
-   *   <li>{@code spring.cloud.consul.discovery.instance-id} (resolved placeholders)</li>
-   *   <li>Fallback: {@code {serviceName}-{port}-{hostname}}</li>
+   * <li>{@code zcm.sdk.instance.id}</li>
+   * <li>{@code spring.cloud.consul.discovery.instance-id} (resolved
+   * placeholders)</li>
+   * <li>Fallback: {@code {serviceId}-{port}-{hostname}}</li>
    * </ol>
    *
    * @return resolved instance ID string

@@ -4,6 +4,7 @@ import com.example.control.domain.criteria.IamUserCriteria;
 import com.example.control.domain.id.IamUserId;
 import com.example.control.domain.object.IamUser;
 import com.example.control.domain.port.IamUserRepositoryPort;
+import com.example.control.infrastructure.config.cache.CacheKeyGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -50,7 +51,7 @@ public class IamUserQueryService {
      * @param teamIds list of team IDs
      * @return list of user IDs
      */
-    @Cacheable(value = "iam-users", key = "'userIds:' + #teamIds.hashCode()")
+    @Cacheable(value = "iam-users", key = "T(com.example.control.infrastructure.config.cache.CacheKeyGenerator).generateKey('userIds', #teamIds)")
     public List<String> findUserIdsByTeams(List<String> teamIds) {
         log.debug("Finding user IDs by teams: {}", teamIds);
         return repository.findUserIdsByTeams(teamIds);
@@ -63,7 +64,7 @@ public class IamUserQueryService {
      * @param pageable pagination information
      * @return page of IAM users
      */
-    @Cacheable(value = "iam-users", key = "'list:' + #criteria.hashCode() + ':' + #pageable")
+    @Cacheable(value = "iam-users", key = "T(com.example.control.infrastructure.config.cache.CacheKeyGenerator).generateKey('list', #criteria, #pageable)")
     public Page<IamUser> findAll(IamUserCriteria criteria, Pageable pageable) {
         log.debug("Listing IAM users with criteria: {}", criteria);
         return repository.findAll(criteria, pageable);
@@ -75,7 +76,7 @@ public class IamUserQueryService {
      * @param criteria the filter criteria
      * @return count of matching users
      */
-    @Cacheable(value = "iam-users", key = "'count:' + #criteria.hashCode()")
+    @Cacheable(value = "iam-users", key = "T(com.example.control.infrastructure.config.cache.CacheKeyGenerator).generateKeyFromHash('count', #criteria)")
     public long count(IamUserCriteria criteria) {
         log.debug("Counting IAM users with criteria: {}", criteria);
         return repository.count(criteria);

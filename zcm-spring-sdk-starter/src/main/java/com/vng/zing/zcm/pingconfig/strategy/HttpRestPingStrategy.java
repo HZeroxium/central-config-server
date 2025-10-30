@@ -15,42 +15,42 @@ import java.util.Map;
  */
 @Slf4j
 public class HttpRestPingStrategy implements PingStrategy {
-  
+
   private final RestClient restClient;
-  
+
   public HttpRestPingStrategy() {
     // Create a simple RestClient without load balancing
     this.restClient = RestClient.builder().build();
   }
-  
+
   public HttpRestPingStrategy(RestClient restClient) {
     this.restClient = restClient;
   }
-  
+
   @Override
   public void sendHeartbeat(String endpoint, HeartbeatPayload payload) throws Exception {
     Map<String, Object> body = convertToMap(payload);
-    
+
     restClient.post()
         .uri(endpoint + "/api/heartbeat")
         .contentType(MediaType.APPLICATION_JSON)
         .body(body)
         .retrieve()
         .toBodilessEntity();
-    
+
     log.debug("HTTP ping sent to {}", endpoint);
   }
-  
+
   @Override
   public String getName() {
     return "HTTP REST";
   }
-  
+
   @Override
   public PingProtocol getProtocol() {
     return PingProtocol.HTTP;
   }
-  
+
   /**
    * Converts HeartbeatPayload to a Map for JSON serialization.
    * 

@@ -11,22 +11,31 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Centralized cache configuration properties for the {@code config-control-service}.
+ * Centralized cache configuration properties for the
+ * {@code config-control-service}.
  * <p>
- * These properties are bound from external configuration (e.g., {@code application.yml})
- * under the prefix {@code app.cache}. The class is validated at bind time via Bean Validation
- * constraints. See Spring Boot {@code @ConfigurationProperties} for hierarchical binding
+ * These properties are bound from external configuration (e.g.,
+ * {@code application.yml})
+ * under the prefix {@code app.cache}. The class is validated at bind time via
+ * Bean Validation
+ * constraints. See Spring Boot {@code @ConfigurationProperties} for
+ * hierarchical binding
  * semantics and metadata generation.
  *
  * <h2>Purpose</h2>
  * <ul>
- *   <li>Provide a unified place to choose the default cache provider (Caffeine, Redis, Two-level, Noop).</li>
- *   <li>Offer fine-grained, per-cache overrides (TTL, maximum size, null handling, provider override).</li>
- *   <li>Support operational safeguards (fallback from Redis to Caffeine, circuit breaker)</li>
- *   <li>Enable a Two-level (L1/L2) topology: local in-memory + distributed Redis.</li>
+ * <li>Provide a unified place to choose the default cache provider (Caffeine,
+ * Redis, Two-level, Noop).</li>
+ * <li>Offer fine-grained, per-cache overrides (TTL, maximum size, null
+ * handling, provider override).</li>
+ * <li>Support operational safeguards (fallback from Redis to Caffeine, circuit
+ * breaker)</li>
+ * <li>Enable a Two-level (L1/L2) topology: local in-memory + distributed
+ * Redis.</li>
  * </ul>
  *
  * <h2>Binding Example (YAML)</h2>
+ * 
  * <pre>{@code
  * app:
  *   cache:
@@ -72,17 +81,26 @@ import java.util.Map;
  *
  * <h2>Notes</h2>
  * <ul>
- *   <li><b>TTL semantics:</b> {@code ttl} and Caffeine's {@code expireAfter*} evict entries after the
- *       configured durations; Redis uses key expiration. Eviction is best-effort.</li>
- *   <li><b>Caffeine:</b> {@code maximumSize}, {@code expireAfterWrite}, {@code expireAfterAccess}
- *       control in-memory eviction behavior and statistics recording.</li>
- *   <li><b>Redis:</b> {@code enableStatistics} toggles local hit/miss stats collection,
- *       {@code transactionAware} makes cache put/evict operations participate in Spring transactions
- *       (where applicable).</li>
- *   <li><b>CircuitBreaker:</b> Parameters mirror common Resilience4j concepts (sliding window,
- *       failure-rate threshold, wait duration in OPEN, and trial calls in HALF_OPEN).</li>
- *   <li><b>Two-level:</b> L1 (Caffeine) for ultra-low latency; L2 (Redis) for distribution. {@code writeThrough}
- *       and {@code invalidateL1OnL2Update} define write/invalidations across tiers.</li>
+ * <li><b>TTL semantics:</b> {@code ttl} and Caffeine's {@code expireAfter*}
+ * evict entries after the
+ * configured durations; Redis uses key expiration. Eviction is
+ * best-effort.</li>
+ * <li><b>Caffeine:</b> {@code maximumSize}, {@code expireAfterWrite},
+ * {@code expireAfterAccess}
+ * control in-memory eviction behavior and statistics recording.</li>
+ * <li><b>Redis:</b> {@code enableStatistics} toggles local hit/miss stats
+ * collection,
+ * {@code transactionAware} makes cache put/evict operations participate in
+ * Spring transactions
+ * (where applicable).</li>
+ * <li><b>CircuitBreaker:</b> Parameters mirror common Resilience4j concepts
+ * (sliding window,
+ * failure-rate threshold, wait duration in OPEN, and trial calls in
+ * HALF_OPEN).</li>
+ * <li><b>Two-level:</b> L1 (Caffeine) for ultra-low latency; L2 (Redis) for
+ * distribution. {@code writeThrough}
+ * and {@code invalidateL1OnL2Update} define write/invalidations across
+ * tiers.</li>
  * </ul>
  *
  * @author
@@ -95,22 +113,29 @@ import java.util.Map;
 public class CacheProperties {
 
     /**
-     * Default cache provider to use for all caches that do not specify a per-cache override.
+     * Default cache provider to use for all caches that do not specify a per-cache
+     * override.
      * <p>
      * Typical choices:
      * <ul>
-     *   <li>{@link CacheProvider#CAFFEINE}: in-memory cache with O(1) latency and local scope.</li>
-     *   <li>{@link CacheProvider#REDIS}: distributed cache backed by Redis; suitable for sharing across nodes.</li>
-     *   <li>{@link CacheProvider#TWO_LEVEL}: hybrid model (L1 = Caffeine, L2 = Redis).</li>
-     *   <li>{@link CacheProvider#NOOP}: disabled caching (useful for troubleshooting or testing).</li>
+     * <li>{@link CacheProvider#CAFFEINE}: in-memory cache with O(1) latency and
+     * local scope.</li>
+     * <li>{@link CacheProvider#REDIS}: distributed cache backed by Redis; suitable
+     * for sharing across nodes.</li>
+     * <li>{@link CacheProvider#TWO_LEVEL}: hybrid model (L1 = Caffeine, L2 =
+     * Redis).</li>
+     * <li>{@link CacheProvider#NOOP}: disabled caching (useful for troubleshooting
+     * or testing).</li>
      * </ul>
      */
     @NotNull
     private CacheProvider provider = CacheProvider.CAFFEINE;
 
     /**
-     * When {@code true}, allows the system to fall back to a secondary provider (e.g., Caffeine)
-     * if the primary provider (e.g., Redis) becomes unavailable. This can improve resilience at the
+     * When {@code true}, allows the system to fall back to a secondary provider
+     * (e.g., Caffeine)
+     * if the primary provider (e.g., Redis) becomes unavailable. This can improve
+     * resilience at the
      * cost of temporarily reduced consistency across instances.
      */
     private boolean enableFallback = true;
@@ -120,10 +145,12 @@ public class CacheProperties {
      * <p>
      * Key concepts:
      * <ul>
-     *   <li>{@code maximumSize}: upper bound on cache entries (evicts using size-based policy).</li>
-     *   <li>{@code expireAfterWrite}: time-to-live measured from last write.</li>
-     *   <li>{@code expireAfterAccess}: time-to-idle measured from last read or write.</li>
-     *   <li>{@code recordStats}: enable local hit/miss/eviction metrics.</li>
+     * <li>{@code maximumSize}: upper bound on cache entries (evicts using
+     * size-based policy).</li>
+     * <li>{@code expireAfterWrite}: time-to-live measured from last write.</li>
+     * <li>{@code expireAfterAccess}: time-to-idle measured from last read or
+     * write.</li>
+     * <li>{@code recordStats}: enable local hit/miss/eviction metrics.</li>
      * </ul>
      */
     private CaffeineConfig caffeine = new CaffeineConfig();
@@ -133,11 +160,15 @@ public class CacheProperties {
      * <p>
      * Key concepts:
      * <ul>
-     *   <li>{@code defaultTtl}: key expiration at Redis side.</li>
-     *   <li>{@code enableStatistics}: collect local cache statistics snapshot if supported by manager.</li>
-     *   <li>{@code transactionAware}: align cache operations with Spring-managed transactions.</li>
-     *   <li>{@code fallbackToCaffeine}: optionally degrade to local cache when Redis is unavailable.</li>
-     *   <li>{@code circuitBreaker}: protect downstream Redis with a circuit breaker to avoid cascading failures.</li>
+     * <li>{@code defaultTtl}: key expiration at Redis side.</li>
+     * <li>{@code enableStatistics}: collect local cache statistics snapshot if
+     * supported by manager.</li>
+     * <li>{@code transactionAware}: align cache operations with Spring-managed
+     * transactions.</li>
+     * <li>{@code fallbackToCaffeine}: optionally degrade to local cache when Redis
+     * is unavailable.</li>
+     * <li>{@code circuitBreaker}: protect downstream Redis with a circuit breaker
+     * to avoid cascading failures.</li>
      * </ul>
      */
     private RedisConfig redis = new RedisConfig();
@@ -145,24 +176,30 @@ public class CacheProperties {
     /**
      * Global defaults for a Two-level cache: L1 = local Caffeine, L2 = Redis.
      * <p>
-     * Use this when you want ultra-fast reads from L1 while maintaining cross-node coherence via L2.
-     * {@code writeThrough} and {@code invalidateL1OnL2Update} define how writes/invalidations propagate.
+     * Use this when you want ultra-fast reads from L1 while maintaining cross-node
+     * coherence via L2.
+     * {@code writeThrough} and {@code invalidateL1OnL2Update} define how
+     * writes/invalidations propagate.
      */
     private TwoLevelConfig twoLevel = new TwoLevelConfig();
 
     /**
-     * Per-cache overrides keyed by logical cache name (e.g., {@code service-instances}, {@code drift-events}).
+     * Per-cache overrides keyed by logical cache name (e.g.,
+     * {@code service-instances}, {@code drift-events}).
      * <p>
-     * Each entry can override TTL, maximum size, null handling, and even select a different provider
+     * Each entry can override TTL, maximum size, null handling, and even select a
+     * different provider
      * than the default {@link #provider}.
      */
     private Map<String, CacheConfig> caches = new HashMap<>();
     private String cacheNamePrefix = "config-control-service::";
 
     /**
-     * Initializes default per-cache configurations tailored for the {@code config-control-service}.
+     * Initializes default per-cache configurations tailored for the
+     * {@code config-control-service}.
      * <p>
-     * These defaults are sensible starting points and can be overridden via external configuration.
+     * These defaults are sensible starting points and can be overridden via
+     * external configuration.
      */
     public CacheProperties() {
         caches.put("service-instances", createServiceInstancesConfig());
@@ -170,13 +207,20 @@ public class CacheProperties {
         caches.put("config-hashes", createConfigHashesConfig());
         caches.put("consul-services", createConsulServicesConfig());
         caches.put("consul-health", createConsulHealthConfig());
+        caches.put("iam-users", createIamUsersConfig());
+        caches.put("iam-teams", createIamTeamsConfig());
+        caches.put("application-services", createApplicationServicesConfig());
+        caches.put("approval-requests", createApprovalRequestsConfig());
+        caches.put("approval-decisions", createApprovalDecisionsConfig());
+        caches.put("service-shares", createServiceSharesConfig());
     }
 
     /**
      * Build default config for the {@code service-instances} cache.
      * <ul>
-     *   <li>TTL: 5 minutes — instance membership typically changes infrequently but should refresh regularly.</li>
-     *   <li>Maximum size: 10,000 — supports large service topologies.</li>
+     * <li>TTL: 5 minutes — instance membership typically changes infrequently but
+     * should refresh regularly.</li>
+     * <li>Maximum size: 10,000 — supports large service topologies.</li>
      * </ul>
      */
     private CacheConfig createServiceInstancesConfig() {
@@ -189,8 +233,8 @@ public class CacheProperties {
     /**
      * Build default config for the {@code drift-events} cache.
      * <ul>
-     *   <li>TTL: 2 minutes — short-lived signals to avoid stale drift detection.</li>
-     *   <li>Maximum size: 5,000 — accommodates bursty events.</li>
+     * <li>TTL: 2 minutes — short-lived signals to avoid stale drift detection.</li>
+     * <li>Maximum size: 5,000 — accommodates bursty events.</li>
      * </ul>
      */
     private CacheConfig createDriftEventsConfig() {
@@ -203,8 +247,9 @@ public class CacheProperties {
     /**
      * Build default config for the {@code config-hashes} cache.
      * <ul>
-     *   <li>TTL: 10 minutes — configuration digests do not change rapidly under normal conditions.</li>
-     *   <li>Maximum size: 1,000 — per-service hash footprint.</li>
+     * <li>TTL: 10 minutes — configuration digests do not change rapidly under
+     * normal conditions.</li>
+     * <li>Maximum size: 1,000 — per-service hash footprint.</li>
      * </ul>
      */
     private CacheConfig createConfigHashesConfig() {
@@ -217,8 +262,8 @@ public class CacheProperties {
     /**
      * Build default config for the {@code consul-services} cache.
      * <ul>
-     *   <li>TTL: 1 minute — service catalog should refresh frequently.</li>
-     *   <li>Maximum size: 500 — typical number of registered services.</li>
+     * <li>TTL: 1 minute — service catalog should refresh frequently.</li>
+     * <li>Maximum size: 500 — typical number of registered services.</li>
      * </ul>
      */
     private CacheConfig createConsulServicesConfig() {
@@ -231,14 +276,103 @@ public class CacheProperties {
     /**
      * Build default config for the {@code consul-health} cache.
      * <ul>
-     *   <li>TTL: 30 seconds — health states change more frequently and should be fresher.</li>
-     *   <li>Maximum size: 1,000 — accommodate multiple checks per service.</li>
+     * <li>TTL: 30 seconds — health states change more frequently and should be
+     * fresher.</li>
+     * <li>Maximum size: 1,000 — accommodate multiple checks per service.</li>
      * </ul>
      */
     private CacheConfig createConsulHealthConfig() {
         CacheConfig config = new CacheConfig();
         config.setTtl(Duration.ofSeconds(30));
         config.setMaximumSize(1_000L);
+        return config;
+    }
+
+    /**
+     * Build default config for the {@code iam-users} cache.
+     * <ul>
+     * <li>TTL: 15 minutes — user data changes infrequently but should refresh
+     * periodically.</li>
+     * <li>Maximum size: 5,000 — supports large user bases.</li>
+     * </ul>
+     */
+    private CacheConfig createIamUsersConfig() {
+        CacheConfig config = new CacheConfig();
+        config.setTtl(Duration.ofMinutes(15));
+        config.setMaximumSize(5_000L);
+        return config;
+    }
+
+    /**
+     * Build default config for the {@code iam-teams} cache.
+     * <ul>
+     * <li>TTL: 30 minutes — team data changes very infrequently.</li>
+     * <li>Maximum size: 500 — typical number of teams in an organization.</li>
+     * </ul>
+     */
+    private CacheConfig createIamTeamsConfig() {
+        CacheConfig config = new CacheConfig();
+        config.setTtl(Duration.ofMinutes(30));
+        config.setMaximumSize(500L);
+        return config;
+    }
+
+    /**
+     * Build default config for the {@code application-services} cache.
+     * <ul>
+     * <li>TTL: 10 minutes — service metadata changes infrequently.</li>
+     * <li>Maximum size: 1,000 — supports large service catalogs.</li>
+     * </ul>
+     */
+    private CacheConfig createApplicationServicesConfig() {
+        CacheConfig config = new CacheConfig();
+        config.setTtl(Duration.ofMinutes(10));
+        config.setMaximumSize(1_000L);
+        return config;
+    }
+
+    /**
+     * Build default config for the {@code approval-requests} cache.
+     * <ul>
+     * <li>TTL: 5 minutes — approval requests are active documents that change
+     * frequently.</li>
+     * <li>Maximum size: 2,000 — accommodates concurrent approval workflows.</li>
+     * </ul>
+     */
+    private CacheConfig createApprovalRequestsConfig() {
+        CacheConfig config = new CacheConfig();
+        config.setTtl(Duration.ofMinutes(5));
+        config.setMaximumSize(2_000L);
+        return config;
+    }
+
+    /**
+     * Build default config for the {@code approval-decisions} cache.
+     * <ul>
+     * <li>TTL: 10 minutes — decisions are historical but may be referenced
+     * frequently.</li>
+     * <li>Maximum size: 5,000 — accommodates historical decision records.</li>
+     * </ul>
+     */
+    private CacheConfig createApprovalDecisionsConfig() {
+        CacheConfig config = new CacheConfig();
+        config.setTtl(Duration.ofMinutes(10));
+        config.setMaximumSize(5_000L);
+        return config;
+    }
+
+    /**
+     * Build default config for the {@code service-shares} cache.
+     * <ul>
+     * <li>TTL: 10 minutes — share permissions change infrequently but should
+     * refresh regularly.</li>
+     * <li>Maximum size: 2,000 — supports multiple shares per service.</li>
+     * </ul>
+     */
+    private CacheConfig createServiceSharesConfig() {
+        CacheConfig config = new CacheConfig();
+        config.setTtl(Duration.ofMinutes(10));
+        config.setMaximumSize(2_000L);
         return config;
     }
 
@@ -277,14 +411,16 @@ public class CacheProperties {
         private long maximumSize = 10_000L;
 
         /**
-         * Time-to-live since last write. Entries are eligible for eviction after this duration.
+         * Time-to-live since last write. Entries are eligible for eviction after this
+         * duration.
          * Must not be {@code null}.
          */
         @NotNull
         private Duration expireAfterWrite = Duration.ofMinutes(10);
 
         /**
-         * Time-to-idle since last access (read or write). Entries are eligible for eviction after this duration.
+         * Time-to-idle since last access (read or write). Entries are eligible for
+         * eviction after this duration.
          * Must not be {@code null}.
          */
         @NotNull
@@ -309,24 +445,29 @@ public class CacheProperties {
         private Duration defaultTtl = Duration.ofMinutes(10);
 
         /**
-         * Enable local statistics collection if supported by the {@code RedisCacheManager}.
-         * This does not add server-side Redis metrics; it exposes manager-level snapshots.
+         * Enable local statistics collection if supported by the
+         * {@code RedisCacheManager}.
+         * This does not add server-side Redis metrics; it exposes manager-level
+         * snapshots.
          */
         private boolean enableStatistics = true;
 
         /**
-         * Make cache updates/evictions transaction-aware (participate in Spring-managed transactions).
+         * Make cache updates/evictions transaction-aware (participate in Spring-managed
+         * transactions).
          */
         private boolean transactionAware = true;
 
         /**
-         * If {@code true}, transparently fall back to Caffeine when Redis is unavailable.
+         * If {@code true}, transparently fall back to Caffeine when Redis is
+         * unavailable.
          * Useful for degraded-mode operation to preserve read paths.
          */
         private boolean fallbackToCaffeine = true;
 
         /**
-         * Circuit breaker configuration that guards Redis operations to prevent cascading failures.
+         * Circuit breaker configuration that guards Redis operations to prevent
+         * cascading failures.
          */
         private CircuitBreakerConfig circuitBreaker = new CircuitBreakerConfig();
     }
@@ -347,12 +488,14 @@ public class CacheProperties {
         private RedisConfig l2 = new RedisConfig();
 
         /**
-         * If {@code true}, writes propagate to L2 when L1 misses occur (helps warm L2 proactively).
+         * If {@code true}, writes propagate to L2 when L1 misses occur (helps warm L2
+         * proactively).
          */
         private boolean writeThrough = true;
 
         /**
-         * If {@code true}, invalidates L1 entries when L2 is updated (helps keep L1 coherent with L2).
+         * If {@code true}, invalidates L1 entries when L2 is updated (helps keep L1
+         * coherent with L2).
          */
         private boolean invalidateL1OnL2Update = true;
     }
@@ -360,8 +503,10 @@ public class CacheProperties {
     /**
      * Circuit breaker parameters for guarding Redis (or other remote) interactions.
      * <p>
-     * The model mirrors common patterns (e.g., Resilience4j): a sliding window records outcomes,
-     * the breaker opens when the failure rate exceeds a threshold, stays OPEN for a wait duration,
+     * The model mirrors common patterns (e.g., Resilience4j): a sliding window
+     * records outcomes,
+     * the breaker opens when the failure rate exceeds a threshold, stays OPEN for a
+     * wait duration,
      * then transitions to HALF_OPEN to trial a limited number of calls.
      */
     @Data
@@ -378,26 +523,30 @@ public class CacheProperties {
         private int slidingWindowSize = 10;
 
         /**
-         * Minimum number of calls required in the current window before evaluating failure rate.
+         * Minimum number of calls required in the current window before evaluating
+         * failure rate.
          * Must be {@code >= 1}.
          */
         @Min(1)
         private int minimumNumberOfCalls = 5;
 
         /**
-         * Failure rate threshold (percentage) that triggers OPEN state when exceeded. Must be {@code >= 1}.
+         * Failure rate threshold (percentage) that triggers OPEN state when exceeded.
+         * Must be {@code >= 1}.
          */
         @Min(1)
         private float failureRateThreshold = 50.0f;
 
         /**
-         * Duration to remain in OPEN state before attempting HALF_OPEN trials. Must not be {@code null}.
+         * Duration to remain in OPEN state before attempting HALF_OPEN trials. Must not
+         * be {@code null}.
          */
         @NotNull
         private Duration waitDurationInOpenState = Duration.ofSeconds(30);
 
         /**
-         * Number of permitted trial calls in HALF_OPEN state before deciding to close or reopen the circuit.
+         * Number of permitted trial calls in HALF_OPEN state before deciding to close
+         * or reopen the circuit.
          * Must be {@code >= 1}.
          */
         @Min(1)
@@ -410,26 +559,30 @@ public class CacheProperties {
     @Data
     public static class CacheConfig {
         /**
-         * Cache entry time-to-live. When elapsed, the entry becomes eligible for eviction.
+         * Cache entry time-to-live. When elapsed, the entry becomes eligible for
+         * eviction.
          * Must not be {@code null}.
          */
         @NotNull
         private Duration ttl = Duration.ofMinutes(10);
 
         /**
-         * Per-cache maximum number of entries before size-based eviction. Must be {@code >= 1}.
+         * Per-cache maximum number of entries before size-based eviction. Must be
+         * {@code >= 1}.
          */
         @Min(1)
         private long maximumSize = 1_000L;
 
         /**
          * Whether to allow {@code null} values to be stored for this cache.
-         * Note: some {@code CacheManager} implementations may wrap nulls; others may forbid them.
+         * Note: some {@code CacheManager} implementations may wrap nulls; others may
+         * forbid them.
          */
         private boolean allowNullValues = false;
 
         /**
-         * Optional provider override for this specific cache, taking precedence over the global {@link #provider}.
+         * Optional provider override for this specific cache, taking precedence over
+         * the global {@link #provider}.
          */
         private CacheProvider providerOverride;
     }

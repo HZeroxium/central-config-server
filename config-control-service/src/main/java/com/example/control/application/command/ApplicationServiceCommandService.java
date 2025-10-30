@@ -34,12 +34,12 @@ public class ApplicationServiceCommandService {
     /**
      * Saves an application service (create or update).
      * Automatically generates ID if null.
-     * Evicts all application-services cache entries.
+     * Evicts specific application-services cache entry by ID.
      *
      * @param service the application service to save
      * @return the saved application service
      */
-    @CacheEvict(value = "application-services", allEntries = true)
+    @CacheEvict(value = "application-services", key = "#service.id")
     public ApplicationService save(@Valid ApplicationService service) {
         log.debug("Saving application service: {}", service.getId());
 
@@ -55,11 +55,11 @@ public class ApplicationServiceCommandService {
 
     /**
      * Deletes an application service by ID.
-     * Evicts all application-services cache entries.
+     * Evicts specific application-services cache entry by ID.
      *
      * @param id the application service ID to delete
      */
-    @CacheEvict(value = "application-services", allEntries = true)
+    @CacheEvict(value = "application-services", key = "#id")
     public void deleteById(ApplicationServiceId id) {
         log.info("Deleting application service: {}", id);
         repository.deleteById(id);

@@ -88,15 +88,15 @@ public class HeartbeatService {
      * <li>Persist the final state to MongoDB</li>
      * </ol>
      * <p>
-     * Caching for `service-instances` and `drift-events` is evicted on each
-     * heartbeat
+     * Cache eviction: Evicts specific instance and related drift events cache
+     * entries
      * to ensure fresh state for monitoring dashboards.
      *
      * @param payload validated heartbeat payload
      * @return updated {@link ServiceInstance} representing the current state
      */
     @Transactional
-    @CacheEvict(value = { "service-instances", "drift-events" }, allEntries = true)
+    @CacheEvict(value = { "service-instances", "drift-events" }, key = "#payload.instanceId")
     @Timed("config_control.heartbeat.process")
     @Observed(name = "heartbeat.process", contextualName = "process-heartbeat")
     public ServiceInstance processHeartbeat(
@@ -144,12 +144,14 @@ public class HeartbeatService {
                     log.debug("Found existing ApplicationService: {} for display name: {}",
                             appService.getId(), payload.getServiceName());
                 }
-                
-                // Business logic: Merge environments when new instance has different environment
+
+                // Business logic: Merge environments when new instance has different
+                // environment
                 if (payload.getEnvironment() != null && !payload.getEnvironment().isEmpty()) {
                     List<String> currentEnvironments = appService.getEnvironments();
                     if (currentEnvironments == null || !currentEnvironments.contains(payload.getEnvironment())) {
-                        List<String> mergedEnvironments = mergeEnvironments(currentEnvironments, payload.getEnvironment());
+                        List<String> mergedEnvironments = mergeEnvironments(currentEnvironments,
+                                payload.getEnvironment());
                         appService.setEnvironments(mergedEnvironments);
                         appService.setUpdatedAt(Instant.now());
                         appService = applicationServiceCommandService.save(appService);
@@ -170,7 +172,7 @@ public class HeartbeatService {
                     } else {
                         initialEnvironments = List.of("dev", "staging", "prod"); // Default if no environment
                     }
-                    
+
                     ApplicationService orphanedService = ApplicationService.builder()
                             .id(ApplicationServiceId.of(UUID.randomUUID().toString()))
                             .displayName(payload.getServiceName())
@@ -430,10 +432,12 @@ public class HeartbeatService {
     /**
      * Merges a new environment into the existing environments list.
      * <p>
-     * If currentEnvironments is null or empty, returns a list with just the new environment.
+     * If currentEnvironments is null or empty, returns a list with just the new
+     * environment.
      * Otherwise, adds the new environment if it doesn't already exist.
      *
-     * @param currentEnvironments the current environments list (may be null or empty)
+     * @param currentEnvironments the current environments list (may be null or
+     *                            empty)
      * @param newEnvironment      the new environment to merge
      * @return merged list of environments
      */
@@ -446,8 +450,8 @@ public class HeartbeatService {
         }
         // Create new list with merged environments
         return java.util.stream.Stream.concat(
-                        currentEnvironments.stream(),
-                        java.util.stream.Stream.of(newEnvironment))
+                currentEnvironments.stream(),
+                java.util.stream.Stream.of(newEnvironment))
                 .sorted()
                 .distinct()
                 .toList();

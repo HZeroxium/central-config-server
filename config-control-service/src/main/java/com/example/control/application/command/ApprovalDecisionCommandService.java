@@ -34,12 +34,12 @@ public class ApprovalDecisionCommandService {
     /**
      * Saves an approval decision (create or update).
      * Automatically generates ID if null.
-     * Evicts all approval-decisions cache entries.
+     * Evicts specific approval-decisions cache entry by ID.
      *
      * @param decision the approval decision to save
      * @return the saved approval decision
      */
-    @CacheEvict(value = "approval-decisions", allEntries = true)
+    @CacheEvict(value = "approval-decisions", key = "#decision.id")
     public ApprovalDecision save(@Valid ApprovalDecision decision) {
         log.debug("Saving approval decision: {}", decision.getId());
 
@@ -56,11 +56,11 @@ public class ApprovalDecisionCommandService {
 
     /**
      * Deletes an approval decision by ID.
-     * Evicts all approval-decisions cache entries.
+     * Evicts specific approval-decisions cache entry by ID.
      *
      * @param id the approval decision ID to delete
      */
-    @CacheEvict(value = "approval-decisions", allEntries = true)
+    @CacheEvict(value = "approval-decisions", key = "#id")
     public void deleteById(ApprovalDecisionId id) {
         log.info("Deleting approval decision: {}", id);
         repository.deleteById(id);

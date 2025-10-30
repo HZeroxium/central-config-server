@@ -32,12 +32,12 @@ public class IamUserCommandService {
     /**
      * Saves an IAM user (create or update).
      * ID must be provided (Keycloak user ID).
-     * Evicts all iam-users cache entries.
+     * Evicts specific iam-users cache entry by ID.
      *
      * @param user the IAM user to save
      * @return the saved IAM user
      */
-    @CacheEvict(value = "iam-users", allEntries = true)
+    @CacheEvict(value = "iam-users", key = "#user.userId")
     public IamUser save(@Valid IamUser user) {
         log.debug("Saving IAM user: {}", user.getUserId());
 
@@ -48,11 +48,11 @@ public class IamUserCommandService {
 
     /**
      * Deletes an IAM user by ID.
-     * Evicts all iam-users cache entries.
+     * Evicts specific iam-users cache entry by ID.
      *
      * @param id the IAM user ID to delete
      */
-    @CacheEvict(value = "iam-users", allEntries = true)
+    @CacheEvict(value = "iam-users", key = "#id")
     public void deleteById(IamUserId id) {
         log.info("Deleting IAM user: {}", id);
         repository.deleteById(id);

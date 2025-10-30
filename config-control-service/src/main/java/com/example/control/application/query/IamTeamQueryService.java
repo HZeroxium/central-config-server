@@ -4,6 +4,7 @@ import com.example.control.domain.criteria.IamTeamCriteria;
 import com.example.control.domain.id.IamTeamId;
 import com.example.control.domain.object.IamTeam;
 import com.example.control.domain.port.IamTeamRepositoryPort;
+import com.example.control.infrastructure.config.cache.CacheKeyGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -50,7 +51,7 @@ public class IamTeamQueryService {
      * @param pageable pagination information
      * @return page of IAM teams
      */
-    @Cacheable(value = "iam-teams", key = "'list:' + #criteria.hashCode() + ':' + #pageable")
+    @Cacheable(value = "iam-teams", key = "T(com.example.control.infrastructure.config.cache.CacheKeyGenerator).generateKey('list', #criteria, #pageable)")
     public Page<IamTeam> findAll(IamTeamCriteria criteria, Pageable pageable) {
         log.debug("Listing IAM teams with criteria: {}", criteria);
         return repository.findAll(criteria, pageable);
@@ -62,7 +63,7 @@ public class IamTeamQueryService {
      * @param criteria the filter criteria
      * @return count of matching teams
      */
-    @Cacheable(value = "iam-teams", key = "'count:' + #criteria.hashCode()")
+    @Cacheable(value = "iam-teams", key = "T(com.example.control.infrastructure.config.cache.CacheKeyGenerator).generateKeyFromHash('count', #criteria)")
     public long count(IamTeamCriteria criteria) {
         log.debug("Counting IAM teams with criteria: {}", criteria);
         return repository.count(criteria);
