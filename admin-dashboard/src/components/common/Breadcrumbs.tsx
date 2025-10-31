@@ -165,9 +165,6 @@ export default function Breadcrumbs({
 
   // Get dynamic label for the last breadcrumb if it's a detail page
   const pathnames = location.pathname.split("/").filter((x) => x);
-  const pathSegments = pathnames.map((_, index) =>
-    pathnames.slice(0, index + 1).join("/")
-  );
   const lastRoutePattern = matchRoutePattern(
     pathnames,
     (params || {}) as Record<string, string | undefined>
