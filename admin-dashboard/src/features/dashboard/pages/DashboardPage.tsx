@@ -181,7 +181,26 @@ export default function DashboardPage() {
 
     for (const drift of drifts) {
       if (drift.detectedAt) {
-        const dateStr = drift.detectedAt.split("T")[0];
+        // Handle string dates (ISO format)
+        let dateStr: string;
+        if (typeof drift.detectedAt === "string") {
+          dateStr = drift.detectedAt.split("T")[0];
+        } else {
+          // Fallback: try to parse as Date if it's not a string
+          try {
+            const dateValue = drift.detectedAt as unknown;
+            if (dateValue instanceof Date) {
+              dateStr = dateValue.toISOString().split("T")[0];
+            } else {
+              // Try to parse as Date string
+              dateStr = new Date(dateValue as string | number)
+                .toISOString()
+                .split("T")[0];
+            }
+          } catch {
+            continue; // Skip invalid dates
+          }
+        }
         if (dates[dateStr] !== undefined) {
           const severity = (drift.severity || "LOW").toLowerCase() as
             | "critical"

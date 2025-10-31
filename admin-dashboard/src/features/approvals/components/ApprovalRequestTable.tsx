@@ -73,10 +73,14 @@ export function ApprovalRequestTable({
       minWidth: 150,
     },
     {
-      field: "targetServiceId",
+      field: "target",
       headerName: "Target Service",
       flex: 1,
       minWidth: 150,
+      renderCell: (params) => {
+        const target = params.value as { serviceId?: string } | undefined;
+        return target?.serviceId || "N/A";
+      },
     },
     {
       field: "status",

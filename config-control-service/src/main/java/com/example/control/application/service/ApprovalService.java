@@ -129,13 +129,16 @@ public class ApprovalService {
                                 .build());
 
                 // Add LINE_MANAGER gate if requester has a manager
-                if (userContext.getManagerId() != null && !userContext.getManagerId().trim().isEmpty()) {
-                        requiredGates.add(ApprovalRequest.ApprovalGate.builder()
-                                        .gate("LINE_MANAGER")
-                                        .minApprovals(1)
-                                        .build());
-                        log.debug("Added LINE_MANAGER gate for requester with manager: {}", userContext.getManagerId());
-                }
+                // TODO: Uncomment if we want to add the LINE_MANAGER gate
+                // if (userContext.getManagerId() != null &&
+                // !userContext.getManagerId().trim().isEmpty()) {
+                // requiredGates.add(ApprovalRequest.ApprovalGate.builder()
+                // .gate("LINE_MANAGER")
+                // .minApprovals(1)
+                // .build());
+                // log.debug("Added LINE_MANAGER gate for requester with manager: {}",
+                // userContext.getManagerId());
+                // }
 
                 // Business logic: Check for duplicate pending request (same user, same service)
                 ApprovalRequestCriteria duplicateCheckCriteria = ApprovalRequestCriteria

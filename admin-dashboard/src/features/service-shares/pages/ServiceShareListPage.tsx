@@ -184,12 +184,13 @@ export default function ServiceShareListPage() {
             <Grid size={{ xs: 12, md: 4 }}>
               <TextField
                 fullWidth
-                label="Search by Service ID"
+                label="Search"
                 value={search}
                 onChange={(e) => {
                   setSearch(e.target.value);
                   setPage(0);
                 }}
+                placeholder="Search by service ID"
                 slotProps={{
                   input: {
                     startAdornment: (

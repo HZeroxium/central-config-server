@@ -44,9 +44,6 @@ export default function ApprovalDecisionListPage() {
   const [requestIdFilter, setRequestIdFilter] = useState(
     searchParams.get("requestId") || ""
   );
-  const [approverUserIdFilter, setApproverUserIdFilter] = useState(
-    searchParams.get("approverUserId") || ""
-  );
   const [gateFilter, setGateFilter] = useState<
     FindAllApprovalDecisionsGate | ""
   >((searchParams.get("gate") as FindAllApprovalDecisionsGate | null) || "");
@@ -57,17 +54,14 @@ export default function ApprovalDecisionListPage() {
       ""
   );
 
-  // Debounce search inputs
+  // Debounce search input
   const debouncedRequestIdFilter = useDebounce(requestIdFilter, 400);
-  const debouncedApproverUserIdFilter = useDebounce(approverUserIdFilter, 400);
 
   // Sync URL params when filters change
   useEffect(() => {
     const params = new URLSearchParams();
     if (debouncedRequestIdFilter)
       params.set("requestId", debouncedRequestIdFilter);
-    if (debouncedApproverUserIdFilter)
-      params.set("approverUserId", debouncedApproverUserIdFilter);
     if (gateFilter) params.set("gate", gateFilter);
     if (decisionFilter) params.set("decision", decisionFilter);
     if (page > 0) params.set("page", page.toString());
@@ -75,7 +69,6 @@ export default function ApprovalDecisionListPage() {
     setSearchParams(params, { replace: true });
   }, [
     debouncedRequestIdFilter,
-    debouncedApproverUserIdFilter,
     gateFilter,
     decisionFilter,
     page,
@@ -86,7 +79,6 @@ export default function ApprovalDecisionListPage() {
   const { data, isLoading, error, refetch } = useFindAllApprovalDecisions(
     {
       requestId: debouncedRequestIdFilter || undefined,
-      approverUserId: debouncedApproverUserIdFilter || undefined,
       gate: gateFilter || undefined,
       decision: decisionFilter || undefined,
       page,
@@ -103,13 +95,11 @@ export default function ApprovalDecisionListPage() {
   const decisions = useMemo(() => data?.items || [], [data?.items]);
   const metadata = data?.metadata;
 
-  // Note: Stats calculation would ideally come from server-side aggregation
-  // For now, we show totals from the current filtered results
-  // In a production system, these stats should be calculated server-side
+  // Calculate stats from filtered results
+  // Note: These stats reflect the current filtered dataset, not all data
   const stats = useMemo(() => {
     const total = metadata?.totalElements || 0;
-    // Calculate stats from current page data (limited accuracy)
-    // In production, these should come from separate API endpoint
+    // Calculate stats from all filtered decisions
     const approved = decisions.filter((d) => d.decision === "APPROVE").length;
     const rejected = decisions.filter((d) => d.decision === "REJECT").length;
     const sysAdminGate = decisions.filter((d) => d.gate === "SYS_ADMIN").length;
@@ -119,16 +109,15 @@ export default function ApprovalDecisionListPage() {
 
     return {
       total,
-      approved: metadata?.totalElements ? undefined : approved, // Show undefined if we have server totals
-      rejected: metadata?.totalElements ? undefined : rejected,
-      sysAdminGate: metadata?.totalElements ? undefined : sysAdminGate,
-      lineManagerGate: metadata?.totalElements ? undefined : lineManagerGate,
+      approved,
+      rejected,
+      sysAdminGate,
+      lineManagerGate,
     };
   }, [decisions, metadata]);
 
   const handleFilterReset = () => {
     setRequestIdFilter("");
-    setApproverUserIdFilter("");
     setGateFilter("");
     setDecisionFilter("");
     setPage(0);
@@ -227,15 +216,16 @@ export default function ApprovalDecisionListPage() {
         <CardContent>
           {/* Filters */}
           <Grid container spacing={2} sx={{ mb: 3 }}>
-            <Grid size={{ xs: 12, md: 3 }}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <TextField
                 fullWidth
-                label="Filter by Request ID"
+                label="Search"
                 value={requestIdFilter}
                 onChange={(e) => {
                   setRequestIdFilter(e.target.value);
                   setPage(0);
                 }}
+                placeholder="Search by request ID"
                 slotProps={{
                   input: {
                     startAdornment: (
@@ -243,29 +233,7 @@ export default function ApprovalDecisionListPage() {
                         <SearchIcon />
                       </InputAdornment>
                     ),
-                    "aria-label": "Filter by request ID",
-                  },
-                }}
-              />
-            </Grid>
-
-            <Grid size={{ xs: 12, md: 3 }}>
-              <TextField
-                fullWidth
-                label="Filter by Approver User ID"
-                value={approverUserIdFilter}
-                onChange={(e) => {
-                  setApproverUserIdFilter(e.target.value);
-                  setPage(0);
-                }}
-                slotProps={{
-                  input: {
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon />
-                      </InputAdornment>
-                    ),
-                    "aria-label": "Filter by approver user ID",
+                    "aria-label": "Search by request ID",
                   },
                 }}
               />

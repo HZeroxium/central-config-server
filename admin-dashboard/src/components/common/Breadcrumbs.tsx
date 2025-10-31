@@ -57,8 +57,7 @@ const DYNAMIC_LABEL_ROUTES: Record<
   (params: Record<string, string>) => Promise<string | null>
 > = {
   "application-services/:id": async () => {
-    // For now, return null to use ID fallback
-    // In Phase 4.2, we'll fetch the actual service name
+    // Dynamic label fetching is handled by useDynamicBreadcrumbLabel hook
     return null;
   },
   "service-instances/:serviceName/:instanceId": async (params) => {
@@ -66,15 +65,15 @@ const DYNAMIC_LABEL_ROUTES: Record<
     return params.instanceId || params.serviceName || null;
   },
   "approvals/:id": async () => {
-    // In Phase 4.2, we'll fetch the actual request info
+    // Dynamic label fetching is handled by useDynamicBreadcrumbLabel hook
     return null;
   },
   "drift-events/:id": async () => {
-    // In Phase 4.2, we'll fetch the actual drift event info
+    // Dynamic label fetching is handled by useDynamicBreadcrumbLabel hook
     return null;
   },
   "service-shares/:id": async () => {
-    // In Phase 4.2, we'll fetch the actual share info
+    // Dynamic label fetching is handled by useDynamicBreadcrumbLabel hook
     return null;
   },
   "configs/:application/:profile": async (params) => {
@@ -85,6 +84,52 @@ const DYNAMIC_LABEL_ROUTES: Record<
     return params.serviceName || null;
   },
 };
+
+/**
+ * Match route pattern to actual path segments
+ * e.g., "application-services/123" matches "application-services/:id"
+ */
+function matchRoutePattern(
+  pathSegments: string[],
+  params: Record<string, string | undefined>
+): string | null {
+  // Try exact match first
+  const pathString = pathSegments.join("/");
+  if (pathString in DYNAMIC_LABEL_ROUTES) {
+    return pathString;
+  }
+
+  // Try pattern matching with params
+  const patterns = Object.keys(DYNAMIC_LABEL_ROUTES);
+  for (const pattern of patterns) {
+    const patternParts = pattern.split("/");
+    if (patternParts.length !== pathSegments.length) continue;
+
+    let matches = true;
+    for (let i = 0; i < patternParts.length; i++) {
+      const patternPart = patternParts[i];
+      const pathPart = pathSegments[i];
+
+      // If it's a param (starts with :), check if it exists in params
+      if (patternPart.startsWith(":")) {
+        const paramName = patternPart.slice(1);
+        if (!params[paramName] || params[paramName] !== pathPart) {
+          matches = false;
+          break;
+        }
+      } else if (patternPart !== pathPart) {
+        matches = false;
+        break;
+      }
+    }
+
+    if (matches) {
+      return pattern;
+    }
+  }
+
+  return null;
+}
 
 /**
  * Get readable label for a route segment
@@ -123,9 +168,11 @@ export default function Breadcrumbs({
   const pathSegments = pathnames.map((_, index) =>
     pathnames.slice(0, index + 1).join("/")
   );
-  const lastRoutePattern = pathSegments[pathSegments.length - 1];
-  const isDetailPage =
-    enableDynamicLabels && lastRoutePattern in DYNAMIC_LABEL_ROUTES;
+  const lastRoutePattern = matchRoutePattern(
+    pathnames,
+    (params || {}) as Record<string, string | undefined>
+  );
+  const isDetailPage = enableDynamicLabels && lastRoutePattern !== null;
 
   const { label: dynamicLabel, isLoading: isLabelLoading } =
     useDynamicBreadcrumbLabel(

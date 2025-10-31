@@ -2,6 +2,7 @@ package com.example.control.infrastructure.config.mongo;
 
 import com.example.control.infrastructure.mongo.documents.ApplicationServiceDocument;
 import com.example.control.infrastructure.mongo.documents.ApprovalRequestDocument;
+import com.example.control.infrastructure.mongo.documents.DriftEventDocument;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.domain.Sort;
@@ -36,6 +37,7 @@ public class MongoIndexesConfig {
     public void ensureIndexes() {
         ensureApprovalRequestIndexes();
         ensureApplicationServiceIndexes();
+        ensureDriftEventIndexes();
     }
 
     /**
@@ -136,5 +138,29 @@ public class MongoIndexesConfig {
         }
 
         log.info("Completed creating indexes for application_services collection");
+    }
+
+    /**
+     * Ensures indexes for drift_events collection.
+     * <p>
+     * Creates a text index to allow efficient text search on the serviceName field.
+     * </p>
+     */
+    private void ensureDriftEventIndexes() {
+        log.info("Creating MongoDB indexes for drift_events collection...");
+        IndexOperations ops = mongoTemplate.indexOps(DriftEventDocument.class);
+
+        try {
+            // Text index for full-text search on serviceName
+            TextIndexDefinition textIndex = new TextIndexDefinition.TextIndexDefinitionBuilder()
+                    .onField("serviceName")
+                    .build();
+            ops.ensureIndex(textIndex);
+            log.info("Created text index on serviceName for full-text search in drift_events");
+        } catch (Exception e) {
+            log.warn("Failed ensuring text index on serviceName in drift_events: {}", e.getMessage());
+        }
+
+        log.info("Completed creating indexes for drift_events collection");
     }
 }

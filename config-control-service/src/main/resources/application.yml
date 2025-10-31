@@ -171,7 +171,8 @@ app:
       maximum-expected-value: 1m
   cache:
     # provider: CAFFEINE  # Default to local cache
-    provider: REDIS
+    # provider: REDIS
+    provider: NOOP
     application-name: ${spring.application.name:config-control-service}
     default-version: 1
     cache-name-prefix: "{spring.application.name:config-control-service}::"

@@ -241,12 +241,13 @@ export default function ServiceInstanceListPage() {
             <Grid size={{ xs: 12, md: 3 }}>
               <TextField
                 fullWidth
-                label="Search by Service Name"
+                label="Search"
                 value={search}
                 onChange={(e) => {
                   setSearch(e.target.value);
                   setPage(0);
                 }}
+                placeholder="Search by service ID"
                 slotProps={{
                   input: {
                     startAdornment: (
@@ -254,7 +255,7 @@ export default function ServiceInstanceListPage() {
                         <SearchIcon />
                       </InputAdornment>
                     ),
-                    "aria-label": "Search by service name",
+                    "aria-label": "Search by service ID",
                   },
                 }}
               />

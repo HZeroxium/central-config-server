@@ -14,6 +14,7 @@ import {
   useTheme,
   Badge,
   Collapse,
+  Tooltip,
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import SettingsIcon from "@mui/icons-material/Settings";
@@ -45,6 +46,7 @@ import { useCallback, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useKeyboardShortcuts } from "@hooks/useKeyboardShortcuts";
 import { useCommandPalette } from "@components/common/CommandPalette";
+import { useScrollDirection } from "@hooks/useScrollDirection";
 
 export default function MainLayout() {
   const theme = useTheme();
@@ -60,6 +62,12 @@ export default function MainLayout() {
   const [iamMenuOpen, setIamMenuOpen] = useState(false);
   const { open: commandPaletteOpen, setOpen: setCommandPaletteOpen } =
     useCommandPalette();
+
+  // Header scroll behavior: hide on scroll down, show on scroll up
+  const { isVisible: isHeaderVisible } = useScrollDirection({
+    threshold: 10,
+    initialVisible: true,
+  });
 
   const handleToggleSidebar = useCallback(() => {
     dispatch(toggleSidebar());
@@ -96,8 +104,7 @@ export default function MainLayout() {
   });
 
   // Kích thước khi mở / khi đóng
-  const openWidth = 240;
-  const closedWidth = 60;
+  const drawerWidth = open ? 240 : 60;
 
   const navigationItems = [
     {
@@ -185,13 +192,14 @@ export default function MainLayout() {
           borderColor: "divider",
           backdropFilter: "blur(6px)",
           zIndex: (theme) => theme.zIndex.drawer + 1,
-          transition: "margin 0.3s, width 0.3s",
+          transition: "margin 0.3s, width 0.3s, transform 0.3s ease-in-out",
           width: {
-            sm: `calc(100% - ${open ? openWidth : closedWidth}px)`,
+            sm: `calc(100% - ${drawerWidth}px)`,
           },
           ml: {
-            sm: `${open ? openWidth : closedWidth}px`,
+            sm: `${drawerWidth}px`,
           },
+          transform: isHeaderVisible ? "translateY(0)" : "translateY(-100%)",
         }}
       >
         <Toolbar sx={{ justifyContent: "space-between" }}>
@@ -221,17 +229,22 @@ export default function MainLayout() {
         variant={isMobile ? "temporary" : "permanent"}
         open={open}
         onClose={handleToggleSidebar}
-        sx={{
-          width: open ? openWidth : closedWidth,
-          flexShrink: 0,
-          whiteSpace: "nowrap",
-          "& .MuiDrawer-paper": {
-            width: open ? openWidth : closedWidth,
+        PaperProps={{
+          sx: {
+            width: drawerWidth,
             boxSizing: "border-box",
             overflowX: "hidden",
-            transition: "width 0.3s",
+            transition: "width 0.3s ease-in-out",
             borderRight: 1,
             borderColor: "divider",
+          },
+        }}
+        sx={{
+          flexShrink: 0,
+          whiteSpace: "nowrap",
+          width: drawerWidth,
+          "& .MuiBackdrop-root": {
+            display: "none", // Hide backdrop for permanent drawer
           },
         }}
       >
@@ -243,92 +256,108 @@ export default function MainLayout() {
               (item.path !== "/" && location.pathname.startsWith(item.path));
 
             return (
-              <ListItemButton
+              <Tooltip
                 key={item.path}
-                component={NavLink}
-                to={item.path}
-                sx={{
-                  minHeight: 48,
-                  justifyContent: open ? "initial" : "center",
-                  px: 2.5,
-                  "&.Mui-selected": {}, // nếu muốn style thêm khi active
-                }}
+                title={item.label}
+                placement="right"
+                disableHoverListener={open}
+                arrow
               >
-                <ListItemIcon
+                <ListItemButton
+                  component={NavLink}
+                  to={item.path}
                   sx={{
-                    minWidth: 0,
-                    mr: open ? 2 : "auto",
-                    justifyContent: "center",
-                    color: isActive ? "primary.600" : "text.secondary",
+                    minHeight: 48,
+                    justifyContent: open ? "initial" : "center",
+                    px: 2.5,
+                    "&.Mui-selected": {}, // nếu muốn style thêm khi active
                   }}
                 >
-                  {item.badge ? (
-                    <Badge badgeContent={item.badge} color="warning" max={99}>
-                      {item.icon}
-                    </Badge>
-                  ) : (
-                    item.icon
-                  )}
-                </ListItemIcon>
-                {open && (
-                  <Box sx={{ display: "flex", alignItems: "center", flex: 1 }}>
-                    <ListItemText
-                      primary={item.label}
-                      sx={{
-                        opacity: open ? 1 : 0,
-                        transition: "opacity 0.3s",
-                        fontWeight: isActive ? 500 : 400,
-                        flex: 1,
-                      }}
-                    />
-                    {item.badge && (
-                      <Badge
-                        badgeContent={item.badge}
-                        color="warning"
-                        max={99}
-                      />
+                  <ListItemIcon
+                    sx={{
+                      minWidth: 0,
+                      mr: open ? 2 : "auto",
+                      justifyContent: "center",
+                      color: isActive ? "primary.600" : "text.secondary",
+                    }}
+                  >
+                    {item.badge ? (
+                      <Badge badgeContent={item.badge} color="warning" max={99}>
+                        {item.icon}
+                      </Badge>
+                    ) : (
+                      item.icon
                     )}
-                  </Box>
-                )}
-              </ListItemButton>
+                  </ListItemIcon>
+                  {open && (
+                    <Box
+                      sx={{ display: "flex", alignItems: "center", flex: 1 }}
+                    >
+                      <ListItemText
+                        primary={item.label}
+                        sx={{
+                          opacity: open ? 1 : 0,
+                          transition: "opacity 0.3s",
+                          fontWeight: isActive ? 500 : 400,
+                          flex: 1,
+                        }}
+                      />
+                      {item.badge && (
+                        <Badge
+                          badgeContent={item.badge}
+                          color="warning"
+                          max={99}
+                        />
+                      )}
+                    </Box>
+                  )}
+                </ListItemButton>
+              </Tooltip>
             );
           })}
 
           {/* IAM Section */}
           {isSysAdmin && (
             <>
-              <ListItemButton
-                onClick={() => setIamMenuOpen(!iamMenuOpen)}
-                sx={{
-                  minHeight: 48,
-                  justifyContent: open ? "initial" : "center",
-                  px: 2.5,
-                }}
+              <Tooltip
+                title="IAM"
+                placement="right"
+                disableHoverListener={open}
+                arrow
               >
-                <ListItemIcon
+                <ListItemButton
+                  onClick={() => setIamMenuOpen(!iamMenuOpen)}
                   sx={{
-                    minWidth: 0,
-                    mr: open ? 2 : "auto",
-                    justifyContent: "center",
-                    color: "text.secondary",
+                    minHeight: 48,
+                    justifyContent: open ? "initial" : "center",
+                    px: 2.5,
                   }}
                 >
-                  <PeopleIcon />
-                </ListItemIcon>
-                {open && (
-                  <>
-                    <ListItemText
-                      primary="IAM"
-                      sx={{
-                        opacity: open ? 1 : 0,
-                        transition: "opacity 0.3s",
-                        fontWeight: 500,
-                      }}
-                    />
-                    {iamMenuOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-                  </>
-                )}
-              </ListItemButton>
+                  <ListItemIcon
+                    sx={{
+                      minWidth: 0,
+                      mr: open ? 2 : "auto",
+                      justifyContent: "center",
+                      color: "text.secondary",
+                    }}
+                  >
+                    <PeopleIcon />
+                  </ListItemIcon>
+                  {open && (
+                    <>
+                      <ListItemText
+                        primary="IAM"
+                        sx={{
+                          opacity: open ? 1 : 0,
+                          transition: "opacity 0.3s",
+                          fontWeight: 500,
+                        }}
+                      />
+                      {iamMenuOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                    </>
+                  )}
+                </ListItemButton>
+              </Tooltip>
 
               <Collapse in={iamMenuOpen && open} timeout="auto" unmountOnExit>
                 <List component="div" disablePadding>
@@ -339,34 +368,43 @@ export default function MainLayout() {
                         location.pathname.startsWith(item.path));
 
                     return (
-                      <ListItemButton
+                      <Tooltip
                         key={item.path}
-                        component={NavLink}
-                        to={item.path}
-                        sx={{
-                          minHeight: 40,
-                          pl: 6,
-                          pr: 2.5,
-                          "&.Mui-selected": {},
-                        }}
+                        title={item.label}
+                        placement="right"
+                        disableHoverListener={open}
+                        arrow
                       >
-                        <ListItemIcon
+                        <ListItemButton
+                          component={NavLink}
+                          to={item.path}
                           sx={{
-                            minWidth: 0,
-                            mr: 2,
-                            justifyContent: "center",
-                            color: isActive ? "primary.600" : "text.secondary",
+                            minHeight: 40,
+                            pl: 6,
+                            pr: 2.5,
+                            "&.Mui-selected": {},
                           }}
                         >
-                          {item.icon}
-                        </ListItemIcon>
-                        <ListItemText
-                          primary={item.label}
-                          sx={{
-                            fontWeight: isActive ? 500 : 400,
-                          }}
-                        />
-                      </ListItemButton>
+                          <ListItemIcon
+                            sx={{
+                              minWidth: 0,
+                              mr: 2,
+                              justifyContent: "center",
+                              color: isActive
+                                ? "primary.600"
+                                : "text.secondary",
+                            }}
+                          >
+                            {item.icon}
+                          </ListItemIcon>
+                          <ListItemText
+                            primary={item.label}
+                            sx={{
+                              fontWeight: isActive ? 500 : 400,
+                            }}
+                          />
+                        </ListItemButton>
+                      </Tooltip>
                     );
                   })}
                 </List>
@@ -382,10 +420,10 @@ export default function MainLayout() {
           flexGrow: 1,
           p: { xs: 2, sm: 3 },
           width: {
-            sm: `calc(100% - ${open ? openWidth : closedWidth}px)`,
+            sm: `calc(100% - ${drawerWidth}px)`,
           },
           ml: {
-            sm: `${open ? openWidth : closedWidth}px`,
+            sm: `${drawerWidth}px`,
           },
           transition: "margin 0.3s, width 0.3s",
         }}

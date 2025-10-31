@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
   Box,
   Button,
@@ -13,6 +13,7 @@ import Grid from "@mui/material/Grid";
 import {
   ArrowBack as BackIcon,
   Delete as DeleteIcon,
+  Apps as AppsIcon,
 } from "@mui/icons-material";
 import { useState } from "react";
 import PageHeader from "@components/common/PageHeader";
@@ -35,8 +36,14 @@ export default function ServiceInstanceDetailPage() {
     instanceId: string;
   }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { canDeleteInstance } = usePermissions();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+  // Check if we came from ApplicationServiceDetailPage
+  const fromServiceDetail =
+    (location.state as { fromServiceDetail?: boolean })?.fromServiceDetail ||
+    false;
 
   const {
     data: instance,
@@ -52,7 +59,20 @@ export default function ServiceInstanceDetailPage() {
   const deleteMutation = useDeleteServiceInstance();
 
   const handleBack = () => {
-    navigate("/service-instances");
+    // If we came from service detail or have serviceName, navigate back to service
+    if (fromServiceDetail && serviceName) {
+      navigate(`/application-services/${serviceName}`);
+    } else {
+      navigate("/service-instances");
+    }
+  };
+
+  const handleNavigateToService = () => {
+    if (serviceName) {
+      navigate(`/application-services/${serviceName}`);
+    } else if (instance?.serviceId) {
+      navigate(`/application-services/${instance.serviceId}`);
+    }
   };
 
   const canDelete = serviceName ? canDeleteInstance(serviceName) : false;
@@ -89,7 +109,9 @@ export default function ServiceInstanceDetailPage() {
               startIcon={<BackIcon />}
               onClick={handleBack}
             >
-              Back to Instances
+              {fromServiceDetail && serviceName
+                ? "Back to Service"
+                : "Back to Instances"}
             </Button>
           }
         />
@@ -108,12 +130,23 @@ export default function ServiceInstanceDetailPage() {
         subtitle={`Service: ${instance.serviceId}`}
         actions={
           <>
+            {serviceName && (
+              <Button
+                variant="outlined"
+                startIcon={<AppsIcon />}
+                onClick={handleNavigateToService}
+              >
+                View Service
+              </Button>
+            )}
             <Button
               variant="outlined"
               startIcon={<BackIcon />}
               onClick={handleBack}
             >
-              Back
+              {fromServiceDetail && serviceName
+                ? "Back to Service"
+                : "Back to Instances"}
             </Button>
             {canDelete && (
               <Button
@@ -145,9 +178,22 @@ export default function ServiceInstanceDetailPage() {
               >
                 Service ID
               </Typography>
-              <Typography variant="body1" fontWeight={600} gutterBottom>
-                {instance.serviceId}
-              </Typography>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <Typography variant="body1" fontWeight={600} gutterBottom>
+                  {instance.serviceId}
+                </Typography>
+                {(serviceName || instance.serviceId) && (
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    startIcon={<AppsIcon />}
+                    onClick={handleNavigateToService}
+                    sx={{ ml: 1 }}
+                  >
+                    View Service
+                  </Button>
+                )}
+              </Box>
             </Grid>
 
             <Grid size={{ xs: 12, md: 6 }}>

@@ -26,30 +26,37 @@ export function useApproverInfo(
     );
   }, [approverUserIds]);
 
-  // Early return for empty arrays
-  if (uniqueUserIds.length === 0) {
-    return {
-      users: new Map(),
-      isLoading: false,
-      errors: new Map(),
-    };
-  }
-
   // Use useQueries to fetch all users in parallel
   // React Query automatically handles deduplication and caching
+  // Always call useQueries, even with empty array to maintain hook order
   const queries = useQueries({
-    queries: uniqueUserIds.map((userId) =>
-      getFindByIdIamUserQueryOptions(userId, {
-        query: {
-          staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-          retry: 1,
-        },
-      })
+    queries: useMemo(
+      () =>
+        uniqueUserIds.length === 0
+          ? [] // Empty array when no user IDs
+          : uniqueUserIds.map((userId) =>
+              getFindByIdIamUserQueryOptions(userId, {
+                query: {
+                  staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+                  retry: 1,
+                },
+              })
+            ),
+      [uniqueUserIds]
     ),
   });
 
   // Aggregate results
   const result = useMemo(() => {
+    // Early return for empty arrays
+    if (uniqueUserIds.length === 0) {
+      return {
+        users: new Map(),
+        isLoading: false,
+        errors: new Map(),
+      };
+    }
+
     const usersMap = new Map<string, IamUserResponse | undefined>();
     const errorsMap = new Map<string, Error | null>();
     let isLoading = false;

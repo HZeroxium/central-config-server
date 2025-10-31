@@ -65,6 +65,7 @@ import { handleApiError } from "@lib/api/errorHandler";
 import { ApplicationServiceForm } from "../components/ApplicationServiceForm";
 import { ServiceShareDrawer } from "../components/ServiceShareDrawer";
 import { ServiceSharesTab } from "../components/ServiceSharesTab";
+import { ApprovalsTab } from "../components/ApprovalsTab";
 import type { FindAllServiceInstancesEnvironment } from "@lib/api/models";
 
 export default function ApplicationServiceDetailPage() {
@@ -309,7 +310,21 @@ export default function ApplicationServiceDetailPage() {
   };
 
   const handleViewInstance = (instanceId: string) => {
-    navigate(`/service-instances/${id}/${instanceId}`);
+    if (!service?.id) return;
+    navigate(`/service-instances/${service.id}/${instanceId}`, {
+      state: { fromServiceDetail: true },
+    });
+  };
+
+  const handleRowClick = (instanceId: string, event: React.MouseEvent) => {
+    // Don't navigate if clicking on action buttons
+    if (
+      (event.target as HTMLElement).closest("button") ||
+      (event.target as HTMLElement).closest("a")
+    ) {
+      return;
+    }
+    handleViewInstance(instanceId);
   };
 
   if (isLoading) {
@@ -596,7 +611,14 @@ export default function ApplicationServiceDetailPage() {
                     <Box
                       component="pre"
                       sx={{
-                        bgcolor: "grey.100",
+                        bgcolor: (theme) =>
+                          theme.palette.mode === "dark"
+                            ? theme.palette.grey[900]
+                            : theme.palette.grey[100],
+                        color: (theme) =>
+                          theme.palette.mode === "dark"
+                            ? theme.palette.grey[100]
+                            : theme.palette.text.primary,
                         p: 2,
                         borderRadius: 1,
                         overflow: "auto",
@@ -669,7 +691,22 @@ export default function ApplicationServiceDetailPage() {
                   </TableHead>
                   <TableBody>
                     {instancesData.items.map((instance) => (
-                      <TableRow key={instance.instanceId} hover>
+                      <TableRow
+                        key={instance.instanceId}
+                        hover
+                        onClick={(e) =>
+                          handleRowClick(instance.instanceId || "", e)
+                        }
+                        sx={{
+                          cursor: "pointer",
+                          "&:hover": {
+                            backgroundColor: (theme) =>
+                              theme.palette.mode === "dark"
+                                ? "rgba(255, 255, 255, 0.08)"
+                                : "rgba(0, 0, 0, 0.04)",
+                          },
+                        }}
+                      >
                         <TableCell sx={{ fontFamily: "monospace" }}>
                           {instance.instanceId}
                         </TableCell>
@@ -721,9 +758,10 @@ export default function ApplicationServiceDetailPage() {
                           <Tooltip title="View Details">
                             <IconButton
                               size="small"
-                              onClick={() =>
-                                handleViewInstance(instance.instanceId || "")
-                              }
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleViewInstance(instance.instanceId || "");
+                              }}
                             >
                               <ViewIcon fontSize="small" />
                             </IconButton>
@@ -746,16 +784,8 @@ export default function ApplicationServiceDetailPage() {
       {/* Shares Tab */}
       {tabValue === 2 && <ServiceSharesTab serviceId={id || ""} />}
 
-      {/* Approvals Tab - Placeholder */}
-      {tabValue === 3 && (
-        <Card>
-          <CardContent>
-            <Typography variant="body1" color="text.secondary">
-              Approval requests view - coming soon
-            </Typography>
-          </CardContent>
-        </Card>
-      )}
+      {/* Approvals Tab */}
+      {tabValue === 3 && id && <ApprovalsTab serviceId={id} />}
 
       {/* Edit Service Drawer */}
       <Drawer
@@ -763,7 +793,11 @@ export default function ApplicationServiceDetailPage() {
         open={editDrawerOpen}
         onClose={() => setEditDrawerOpen(false)}
         PaperProps={{
-          sx: { width: { xs: "100%", sm: 600 } },
+          sx: {
+            width: { xs: "100%", sm: 600 },
+            zIndex: (theme) => theme.zIndex.drawer + 2, // Higher than header
+            mt: { xs: 0, sm: "64px" }, // Offset for header height
+          },
         }}
       >
         <ApplicationServiceForm
@@ -780,7 +814,11 @@ export default function ApplicationServiceDetailPage() {
         open={shareDrawerOpen}
         onClose={() => setShareDrawerOpen(false)}
         PaperProps={{
-          sx: { width: { xs: "100%", sm: 600 } },
+          sx: {
+            width: { xs: "100%", sm: 600 },
+            zIndex: (theme) => theme.zIndex.drawer + 2, // Higher than header
+            mt: { xs: 0, sm: "64px" }, // Offset for header height
+          },
         }}
       >
         <ServiceShareDrawer
