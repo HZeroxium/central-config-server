@@ -1,10 +1,9 @@
 package com.example.control.application.query;
 
-import com.example.control.domain.object.ServiceInstance;
+import com.example.control.domain.model.ServiceInstance;
 import com.example.control.domain.criteria.ServiceInstanceCriteria;
-import com.example.control.domain.id.ServiceInstanceId;
-import com.example.control.domain.port.ServiceInstanceRepositoryPort;
-import com.example.control.infrastructure.config.cache.CacheKeyGenerator;
+import com.example.control.domain.valueobject.id.ServiceInstanceId;
+import com.example.control.domain.port.repository.ServiceInstanceRepositoryPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -52,7 +51,7 @@ public class ServiceInstanceQueryService {
      * @param pageable pagination information
      * @return page of service instances
      */
-    @Cacheable(value = "service-instances", key = "T(com.example.control.infrastructure.config.cache.CacheKeyGenerator).generateKey('all', #criteria, #pageable)")
+    @Cacheable(value = "service-instances", key = "T(com.example.control.infrastructure.cache.CacheKeyGenerator).generateKey('all', #criteria, #pageable)")
     public Page<ServiceInstance> findAll(ServiceInstanceCriteria criteria, Pageable pageable) {
         log.debug("Finding all service instances with criteria: {}", criteria);
         return repository.findAll(criteria, pageable);
@@ -75,7 +74,7 @@ public class ServiceInstanceQueryService {
      * @param criteria filter criteria
      * @return count of instances matching criteria
      */
-    @Cacheable(value = "service-instances", key = "T(com.example.control.infrastructure.config.cache.CacheKeyGenerator).generateKeyFromHash('count', #criteria)")
+    @Cacheable(value = "service-instances", key = "T(com.example.control.infrastructure.cache.CacheKeyGenerator).generateKeyFromHash('count', #criteria)")
     public long count(ServiceInstanceCriteria criteria) {
         log.debug("Counting service instances with criteria: {}", criteria);
         return repository.count(criteria);

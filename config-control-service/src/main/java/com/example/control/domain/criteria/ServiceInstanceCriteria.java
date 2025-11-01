@@ -1,7 +1,7 @@
 package com.example.control.domain.criteria;
 
 import com.example.control.infrastructure.config.security.UserContext;
-import com.example.control.domain.object.ServiceInstance;
+import com.example.control.domain.model.ServiceInstance;
 import lombok.Builder;
 import lombok.With;
 

@@ -1,8 +1,8 @@
 package com.example.control.infrastructure.seeding.factory;
 
-import com.example.control.domain.id.ServiceShareId;
-import com.example.control.domain.object.ApplicationService;
-import com.example.control.domain.object.ServiceShare;
+import com.example.control.domain.valueobject.id.ServiceShareId;
+import com.example.control.domain.model.ApplicationService;
+import com.example.control.domain.model.ServiceShare;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.datafaker.Faker;

@@ -2,9 +2,9 @@ package com.example.control.application.service;
 
 import com.example.control.application.command.IamTeamCommandService;
 import com.example.control.application.query.IamTeamQueryService;
-import com.example.control.domain.object.IamTeam;
+import com.example.control.domain.model.IamTeam;
 import com.example.control.domain.criteria.IamTeamCriteria;
-import com.example.control.domain.id.IamTeamId;
+import com.example.control.domain.valueobject.id.IamTeamId;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;

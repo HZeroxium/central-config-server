@@ -1,8 +1,8 @@
 package com.example.control.application.command;
 
-import com.example.control.domain.id.DriftEventId;
-import com.example.control.domain.object.DriftEvent;
-import com.example.control.domain.port.DriftEventRepositoryPort;
+import com.example.control.domain.valueobject.id.DriftEventId;
+import com.example.control.domain.model.DriftEvent;
+import com.example.control.domain.port.repository.DriftEventRepositoryPort;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

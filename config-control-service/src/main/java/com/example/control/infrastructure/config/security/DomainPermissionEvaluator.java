@@ -1,7 +1,8 @@
 package com.example.control.infrastructure.config.security;
 
-import com.example.control.domain.object.*;
-import com.example.control.domain.port.ServiceShareRepositoryPort;
+import com.example.control.domain.model.ApplicationService;
+import com.example.control.domain.model.*;
+import com.example.control.domain.port.repository.ServiceShareRepositoryPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

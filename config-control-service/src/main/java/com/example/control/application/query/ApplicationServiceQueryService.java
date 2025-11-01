@@ -1,9 +1,9 @@
 package com.example.control.application.query;
 
-import com.example.control.domain.object.ApplicationService;
+import com.example.control.domain.model.ApplicationService;
 import com.example.control.domain.criteria.ApplicationServiceCriteria;
-import com.example.control.domain.id.ApplicationServiceId;
-import com.example.control.domain.port.ApplicationServiceRepositoryPort;
+import com.example.control.domain.valueobject.id.ApplicationServiceId;
+import com.example.control.domain.port.repository.ApplicationServiceRepositoryPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -52,7 +52,7 @@ public class ApplicationServiceQueryService {
      * @param pageable pagination information
      * @return page of application services
      */
-    @Cacheable(value = "application-services", key = "T(com.example.control.infrastructure.config.cache.CacheKeyGenerator).generateKey('all', #criteria, #pageable)")
+    @Cacheable(value = "application-services", key = "T(com.example.control.infrastructure.cache.CacheKeyGenerator).generateKey('all', #criteria, #pageable)")
     public Page<ApplicationService> findAll(ApplicationServiceCriteria criteria, Pageable pageable) {
         log.debug("Finding all application services with criteria: {}", criteria);
         return repository.findAll(criteria, pageable);

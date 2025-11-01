@@ -1,10 +1,9 @@
 package com.example.control.application.query;
 
 import com.example.control.domain.criteria.ApprovalDecisionCriteria;
-import com.example.control.domain.id.ApprovalDecisionId;
-import com.example.control.domain.object.ApprovalDecision;
-import com.example.control.domain.port.ApprovalDecisionRepositoryPort;
-import com.example.control.infrastructure.config.cache.CacheKeyGenerator;
+import com.example.control.domain.valueobject.id.ApprovalDecisionId;
+import com.example.control.domain.model.ApprovalDecision;
+import com.example.control.domain.port.repository.ApprovalDecisionRepositoryPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -51,7 +50,7 @@ public class ApprovalDecisionQueryService {
      * @param pageable pagination information
      * @return page of approval decisions
      */
-    @Cacheable(value = "approval-decisions", key = "T(com.example.control.infrastructure.config.cache.CacheKeyGenerator).generateKey('list', #criteria, #pageable)")
+    @Cacheable(value = "approval-decisions", key = "T(com.example.control.infrastructure.cache.CacheKeyGenerator).generateKey('list', #criteria, #pageable)")
     public Page<ApprovalDecision> findAll(ApprovalDecisionCriteria criteria, Pageable pageable) {
         log.debug("Listing approval decisions with criteria: {}", criteria);
         return repository.findAll(criteria, pageable);
@@ -63,7 +62,7 @@ public class ApprovalDecisionQueryService {
      * @param criteria the filter criteria
      * @return count of matching decisions
      */
-    @Cacheable(value = "approval-decisions", key = "T(com.example.control.infrastructure.config.cache.CacheKeyGenerator).generateKeyFromHash('count', #criteria)")
+    @Cacheable(value = "approval-decisions", key = "T(com.example.control.infrastructure.cache.CacheKeyGenerator).generateKeyFromHash('count', #criteria)")
     public long count(ApprovalDecisionCriteria criteria) {
         log.debug("Counting approval decisions with criteria: {}", criteria);
         return repository.count(criteria);

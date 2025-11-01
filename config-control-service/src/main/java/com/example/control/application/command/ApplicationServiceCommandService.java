@@ -1,8 +1,8 @@
 package com.example.control.application.command;
 
-import com.example.control.domain.id.ApplicationServiceId;
-import com.example.control.domain.object.ApplicationService;
-import com.example.control.domain.port.ApplicationServiceRepositoryPort;
+import com.example.control.domain.valueobject.id.ApplicationServiceId;
+import com.example.control.domain.model.ApplicationService;
+import com.example.control.domain.port.repository.ApplicationServiceRepositoryPort;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

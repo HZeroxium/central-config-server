@@ -1,5 +1,6 @@
 package com.example.control.infrastructure.config.cache;
 
+import com.example.control.infrastructure.cache.CacheMetrics;
 import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

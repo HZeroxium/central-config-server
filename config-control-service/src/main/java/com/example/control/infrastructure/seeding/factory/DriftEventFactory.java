@@ -1,8 +1,8 @@
 package com.example.control.infrastructure.seeding.factory;
 
-import com.example.control.domain.id.DriftEventId;
-import com.example.control.domain.object.DriftEvent;
-import com.example.control.domain.object.ServiceInstance;
+import com.example.control.domain.valueobject.id.DriftEventId;
+import com.example.control.domain.model.DriftEvent;
+import com.example.control.domain.model.ServiceInstance;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.datafaker.Faker;

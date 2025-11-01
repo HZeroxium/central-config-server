@@ -1,6 +1,6 @@
 package com.example.control.infrastructure.config.metrics.health;
 
-import com.example.control.infrastructure.config.ConfigServerProperties;
+import com.example.control.infrastructure.config.misc.ConfigServerProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthIndicator;

@@ -1,6 +1,6 @@
 package com.example.control.infrastructure.kv.consul;
 
-import com.example.control.application.external.ConsulClient;
+import com.example.control.infrastructure.external.consul.ConsulClient;
 import com.example.control.infrastructure.kv.KvStore;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;

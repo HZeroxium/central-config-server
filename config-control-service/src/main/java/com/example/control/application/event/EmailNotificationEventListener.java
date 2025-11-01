@@ -1,6 +1,6 @@
 package com.example.control.application.event;
 
-import com.example.control.application.service.EmailNotificationService;
+import com.example.control.application.service.infra.EmailNotificationService;
 import com.example.control.domain.event.ApprovalRequestApprovedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

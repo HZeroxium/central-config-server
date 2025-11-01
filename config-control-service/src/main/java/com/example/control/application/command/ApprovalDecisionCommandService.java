@@ -1,8 +1,8 @@
 package com.example.control.application.command;
 
-import com.example.control.domain.id.ApprovalDecisionId;
-import com.example.control.domain.object.ApprovalDecision;
-import com.example.control.domain.port.ApprovalDecisionRepositoryPort;
+import com.example.control.domain.valueobject.id.ApprovalDecisionId;
+import com.example.control.domain.model.ApprovalDecision;
+import com.example.control.domain.port.repository.ApprovalDecisionRepositoryPort;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

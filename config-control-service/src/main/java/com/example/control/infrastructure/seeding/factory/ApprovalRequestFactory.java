@@ -1,8 +1,8 @@
 package com.example.control.infrastructure.seeding.factory;
 
-import com.example.control.domain.id.ApprovalRequestId;
-import com.example.control.domain.object.ApprovalRequest;
-import com.example.control.domain.object.ApplicationService;
+import com.example.control.domain.valueobject.id.ApprovalRequestId;
+import com.example.control.domain.model.ApprovalRequest;
+import com.example.control.domain.model.ApplicationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.datafaker.Faker;

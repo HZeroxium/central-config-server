@@ -1,6 +1,7 @@
 package com.example.control.infrastructure.seeding.service;
 
-import com.example.control.domain.object.*;
+import com.example.control.domain.model.ApplicationService;
+import com.example.control.domain.model.*;
 import com.example.control.infrastructure.seeding.config.SeederConfigProperties;
 import com.example.control.infrastructure.seeding.factory.*;
 import lombok.RequiredArgsConstructor;

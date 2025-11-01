@@ -1,8 +1,8 @@
 package com.example.control.application.event;
 
 import com.example.control.domain.event.ServiceOwnershipTransferred;
-import com.example.control.domain.port.DriftEventRepositoryPort;
-import com.example.control.domain.port.ServiceInstanceRepositoryPort;
+import com.example.control.domain.port.repository.DriftEventRepositoryPort;
+import com.example.control.domain.port.repository.ServiceInstanceRepositoryPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;

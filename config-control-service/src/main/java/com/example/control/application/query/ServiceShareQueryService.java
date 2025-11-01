@@ -1,9 +1,9 @@
 package com.example.control.application.query;
 
-import com.example.control.domain.object.ServiceShare;
+import com.example.control.domain.model.ServiceShare;
 import com.example.control.domain.criteria.ServiceShareCriteria;
-import com.example.control.domain.id.ServiceShareId;
-import com.example.control.domain.port.ServiceShareRepositoryPort;
+import com.example.control.domain.valueobject.id.ServiceShareId;
+import com.example.control.domain.port.repository.ServiceShareRepositoryPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;

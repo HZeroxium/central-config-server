@@ -1,8 +1,8 @@
 package com.example.control.application.command;
 
-import com.example.control.domain.id.IamUserId;
-import com.example.control.domain.object.IamUser;
-import com.example.control.domain.port.IamUserRepositoryPort;
+import com.example.control.domain.valueobject.id.IamUserId;
+import com.example.control.domain.model.IamUser;
+import com.example.control.domain.port.repository.IamUserRepositoryPort;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

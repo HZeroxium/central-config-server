@@ -1,7 +1,7 @@
 package com.example.control.domain.criteria;
 
 import com.example.control.infrastructure.config.security.UserContext;
-import com.example.control.domain.object.DriftEvent;
+import com.example.control.domain.model.DriftEvent;
 import lombok.Builder;
 import lombok.With;
 

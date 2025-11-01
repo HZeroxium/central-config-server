@@ -1,6 +1,6 @@
 package com.example.control.infrastructure.kv.config;
 
-import com.example.control.application.external.ConsulClient;
+import com.example.control.infrastructure.external.consul.ConsulClient;
 import com.example.control.infrastructure.kv.KvProperties;
 import com.example.control.infrastructure.kv.KvStore;
 import com.example.control.infrastructure.kv.consul.ConsulKvStore;
