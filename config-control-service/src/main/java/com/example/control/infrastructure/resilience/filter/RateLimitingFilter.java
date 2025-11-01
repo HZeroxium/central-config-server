@@ -36,8 +36,9 @@ public class RateLimitingFilter extends OncePerRequestFilter {
   private final RateLimiter heartbeatRateLimiter;
   private final MeterRegistry meterRegistry;
 
-  private Counter allowedCounter;
-  private Counter rejectedCounter;
+  // Cached Counter instances to avoid re-registration
+  private volatile Counter allowedCounter;
+  private volatile Counter rejectedCounter;
 
   @Override
   protected void doFilterInternal(
@@ -96,20 +97,28 @@ public class RateLimitingFilter extends OncePerRequestFilter {
 
   private void incrementAllowedCounter() {
     if (allowedCounter == null) {
-      allowedCounter = Counter.builder("ratelimit.allowed")
-          .tag("endpoint", "heartbeat")
-          .description("Number of requests allowed by rate limiter")
-          .register(meterRegistry);
+      synchronized (this) {
+        if (allowedCounter == null) {
+          allowedCounter = Counter.builder("ratelimit.allowed")
+              .tag("endpoint", "heartbeat")
+              .description("Number of requests allowed by rate limiter")
+              .register(meterRegistry);
+        }
+      }
     }
     allowedCounter.increment();
   }
 
   private void incrementRejectedCounter() {
     if (rejectedCounter == null) {
-      rejectedCounter = Counter.builder("ratelimit.rejected")
-          .tag("endpoint", "heartbeat")
-          .description("Number of requests rejected by rate limiter")
-          .register(meterRegistry);
+      synchronized (this) {
+        if (rejectedCounter == null) {
+          rejectedCounter = Counter.builder("ratelimit.rejected")
+              .tag("endpoint", "heartbeat")
+              .description("Number of requests rejected by rate limiter")
+              .register(meterRegistry);
+        }
+      }
     }
     rejectedCounter.increment();
   }

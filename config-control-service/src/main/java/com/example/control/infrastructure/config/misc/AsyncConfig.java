@@ -1,14 +1,14 @@
 package com.example.control.infrastructure.config.misc;
 
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.task.ThreadPoolTaskExecutorBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.core.task.TaskDecorator;
+import org.springframework.core.task.VirtualThreadTaskExecutor;
 import org.springframework.scheduling.annotation.AsyncConfigurer;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -26,29 +26,42 @@ import java.util.concurrent.ThreadPoolExecutor;
  * Provides three thread pool executors:
  * <ul>
  * <li><b>notificationExecutor</b>: For email notifications (I/O bound, moderate
- * throughput)</li>
- * <li><b>rpcExecutor</b>: For RPC server startup (rare, minimal
- * concurrency)</li>
+ * throughput). Uses virtual threads by default for better scalability.</li>
+ * <li><b>rpcExecutor</b>: For RPC server startup (rare, minimal concurrency).
+ * Uses platform threads.</li>
  * <li><b>defaultExecutor</b> / <b>taskExecutor</b>: Fallback for other async
- * operations</li>
+ * operations. Uses platform threads.</li>
  * </ul>
  * </p>
  * <p>
  * Features:
  * <ul>
- * <li>MDC propagation via MdcTaskDecorator</li>
+ * <li>MDC propagation via MdcTaskDecorator (applied first)</li>
  * <li>SecurityContext propagation via
- * DelegatingSecurityContextAsyncTaskExecutor</li>
+ * DelegatingSecurityContextAsyncTaskExecutor
+ * (applied second)</li>
  * <li>Global async exception handler with metrics</li>
  * <li>Automatic metrics registration via Spring Boot
  * TaskExecutorMetricsAutoConfiguration</li>
- * <li>Graceful shutdown with configurable timeout and force shutdown
+ * <li>Consistent graceful shutdown with configurable timeout and force shutdown
  * option</li>
+ * <li>Hybrid virtual threads support for I/O-bound tasks (Java 21+)</li>
+ * </ul>
  * </p>
  * <p>
  * Metrics are automatically registered by Spring Boot Actuator's
  * {@link org.springframework.boot.actuate.autoconfigure.metrics.task.TaskExecutorMetricsAutoConfiguration}.
  * No manual metrics registration is needed.
+ * </p>
+ * <p>
+ * TaskDecorator chaining order (verified correct):
+ * <ol>
+ * <li>MdcTaskDecorator captures MDC context (via builder)</li>
+ * <li>DelegatingSecurityContextAsyncTaskExecutor propagates SecurityContext
+ * (wraps
+ * executor)</li>
+ * </ol>
+ * This ensures proper context propagation for observability and security.
  * </p>
  */
 @Slf4j
@@ -59,36 +72,59 @@ public class AsyncConfig implements AsyncConfigurer {
 
   private final MeterRegistry meterRegistry;
   private final AsyncProperties asyncProperties;
-  private final Executor defaultExecutor;
+  private TaskDecorator taskDecorator;
+  private Executor defaultExecutor;
   private AsyncExceptionHandler exceptionHandler;
 
   /**
    * Constructor with injected dependencies.
-   * Default executor is injected lazily to avoid circular dependency issues.
+   * <p>
+   * Note: defaultExecutor is not injected to avoid circular dependency. It is set
+   * via @PostConstruct after bean creation.
+   * Note: taskDecorator is set via @PostConstruct to avoid circular dependency.
    *
    * @param meterRegistry   Micrometer registry for metrics
    * @param asyncProperties Async configuration properties
-   * @param defaultExecutor Default executor (injected lazily after creation)
    */
   public AsyncConfig(
       MeterRegistry meterRegistry,
-      AsyncProperties asyncProperties,
-      @Lazy @Qualifier("defaultExecutor") Executor defaultExecutor) {
+      AsyncProperties asyncProperties) {
     this.meterRegistry = meterRegistry;
     this.asyncProperties = asyncProperties;
-    this.defaultExecutor = defaultExecutor;
+  }
+
+  /**
+   * Initializes exception handler after all beans are created.
+   * <p>
+   * This ensures proper initialization order and avoids circular dependencies.
+   * Task decorator is initialized in the bean method to ensure it's available
+   * when other bean methods need it.
+   */
+  @PostConstruct
+  public void initialize() {
+    // Exception handler is initialized here to guarantee it's ready before
+    // getAsyncUncaughtExceptionHandler() is called
+    this.exceptionHandler = new AsyncExceptionHandler(meterRegistry);
+    log.debug("Initialized async exception handler");
   }
 
   /**
    * Task decorator bean for MDC context propagation.
    * SecurityContext is handled separately by
    * DelegatingSecurityContextAsyncTaskExecutor.
+   * <p>
+   * Initialized here to ensure it's available when other bean methods need it.
    *
    * @return MDC task decorator instance
    */
   @Bean
   public TaskDecorator taskDecorator() {
-    return new MdcTaskDecorator();
+    // Initialize here to ensure it's available when executor bean methods are
+    // called
+    if (taskDecorator == null) {
+      this.taskDecorator = new MdcTaskDecorator();
+    }
+    return taskDecorator;
   }
 
   /**
@@ -98,54 +134,104 @@ public class AsyncConfig implements AsyncConfigurer {
    */
   @Bean
   public AsyncExceptionHandler asyncExceptionHandler() {
-    this.exceptionHandler = new AsyncExceptionHandler(meterRegistry);
-    return exceptionHandler;
+    // This method is called by Spring, but we also initialize in @PostConstruct
+    // to ensure it's ready early
+    return exceptionHandler != null ? exceptionHandler : new AsyncExceptionHandler(meterRegistry);
   }
 
   /**
    * Notification executor for email notifications.
    * <p>
-   * Configured with moderate pool size and bounded queue for I/O-bound email
-   * sending.
-   * Uses CallerRunsPolicy to throttle when queue is full.
+   * Uses virtual threads by default (Java 21+) for I/O-bound email sending
+   * operations, providing better scalability with lower overhead.
+   * Uses CallerRunsPolicy to throttle when queue is full (for platform threads).
    * Wrapped with DelegatingSecurityContextAsyncTaskExecutor for SecurityContext
    * propagation.
    * </p>
    *
-   * @param builder       the task executor builder
-   * @param taskDecorator the MDC task decorator for context propagation
+   * @param builder the task executor builder (for platform threads)
    * @return configured notification executor with SecurityContext propagation
    */
   @Bean(name = "notificationExecutor")
-  public AsyncTaskExecutor notificationExecutor(
-      ThreadPoolTaskExecutorBuilder builder,
-      TaskDecorator taskDecorator) {
+  public AsyncTaskExecutor notificationExecutor(ThreadPoolTaskExecutorBuilder builder) {
     AsyncProperties.PoolProps props = asyncProperties.getNotification();
-    ThreadPoolTaskExecutor executor = builder
-        .corePoolSize(props.getCorePoolSize())
-        .maxPoolSize(props.getMaxPoolSize())
-        .queueCapacity(props.getQueueCapacity())
-        .keepAlive(asyncProperties.getNotificationKeepAlive())
-        .threadNamePrefix(props.getThreadNamePrefix())
-        .taskDecorator(taskDecorator)
-        .awaitTermination(true)
-        .awaitTerminationPeriod(asyncProperties.getShutdownWaitTimeout())
-        .build();
 
-    executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
-    executor.initialize();
+    AsyncTaskExecutor executor;
+    if (props.isUseVirtualThreads()) {
+      // Use virtual threads for I/O-bound tasks
+      // VirtualThreadTaskExecutor doesn't support setTaskDecorator directly,
+      // so we wrap tasks manually via a custom executor
+      VirtualThreadTaskExecutor virtualExecutor = new VirtualThreadTaskExecutor(
+          props.getThreadNamePrefix());
 
-    // Wrap with SecurityContext propagation
-    AsyncTaskExecutor wrappedExecutor = new DelegatingSecurityContextAsyncTaskExecutor(executor);
+      // Wrap with task decorator support
+      executor = new AsyncTaskExecutor() {
+        @Override
+        public void execute(Runnable task) {
+          virtualExecutor.execute(taskDecorator.decorate(task));
+        }
 
-    log.info(
-        "Configured notification executor: core={}, max={}, queue={}, keepAlive={}s",
-        props.getCorePoolSize(),
-        props.getMaxPoolSize(),
-        props.getQueueCapacity(),
-        props.getKeepAlive().getSeconds());
+        @Override
+        public java.util.concurrent.Future<?> submit(Runnable task) {
+          return virtualExecutor.submit(taskDecorator.decorate(task));
+        }
 
-    return wrappedExecutor;
+        @Override
+        public <T> java.util.concurrent.Future<T> submit(java.util.concurrent.Callable<T> task) {
+          // Wrap callable in a runnable that preserves the result
+          java.util.concurrent.CompletableFuture<T> future = new java.util.concurrent.CompletableFuture<>();
+          Runnable decoratedTask = taskDecorator.decorate(() -> {
+            try {
+              T result = task.call();
+              future.complete(result);
+            } catch (Exception e) {
+              future.completeExceptionally(e);
+            }
+          });
+          virtualExecutor.execute(decoratedTask);
+          return future;
+        }
+      };
+
+      log.info(
+          "Configured notification executor with virtual threads: threadNamePrefix={}",
+          props.getThreadNamePrefix());
+    } else {
+      // Use platform threads with pool configuration
+      ThreadPoolTaskExecutor platformExecutor = builder
+          .corePoolSize(props.getCorePoolSize())
+          .maxPoolSize(props.getMaxPoolSize())
+          .queueCapacity(props.getQueueCapacity())
+          .keepAlive(asyncProperties.getNotificationKeepAlive())
+          .threadNamePrefix(props.getThreadNamePrefix())
+          .taskDecorator(taskDecorator)
+          .awaitTermination(true)
+          .awaitTerminationPeriod(asyncProperties.getShutdownWaitTimeout())
+          .build();
+
+      platformExecutor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
+
+      // Apply consistent shutdown logic
+      if (asyncProperties.isForceShutdown()) {
+        platformExecutor.setWaitForTasksToCompleteOnShutdown(false);
+        platformExecutor.setAwaitTerminationSeconds(
+            (int) asyncProperties.getShutdownWaitTimeout().getSeconds());
+      }
+
+      platformExecutor.initialize();
+      executor = platformExecutor;
+
+      log.info(
+          "Configured notification executor with platform threads: core={}, max={}, queue={}, keepAlive={}s, forceShutdown={}",
+          props.getCorePoolSize(),
+          props.getMaxPoolSize(),
+          props.getQueueCapacity(),
+          props.getKeepAlive().getSeconds(),
+          asyncProperties.isForceShutdown());
+    }
+
+    // Wrap with SecurityContext propagation (applied after MDC decorator)
+    return new DelegatingSecurityContextAsyncTaskExecutor(executor);
   }
 
   /**
@@ -157,15 +243,13 @@ public class AsyncConfig implements AsyncConfigurer {
    * propagation.
    * </p>
    *
-   * @param builder       the task executor builder
-   * @param taskDecorator the MDC task decorator for context propagation
+   * @param builder the task executor builder
    * @return configured RPC executor with SecurityContext propagation
    */
   @Bean(name = "rpcExecutor")
-  public AsyncTaskExecutor rpcExecutor(
-      ThreadPoolTaskExecutorBuilder builder,
-      TaskDecorator taskDecorator) {
+  public AsyncTaskExecutor rpcExecutor(ThreadPoolTaskExecutorBuilder builder) {
     AsyncProperties.PoolProps props = asyncProperties.getRpc();
+
     ThreadPoolTaskExecutor executor = builder
         .corePoolSize(props.getCorePoolSize())
         .maxPoolSize(props.getMaxPoolSize())
@@ -178,17 +262,26 @@ public class AsyncConfig implements AsyncConfigurer {
         .build();
 
     executor.setRejectedExecutionHandler(new ThreadPoolExecutor.AbortPolicy());
+
+    // Apply consistent shutdown logic
+    if (asyncProperties.isForceShutdown()) {
+      executor.setWaitForTasksToCompleteOnShutdown(false);
+      executor.setAwaitTerminationSeconds(
+          (int) asyncProperties.getShutdownWaitTimeout().getSeconds());
+    }
+
     executor.initialize();
 
     // Wrap with SecurityContext propagation
     AsyncTaskExecutor wrappedExecutor = new DelegatingSecurityContextAsyncTaskExecutor(executor);
 
     log.info(
-        "Configured RPC executor: core={}, max={}, queue={}, keepAlive={}s",
+        "Configured RPC executor: core={}, max={}, queue={}, keepAlive={}s, forceShutdown={}",
         props.getCorePoolSize(),
         props.getMaxPoolSize(),
         props.getQueueCapacity(),
-        props.getKeepAlive().getSeconds());
+        props.getKeepAlive().getSeconds(),
+        asyncProperties.isForceShutdown());
 
     return wrappedExecutor;
   }
@@ -203,20 +296,18 @@ public class AsyncConfig implements AsyncConfigurer {
    * </p>
    * <p>
    * This executor is registered with both "defaultExecutor" and "taskExecutor"
-   * bean names
+   * bean
+   * names
    * to align with Spring Boot conventions. The "taskExecutor" alias ensures
    * compatibility
    * with Spring Boot's auto-configuration mechanisms.
    * </p>
    *
-   * @param builder       the task executor builder
-   * @param taskDecorator the MDC task decorator for context propagation
+   * @param builder the task executor builder
    * @return configured default executor with SecurityContext propagation
    */
   @Bean(name = { "defaultExecutor", "taskExecutor" })
-  public AsyncTaskExecutor defaultExecutor(
-      ThreadPoolTaskExecutorBuilder builder,
-      TaskDecorator taskDecorator) {
+  public AsyncTaskExecutor defaultExecutor(ThreadPoolTaskExecutorBuilder builder) {
     AsyncProperties.PoolProps props = asyncProperties.getDefault();
     ThreadPoolTaskExecutor executor = builder
         .corePoolSize(props.getCorePoolSize())
@@ -231,15 +322,20 @@ public class AsyncConfig implements AsyncConfigurer {
 
     executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
 
-    // Implement forceShutdown logic
+    // Apply consistent shutdown logic (using builder API exclusively)
     if (asyncProperties.isForceShutdown()) {
-      executor.setAwaitTerminationSeconds((int) asyncProperties.getShutdownWaitTimeout().getSeconds());
+      executor.setWaitForTasksToCompleteOnShutdown(false);
+      executor.setAwaitTerminationSeconds(
+          (int) asyncProperties.getShutdownWaitTimeout().getSeconds());
     }
 
     executor.initialize();
 
     // Wrap with SecurityContext propagation
     AsyncTaskExecutor wrappedExecutor = new DelegatingSecurityContextAsyncTaskExecutor(executor);
+
+    // Store reference for getAsyncExecutor() method
+    this.defaultExecutor = wrappedExecutor;
 
     log.info(
         "Configured default executor: core={}, max={}, queue={}, keepAlive={}s, forceShutdown={}",
@@ -256,25 +352,38 @@ public class AsyncConfig implements AsyncConfigurer {
    * Returns the default async executor.
    * <p>
    * This is used when @Async is called without specifying an executor name.
-   * The executor is injected via constructor to avoid race conditions.
+   * The executor reference is set during bean creation via defaultExecutor()
+   * method.
    * </p>
    *
    * @return default executor with SecurityContext propagation
    */
   @Override
   public Executor getAsyncExecutor() {
+    // This should never be null as defaultExecutor bean is created before this
+    // method is called
+    if (defaultExecutor == null) {
+      throw new IllegalStateException(
+          "Default executor not initialized. This should not happen if Spring Boot is properly configured.");
+    }
     return defaultExecutor;
   }
 
   /**
    * Returns the global async exception handler.
+   * <p>
+   * Guaranteed to return non-null as exceptionHandler is initialized in
+   * @PostConstruct.
    *
-   * @return async exception handler
+   * @return async exception handler (never null)
    */
   @Override
   public org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler getAsyncUncaughtExceptionHandler() {
-    // Return the bean instance created by asyncExceptionHandler() method
-    // Spring will call this method after all beans are initialized
-    return exceptionHandler != null ? exceptionHandler : asyncExceptionHandler();
+    // Guaranteed non-null after @PostConstruct initialization
+    if (exceptionHandler == null) {
+      throw new IllegalStateException(
+          "Exception handler not initialized. This should not happen if Spring Boot is properly configured.");
+    }
+    return exceptionHandler;
   }
 }

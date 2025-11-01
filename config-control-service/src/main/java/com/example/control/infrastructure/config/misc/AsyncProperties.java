@@ -88,18 +88,24 @@ public class AsyncProperties {
   public static class PoolProps {
     /**
      * Core pool size.
+     * <p>
+     * Note: Ignored when {@code useVirtualThreads} is true.
      */
     @Min(value = 1, message = "Core pool size must be at least 1")
     private int corePoolSize = 8;
 
     /**
      * Maximum pool size.
+     * <p>
+     * Note: Ignored when {@code useVirtualThreads} is true.
      */
     @Min(value = 1, message = "Max pool size must be at least 1")
     private int maxPoolSize = 16;
 
     /**
      * Queue capacity.
+     * <p>
+     * Note: Ignored when {@code useVirtualThreads} is true.
      */
     @Min(value = 0, message = "Queue capacity must be non-negative")
     private int queueCapacity = 200;
@@ -108,6 +114,8 @@ public class AsyncProperties {
      * Keep alive duration.
      * Spring Boot supports binding from various formats (e.g., "60s", "1m",
      * "PT60S").
+     * <p>
+     * Note: Ignored when {@code useVirtualThreads} is true.
      */
     @NotNull(message = "Keep alive duration is required")
     private Duration keepAlive = Duration.ofSeconds(60);
@@ -117,6 +125,17 @@ public class AsyncProperties {
      */
     @NotBlank(message = "Thread name prefix cannot be blank")
     private String threadNamePrefix = "async-default-";
+
+    /**
+     * Whether to use virtual threads (Java 21+).
+     * <p>
+     * When true, uses {@code Executors.newVirtualThreadPerTaskExecutor()} instead
+     * of {@code ThreadPoolTaskExecutor}.
+     * Recommended for I/O-bound tasks (e.g., email notifications).
+     * <p>
+     * Default: false (uses platform threads for backward compatibility).
+     */
+    private boolean useVirtualThreads = false;
   }
 
   /**

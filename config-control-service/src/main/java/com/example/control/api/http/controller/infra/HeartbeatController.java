@@ -4,7 +4,6 @@ import com.example.control.domain.model.HeartbeatPayload;
 import com.example.control.application.service.infra.HeartbeatService;
 import com.example.control.domain.model.ServiceInstance;
 import com.example.control.api.http.exception.ErrorResponse;
-import io.micrometer.core.annotation.Timed;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -86,7 +85,6 @@ public class HeartbeatController {
       @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
       @ApiResponse(responseCode = "500", description = "Internal server error during heartbeat processing", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   })
-  @Timed(value = "api.heartbeat.process", description = "Time taken to process heartbeat")
   public ResponseEntity<Map<String, Object>> processHeartbeat(
       @Parameter(description = "Heartbeat payload with service instance information and config hash", schema = @Schema(implementation = HeartbeatPayload.class)) @Valid @RequestBody HeartbeatPayload payload) {
     log.debug("Received heartbeat from {}:{}", payload.getServiceName(), payload.getInstanceId());

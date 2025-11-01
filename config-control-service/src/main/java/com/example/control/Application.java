@@ -7,7 +7,6 @@ import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
-import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
@@ -18,7 +17,6 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @SpringBootApplication(scanBasePackages = "com.example.control")
 @EnableDiscoveryClient
 @EnableScheduling
-@EnableAsync
 @ConfigurationPropertiesScan
 @EnableMongoRepositories(basePackages = "com.example.control.infrastructure.adapter.persistence.mongo.repository")
 @EnableConfigurationProperties({ ConfigServerProperties.class })

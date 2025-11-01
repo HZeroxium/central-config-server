@@ -6,27 +6,33 @@ import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 
 /**
  * Health indicator for Config Server connectivity.
  * <p>
  * This indicator checks if the Config Server is reachable and responding
  * to health check requests.
+ * <p>
+ * Uses RestClient for automatic instrumentation via Spring Boot's
+ * {@code http.client.requests} metrics.
  */
 @Component
 @RequiredArgsConstructor
 public class ConfigServerHealthIndicator implements HealthIndicator {
 
     private final ConfigServerProperties configServerProperties;
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestClient restClient;
 
     @Override
     public Health health() {
         try {
             String healthUrl = configServerProperties.getUrl() + "/actuator/health";
 
-            ResponseEntity<String> response = restTemplate.getForEntity(healthUrl, String.class);
+            ResponseEntity<String> response = restClient.get()
+                    .uri(healthUrl)
+                    .retrieve()
+                    .toEntity(String.class);
 
             if (response.getStatusCode().is2xxSuccessful()) {
                 return Health.up()

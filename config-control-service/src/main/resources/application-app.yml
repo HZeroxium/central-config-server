@@ -49,18 +49,21 @@ app:
       queue-capacity: 100
       keep-alive: 60s # Duration format (Spring Boot supports: 60s, 1m, PT60S)
       thread-name-prefix: async-notify-
+      use-virtual-threads: true # Use virtual threads for I/O-bound email operations (Java 21+)
     rpc:
       core-pool-size: 1
       max-pool-size: 2
       queue-capacity: 10
       keep-alive: 30s # Duration format
       thread-name-prefix: async-rpc-
+      use-virtual-threads: false # Keep platform threads for RPC server startup
     default:
       core-pool-size: 8
       max-pool-size: 16
       queue-capacity: 200
       keep-alive: 60s # Duration format
       thread-name-prefix: async-default-
+      use-virtual-threads: false # Keep platform threads for general-purpose tasks
     shutdown:
       await-timeout: 30s # Duration format
       force-shutdown: false

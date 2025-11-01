@@ -106,6 +106,12 @@ dependencies {
     // AspectJ for AOP profiling
     implementation libs.aspectjweaver
     
+    // Spring AOP for @Aspect scanning
+    implementation 'org.springframework.boot:spring-boot-starter-aop'
+    
+    // Note: Virtual threads metrics are automatically provided by Spring Boot 3.2+
+    // No additional micrometer-java21 dependency needed
+    
     // Resilience4j for circuit breaker, retry, bulkhead, rate limiter
     implementation libs.bundles.resilience4j
     implementation 'io.github.resilience4j:resilience4j-micrometer:2.2.0'

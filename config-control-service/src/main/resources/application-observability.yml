@@ -4,6 +4,9 @@ management:
     enabled: true
     sampling:
       probability: 1.0 # For dev/testing - sample all traces
+  observations:
+    annotations:
+      enabled: true # Enable annotation scanning for @Observed/@Timed/@Counted (Spring Boot 3.2+)
   otlp:
     tracing:
       endpoint: ${MANAGEMENT_OTLP_TRACING_ENDPOINT:http://alloy:4318/v1/traces}
@@ -38,17 +41,20 @@ management:
       application: config-control-service
       service: config-control-service
       service.name: config-control-service
+      service.version: ${app.version:1.0.0}
       environment: ${ENVIRONMENT:development}
+      deployment.environment: ${ENVIRONMENT:development}
     distribution:
+      # Only enable histogram for critical metrics to avoid overhead
       percentiles-histogram:
         http.server.requests: true
-        config_control.*.duration: true
+        config_control.heartbeat.process: true
       percentiles:
         http.server.requests: 0.5, 0.9, 0.95, 0.99
-        config_control.*.duration: 0.5, 0.9, 0.95, 0.99
+        config_control.heartbeat.process: 0.5, 0.9, 0.95, 0.99
       slo:
         http.server.requests: 50ms, 100ms, 200ms, 500ms, 1s, 2s, 5s
-        config_control.*.duration: 10ms, 50ms, 100ms, 200ms, 500ms, 1s
+        config_control.heartbeat.process: 10ms, 50ms, 100ms, 200ms, 500ms, 1s
       exemplars:
         enabled: true
   health:

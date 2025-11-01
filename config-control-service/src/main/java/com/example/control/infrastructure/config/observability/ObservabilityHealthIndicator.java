@@ -7,7 +7,7 @@ import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -20,6 +20,9 @@ import java.util.Map;
  * - Grafana Loki (log aggregation)
  * - Grafana Mimir (metrics backend)
  * - Grafana Alloy (unified collector)
+ * <p>
+ * Uses RestClient for automatic instrumentation via Spring Boot's
+ * {@code http.client.requests} metrics.
  */
 @Slf4j
 @Component
@@ -27,7 +30,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class ObservabilityHealthIndicator implements HealthIndicator {
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestClient restClient;
     @Value("${management.otlp.tracing.endpoint:http://alloy:4318/v1/traces}")
     private String otlpTracingEndpoint;
     @Value("${management.otlp.metrics.url:http://alloy:4318/v1/metrics}")
@@ -99,7 +102,10 @@ public class ObservabilityHealthIndicator implements HealthIndicator {
     private Health checkTempoHealth() {
         try {
             String tempoUrl = "http://tempo:3200/ready";
-            restTemplate.getForObject(tempoUrl, String.class);
+            restClient.get()
+                    .uri(tempoUrl)
+                    .retrieve()
+                    .toEntity(String.class);
             return Health.up()
                     .withDetail("url", tempoUrl)
                     .withDetail("message", "Tempo is ready")
@@ -116,7 +122,10 @@ public class ObservabilityHealthIndicator implements HealthIndicator {
     private Health checkLokiHealth() {
         try {
             String lokiUrl = "http://loki:3100/ready";
-            restTemplate.getForObject(lokiUrl, String.class);
+            restClient.get()
+                    .uri(lokiUrl)
+                    .retrieve()
+                    .toEntity(String.class);
             return Health.up()
                     .withDetail("url", lokiUrl)
                     .withDetail("message", "Loki is ready")
@@ -133,7 +142,10 @@ public class ObservabilityHealthIndicator implements HealthIndicator {
     private Health checkMimirHealth() {
         try {
             String mimirUrl = "http://mimir:9009/ready";
-            restTemplate.getForObject(mimirUrl, String.class);
+            restClient.get()
+                    .uri(mimirUrl)
+                    .retrieve()
+                    .toEntity(String.class);
             return Health.up()
                     .withDetail("url", mimirUrl)
                     .withDetail("message", "Mimir is ready")
@@ -150,7 +162,10 @@ public class ObservabilityHealthIndicator implements HealthIndicator {
     private Health checkAlloyHealth() {
         try {
             String alloyUrl = "http://alloy:12345/-/healthy";
-            restTemplate.getForObject(alloyUrl, String.class);
+            restClient.get()
+                    .uri(alloyUrl)
+                    .retrieve()
+                    .toEntity(String.class);
             return Health.up()
                     .withDetail("url", alloyUrl)
                     .withDetail("message", "Alloy is healthy")
@@ -172,7 +187,10 @@ public class ObservabilityHealthIndicator implements HealthIndicator {
 
             // Basic connectivity check to Alloy OTLP endpoints
             String alloyUrl = "http://alloy:4318/v1/traces";
-            restTemplate.getForEntity(alloyUrl, String.class);
+            restClient.get()
+                    .uri(alloyUrl)
+                    .retrieve()
+                    .toEntity(String.class);
 
             return Health.up()
                     .withDetail("tracing_endpoint", tracingEndpoint)

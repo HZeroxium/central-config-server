@@ -321,21 +321,17 @@ public class UnifiedCacheConfig {
      * to avoid circular dependency issues. The {@link CacheMetrics} class uses
      * {@link ApplicationReadyEvent} listener to initialize metrics once the
      * {@link CacheManager} is ready.
+     * <p>
+     * Note: Spring Boot Actuator automatically instruments standard cache metrics
+     * ({@code cache.gets}, {@code cache.puts}, {@code cache.evicts}, etc.).
+     * This bean only provides custom metrics for L1/L2 hit tracking and error
+     * tracking.
      */
     @Bean
     public CacheMetrics cacheMetrics(MeterRegistry meterRegistry, @Lazy CacheManager cacheManager) {
         // Defer initialization to avoid circular dependency - CacheMetrics will
-        // initialize
-        // itself via ApplicationReadyEvent listener
+        // initialize itself via ApplicationReadyEvent listener
         return new CacheMetrics(meterRegistry, cacheManager);
-    }
-
-    /**
-     * Cache metrics interceptor for AOP-based tracking.
-     */
-    @Bean
-    public CacheMetricsInterceptor cacheMetricsInterceptor(CacheMetrics cacheMetrics) {
-        return new CacheMetricsInterceptor(cacheMetrics);
     }
 
     /**

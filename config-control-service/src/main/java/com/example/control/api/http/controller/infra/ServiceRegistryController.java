@@ -6,7 +6,6 @@ import com.example.control.api.http.mapper.infra.ConsulMapper;
 import com.example.control.infrastructure.external.consul.ConsulClient;
 import com.example.control.api.http.exception.ErrorResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.micrometer.core.annotation.Timed;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -51,7 +50,6 @@ public class ServiceRegistryController {
                         @ApiResponse(responseCode = "403", description = "Forbidden - Insufficient permissions", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
                         @ApiResponse(responseCode = "500", description = "Internal server error or Consul unreachable", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
         })
-        @Timed(value = "api.registry.services.list")
         public ResponseEntity<ConsulDto.ConsulServicesMap> listServiceRegistryServices() {
                 log.debug("Listing all services from Consul");
 
@@ -121,7 +119,6 @@ public class ServiceRegistryController {
                         @ApiResponse(responseCode = "404", description = "Service not found", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
                         @ApiResponse(responseCode = "500", description = "Internal server error or Consul unreachable", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
         })
-        @Timed(value = "api.registry.services.instances")
         public ResponseEntity<ApiResponseDto.ServiceInstancesRegistryResponse> getServiceRegistryServiceInstances(
                         @Parameter(description = "Name of the service", example = "payment-service") @PathVariable String serviceName,
                         @Parameter(description = "Filter to only healthy instances", example = "true") @RequestParam(defaultValue = "true") boolean passing) {

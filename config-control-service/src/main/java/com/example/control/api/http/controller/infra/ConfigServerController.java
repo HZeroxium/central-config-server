@@ -5,7 +5,6 @@ import com.example.control.infrastructure.external.configserver.ConfigServerClie
 import com.example.control.infrastructure.config.misc.ConfigServerProperties;
 import com.example.control.api.http.exception.ErrorResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.micrometer.core.annotation.Timed;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -48,7 +47,6 @@ public class ConfigServerController {
                         @ApiResponse(responseCode = "404", description = "Configuration not found for the specified application/profile", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
                         @ApiResponse(responseCode = "500", description = "Internal server error or Config Server unreachable", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
         })
-        @Timed(value = "api.config-server.environment")
         public ResponseEntity<ConfigServerDto.ConfigEnvironmentResponse> getEnvironment(
                         @Parameter(description = "Name of the application", example = "payment-service") @PathVariable String application,
                         @Parameter(description = "Profile of the application (e.g., dev, prod)", example = "dev") @PathVariable String profile,
@@ -80,7 +78,6 @@ public class ConfigServerController {
                         @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
                         @ApiResponse(responseCode = "500", description = "Internal server error or Config Server unreachable", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
         })
-        @Timed(value = "api.config-server.health")
         public ResponseEntity<ConfigServerDto.ActuatorHealthResponse> getHealth() {
                 log.debug("Getting Config Server health status");
 
@@ -105,7 +102,6 @@ public class ConfigServerController {
                         @ApiResponse(responseCode = "404", description = "Actuator endpoint not found", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
                         @ApiResponse(responseCode = "500", description = "Internal server error or Config Server unreachable", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
         })
-        @Timed(value = "api.config-server.actuator")
         public ResponseEntity<Object> getActuatorEndpoint(
                         @Parameter(description = "Actuator endpoint path", example = "env") @PathVariable String path) {
 
@@ -130,7 +126,6 @@ public class ConfigServerController {
                         @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
                         @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
         })
-        @Timed(value = "api.config-server.info")
         public ResponseEntity<ConfigServerDto.ConfigServerInfo> getInfo() {
                 log.debug("Getting Config Server info");
 

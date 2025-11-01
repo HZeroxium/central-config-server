@@ -7,6 +7,8 @@ import org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Global exception handler for uncaught async task exceptions.
@@ -18,6 +20,7 @@ import java.util.Arrays;
  * <li>Emits Micrometer metrics for async failures</li>
  * <li>Preserves MDC context if available for structured logging</li>
  * <li>Does not rethrow exceptions (best-effort execution model)</li>
+ * <li>Caches Counter instances to avoid re-registration overhead</li>
  * </ul>
  * </p>
  * <p>
@@ -29,6 +32,9 @@ import java.util.Arrays;
 public class AsyncExceptionHandler implements AsyncUncaughtExceptionHandler {
 
   private final MeterRegistry meterRegistry;
+
+  // Cache Counter instances per executor/method/exception combination
+  private final Map<String, Counter> counterCache = new ConcurrentHashMap<>();
 
   public AsyncExceptionHandler(MeterRegistry meterRegistry) {
     this.meterRegistry = meterRegistry;
@@ -49,14 +55,16 @@ public class AsyncExceptionHandler implements AsyncUncaughtExceptionHandler {
         ex.getMessage(),
         ex);
 
-    // Emit metrics
-    Counter.builder("async.tasks.failed")
+    // Emit metrics using cached Counter instance
+    String counterKey = executorName + ":" + methodName + ":" + exceptionClass;
+    Counter counter = counterCache.computeIfAbsent(counterKey, key -> Counter.builder("async.tasks.failed")
         .description("Number of async tasks that failed with uncaught exceptions")
         .tag("executor", executorName)
         .tag("method", methodName)
         .tag("exception", exceptionClass)
-        .register(meterRegistry)
-        .increment();
+        .register(meterRegistry));
+
+    counter.increment();
   }
 
   /**
