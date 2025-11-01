@@ -1,0 +1,21 @@
+# Production Profile Configuration
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,busrefresh # Restricted endpoints for prod
+  tracing:
+    sampling:
+      probability: ${MANAGEMENT_TRACING_SAMPLING_PROBABILITY:0.1} # Sample 10% of traces in prod
+
+logging:
+  level:
+    root: ${LOGGING_LEVEL_ROOT:INFO}
+    com.example.control: ${LOGGING_LEVEL_COM_EXAMPLE_CONTROL:INFO}
+    org.springframework.web: WARN
+    org.springframework.security: WARN

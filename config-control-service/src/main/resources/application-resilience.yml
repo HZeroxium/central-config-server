@@ -1,0 +1,206 @@
+# Resilience4j Configuration
+resilience4j:
+  # Circuit Breaker Configuration
+  circuitbreaker:
+    configs:
+      default:
+        slidingWindowSize: 10
+        slidingWindowType: COUNT_BASED
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        slowCallRateThreshold: 50
+        slowCallDurationThreshold: 3s
+        waitDurationInOpenState: 30s
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        recordExceptions:
+          - org.springframework.web.client.HttpServerErrorException
+          - org.springframework.web.client.ResourceAccessException
+          - java.io.IOException
+          - java.util.concurrent.TimeoutException
+          - com.example.control.api.http.exception.exceptions.ExternalServiceException
+        ignoreExceptions:
+          - org.springframework.web.client.HttpClientErrorException
+          - java.lang.IllegalArgumentException
+    instances:
+      configserver:
+        baseConfig: default
+        failureRateThreshold: 50
+        slowCallDurationThreshold: 5s
+        waitDurationInOpenState: 30s
+      consul:
+        baseConfig: default
+        failureRateThreshold: 50
+        slowCallDurationThreshold: 3s
+        waitDurationInOpenState: 20s
+      keycloak:
+        baseConfig: default
+        failureRateThreshold: 60
+        slowCallDurationThreshold: 5s
+        waitDurationInOpenState: 40s
+      email:
+        baseConfig: default
+        failureRateThreshold: 70
+        waitDurationInOpenState: 60s
+      mongodb:
+        baseConfig: default
+        failureRateThreshold: 50
+        slowCallDurationThreshold: 3s
+        waitDurationInOpenState: 30s
+      kafka-producer:
+        baseConfig: default
+        failureRateThreshold: 50
+        slowCallDurationThreshold: 5s
+        waitDurationInOpenState: 30s
+      cache-redis:
+        baseConfig: default
+        failureRateThreshold: 50
+        slowCallDurationThreshold: 3s
+        waitDurationInOpenState: 30s
+
+  # Retry Configuration with Exponential Backoff + Jitter
+  retry:
+    configs:
+      default:
+        maxAttempts: 3
+        waitDuration: 500ms
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 2.0
+        enableRandomizedWait: true # Jitter
+        randomizedWaitFactor: 0.5
+        retryExceptions:
+          - org.springframework.web.client.HttpServerErrorException
+          - org.springframework.web.client.ResourceAccessException
+          - java.io.IOException
+          - java.util.concurrent.TimeoutException
+        ignoreExceptions:
+          - org.springframework.web.client.HttpClientErrorException
+          - java.lang.IllegalArgumentException
+          - com.example.control.api.http.exception.exceptions.ValidationException
+    instances:
+      configserver:
+        baseConfig: default
+        maxAttempts: 3
+        waitDuration: 500ms
+      consul:
+        baseConfig: default
+        maxAttempts: 3
+        waitDuration: 300ms
+      cache-redis:
+        baseConfig: default
+        maxAttempts: 3
+        waitDuration: 100ms
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 2.0
+        enableRandomizedWait: true
+        randomizedWaitFactor: 0.5
+      keycloak:
+        baseConfig: default
+        maxAttempts: 2
+        waitDuration: 1s
+      email-send:
+        baseConfig: default
+        maxAttempts: 3
+        waitDuration: 1s
+
+  # Bulkhead Configuration (Semaphore + ThreadPool)
+  bulkhead:
+    configs:
+      default:
+        maxConcurrentCalls: 25
+        maxWaitDuration: 100ms
+    instances:
+      configserver:
+        baseConfig: default
+        maxConcurrentCalls: 20
+      consul:
+        baseConfig: default
+        maxConcurrentCalls: 25
+      keycloak:
+        baseConfig: default
+        maxConcurrentCalls: 15
+      email:
+        baseConfig: default
+        maxConcurrentCalls: 10
+      mongodb:
+        baseConfig: default
+        maxConcurrentCalls: 20
+      kafka-producer:
+        baseConfig: default
+        maxConcurrentCalls: 15
+
+  # ThreadPool Bulkhead Configuration
+  thread-pool-bulkhead:
+    configs:
+      default:
+        maxThreadPoolSize: 10
+        coreThreadPoolSize: 5
+        queueCapacity: 20
+        keepAliveDuration: 20ms
+    instances:
+      configserver:
+        baseConfig: default
+        maxThreadPoolSize: 8
+        coreThreadPoolSize: 4
+      consul:
+        baseConfig: default
+        maxThreadPoolSize: 10
+        coreThreadPoolSize: 5
+      email:
+        baseConfig: default
+        maxThreadPoolSize: 5
+        coreThreadPoolSize: 2
+
+  # Time Limiter Configuration
+  timelimiter:
+    configs:
+      default:
+        timeoutDuration: 5s
+        cancelRunningFuture: true
+    instances:
+      configserver:
+        timeoutDuration: 5s
+      consul:
+        timeoutDuration: 3s
+      keycloak:
+        timeoutDuration: 5s
+      email:
+        timeoutDuration: 10s
+      mongodb:
+        timeoutDuration: 3s
+      kafka-producer:
+        timeoutDuration: 5s
+
+  # Rate Limiter Configuration
+  ratelimiter:
+    configs:
+      default:
+        limitForPeriod: 50
+        limitRefreshPeriod: 10s
+        timeoutDuration: 100ms
+    instances:
+      heartbeat-endpoint:
+        limitForPeriod: 50
+        limitRefreshPeriod: 10s
+        timeoutDuration: 0 # Fail immediately if limit exceeded
+      admin-endpoints:
+        limitForPeriod: 100
+        limitRefreshPeriod: 10s
+
+# Custom Resilience Properties
+resilience:
+  retry-budget:
+    enabled: true
+    window-size: 10s
+    max-retry-percentage: 20 # Max 20% of requests can be retries within window
+    per-service:
+      configserver:
+        max-retry-percentage: 20
+      consul:
+        max-retry-percentage: 25
+      keycloak:
+        max-retry-percentage: 15
+  deadline-propagation:
+    enabled: true
+    default-timeout: 30s
+    header-name: X-Request-Deadline

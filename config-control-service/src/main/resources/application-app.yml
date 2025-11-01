@@ -1,0 +1,176 @@
+# App configuration
+app:
+  name: config-control-service
+  version: 1.0.0
+  environment: ${ENVIRONMENT:development}
+
+  # Metrics configuration
+  metrics:
+    enabled: true
+    prefix: config_control
+    tags:
+      application: config-control-service
+      service: config-control-service
+    aspectj:
+      enabled: true
+      sampling-rate: 1.0
+      include-parameters: false
+    http:
+      enabled: true
+      track-payload-size: true
+      track-response-size: true
+    rpc:
+      enabled: true
+      thrift: true
+      grpc: true
+    cache:
+      enabled: true
+      track-hit-miss-ratio: true
+      track-evictions: true
+    business:
+      enabled: true
+      heartbeat: true
+      drift: true
+      config-refresh: true
+      instance-count: true
+      gauge-update-interval: 30s
+    histogram:
+      percentiles: [0.5, 0.75, 0.9, 0.95, 0.99]
+      percentiles-histogram: true
+      slo-boundaries: [10ms, 50ms, 100ms, 200ms, 500ms, 1s, 2s, 5s]
+      minimum-expected-value: 1ms
+      maximum-expected-value: 1m
+
+  # Async execution configuration
+  async:
+    notification:
+      core-pool-size: 4
+      max-pool-size: 8
+      queue-capacity: 100
+      keep-alive: 60s # Duration format (Spring Boot supports: 60s, 1m, PT60S)
+      thread-name-prefix: async-notify-
+    rpc:
+      core-pool-size: 1
+      max-pool-size: 2
+      queue-capacity: 10
+      keep-alive: 30s # Duration format
+      thread-name-prefix: async-rpc-
+    default:
+      core-pool-size: 8
+      max-pool-size: 16
+      queue-capacity: 200
+      keep-alive: 60s # Duration format
+      thread-name-prefix: async-default-
+    shutdown:
+      await-timeout: 30s # Duration format
+      force-shutdown: false
+
+  # Cache configuration
+  cache:
+    # provider: CAFFEINE  # Default to local cache
+    # provider: REDIS
+    provider: NOOP
+    application-name: ${spring.application.name:config-control-service}
+    default-version: 1
+    cache-name-prefix: "{spring.application.name:config-control-service}::"
+    enable-fallback: true
+    error-handling:
+      enable-retry: true
+      max-attempts: 3
+      initial-delay: 100ms
+      max-delay: 1s
+      multiplier: 2.0
+    compression:
+      enabled: false # Enable per-cache if needed
+      threshold: 1024 # bytes
+      algorithm: GZIP
+    caffeine:
+      maximum-size: 10000
+      expire-after-write: 10m
+      expire-after-access: 30m
+      record-stats: true
+    redis:
+      default-ttl: 10m
+      enable-statistics: true
+      transaction-aware: true
+      fallback-to-caffeine: true
+    two-level:
+      write-through: true
+      invalidate-l1-on-l2-update: true
+      defer-l2-writes: true
+    caches:
+      service-instances:
+        ttl: 5m
+        maximum-size: 10000
+        allow-null-values: false
+      drift-events:
+        ttl: 2m
+        maximum-size: 5000
+        allow-null-values: false
+      config-hashes:
+        ttl: 10m
+        maximum-size: 1000
+        allow-null-values: false
+      consul-services:
+        ttl: 1m
+        maximum-size: 500
+        allow-null-values: false
+      consul-health:
+        ttl: 30s
+        maximum-size: 1000
+        allow-null-values: false
+      iam-users:
+        ttl: 15m
+        maximum-size: 5000
+        allow-null-values: false
+      iam-teams:
+        ttl: 30m
+        maximum-size: 500
+        allow-null-values: false
+      application-services:
+        ttl: 10m
+        maximum-size: 1000
+        allow-null-values: false
+      approval-requests:
+        ttl: 5m
+        maximum-size: 2000
+        allow-null-values: false
+      approval-decisions:
+        ttl: 10m
+        maximum-size: 5000
+        allow-null-values: false
+      service-shares:
+        ttl: 10m
+        maximum-size: 2000
+        allow-null-values: false
+
+# Data Seeding Configuration
+seeding:
+  enabled: false # Enable only in dev/seed-data profile
+  auto-run-on-startup: false
+  clean-before-seed: true
+  data:
+    teams:
+      count: 2
+      ids:
+        - team1
+        - team2
+    services:
+      team1-count: 3
+      team2-count: 3
+      orphan-count: 8 # Increased to support multi-user approval scenarios
+    instances-per-service:
+      min: 5
+      max: 10
+    drift-events:
+      min-per-service: 2
+      max-per-service: 5
+    shares:
+      count: 5
+    approval-requests:
+      pending: 3 # Multiple users competing for same services
+      approved: 4 # Including cascade approvals and multi-gate
+      rejected: 2 # Including cascade rejections
+  admin:
+    user-id: ${SEEDER_ADMIN_USER_ID:admin} # Default admin user ID from Keycloak
+

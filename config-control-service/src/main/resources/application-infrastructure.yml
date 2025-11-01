@@ -1,0 +1,72 @@
+# Infrastructure Configuration
+# Config Server client configuration
+config-server:
+  url: ${CONFIG_SERVER_URL:http://config-server:8888}
+  timeout: 5000
+  retry:
+    max-attempts: 3
+    backoff-delay: 1000
+
+# Consul client configuration
+consul:
+  url: ${CONSUL_URL:http://consul:8500}
+  timeout: 5000
+  retry:
+    max-attempts: 3
+    backoff-delay: 1000
+
+# New Consul SDK Configuration
+consulclient:
+  consul-url: ${CONSUL_URL:http://consul:8500}
+  token: ${CONSUL_TOKEN:}
+  connect-timeout: 5s
+  read-timeout: 10s
+  write-timeout: 10s
+
+# RestClient timeout configuration
+rest-client:
+  connect-timeout: 5s
+  read-timeout: 10s
+  write-timeout: 10s
+  clients:
+    configserver:
+      connect-timeout: 5s
+      read-timeout: 10s
+      write-timeout: 10s
+    consul:
+      connect-timeout: 5s
+      read-timeout: 10s
+      write-timeout: 10s
+
+# Thrift Server Configuration
+thrift:
+  server:
+    port: ${THRIFT_PORT:9090}
+
+# gRPC Server Configuration
+grpc:
+  server:
+    port: ${GRPC_PORT:9091}
+
+# KV Store Configuration
+kv:
+  backend: ${KV_BACKEND:consul} # consul or etcd
+  consul:
+    base-url: ${KV_CONSUL_URL:http://consul:8500}
+    wait: 5m
+    token: ${KV_CONSUL_TOKEN:}
+  etcd:
+    endpoints:
+      - ${KV_ETCD_ENDPOINTS:http://etcd:2379}
+    connect-timeout: 5s
+    keepalive-time: 10s
+    namespace: ${KV_ETCD_NAMESPACE:}
+
+# Service Instance Cleanup Configuration
+service-instance:
+  cleanup:
+    enabled: false
+    stale-threshold-minutes: 10
+    cleanup-threshold-days: 30
+    schedule-cron: "0 */5 * * * *" # Every 5 minutes
+

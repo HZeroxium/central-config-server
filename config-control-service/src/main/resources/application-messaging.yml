@@ -1,0 +1,39 @@
+# Kafka and Spring Cloud Stream Configuration
+spring:
+  # Kafka for Spring Cloud Bus and KafkaTemplate
+  kafka:
+    bootstrap-servers: ${KAFKA_BROKERS:kafka:9092}
+    consumer:
+      group-id: config-control-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.ByteArrayDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.ByteArraySerializer
+      properties:
+        spring.json.add.type.headers: false
+
+  # Spring Cloud Bus Configuration
+  cloud:
+    bus:
+      enabled: true # Enable Spring Cloud Bus
+      refresh:
+        enabled: true # Enable configuration refresh
+      destination: springCloudBus # Kafka topic name
+      trace:
+        enabled: true # Enable trace for debugging
+    stream:
+      kafka:
+        binder:
+          brokers: ${KAFKA_BROKERS:kafka:9092}
+          auto-create-topics: true
+          auto-add-partitions: true
+          producer-properties:
+            key.serializer: org.apache.kafka.common.serialization.StringSerializer
+            value.serializer: org.apache.kafka.common.serialization.ByteArraySerializer
+          consumer-properties:
+            key.deserializer: org.apache.kafka.common.serialization.StringDeserializer
+            value.deserializer: org.apache.kafka.common.serialization.ByteArrayDeserializer

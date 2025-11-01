@@ -1,0 +1,21 @@
+# Development Profile Configuration
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*" # All endpoints enabled for dev
+  tracing:
+    sampling:
+      probability: 1.0 # Sample all traces in dev
+
+logging:
+  level:
+    root: ${LOGGING_LEVEL_ROOT:INFO}
+    com.example.control: ${LOGGING_LEVEL_COM_EXAMPLE_CONTROL:DEBUG}
+    org.springframework.web: INFO
+    org.springframework.security: DEBUG

@@ -4,7 +4,6 @@ import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler;
-import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -14,15 +13,19 @@ import java.util.Arrays;
  * <p>
  * This handler:
  * <ul>
- *   <li>Logs exceptions with full context (method name, parameters, stack trace)</li>
- *   <li>Emits Micrometer metrics for async failures</li>
- *   <li>Preserves MDC context if available for structured logging</li>
- *   <li>Does not rethrow exceptions (best-effort execution model)</li>
+ * <li>Logs exceptions with full context (method name, parameters, stack
+ * trace)</li>
+ * <li>Emits Micrometer metrics for async failures</li>
+ * <li>Preserves MDC context if available for structured logging</li>
+ * <li>Does not rethrow exceptions (best-effort execution model)</li>
  * </ul>
+ * </p>
+ * <p>
+ * This class is instantiated via {@code @Bean} in {@link AsyncConfig} to ensure
+ * single source of truth and proper lifecycle management.
  * </p>
  */
 @Slf4j
-@Component
 public class AsyncExceptionHandler implements AsyncUncaughtExceptionHandler {
 
   private final MeterRegistry meterRegistry;
@@ -59,7 +62,8 @@ public class AsyncExceptionHandler implements AsyncUncaughtExceptionHandler {
   /**
    * Extracts executor name from method annotations or uses default.
    * <p>
-   * Attempts to read @Async annotation value. Falls back to "default" if not available.
+   * Attempts to read @Async annotation value. Falls back to "default" if not
+   * available.
    * </p>
    *
    * @param method the method that threw the exception
@@ -68,8 +72,8 @@ public class AsyncExceptionHandler implements AsyncUncaughtExceptionHandler {
   private String extractExecutorName(Method method) {
     // Try to extract from @Async annotation value
     try {
-      org.springframework.scheduling.annotation.Async asyncAnnotation =
-          method.getAnnotation(org.springframework.scheduling.annotation.Async.class);
+      org.springframework.scheduling.annotation.Async asyncAnnotation = method
+          .getAnnotation(org.springframework.scheduling.annotation.Async.class);
       if (asyncAnnotation != null) {
         // Access annotation value using reflection to avoid compilation issues
         Method valueMethod = asyncAnnotation.getClass().getMethod("value");
@@ -85,4 +89,3 @@ public class AsyncExceptionHandler implements AsyncUncaughtExceptionHandler {
     return "default";
   }
 }
-

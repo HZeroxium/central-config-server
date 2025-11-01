@@ -1,0 +1,50 @@
+# Security Configuration
+spring:
+  # Spring Security OAuth2 Resource Server configuration
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://keycloak:8080/realms/config-control}
+          audience: ${KEYCLOAK_AUDIENCE:config-control-service}
+
+  # Consul Discovery Configuration (with metadata moved from security section)
+  cloud:
+    consul:
+      enabled: true
+      host: ${CONSUL_HOST:consul}
+      port: ${CONSUL_PORT:8500}
+      discovery:
+        enabled: true
+        register: true
+        service-name: ${spring.application.name}
+        health-check-critical-timeout: 30s
+        prefer-ip-address: true
+        hostname: ${HOSTNAME:localhost}
+        instance-id: ${spring.application.name}-${server.port}-${random.value}
+        metadata:
+          version: "1.0.0"
+          thrift_port: ${thrift.server.port}
+          grpc_port: ${grpc.server.port}
+        tags:
+          - config-control
+          - management
+
+# Keycloak Admin client configuration (for optional IAM sync)
+keycloak:
+  admin:
+    url: ${KEYCLOAK_ADMIN_URL:http://keycloak:8082}
+    realm: config-control
+    client-id: ${KEYCLOAK_CLIENT_ID:config-control-service}
+    client-secret: ${KEYCLOAK_CLIENT_SECRET:}
+
+# Springdoc OAuth2 configuration for Swagger UI
+springdoc:
+  default-consumes-media-type: application/json
+  default-produces-media-type: application/json
+  # use-fqn: true
+  swagger-ui:
+    oauth:
+      client-id: admin-dashboard
+      use-pkce-with-authorization-code-grant: true
+    oauth2-redirect-url: http://localhost:8081/swagger-ui/oauth2-redirect.html

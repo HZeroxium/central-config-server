@@ -1,8 +1,8 @@
 package com.example.control.rpc.grpc;
 
-import com.example.control.domain.object.HeartbeatPayload;
-import com.example.control.application.service.HeartbeatService;
-import com.example.control.domain.object.ServiceInstance;
+import com.example.control.domain.model.HeartbeatPayload;
+import com.example.control.application.service.infra.HeartbeatService;
+import com.example.control.domain.model.ServiceInstance;
 import com.example.control.grpc.ConfigControlServiceGrpc;
 import com.example.control.grpc.HeartbeatRequest;
 import com.example.control.grpc.HeartbeatResponse;

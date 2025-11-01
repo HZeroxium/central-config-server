@@ -1,0 +1,15 @@
+# Data Sources Configuration
+spring:
+  # MongoDB for metadata storage
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://mongodb:27017/config_control}
+      auto-index-creation: true
+    redis:
+      url: ${REDIS_URL:redis://:redis123@redis:6379}
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
