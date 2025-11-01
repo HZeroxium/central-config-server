@@ -34,9 +34,9 @@ public class EmailNotificationAdapter implements NotificationServicePort {
   private final JavaMailSender mailSender;
 
   @Override
-  @CircuitBreaker(name = "email", fallbackMethod = "sendEmailFallback")
-  @Retry(name = "email-send")
-  @Bulkhead(name = "email")
+  // @CircuitBreaker(name = "email", fallbackMethod = "sendEmailFallback")
+  // @Retry(name = "email-send")
+  // @Bulkhead(name = "email")
   public void sendEmail(String to, String subject, String htmlBody) throws NotificationException {
     try {
       log.debug("Sending email to: {} with subject: {}", to, subject);

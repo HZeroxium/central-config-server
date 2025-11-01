@@ -26,7 +26,14 @@ public class ThriftServer {
 
     private TServer server;
 
-    @Async
+    /**
+     * Starts the Thrift server asynchronously.
+     * <p>
+     * Uses the dedicated rpcExecutor thread pool for server startup operations.
+     * This ensures server startup does not block the main application thread.
+     * </p>
+     */
+    @Async("rpcExecutor")
     @EventListener(ApplicationReadyEvent.class)
     public void start() {
         try {

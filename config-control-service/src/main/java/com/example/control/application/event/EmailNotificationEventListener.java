@@ -31,11 +31,12 @@ public class EmailNotificationEventListener {
    * <p>
    * Executes asynchronously after transaction commit to avoid blocking the main
    * transaction.
+   * Uses the dedicated notificationExecutor thread pool for I/O-bound email operations.
    * </p>
    *
    * @param event the approval request approved event
    */
-  @Async
+  @Async("notificationExecutor")
   @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
   public void handleApprovalRequestApproved(ApprovalRequestApprovedEvent event) {
     log.info("Received ApprovalRequestApprovedEvent for request: {}", event.getRequestId());

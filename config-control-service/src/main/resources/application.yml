@@ -169,6 +169,29 @@ app:
       slo-boundaries: [10ms, 50ms, 100ms, 200ms, 500ms, 1s, 2s, 5s]
       minimum-expected-value: 1ms
       maximum-expected-value: 1m
+  # Async execution configuration
+  async:
+    notification:
+      core-pool-size: 4
+      max-pool-size: 8
+      queue-capacity: 100
+      keep-alive-seconds: 60
+      thread-name-prefix: async-notify-
+    rpc:
+      core-pool-size: 1
+      max-pool-size: 2
+      queue-capacity: 10
+      keep-alive-seconds: 30
+      thread-name-prefix: async-rpc-
+    default:
+      core-pool-size: 8
+      max-pool-size: 16
+      queue-capacity: 200
+      keep-alive-seconds: 60
+      thread-name-prefix: async-default-
+    shutdown:
+      wait-timeout-seconds: 30
+      force-shutdown: false
   cache:
     # provider: CAFFEINE  # Default to local cache
     # provider: REDIS

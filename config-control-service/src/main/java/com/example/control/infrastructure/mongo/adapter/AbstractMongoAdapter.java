@@ -88,7 +88,7 @@ public abstract class AbstractMongoAdapter<T, D, ID, F, R extends MongoRepositor
 
     @Override
     public T save(T entity) {
-        log.debug("Saving entity: {}", entity);
+        log.debug("Saving entity: {} to collection: {}", entity, getCollectionName());
 
         // Convert domain entity to MongoDB document
         D document = toDocument(entity);
@@ -99,14 +99,14 @@ public abstract class AbstractMongoAdapter<T, D, ID, F, R extends MongoRepositor
         // Convert MongoDB document to domain entity
         T result = toDomain(savedDocument);
 
-        log.debug("Saved entity: {}", result);
+        log.debug("Saved entity: {} to collection: {}", result, getCollectionName());
 
         return result;
     }
 
     @Override
     public Optional<T> findById(ID id) {
-        log.debug("Finding entity by ID: {}", id);
+        log.debug("Finding entity by ID: {} in collection: {}", id, getCollectionName());
 
         // Convert domain entity ID to MongoDB document ID
         String documentId = convertIdToDocumentId(id);
@@ -117,13 +117,13 @@ public abstract class AbstractMongoAdapter<T, D, ID, F, R extends MongoRepositor
         // Convert MongoDB document to domain entity
         Optional<T> result = document.map(this::toDomain);
 
-        log.debug("Found entity: {}", result.isPresent());
+        log.debug("Found entity: {} in collection: {}", result.isPresent(), getCollectionName());
         return result;
     }
 
     @Override
     public boolean existsById(ID id) {
-        log.debug("Checking existence of entity with ID: {}", id);
+        log.debug("Checking existence of entity with ID: {} in collection: {}", id, getCollectionName());
 
         // Convert domain entity ID to MongoDB document ID
         String documentId = convertIdToDocumentId(id);
@@ -131,13 +131,13 @@ public abstract class AbstractMongoAdapter<T, D, ID, F, R extends MongoRepositor
         // Check if MongoDB document exists by ID
         boolean exists = repository.existsById(documentId);
 
-        log.debug("Entity exists: {}", exists);
+        log.debug("Entity exists: {} in collection: {}", exists, getCollectionName());
         return exists;
     }
 
     @Override
     public void deleteById(ID id) {
-        log.debug("Deleting entity with ID: {}", id);
+        log.debug("Deleting entity with ID: {} in collection: {}", id, getCollectionName());
 
         // Convert domain entity ID to MongoDB document ID
         String documentId = convertIdToDocumentId(id);
@@ -145,12 +145,12 @@ public abstract class AbstractMongoAdapter<T, D, ID, F, R extends MongoRepositor
         // Delete MongoDB document by ID
         repository.deleteById(documentId);
 
-        log.debug("Deleted entity with ID: {}", id);
+        log.debug("Deleted entity with ID: {} in collection: {}", id, getCollectionName());
     }
 
     @Override
     public Page<T> findAll(F filter, Pageable pageable) {
-        log.debug("Finding entities with filter: {}, pageable: {}", filter, pageable);
+        log.debug("Finding entities with filter: {}, pageable: {} in collection: {}", filter, pageable, getCollectionName());
 
         // Build MongoDB query from filter criteria
         Query query = buildQuery(filter);
@@ -181,7 +181,7 @@ public abstract class AbstractMongoAdapter<T, D, ID, F, R extends MongoRepositor
 
     @Override
     public long count(F filter) {
-        log.debug("Counting entities with filter: {}", filter);
+        log.debug("Counting entities with filter: {} in collection: {}", filter, getCollectionName());
 
         // Build MongoDB query from filter criteria
         Query query = buildQuery(filter);
@@ -189,18 +189,18 @@ public abstract class AbstractMongoAdapter<T, D, ID, F, R extends MongoRepositor
         // Count total for pagination
         long count = mongoTemplate.count(query, getDocumentClass(), getCollectionName());
 
-        log.debug("Counted {} entities", count);
+        log.debug("Counted {} entities in collection: {}", count, getCollectionName());
         return count;
     }
 
     @Override
     public long deleteAll() {
-        log.warn("Deleting ALL entities from collection: {}", getCollectionName());
+        log.warn("Deleting ALL entities in collection: {}", getCollectionName());
 
         long count = repository.count();
         repository.deleteAll();
 
-        log.warn("Deleted {} entities from collection: {}", count, getCollectionName());
+        log.warn("Deleted {} entities in collection: {}", count, getCollectionName());
         return count;
     }
 
@@ -262,7 +262,7 @@ public abstract class AbstractMongoAdapter<T, D, ID, F, R extends MongoRepositor
      * @return number of documents updated
      */
     protected long bulkUpdateTeamIdByServiceId(String serviceId, String newTeamId) {
-        log.debug("Bulk updating teamId to {} for serviceId: {}", newTeamId, serviceId);
+        log.debug("Bulk updating teamId to {} for serviceId: {} in collection: {}", newTeamId, serviceId, getCollectionName());
 
         Query query = new Query(org.springframework.data.mongodb.core.query.Criteria.where("serviceId").is(serviceId));
         Update update = new Update()
@@ -272,7 +272,7 @@ public abstract class AbstractMongoAdapter<T, D, ID, F, R extends MongoRepositor
         UpdateResult result = mongoTemplate.updateMulti(
                 query, update, getDocumentClass());
 
-        log.debug("Bulk updated {} documents for serviceId: {}", result.getModifiedCount(), serviceId);
+        log.debug("Bulk updated {} documents for serviceId: {} in collection: {}", result.getModifiedCount(), serviceId, getCollectionName());
         return result.getModifiedCount();
     }
 }
