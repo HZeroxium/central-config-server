@@ -4,9 +4,11 @@ import com.example.control.application.command.DriftEventCommandService;
 import com.example.control.application.query.DriftEventQueryService;
 import com.example.control.infrastructure.config.security.DomainPermissionEvaluator;
 import com.example.control.infrastructure.config.security.UserContext;
+import com.example.control.infrastructure.observability.MetricsNames;
 import com.example.control.domain.model.DriftEvent;
 import com.example.control.domain.criteria.DriftEventCriteria;
 import com.example.control.domain.valueobject.id.DriftEventId;
+import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -71,6 +73,8 @@ public class DriftEventService {
      * @throws SecurityException if user lacks permission to create drift event
      */
     @Transactional
+    @Observed(name = MetricsNames.DriftEvent.SAVE, contextualName = "drift-event-save", lowCardinalityKeyValues = {
+            "operation", "save" })
     public DriftEvent save(DriftEvent event, UserContext userContext) {
         log.debug("Saving drift event {} for user {}", event.getId(), userContext.getUserId());
 
@@ -206,6 +210,8 @@ public class DriftEventService {
      * @param instanceId  instance identifier
      * @param resolvedBy  identifier of who/what resolved the drift
      */
+    @Observed(name = MetricsNames.DriftEvent.RESOLVE, contextualName = "drift-event-resolve", lowCardinalityKeyValues = {
+            "operation", "resolve" })
     public void resolveForInstance(String serviceName, String instanceId, String resolvedBy) {
         commandService.resolveForInstance(serviceName, instanceId, resolvedBy);
     }

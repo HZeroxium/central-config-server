@@ -6,12 +6,14 @@ import com.example.control.application.command.ServiceInstanceCommandService;
 import com.example.control.application.query.ApplicationServiceQueryService;
 import com.example.control.application.query.ServiceShareQueryService;
 import com.example.control.infrastructure.config.security.UserContext;
+import com.example.control.infrastructure.observability.MetricsNames;
 import com.example.control.domain.criteria.ApplicationServiceCriteria;
 import com.example.control.domain.criteria.ServiceShareCriteria;
 import com.example.control.domain.event.ServiceOwnershipTransferred;
 import com.example.control.domain.valueobject.id.ApplicationServiceId;
 import com.example.control.domain.model.ApplicationService;
 import com.example.control.domain.model.ServiceShare;
+import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -48,15 +50,19 @@ public class ApplicationServiceService {
     /**
      * Save or update an application service.
      * <p>
-     * Business logic: Initializes timestamps and ID if needed, validates permissions,
+     * Business logic: Initializes timestamps and ID if needed, validates
+     * permissions,
      * applies default environments if needed, then delegates to CommandService.
      *
      * @param service     the application service to save
      * @param userContext the current user context
      * @return the saved application service
-     * @throws IllegalStateException if user lacks permission to create orphaned service
+     * @throws IllegalStateException if user lacks permission to create orphaned
+     *                               service
      */
     @Transactional
+    @Observed(name = MetricsNames.ApplicationService.SAVE, contextualName = "application-service-save", lowCardinalityKeyValues = {
+            "operation", "save" })
     public ApplicationService save(ApplicationService service, UserContext userContext) {
         log.info("Orchestrating save for application service: {} by user: {}", service.getId(),
                 userContext.getUserId());
@@ -65,7 +71,8 @@ public class ApplicationServiceService {
         // Only SYS_ADMIN can create orphaned services (ownerTeamId=null)
         if (service.getOwnerTeamId() == null) {
             if (!userContext.isSysAdmin()) {
-                throw new IllegalStateException("Only system administrators can create orphaned services (ownerTeamId=null)");
+                throw new IllegalStateException(
+                        "Only system administrators can create orphaned services (ownerTeamId=null)");
             }
             log.debug("Creating orphaned service by admin: {}", userContext.getUserId());
         } else {
@@ -74,12 +81,14 @@ public class ApplicationServiceService {
                 List<String> userTeamIds = userContext.getTeamIds();
                 if (userTeamIds == null || userTeamIds.isEmpty()) {
                     throw new IllegalStateException(
-                            String.format("User %s has no team membership and cannot create services. Only system administrators can create services.",
+                            String.format(
+                                    "User %s has no team membership and cannot create services. Only system administrators can create services.",
                                     userContext.getUserId()));
                 }
                 if (!userTeamIds.contains(service.getOwnerTeamId())) {
                     throw new IllegalStateException(
-                            String.format("User %s cannot create service for team %s. Users can only create services for their own teams.",
+                            String.format(
+                                    "User %s cannot create service for team %s. Users can only create services for their own teams.",
                                     userContext.getUserId(), service.getOwnerTeamId()));
                 }
             }
@@ -211,8 +220,8 @@ public class ApplicationServiceService {
      * @return page of application services visible to the user
      */
     public Page<ApplicationService> findAll(ApplicationServiceCriteria criteria,
-                                            Pageable pageable,
-                                            UserContext userContext) {
+            Pageable pageable,
+            UserContext userContext) {
         log.debug("Listing application services with criteria: {} for user: {}", criteria, userContext.getUserId());
 
         // System admins can see all services - no filtering
@@ -302,8 +311,10 @@ public class ApplicationServiceService {
      * @throws IllegalStateException    if user lacks permission
      */
     @Transactional
+    @Observed(name = MetricsNames.ApplicationService.TRANSFER_OWNERSHIP, contextualName = "application-service-transfer-ownership", lowCardinalityKeyValues = {
+            "operation", "transfer_ownership" })
     public ApplicationService transferOwnershipWithCascade(String serviceId, String newTeamId,
-                                                           UserContext userContext) {
+            UserContext userContext) {
         log.info("Orchestrating ownership transfer of service {} to team {} by user {}",
                 serviceId, newTeamId, userContext.getUserId());
 

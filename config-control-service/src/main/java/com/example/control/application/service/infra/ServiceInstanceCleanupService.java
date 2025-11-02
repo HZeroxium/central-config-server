@@ -5,6 +5,7 @@ import com.example.control.application.query.ServiceInstanceQueryService;
 import com.example.control.domain.criteria.ServiceInstanceCriteria;
 import com.example.control.domain.model.ServiceInstance;
 import com.example.control.infrastructure.config.misc.ServiceInstanceCleanupProperties;
+import com.example.control.infrastructure.observability.MetricsNames;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
@@ -47,12 +48,12 @@ public class ServiceInstanceCleanupService {
    */
   private void initMetrics() {
     if (staleInstancesMarkedCounter == null) {
-      staleInstancesMarkedCounter = Counter.builder("config_control.cleanup.stale_instances_marked")
+      staleInstancesMarkedCounter = Counter.builder(MetricsNames.Cleanup.STALE_INSTANCES_MARKED)
           .description("Number of instances marked as stale")
           .register(meterRegistry);
     }
     if (staleInstancesDeletedCounter == null) {
-      staleInstancesDeletedCounter = Counter.builder("config_control.cleanup.stale_instances_deleted")
+      staleInstancesDeletedCounter = Counter.builder(MetricsNames.Cleanup.STALE_INSTANCES_DELETED)
           .description("Number of stale instances deleted")
           .register(meterRegistry);
     }

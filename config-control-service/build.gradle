@@ -72,7 +72,9 @@ dependencies {
     
     // Micrometer & Observability
     implementation libs.bundles.micrometer
-    // implementation libs.bundles.opentelemetry
+    implementation 'io.opentelemetry:opentelemetry-api'
+    implementation 'io.opentelemetry:opentelemetry-sdk'
+    implementation 'io.opentelemetry:opentelemetry-exporter-otlp'
     
     // Validation
     implementation libs.jakarta.validation.api

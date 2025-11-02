@@ -4,11 +4,13 @@ import com.example.control.application.command.ServiceInstanceCommandService;
 import com.example.control.application.query.ServiceInstanceQueryService;
 import com.example.control.infrastructure.config.security.DomainPermissionEvaluator;
 import com.example.control.infrastructure.config.security.UserContext;
+import com.example.control.infrastructure.observability.MetricsNames;
 import com.example.control.domain.model.ApplicationService;
 import com.example.control.domain.model.ServiceInstance;
 import com.example.control.domain.criteria.ServiceInstanceCriteria;
 import com.example.control.domain.valueobject.id.ApplicationServiceId;
 import com.example.control.domain.valueobject.id.ServiceInstanceId;
+import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -51,6 +53,8 @@ public class ServiceInstanceService {
      * @return persisted {@link ServiceInstance}
      */
     @Transactional
+    @Observed(name = MetricsNames.ServiceInstance.SAVE, contextualName = "service-instance-save", lowCardinalityKeyValues = {
+            "operation", "save" })
     public ServiceInstance save(ServiceInstance instance) {
         log.debug("Orchestrating save for service instance: {}", instance.getId());
 
@@ -216,10 +220,10 @@ public class ServiceInstanceService {
      */
     @Transactional
     public ServiceInstance updateStatusAndDrift(String instanceId,
-                                                ServiceInstance.InstanceStatus status,
-                                                boolean hasDrift,
-                                                String expectedHash,
-                                                String lastAppliedHash) {
+            ServiceInstance.InstanceStatus status,
+            boolean hasDrift,
+            String expectedHash,
+            String lastAppliedHash) {
         log.debug("Orchestrating status/drift update for instance: {}", instanceId);
 
         // Business logic: Find or create instance
@@ -277,8 +281,10 @@ public class ServiceInstanceService {
             throw new IllegalArgumentException("ServiceId is required for instance creation");
         }
 
-        ApplicationService service = applicationServiceService.findById(ApplicationServiceId.of(instance.getServiceId()))
-                .orElseThrow(() -> new IllegalArgumentException("ApplicationService not found: " + instance.getServiceId()));
+        ApplicationService service = applicationServiceService
+                .findById(ApplicationServiceId.of(instance.getServiceId()))
+                .orElseThrow(
+                        () -> new IllegalArgumentException("ApplicationService not found: " + instance.getServiceId()));
 
         // Set teamId from ApplicationService
         instance.setTeamId(service.getOwnerTeamId());
@@ -290,7 +296,8 @@ public class ServiceInstanceService {
         if (!permissionEvaluator.canCreateInstance(userContext, service, instance.getEnvironment())) {
             log.warn("User {} denied permission to create instance for service {}",
                     userContext.getUserId(), instance.getServiceId());
-            throw new SecurityException("Insufficient permissions to create instance for service: " + instance.getServiceId());
+            throw new SecurityException(
+                    "Insufficient permissions to create instance for service: " + instance.getServiceId());
         }
 
         // Initialize timestamps

@@ -5,11 +5,13 @@ import com.example.control.application.query.ApplicationServiceQueryService;
 import com.example.control.application.query.ServiceShareQueryService;
 import com.example.control.infrastructure.config.security.DomainPermissionEvaluator;
 import com.example.control.infrastructure.config.security.UserContext;
+import com.example.control.infrastructure.observability.MetricsNames;
 import com.example.control.domain.model.ApplicationService;
 import com.example.control.domain.model.ServiceShare;
 import com.example.control.domain.criteria.ServiceShareCriteria;
 import com.example.control.domain.valueobject.id.ApplicationServiceId;
 import com.example.control.domain.valueobject.id.ServiceShareId;
+import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -71,6 +73,8 @@ public class ServiceShareService {
      *                                  exists
      */
     @Transactional
+    @Observed(name = MetricsNames.ServiceShare.GRANT, contextualName = "service-share-grant", lowCardinalityKeyValues = {
+            "operation", "grant" })
     public ServiceShare grantShare(String serviceId,
             ServiceShare.GranteeType grantToType,
             String grantToId,
@@ -139,6 +143,8 @@ public class ServiceShareService {
      * @throws IllegalStateException    if user lacks permission
      */
     @Transactional
+    @Observed(name = MetricsNames.ServiceShare.REVOKE, contextualName = "service-share-revoke", lowCardinalityKeyValues = {
+            "operation", "revoke" })
     public void revokeShare(String shareId, UserContext userContext) {
         log.info("Revoking share: {} by user: {}", shareId, userContext.getUserId());
 

@@ -33,9 +33,9 @@ app:
 
   # Cache configuration
   cache:
-    # provider: CAFFEINE  # Default to local cache
+    provider: CAFFEINE # Default to local cache
     # provider: REDIS
-    provider: NOOP
+    # provider: NOOP
     application-name: ${spring.application.name:config-control-service}
     default-version: 1
     cache-name-prefix: "{spring.application.name:config-control-service}::"

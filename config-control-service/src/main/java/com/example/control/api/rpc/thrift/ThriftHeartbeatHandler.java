@@ -2,6 +2,7 @@ package com.example.control.api.rpc.thrift;
 
 import com.example.control.domain.model.HeartbeatPayload;
 import com.example.control.application.service.infra.HeartbeatService;
+import com.example.control.infrastructure.observability.MetricsNames;
 import com.example.control.thrift.ConfigControlService;
 import com.example.control.thrift.HeartbeatRequest;
 import com.example.control.thrift.HeartbeatResponse;
@@ -18,7 +19,7 @@ public class ThriftHeartbeatHandler implements ConfigControlService.Iface {
     private final HeartbeatService heartbeatService;
 
     @Override
-    @Timed("config_control.thrift.heartbeat")
+    @Timed(MetricsNames.Thrift.HEARTBEAT)
     public HeartbeatResponse recordHeartbeat(HeartbeatRequest request) {
         log.debug("Received Thrift heartbeat from {}:{}",
                 request.getServiceName(), request.getInstanceId());

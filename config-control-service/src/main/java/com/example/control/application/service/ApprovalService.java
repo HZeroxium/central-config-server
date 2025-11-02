@@ -9,6 +9,7 @@ import com.example.control.application.query.ApplicationServiceQueryService;
 import com.example.control.application.service.helpers.ApprovalStatusEvaluator;
 import com.example.control.infrastructure.config.security.DomainPermissionEvaluator;
 import com.example.control.infrastructure.config.security.UserContext;
+import com.example.control.infrastructure.observability.MetricsNames;
 import com.example.control.domain.criteria.ApprovalDecisionCriteria;
 import com.example.control.domain.criteria.ApprovalRequestCriteria;
 import com.example.control.domain.valueobject.id.ApplicationServiceId;
@@ -17,6 +18,7 @@ import com.example.control.domain.valueobject.id.ApprovalRequestId;
 import com.example.control.domain.model.ApplicationService;
 import com.example.control.domain.model.ApprovalDecision;
 import com.example.control.domain.model.ApprovalRequest;
+import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.OptimisticLockingFailureException;
@@ -71,6 +73,8 @@ public class ApprovalService {
          * @return the created approval request
          */
         @Transactional
+        @Observed(name = MetricsNames.Approval.CREATE_REQUEST, contextualName = "approval-create-request", lowCardinalityKeyValues = {
+                        "operation", "create_request" })
         public ApprovalRequest createRequest(String serviceId, String targetTeamId, UserContext userContext) {
                 log.info("Creating approval request for service: {} to team: {} by user: {}",
                                 serviceId, targetTeamId, userContext.getUserId());
@@ -196,6 +200,8 @@ public class ApprovalService {
         @Transactional
         @Retryable(retryFor = {
                         OptimisticLockingFailureException.class }, maxAttempts = 3, backoff = @Backoff(delay = 100))
+        @Observed(name = MetricsNames.Approval.APPROVE, contextualName = "approval-submit-decision", lowCardinalityKeyValues = {
+                        "operation", "submit_decision" })
         public ApprovalDecision submitDecision(String requestId,
                         ApprovalDecision.Decision decision,
                         String gate,
