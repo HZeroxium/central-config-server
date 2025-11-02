@@ -21,14 +21,23 @@ import java.util.concurrent.atomic.AtomicLong;
  * This class provides custom metrics that are NOT covered by Spring Boot's
  * auto-instrumentation:
  * <ul>
- * <li>L1/L2 hit ratios for two-level cache</li>
- * <li>Error rate tracking</li>
+ * <li><b>Custom:</b> L1/L2 hit ratios for two-level cache (business
+ * requirement)</li>
+ * <li><b>Custom:</b> Error rate tracking per cache</li>
  * </ul>
  * <p>
- * Note: Spring Boot Actuator automatically instruments standard cache metrics:
- * {@code cache.gets}, {@code cache.puts}, {@code cache.evicts},
- * {@code cache.size},
- * {@code cache.hit.ratio}. This class only adds custom metrics beyond those.
+ * <b>Standard metrics (auto-instrumented by Spring Boot):</b>
+ * <ul>
+ * <li>{@code cache.gets} - Total cache get operations</li>
+ * <li>{@code cache.puts} - Total cache put operations</li>
+ * <li>{@code cache.evictions} - Total cache evictions</li>
+ * <li>{@code cache.size} - Current cache size</li>
+ * <li>{@code cache.hit.ratio} - Overall hit ratio (L1+L2 combined)</li>
+ * </ul>
+ * <p>
+ * <b>Why custom L1/L2 metrics?</b> Business requirement to track multi-level
+ * cache
+ * performance separately for optimization decisions.
  * <p>
  * Methods like {@code getHitRatio()}, {@code getOverallHitRatio()}, and
  * {@code getLatencyPercentile()} are provided for backward compatibility with
@@ -237,12 +246,13 @@ public class CacheMetrics {
    * @param percentile the percentile (0.0 to 1.0)
    * @return latency in milliseconds (0.0 if not available)
    */
-  public double getLatencyPercentile(String cacheName, double percentile) {
-    // Latency tracking has been removed - Spring Boot auto-instrumentation
-    // provides cache metrics via cache.gets timer
-    log.debug("Latency percentile not available - use Spring Boot auto-instrumented metrics");
-    return 0.0;
-  }
+  // public double getLatencyPercentile(String cacheName, double percentile) {
+  // // Latency tracking has been removed - Spring Boot auto-instrumentation
+  // // provides cache metrics via cache.gets timer
+  // log.debug("Latency percentile not available - use Spring Boot
+  // auto-instrumented metrics");
+  // return 0.0;
+  // }
 
   /**
    * Record a cache error.

@@ -41,17 +41,25 @@ import java.util.concurrent.ThreadPoolExecutor;
  * DelegatingSecurityContextAsyncTaskExecutor
  * (applied second)</li>
  * <li>Global async exception handler with metrics</li>
- * <li>Automatic metrics registration via Spring Boot
- * TaskExecutorMetricsAutoConfiguration</li>
+ * <li>Hybrid virtual threads support for I/O-bound tasks (Java 21+)</li>
  * <li>Consistent graceful shutdown with configurable timeout and force shutdown
  * option</li>
- * <li>Hybrid virtual threads support for I/O-bound tasks (Java 21+)</li>
  * </ul>
  * </p>
  * <p>
- * Metrics are automatically registered by Spring Boot Actuator's
- * {@link org.springframework.boot.actuate.autoconfigure.metrics.task.TaskExecutorMetricsAutoConfiguration}.
- * No manual metrics registration is needed.
+ * Metrics registration:
+ * <ul>
+ * <li>Platform thread executors ({@code rpcExecutor}, {@code defaultExecutor})
+ * are
+ * automatically instrumented by Spring Boot's
+ * {@link org.springframework.boot.actuate.autoconfigure.metrics.task.TaskExecutorMetricsAutoConfiguration}</li>
+ * <li>Virtual thread executors are automatically instrumented by Spring Boot
+ * 3.2+
+ * with {@code micrometer-java21} (via
+ * {@link org.springframework.boot.actuate.autoconfigure.metrics.task.TaskExecutorMetricsAutoConfiguration})</li>
+ * </ul>
+ * Metrics appear as {@code executor.active}, {@code executor.completed},
+ * {@code executor.queue.size}, etc., tagged by executor bean name.
  * </p>
  * <p>
  * TaskDecorator chaining order (verified correct):
@@ -149,11 +157,13 @@ public class AsyncConfig implements AsyncConfigurer {
    * propagation.
    * </p>
    *
-   * @param builder the task executor builder (for platform threads)
+   * @param builder       the task executor builder (for platform threads)
+   * @param meterRegistry Micrometer registry for metrics registration
    * @return configured notification executor with SecurityContext propagation
    */
   @Bean(name = "notificationExecutor")
-  public AsyncTaskExecutor notificationExecutor(ThreadPoolTaskExecutorBuilder builder) {
+  public AsyncTaskExecutor notificationExecutor(ThreadPoolTaskExecutorBuilder builder,
+      MeterRegistry meterRegistry) {
     AsyncProperties.PoolProps props = asyncProperties.getNotification();
 
     AsyncTaskExecutor executor;
@@ -164,21 +174,33 @@ public class AsyncConfig implements AsyncConfigurer {
       VirtualThreadTaskExecutor virtualExecutor = new VirtualThreadTaskExecutor(
           props.getThreadNamePrefix());
 
-      // Wrap with task decorator support
+      // Wrap with task decorator
+      // Metrics are automatically registered by Spring Boot 3.2+ with
+      // micrometer-java21
       executor = new AsyncTaskExecutor() {
         @Override
         public void execute(Runnable task) {
-          virtualExecutor.execute(taskDecorator.decorate(task));
+          Runnable decoratedTask = taskDecorator.decorate(task);
+          virtualExecutor.execute(decoratedTask);
         }
 
         @Override
         public java.util.concurrent.Future<?> submit(Runnable task) {
-          return virtualExecutor.submit(taskDecorator.decorate(task));
+          java.util.concurrent.CompletableFuture<Void> future = new java.util.concurrent.CompletableFuture<>();
+          Runnable decoratedTask = taskDecorator.decorate(() -> {
+            try {
+              task.run();
+              future.complete(null);
+            } catch (Exception e) {
+              future.completeExceptionally(e);
+            }
+          });
+          virtualExecutor.execute(decoratedTask);
+          return future;
         }
 
         @Override
         public <T> java.util.concurrent.Future<T> submit(java.util.concurrent.Callable<T> task) {
-          // Wrap callable in a runnable that preserves the result
           java.util.concurrent.CompletableFuture<T> future = new java.util.concurrent.CompletableFuture<>();
           Runnable decoratedTask = taskDecorator.decorate(() -> {
             try {
@@ -194,7 +216,7 @@ public class AsyncConfig implements AsyncConfigurer {
       };
 
       log.info(
-          "Configured notification executor with virtual threads: threadNamePrefix={}",
+          "Configured notification executor with virtual threads: threadNamePrefix={}, metrics auto-instrumented",
           props.getThreadNamePrefix());
     } else {
       // Use platform threads with pool configuration

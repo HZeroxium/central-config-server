@@ -14,7 +14,6 @@ import com.example.control.domain.model.ApplicationService;
 import com.example.control.domain.model.DriftEvent;
 import com.example.control.domain.model.HeartbeatPayload;
 import com.example.control.domain.model.ServiceInstance;
-import io.micrometer.core.annotation.Timed;
 import io.micrometer.observation.annotation.Observed;
 import io.micrometer.tracing.annotation.NewSpan;
 import io.micrometer.tracing.annotation.SpanTag;
@@ -96,7 +95,8 @@ public class HeartbeatService {
      */
     @Transactional
     @CacheEvict(value = { "service-instances", "drift-events" }, key = "#payload.instanceId")
-    @Timed("config_control.heartbeat.process")
+    // Using @Observed for both metrics and traces (when enabled)
+    // @Timed removed to avoid double-recording latency metrics
     @Observed(name = "heartbeat.process", contextualName = "process-heartbeat")
     public ServiceInstance processHeartbeat(
             @SpanTag("service.name") HeartbeatPayload payload) {

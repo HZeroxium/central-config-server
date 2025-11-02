@@ -1,20 +1,14 @@
 # Management/Actuator Configuration
 management:
+  # Tracing configuration (prepared for future distributed tracing support)
   tracing:
     enabled: true
     sampling:
       probability: 1.0 # For dev/testing - sample all traces
+  # Observations configuration
   observations:
     annotations:
       enabled: true # Enable annotation scanning for @Observed/@Timed/@Counted (Spring Boot 3.2+)
-  otlp:
-    tracing:
-      endpoint: ${MANAGEMENT_OTLP_TRACING_ENDPOINT:http://alloy:4318/v1/traces}
-    metrics:
-      export:
-        enabled: ${MANAGEMENT_OTLP_METRICS_EXPORT_ENABLED:true}
-        url: ${MANAGEMENT_OTLP_METRICS_EXPORT_URL:http://alloy:4318/v1/metrics}
-        step: 15s
   endpoints:
     web:
       exposure:
@@ -31,24 +25,17 @@ management:
     metrics:
       enabled: true
   metrics:
-    enable:
-      jvm: true
-      system: true
-      web: true
-      cache: true
-      database: true
     tags:
-      application: config-control-service
       service: config-control-service
-      service.name: config-control-service
       service.version: ${app.version:1.0.0}
       environment: ${ENVIRONMENT:development}
-      deployment.environment: ${ENVIRONMENT:development}
     distribution:
-      # Only enable histogram for critical metrics to avoid overhead
+      # Histogram configuration for SLO/SLI tracking
+      # WARNING: Histograms increase series count significantly
+      # Only enable for critical business metrics
       percentiles-histogram:
-        http.server.requests: true
-        config_control.heartbeat.process: true
+        http.server.requests: true # Critical: API latency SLO
+        config_control.heartbeat.process: true # Critical: Heartbeat processing SLO
       percentiles:
         http.server.requests: 0.5, 0.9, 0.95, 0.99
         config_control.heartbeat.process: 0.5, 0.9, 0.95, 0.99

@@ -2,8 +2,8 @@
 <!-- config-control-service/src/main/resources/log4j2-spring.xml -->
 <Configuration status="WARN" monitorInterval="30">
   <Properties>
-    <Property name="LOG_PATTERN">%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n</Property>
-    <Property name="LOG_PATTERN_COLOR">%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %highlight{%-5level} %style{%logger{36}}{cyan} - %msg%n</Property>
+    <Property name="LOG_PATTERN">%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} [traceId=%X{traceId:-}, spanId=%X{spanId:-}] - %msg%n</Property>
+    <Property name="LOG_PATTERN_COLOR">%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %highlight{%-5level} %style{%logger{36}}{cyan} [%highlight{[traceId=%X{traceId:-}, spanId=%X{spanId:-}]}{faint}] - %msg%n</Property>
     <Property name="LOG_PATTERN_JSON">{"timestamp":"%d{yyyy-MM-dd'T'HH:mm:ss.SSS'Z'}","level":"%level","logger":"%logger{36}","message":"%message","thread":"%thread","exception":"%ex{full}","service":"config-control-service"}</Property>
   </Properties>
 
@@ -14,15 +14,13 @@
     </Console>
 
     <!-- Console Appender with JSON Layout (for production / structured logging) -->
+    <!-- JsonLayout automatically includes MDC context (traceId, spanId, traceFlags) -->
     <Console name="ConsoleJson" target="SYSTEM_OUT">
-      <JsonLayout complete="false" compact="true" eventEol="true" stacktraceAsString="true">
+      <JsonLayout complete="true" compact="false" eventEol="true" stacktraceAsString="true" includeStacktrace="true">
         <KeyValuePair key="service" value="config-control-service"/>
         <KeyValuePair key="environment" value="${env:ENVIRONMENT:-dev}"/>
         <KeyValuePair key="container_id" value="${env:HOSTNAME:-unknown}"/>
         <KeyValuePair key="log_type" value="application"/>
-        <KeyValuePair key="trace_id" value="%X{traceId}"/>
-        <KeyValuePair key="span_id" value="%X{spanId}"/>
-        <KeyValuePair key="trace_flags" value="%X{traceFlags}"/>
       </JsonLayout>
     </Console>
 
@@ -43,6 +41,20 @@
       <Policies>
         <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
         <SizeBasedTriggeringPolicy size="50MB"/>
+      </Policies>
+      <DefaultRolloverStrategy max="30" compressionLevel="9"/>
+    </RollingFile>
+
+    <!-- JSON File Appender for structured logging (includes MDC context automatically) -->
+    <RollingFile name="JsonFileAppender" fileName="/app/logs/config-control-service.json" filePattern="/app/logs/config-control-service-%d{yyyy-MM-dd}-%i.json.gz" immediateFlush="true" append="true">
+      <JsonLayout complete="true" compact="false" eventEol="true" stacktraceAsString="true">
+        <KeyValuePair key="service" value="config-control-service"/>
+        <KeyValuePair key="environment" value="${env:ENVIRONMENT:-dev}"/>
+        <KeyValuePair key="container_id" value="${env:HOSTNAME:-unknown}"/>
+      </JsonLayout>
+      <Policies>
+        <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+        <SizeBasedTriggeringPolicy size="100MB"/>
       </Policies>
       <DefaultRolloverStrategy max="30" compressionLevel="9"/>
     </RollingFile>

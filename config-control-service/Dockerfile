@@ -16,11 +16,11 @@ COPY build/libs/*.jar app.jar
 USER appuser
 
 # Expose application port
-EXPOSE 8889
+EXPOSE 8080
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:8889/actuator/health || exit 1
+# Health check (using wget, as alpine image has wget by default)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1
 
 # Run the application
 ENTRYPOINT ["java", "-jar", "app.jar"]

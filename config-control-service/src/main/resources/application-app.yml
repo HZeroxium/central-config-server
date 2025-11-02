@@ -4,43 +4,6 @@ app:
   version: 1.0.0
   environment: ${ENVIRONMENT:development}
 
-  # Metrics configuration
-  metrics:
-    enabled: true
-    prefix: config_control
-    tags:
-      application: config-control-service
-      service: config-control-service
-    aspectj:
-      enabled: true
-      sampling-rate: 1.0
-      include-parameters: false
-    http:
-      enabled: true
-      track-payload-size: true
-      track-response-size: true
-    rpc:
-      enabled: true
-      thrift: true
-      grpc: true
-    cache:
-      enabled: true
-      track-hit-miss-ratio: true
-      track-evictions: true
-    business:
-      enabled: true
-      heartbeat: true
-      drift: true
-      config-refresh: true
-      instance-count: true
-      gauge-update-interval: 30s
-    histogram:
-      percentiles: [0.5, 0.75, 0.9, 0.95, 0.99]
-      percentiles-histogram: true
-      slo-boundaries: [10ms, 50ms, 100ms, 200ms, 500ms, 1s, 2s, 5s]
-      minimum-expected-value: 1ms
-      maximum-expected-value: 1m
-
   # Async execution configuration
   async:
     notification:
