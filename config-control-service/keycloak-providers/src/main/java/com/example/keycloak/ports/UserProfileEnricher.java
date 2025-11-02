@@ -9,7 +9,7 @@ import java.util.Optional;
  * infrastructure provides the implementation.
  */
 public interface UserProfileEnricher {
-    
+
     /**
      * Enrich user profile data based on username.
      * 
@@ -17,23 +17,19 @@ public interface UserProfileEnricher {
      * @return Optional containing enriched profile data, or empty if not found
      */
     Optional<EnrichedProfile> enrichProfile(String username);
-    
+
     /**
      * Record representing enriched user profile data.
      * Maps to Keycloak user attributes and properties.
      */
     record EnrichedProfile(
-        String email,
-        String firstName,
-        String lastName,
-        String phone,
-        String employeeId,
-        String department,
-        String jobTitle,
-        String officeLocation,
-        String hireDate,
-        String managerUsername,
-        List<String> realmRoles,
-        List<String> groups
-    ) {}
+            String email,
+            String firstName,
+            String lastName,
+            String phone,
+            String department,
+            String managerUsername,
+            List<String> realmRoles,
+            List<String> groups) {
+    }
 }

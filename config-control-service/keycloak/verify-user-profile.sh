@@ -43,7 +43,7 @@ echo "  ✓ User Profile configuration retrieved"
 # Check for custom attributes
 echo ""
 echo "Checking custom attributes..."
-ATTRIBUTES=("manager_id" "phone" "employee_id" "department" "job_title" "office_location" "hire_date")
+ATTRIBUTES=("manager_id" "phone" "department")
 ALL_ATTRIBUTES_FOUND=true
 
 for ATTR in "${ATTRIBUTES[@]}"; do
@@ -82,7 +82,6 @@ echo "  ✓ user2 found (ID: $USER2_ID)"
 # Check user2 attributes
 USER2_MANAGER_USERNAME=$(echo "$USER2_ATTRS" | jq -r '.manager_username[0] // empty')
 USER2_PHONE=$(echo "$USER2_ATTRS" | jq -r '.phone[0] // empty')
-USER2_EMPLOYEE_ID=$(echo "$USER2_ATTRS" | jq -r '.employee_id[0] // empty')
 
 if [ "$USER2_MANAGER_USERNAME" = "user1" ]; then
     echo "  ✓ user2 manager_username: $USER2_MANAGER_USERNAME"
@@ -94,12 +93,6 @@ if [ -n "$USER2_PHONE" ]; then
     echo "  ✓ user2 phone: $USER2_PHONE"
 else
     echo "  ✗ user2 phone not set"
-fi
-
-if [ -n "$USER2_EMPLOYEE_ID" ]; then
-    echo "  ✓ user2 employee_id: $USER2_EMPLOYEE_ID"
-else
-    echo "  ✗ user2 employee_id not set"
 fi
 
 # Check user4
@@ -120,7 +113,6 @@ echo "  ✓ user4 found (ID: $USER4_ID)"
 # Check user4 attributes
 USER4_MANAGER_USERNAME=$(echo "$USER4_ATTRS" | jq -r '.manager_username[0] // empty')
 USER4_PHONE=$(echo "$USER4_ATTRS" | jq -r '.phone[0] // empty')
-USER4_EMPLOYEE_ID=$(echo "$USER4_ATTRS" | jq -r '.employee_id[0] // empty')
 
 if [ "$USER4_MANAGER_USERNAME" = "user3" ]; then
     echo "  ✓ user4 manager_username: $USER4_MANAGER_USERNAME"
@@ -132,12 +124,6 @@ if [ -n "$USER4_PHONE" ]; then
     echo "  ✓ user4 phone: $USER4_PHONE"
 else
     echo "  ✗ user4 phone not set"
-fi
-
-if [ -n "$USER4_EMPLOYEE_ID" ]; then
-    echo "  ✓ user4 employee_id: $USER4_EMPLOYEE_ID"
-else
-    echo "  ✗ user4 employee_id not set"
 fi
 
 # Verify manager_id attributes are set
@@ -173,10 +159,10 @@ echo "Verification completed successfully!"
 echo "======================================================================"
 echo ""
 echo "Summary:"
-echo "  - User Profile: 7 custom attributes configured"
+echo "  - User Profile: 3 custom attributes configured (manager_id, phone, department)"
 echo "  - user2: manager_username=user1, manager_id set"
 echo "  - user4: manager_username=user3, manager_id set"
-echo "  - All users: phone, employee_id, department, job_title, office_location, hire_date"
+echo "  - All users: phone, department"
 echo ""
 echo "Keycloak Admin Console: $KEYCLOAK_URL/admin"
 echo "Realm: $REALM_NAME"

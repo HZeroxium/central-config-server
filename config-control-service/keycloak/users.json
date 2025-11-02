@@ -15,11 +15,7 @@
     ],
     "attributes": {
       "phone": ["+84912345000"],
-      "employee_id": ["EMP000"],
-      "department": ["IT"],
-      "job_title": ["System Administrator"],
-      "office_location": ["Hanoi Office"],
-      "hire_date": ["2020-01-01"]
+      "department": ["IT"]
     },
     "realmRoles": ["SYS_ADMIN"],
     "groups": []
@@ -40,11 +36,7 @@
     ],
     "attributes": {
       "phone": ["+84912345001"],
-      "employee_id": ["EMP001"],
-      "department": ["IT"],
-      "job_title": ["System Administrator"],
-      "office_location": ["Hanoi Office"],
-      "hire_date": ["2020-01-01"]
+      "department": ["IT"]
     },
     "realmRoles": ["SYS_ADMIN"],
     "groups": []
@@ -65,11 +57,7 @@
     ],
     "attributes": {
       "phone": ["+84912345001"],
-      "employee_id": ["EMP001"],
-      "department": ["Engineering"],
-      "job_title": ["Team Lead"],
-      "office_location": ["Hanoi Office"],
-      "hire_date": ["2022-03-15"]
+      "department": ["Engineering"]
     },
     "realmRoles": ["USER"],
     "groups": ["team1"]
@@ -91,11 +79,7 @@
     "attributes": {
       "manager_username": "user1",
       "phone": ["+84912345002"],
-      "employee_id": ["EMP002"],
-      "department": ["Engineering"],
-      "job_title": ["Software Engineer"],
-      "office_location": ["Hanoi Office"],
-      "hire_date": ["2023-06-15"]
+      "department": ["Engineering"]
     },
     "realmRoles": ["USER"],
     "groups": ["team1"]
@@ -116,11 +100,7 @@
     ],
     "attributes": {
       "phone": ["+84912345003"],
-      "employee_id": ["EMP003"],
-      "department": ["Engineering"],
-      "job_title": ["Senior Developer"],
-      "office_location": ["Hanoi Office"],
-      "hire_date": ["2021-09-01"]
+      "department": ["Engineering"]
     },
     "realmRoles": ["USER"],
     "groups": ["team2"]
@@ -142,11 +122,7 @@
     "attributes": {
       "manager_username": "user3",
       "phone": ["+84912345004"],
-      "employee_id": ["EMP004"],
-      "department": ["Engineering"],
-      "job_title": ["Junior Developer"],
-      "office_location": ["Hanoi Office"],
-      "hire_date": ["2024-01-10"]
+      "department": ["Engineering"]
     },
     "realmRoles": ["USER"],
     "groups": ["team2"]
@@ -167,14 +143,9 @@
     ],
     "attributes": {
       "phone": ["+84912345005"],
-      "employee_id": ["EMP005"],
-      "department": ["Engineering"],
-      "job_title": ["Contractor"],
-      "office_location": ["Remote"],
-      "hire_date": ["2024-02-01"]
+      "department": ["Engineering"]
     },
     "realmRoles": ["USER"],
     "groups": []
   }
 ]
-
