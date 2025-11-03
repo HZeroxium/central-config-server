@@ -1,0 +1,80 @@
+# prometheus-agent.yml
+# Prometheus Agent configuration for local metrics collection
+# Scrapes local services and forwards to remote Prometheus server
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'thrift-demo-local'
+    environment: 'development'
+    agent: 'local-collector'
+    location: 'local'
+
+# Scrape only local application services
+scrape_configs:
+  # Config Control Service (local)
+  - job_name: 'config-control-service-local'
+    static_configs:
+      - targets: ['config-control-service:8080']
+        labels:
+          service: 'config-control-service'
+          instance: 'local-instance'
+          location: 'local'
+    scrape_interval: 15s
+    metrics_path: /actuator/prometheus
+    scrape_timeout: 10s
+    honor_labels: true
+    params:
+      format: ['prometheus']
+
+  # Config Server (local)
+  # - job_name: 'config-server-local'
+  #   static_configs:
+  #     - targets: ['config-server:8888']
+  #       labels:
+  #         service: 'config-server'
+  #         instance: 'local-instance'
+  #         location: 'local'
+  #   scrape_interval: 15s
+  #   metrics_path: /actuator/prometheus
+  #   scrape_timeout: 10s
+  #   honor_labels: true
+  #   params:
+  #     format: ['prometheus']
+
+  # Sample Service (if enabled locally)
+  # - job_name: 'sample-service-local'
+  #   static_configs:
+  #     - targets: ['sample-service:8080']
+  #       labels:
+  #         service: 'sample-service'
+  #         instance: 'local-instance'
+  #         location: 'local'
+  #   scrape_interval: 15s
+  #   metrics_path: /actuator/prometheus
+  #   scrape_timeout: 10s
+  #   honor_labels: true
+  #   params:
+  #     format: ['prometheus']
+
+# Remote write to central Prometheus server
+remote_write:
+  - url: http://10.40.30.161:23090/api/v1/write
+    queue_config:
+      max_samples_per_send: 10000
+      batch_send_deadline: 5s
+      min_backoff: 30ms
+      max_backoff: 5s
+      # max_retries: 3
+    write_relabel_configs:
+      # Keep all metrics
+      - source_labels: [__name__]
+        regex: '.*'
+        action: keep
+    # Enable exemplars forwarding (if supported by remote)
+    send_exemplars: true
+    # Optional: Add authentication if needed
+    # basic_auth:
+    #   username: "prometheus"
+    #   password: "password"
