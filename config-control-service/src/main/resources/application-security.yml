@@ -33,10 +33,10 @@ spring:
 # Keycloak Admin client configuration (for optional IAM sync)
 keycloak:
   admin:
-    url: ${KEYCLOAK_ADMIN_URL:http://keycloak:8082}
+    url: ${KEYCLOAK_ADMIN_URL:http://keycloak:8080}
     realm: config-control
     client-id: ${KEYCLOAK_CLIENT_ID:config-control-service}
-    client-secret: ${KEYCLOAK_CLIENT_SECRET:}
+    client-secret: ${KEYCLOAK_CLIENT_SECRET:config-control-service-secret}
 
 # Springdoc OAuth2 configuration for Swagger UI
 springdoc:

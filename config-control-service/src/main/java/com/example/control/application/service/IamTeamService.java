@@ -1,7 +1,7 @@
 package com.example.control.application.service;
 
 import com.example.control.application.command.IamTeamCommandService;
-import com.example.control.application.query.IamTeamQueryService;
+import com.example.control.application.query.IamTeamQueryServiceV2;
 import com.example.control.domain.model.IamTeam;
 import com.example.control.domain.criteria.IamTeamCriteria;
 import com.example.control.domain.valueobject.id.IamTeamId;
@@ -32,7 +32,7 @@ import java.util.Optional;
 public class IamTeamService {
 
     private final IamTeamCommandService commandService;
-    private final IamTeamQueryService queryService;
+    private final IamTeamQueryServiceV2 queryService;
 
     /**
      * Save or update an IAM team.

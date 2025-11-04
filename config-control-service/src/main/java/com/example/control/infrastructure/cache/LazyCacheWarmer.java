@@ -6,6 +6,7 @@ import org.springframework.cache.CacheManager;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -47,7 +48,7 @@ public class LazyCacheWarmer {
         double missRate = 1.0 - hitRatio;
 
         if (missRate > MISS_RATE_THRESHOLD) {
-          log.info("Cache '{}' has high miss rate: {:.2f}%, considering warmup", cacheName, missRate * 100);
+          log.info("Cache '{}' has high miss rate: {}%, considering warmup", cacheName, String.format("%.2f", missRate * 100));
 
           // Check if we've warmed this cache recently
           Long lastWarmup = lastWarmupTime.get(cacheName);
@@ -84,10 +85,10 @@ public class LazyCacheWarmer {
    * Get overall cache health metrics.
    */
   public Map<String, Object> getCacheHealthMetrics() {
-    Map<String, Object> metrics = new java.util.HashMap<>();
+    Map<String, Object> metrics = new HashMap<>();
 
     cacheManager.getCacheNames().forEach(cacheName -> {
-      Map<String, Object> cacheMetricDetails = new java.util.HashMap<>();
+      Map<String, Object> cacheMetricDetails = new HashMap<>();
       cacheMetricDetails.put("hitRatio", cacheMetrics.getHitRatio(cacheName));
       cacheMetricDetails.put("missRate", 1.0 - cacheMetrics.getHitRatio(cacheName));
       metrics.put(cacheName, cacheMetricDetails);

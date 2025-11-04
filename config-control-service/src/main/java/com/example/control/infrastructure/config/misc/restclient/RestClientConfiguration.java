@@ -92,6 +92,31 @@ public class RestClientConfiguration {
     }
 
     /**
+     * Create RestClient for Keycloak Admin API with specific timeouts.
+     *
+     * @return Keycloak RestClient bean
+     */
+    @Bean(name = "keycloakRestClient")
+    public RestClient keycloakRestClient() {
+        RestClientProperties.ClientTimeout clientTimeout = restClientProperties.getClients()
+                .get("keycloak");
+
+        Duration connectTimeout = clientTimeout != null && clientTimeout.getConnectTimeout() != null
+                ? clientTimeout.getConnectTimeout()
+                : restClientProperties.getConnectTimeout();
+
+        Duration readTimeout = clientTimeout != null && clientTimeout.getReadTimeout() != null
+                ? clientTimeout.getReadTimeout()
+                : restClientProperties.getReadTimeout();
+
+        Duration writeTimeout = clientTimeout != null && clientTimeout.getWriteTimeout() != null
+                ? clientTimeout.getWriteTimeout()
+                : restClientProperties.getWriteTimeout();
+
+        return createRestClient("keycloak", connectTimeout, readTimeout, writeTimeout);
+    }
+
+    /**
      * Create RestClient with specified timeouts and deadline propagation.
      * <p>
      * Uses {@link RestClient#builder()} which ensures automatic instrumentation

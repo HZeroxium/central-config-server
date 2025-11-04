@@ -2,6 +2,7 @@ package com.example.control.application.service.infra;
 
 import com.example.control.application.query.ApplicationServiceQueryService;
 import com.example.control.application.query.IamUserQueryService;
+import com.example.control.application.query.IamUserQueryServiceV2;
 import com.example.control.domain.event.ApprovalRequestApprovedEvent;
 import com.example.control.domain.valueobject.id.ApplicationServiceId;
 import com.example.control.domain.valueobject.id.IamUserId;
@@ -32,7 +33,7 @@ public class EmailNotificationService {
 
   private final NotificationServicePort notificationServicePort;
   private final EmailTemplateService emailTemplateService;
-  private final IamUserQueryService iamUserQueryService;
+  private final IamUserQueryServiceV2 iamUserQueryService;
   private final ApplicationServiceQueryService applicationServiceQueryService;
 
   private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("MMMM dd, yyyy 'at' HH:mm:ss");

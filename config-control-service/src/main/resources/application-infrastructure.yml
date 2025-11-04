@@ -37,6 +37,10 @@ rest-client:
       connect-timeout: 5s
       read-timeout: 10s
       write-timeout: 10s
+    keycloak:
+      connect-timeout: 5s
+      read-timeout: 10s
+      write-timeout: 10s
 
 # Thrift Server Configuration
 thrift:

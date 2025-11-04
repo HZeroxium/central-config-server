@@ -1,7 +1,7 @@
 package com.example.control.application.service;
 
 import com.example.control.application.command.IamUserCommandService;
-import com.example.control.application.query.IamUserQueryService;
+import com.example.control.application.query.IamUserQueryServiceV2;
 import com.example.control.domain.model.IamUser;
 import com.example.control.domain.criteria.IamUserCriteria;
 import com.example.control.domain.valueobject.id.IamUserId;
@@ -32,7 +32,7 @@ import java.util.Optional;
 public class IamUserService {
 
     private final IamUserCommandService commandService;
-    private final IamUserQueryService queryService;
+    private final IamUserQueryServiceV2 queryService;
 
     /**
      * Save or update an IAM user.
