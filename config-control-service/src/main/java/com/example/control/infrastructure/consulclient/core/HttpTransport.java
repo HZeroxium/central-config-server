@@ -78,9 +78,19 @@ public class HttpTransport {
     public <T> ConsulResponse<T> put(String path, Object body, WriteOptions writeOptions, Class<T> responseType) {
         return executeRequest(() -> {
             RestClient.RequestBodySpec request = restClient.put()
-                    .uri(buildUri(path, writeOptions))
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(body);
+                    .uri(buildUri(path, writeOptions));
+
+            // Determine content type based on body type
+            if (body instanceof byte[]) {
+                request.contentType(MediaType.APPLICATION_OCTET_STREAM);
+                request.body((byte[]) body);
+            } else if (body instanceof String) {
+                request.contentType(MediaType.TEXT_PLAIN);
+                request.body((String) body);
+            } else {
+                request.contentType(MediaType.APPLICATION_JSON);
+                request.body(body);
+            }
 
             addHeaders(request, writeOptions);
 
@@ -151,6 +161,12 @@ public class HttpTransport {
                     .headers(headers)
                     .build();
 
+        } catch (org.springframework.web.client.HttpClientErrorException.NotFound e) {
+            // Consul returns 404 when key doesn't exist - return response with null body
+            log.debug("Resource not found (404): {}", e.getMessage());
+            return ConsulResponse.<T>builder()
+                    .body(null)
+                    .build();
         } catch (Exception e) {
             log.error("Request failed", e);
             throw new ConsulException("Request failed: " + e.getMessage(), e);

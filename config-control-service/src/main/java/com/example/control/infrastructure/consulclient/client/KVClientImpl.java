@@ -27,10 +27,24 @@ public class KVClientImpl implements KVClient {
 
     @Override
     public ConsulResponse<Optional<KVPair>> get(String key, QueryOptions options) {
-        log.debug("Getting KV key: {}", key);
+        log.debug("Getting KV key: {} with raw: {}", key, options != null && Boolean.TRUE.equals(options.getRaw()));
 
         try {
             String path = "/v1/kv/" + key;
+            
+            // When raw=true, Consul returns raw bytes (text/plain), not JSON
+            if (options != null && Boolean.TRUE.equals(options.getRaw())) {
+                ConsulResponse<byte[]> rawResponse = httpTransport.get(path, options, byte[].class);
+                byte[] rawBytes = rawResponse.getBody();
+                if (rawBytes == null || rawBytes.length == 0) {
+                    return ConsulResponse.of(Optional.empty(), rawResponse.getConsulIndex());
+                }
+                // Create KVPair with raw bytes (will be base64 encoded in the value field)
+                KVPair kvPair = KVPair.withValueBytes(key, rawBytes, 0, 0, rawResponse.getConsulIndex() != null ? rawResponse.getConsulIndex() : 0, 0, null);
+                return ConsulResponse.of(Optional.of(kvPair), rawResponse.getConsulIndex());
+            }
+            
+            // Normal JSON response
             ConsulResponse<JsonNode> response = httpTransport.get(path, options, JsonNode.class);
 
             JsonNode node = response.getBody();
@@ -50,6 +64,10 @@ public class KVClientImpl implements KVClient {
                 return ConsulResponse.of(Optional.of(kvPair), response.getConsulIndex());
             }
 
+        } catch (org.springframework.web.client.HttpClientErrorException.NotFound e) {
+            // Consul returns 404 when key doesn't exist - map to Optional.empty()
+            log.debug("KV key not found: {}", key);
+            return ConsulResponse.of(Optional.empty(), null);
         } catch (Exception e) {
             log.error("Failed to get KV key: {}", key, e);
             throw new ConsulException("Failed to get KV key: " + key, e);
@@ -72,6 +90,45 @@ public class KVClientImpl implements KVClient {
             List<KVPair> kvPairs = objectMapper.convertValue(node, new TypeReference<List<KVPair>>() {
             });
             return ConsulResponse.of(kvPairs, response.getConsulIndex());
+
+        } catch (Exception e) {
+            log.error("Failed to list KV keys with prefix: {}", prefix, e);
+            throw new ConsulException("Failed to list KV keys with prefix: " + prefix, e);
+        }
+    }
+
+    @Override
+    public ConsulResponse<List<String>> listKeys(String prefix, QueryOptions options) {
+        log.debug("Listing KV keys (keys-only) with prefix: {}", prefix);
+
+        try {
+            String path = "/v1/kv/" + prefix;
+            
+            // Ensure keys=true and recurse in options
+            QueryOptions keysOptions = QueryOptions.builder()
+                    .consistent(options != null && Boolean.TRUE.equals(options.getConsistent()))
+                    .stale(options != null && Boolean.TRUE.equals(options.getStale()))
+                    .recurse(options == null || Boolean.TRUE.equals(options.getRecurse()))
+                    .keys(true)
+                    .separator(options != null ? options.getSeparator() : null)
+                    .build();
+            
+            ConsulResponse<JsonNode> response = httpTransport.get(path, keysOptions, JsonNode.class);
+
+            JsonNode node = response.getBody();
+            if (node == null || !node.isArray()) {
+                return ConsulResponse.of(List.of(), response.getConsulIndex());
+            }
+
+            // When keys=true, Consul returns array of strings
+            List<String> keys = new java.util.ArrayList<>();
+            for (JsonNode keyNode : node) {
+                if (keyNode.isTextual()) {
+                    keys.add(keyNode.asText());
+                }
+            }
+            
+            return ConsulResponse.of(keys, response.getConsulIndex());
 
         } catch (Exception e) {
             log.error("Failed to list KV keys with prefix: {}", prefix, e);

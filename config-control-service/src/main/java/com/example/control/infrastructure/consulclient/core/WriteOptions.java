@@ -28,6 +28,11 @@ public class WriteOptions {
     private Duration timeout;
 
     /**
+     * Recurse delete (for DELETE operations).
+     */
+    private Boolean recurse;
+
+    /**
      * Build query parameters as a string.
      *
      * @return query string with parameters
@@ -41,12 +46,14 @@ public class WriteOptions {
             first = false;
         }
 
-        if (token != null && !token.isEmpty()) {
-            if (!first)
-                query.append("&");
-            query.append("token=").append(token);
+        if (Boolean.TRUE.equals(recurse)) {
+            if (!first) query.append("&");
+            query.append("recurse=true");
             first = false;
         }
+
+        // Token should NOT be in query string (deprecated), use header instead
+        // Removed token from query string to follow Consul best practices
 
         return query.toString();
     }

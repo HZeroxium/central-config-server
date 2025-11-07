@@ -18,9 +18,16 @@ public class QueryOptions {
     private String datacenter;
 
     /**
-     * Consistency mode for the query.
+     * Use consistent read (query leader for strong consistency).
+     * Mutually exclusive with stale.
      */
-    private Consistency consistency;
+    private Boolean consistent;
+
+    /**
+     * Use stale read (allow reads from followers for better performance).
+     * Mutually exclusive with consistent.
+     */
+    private Boolean stale;
 
     /**
      * Minimum index for blocking queries.
@@ -41,6 +48,27 @@ public class QueryOptions {
      * Use cached results when available.
      */
     private Boolean cached;
+
+    /**
+     * Recurse into subdirectories (for list operations).
+     */
+    private Boolean recurse;
+
+    /**
+     * Return only keys, not full entries (for list operations).
+     * Implies recurse.
+     */
+    private Boolean keys;
+
+    /**
+     * Separator for directory-like listing (e.g., "/").
+     */
+    private String separator;
+
+    /**
+     * Return raw value instead of JSON metadata (for get operations).
+     */
+    private Boolean raw;
 
     /**
      * ACL token for the request.
@@ -66,9 +94,14 @@ public class QueryOptions {
             first = false;
         }
 
-        if (consistency != null) {
+        // Consistency flags: ?consistent or ?stale (mutually exclusive)
+        if (Boolean.TRUE.equals(consistent)) {
             if (!first) query.append("&");
-            query.append("consistency=").append(consistency.name().toLowerCase());
+            query.append("consistent");
+            first = false;
+        } else if (Boolean.TRUE.equals(stale)) {
+            if (!first) query.append("&");
+            query.append("stale");
             first = false;
         }
 
@@ -96,11 +129,32 @@ public class QueryOptions {
             first = false;
         }
 
-        if (token != null && !token.isEmpty()) {
+        if (Boolean.TRUE.equals(recurse)) {
             if (!first) query.append("&");
-            query.append("token=").append(token);
+            query.append("recurse");
             first = false;
         }
+
+        if (Boolean.TRUE.equals(keys)) {
+            if (!first) query.append("&");
+            query.append("keys");
+            first = false;
+        }
+
+        if (separator != null && !separator.isEmpty()) {
+            if (!first) query.append("&");
+            query.append("separator=").append(separator);
+            first = false;
+        }
+
+        if (Boolean.TRUE.equals(raw)) {
+            if (!first) query.append("&");
+            query.append("raw");
+            first = false;
+        }
+
+        // Token should NOT be in query string (deprecated), use header instead
+        // Removed token from query string to follow Consul best practices
 
         return query.toString();
     }

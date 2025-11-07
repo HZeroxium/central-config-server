@@ -1,7 +1,6 @@
 package com.example.control.application.service.infra;
 
 import com.example.control.application.query.ApplicationServiceQueryService;
-import com.example.control.application.query.IamUserQueryService;
 import com.example.control.application.query.IamUserQueryServiceV2;
 import com.example.control.domain.event.ApprovalRequestApprovedEvent;
 import com.example.control.domain.valueobject.id.ApplicationServiceId;
@@ -50,6 +49,13 @@ public class EmailNotificationService {
 
       // Fetch requester details
       Optional<IamUser> requesterOpt = iamUserQueryService.findById(IamUserId.of(event.getRequesterUserId()));
+
+      // If requester not found, try to find by username (for testing purposes)
+      if (requesterOpt.isEmpty()) {
+        requesterOpt = iamUserQueryService.findByUsername(event.getRequesterUserId());
+      }
+
+      // If still not found, try to create a mock requester user (for testing purposes)
       if (requesterOpt.isEmpty()) {
         // Currently implement a mock requester user for the approval request 
         requesterOpt = Optional.of(IamUser.builder()

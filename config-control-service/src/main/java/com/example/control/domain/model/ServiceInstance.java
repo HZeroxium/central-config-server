@@ -1,6 +1,9 @@
 package com.example.control.domain.model;
 
 import com.example.control.domain.valueobject.id.ServiceInstanceId;
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -103,6 +106,7 @@ public class ServiceInstance {
     /**
      * Indicates whether configuration drift has been detected.
      */
+    @JsonAlias("drifted")
     private Boolean hasDrift;
 
     /**
@@ -124,6 +128,7 @@ public class ServiceInstance {
      *
      * @return {@code true} if drift detected, otherwise {@code false}
      */
+    @JsonIgnore
     public boolean isDrifted() {
         return Boolean.TRUE.equals(hasDrift);
     }

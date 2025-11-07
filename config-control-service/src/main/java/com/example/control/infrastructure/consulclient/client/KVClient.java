@@ -52,6 +52,25 @@ public interface KVClient {
     }
 
     /**
+     * List only keys (without values) under a prefix.
+     *
+     * @param prefix  the key prefix
+     * @param options query options
+     * @return response with list of key paths (strings)
+     */
+    ConsulResponse<List<String>> listKeys(String prefix, QueryOptions options);
+
+    /**
+     * List only keys with default options.
+     *
+     * @param prefix the key prefix
+     * @return response with list of key paths
+     */
+    default ConsulResponse<List<String>> listKeys(String prefix) {
+        return listKeys(prefix, null);
+    }
+
+    /**
      * Put a key-value pair.
      *
      * @param key     the key

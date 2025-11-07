@@ -64,6 +64,14 @@ public class IamUserQueryServiceV2 {
         return Optional.of(user);
     }
 
+    @Cacheable(value = "iam-users", key = "#username")
+    public Optional<IamUser> findByUsername(String username) {
+        // Currently fillAll then find the user by username
+        Page<IamUser> users = findAll(IamUserCriteria.builder().username(username).build(), Pageable.unpaged());
+        Optional<IamUser> user = users.stream().filter(u -> u.getUsername().equals(username)).findFirst();
+        return user;
+    }
+
     /**
      * Find all user IDs that belong to any of the specified teams.
      *
