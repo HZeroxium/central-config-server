@@ -73,6 +73,12 @@ const LoginCallbackPage = lazy(
   () => import("@features/auth/pages/LoginCallbackPage")
 );
 const UnauthorizedPage = lazy(() => import("../pages/UnauthorizedPage"));
+const KVStoreListPage = lazy(
+  () => import("@features/key-value-store/pages/KVStoreListPage")
+);
+const KVStorePage = lazy(
+  () => import("@features/key-value-store/pages/KVStorePage")
+);
 
 export const router = createBrowserRouter([
   {
@@ -152,6 +158,41 @@ export const router = createBrowserRouter([
               <ProtectedRoute>
                 <Suspense fallback={<Loading />}>
                   <ConfigDetailPage />
+                </Suspense>
+              </ProtectedRoute>
+            ),
+          },
+        ],
+      },
+      {
+        path: "kv",
+        children: [
+          {
+            index: true,
+            element: (
+              <ProtectedRoute>
+                <Suspense fallback={<Loading />}>
+                  <KVStoreListPage />
+                </Suspense>
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: ":serviceId",
+            element: (
+              <ProtectedRoute>
+                <Suspense fallback={<Loading />}>
+                  <KVStorePage />
+                </Suspense>
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: ":serviceId/*",
+            element: (
+              <ProtectedRoute>
+                <Suspense fallback={<Loading />}>
+                  <KVStorePage />
                 </Suspense>
               </ProtectedRoute>
             ),

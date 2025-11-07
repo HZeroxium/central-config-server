@@ -25,6 +25,7 @@ import PersonIcon from "@mui/icons-material/Person";
 import GroupIcon from "@mui/icons-material/Group";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import StorageIcon from "@mui/icons-material/Storage";
 import SidebarHeader from "./SidebarHeader";
 import SidebarItem from "./SidebarItem";
 import { usePermissions } from "@features/auth/hooks/usePermissions";
@@ -84,6 +85,12 @@ export function Sidebar({ open, onToggle }: SidebarProps) {
         path: "/configs",
         label: "Config Server",
         icon: <SettingsIcon />,
+        badge: undefined,
+      },
+      {
+        path: "/kv",
+        label: "Key-Value Store",
+        icon: <StorageIcon />,
         badge: undefined,
       },
       {

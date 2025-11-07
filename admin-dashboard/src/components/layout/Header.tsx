@@ -144,7 +144,7 @@ export function Header({ isVisible, drawerWidth, isMobile }: HeaderProps) {
 
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
               {/* Search bar */}
-              <TextField
+              {/* <TextField
                 ref={searchInputRef}
                 placeholder="Search... (Ctrl+K)"
                 size="small"
@@ -166,7 +166,7 @@ export function Header({ isVisible, drawerWidth, isMobile }: HeaderProps) {
                   },
                 }}
                 aria-label="Search commands and navigate"
-              />
+              /> */}
 
               {/* Theme toggle */}
               <IconButton

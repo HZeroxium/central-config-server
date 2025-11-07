@@ -1,5 +1,8 @@
 import { createTheme, type Theme } from "@mui/material/styles";
 
+// Shared layout constants
+export const HEADER_HEIGHT = 64;
+
 /**
  * Create app theme based on mode (light/dark)
  */
@@ -7,6 +10,14 @@ export const createAppTheme = (mode: "light" | "dark"): Theme => {
   const isLight = mode === "light";
 
   return createTheme({
+    zIndex: {
+      // Ensure dialogs/modals appear above the AppBar
+      modal: 1700,
+      snackbar: 1600,
+      appBar: 1200,
+      drawer: 1100,
+      tooltip: 1800,
+    },
     palette: {
       mode,
       primary: {
@@ -172,6 +183,25 @@ export const createAppTheme = (mode: "light" | "dark"): Theme => {
         : "0px 72px 152px rgba(0, 0, 0, 0.3)",
     ],
     components: {
+      MuiDialog: {
+        defaultProps: {
+          // Keep scroll lock for proper background handling
+          keepMounted: true,
+        },
+        styleOverrides: {
+          paper: {
+            // Slight elevation and border for clarity over blurred header
+            border: `1px solid ${isLight ? "#e5e7eb" : "#334155"}`,
+          },
+        },
+      },
+      MuiModal: {
+        styleOverrides: {
+          root: {
+            zIndex: 1700,
+          },
+        },
+      },
       MuiAppBar: {
         styleOverrides: {
           root: {

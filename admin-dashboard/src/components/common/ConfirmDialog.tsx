@@ -12,7 +12,7 @@ import {
 interface ConfirmDialogProps {
   open: boolean;
   title: string;
-  message: string;
+  message: React.ReactNode;
   confirmText?: string;
   cancelText?: string;
   confirmColor?: 'primary' | 'secondary' | 'error' | 'warning' | 'info' | 'success';
@@ -45,9 +45,13 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         </Typography>
       </DialogTitle>
       <DialogContent>
-        <DialogContentText>
-          {message}
-        </DialogContentText>
+        {typeof message === 'string' ? (
+          <DialogContentText>
+            {message}
+          </DialogContentText>
+        ) : (
+          message
+        )}
       </DialogContent>
       <DialogActions sx={{ p: 3, pt: 1 }}>
         <Button onClick={onCancel} disabled={loading}>

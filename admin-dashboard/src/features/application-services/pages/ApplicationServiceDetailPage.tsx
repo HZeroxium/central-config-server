@@ -66,6 +66,7 @@ import { ApplicationServiceForm } from "../components/ApplicationServiceForm";
 import { ServiceShareDrawer } from "../components/ServiceShareDrawer";
 import { ServiceSharesTab } from "../components/ServiceSharesTab";
 import { ApprovalsTab } from "../components/ApprovalsTab";
+import { KVStorePage } from "@features/key-value-store/pages";
 import type { FindAllServiceInstancesEnvironment } from "@lib/api/models";
 
 export default function ApplicationServiceDetailPage() {
@@ -456,6 +457,7 @@ export default function ApplicationServiceDetailPage() {
           <Tab label="Instances" />
           <Tab label="Shares" />
           <Tab label="Approvals" />
+          <Tab label="Key-Value Store" />
         </Tabs>
       </Box>
 
@@ -786,6 +788,13 @@ export default function ApplicationServiceDetailPage() {
 
       {/* Approvals Tab */}
       {tabValue === 3 && id && <ApprovalsTab serviceId={id} />}
+
+      {/* Key-Value Store Tab */}
+      {tabValue === 4 && id && (
+        <Box sx={{ mt: -3 }}>
+          <KVStorePage serviceId={id} hideHeader={true} />
+        </Box>
+      )}
 
       {/* Edit Service Drawer */}
       <Drawer

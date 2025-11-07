@@ -15,6 +15,7 @@ import {
 } from "@mui/icons-material";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
+import { useCommandPalette } from "@components/common/CommandPalette";
 
 export interface QuickAction {
   id: string;
@@ -54,6 +55,7 @@ export function QuickActionsMenu({
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { setOpen: setCommandPaletteOpen } = useCommandPalette();
 
   // Track scroll position
   useEffect(() => {
@@ -81,7 +83,7 @@ export function QuickActionsMenu({
       label: "Search",
       icon: <SearchIcon />,
       onClick: () => {
-        // TODO: Open search/command palette (Phase 4.3)
+        setCommandPaletteOpen(true);
         setAnchorEl(null);
       },
     },

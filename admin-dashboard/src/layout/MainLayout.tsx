@@ -117,7 +117,7 @@ export default function MainLayout() {
       >
         <Toolbar /> {/* Spacer for fixed header */}
         <Outlet />
-        <QuickActionsMenu />
+        {/* <QuickActionsMenu /> */}
         <CommandPalette
           open={commandPaletteOpen}
           onClose={() => setCommandPaletteOpen(false)}
