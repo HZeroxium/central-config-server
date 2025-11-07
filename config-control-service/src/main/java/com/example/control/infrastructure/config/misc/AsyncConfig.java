@@ -16,7 +16,10 @@ import org.springframework.security.task.DelegatingSecurityContextAsyncTaskExecu
 
 import io.micrometer.core.instrument.MeterRegistry;
 
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 
 /**
@@ -185,8 +188,8 @@ public class AsyncConfig implements AsyncConfigurer {
         }
 
         @Override
-        public java.util.concurrent.Future<?> submit(Runnable task) {
-          java.util.concurrent.CompletableFuture<Void> future = new java.util.concurrent.CompletableFuture<>();
+        public Future<?> submit(Runnable task) {
+          CompletableFuture<Void> future = new CompletableFuture<>();
           Runnable decoratedTask = taskDecorator.decorate(() -> {
             try {
               task.run();
@@ -200,8 +203,8 @@ public class AsyncConfig implements AsyncConfigurer {
         }
 
         @Override
-        public <T> java.util.concurrent.Future<T> submit(java.util.concurrent.Callable<T> task) {
-          java.util.concurrent.CompletableFuture<T> future = new java.util.concurrent.CompletableFuture<>();
+        public <T> Future<T> submit(Callable<T> task) {
+          CompletableFuture<T> future = new CompletableFuture<>();
           Runnable decoratedTask = taskDecorator.decorate(() -> {
             try {
               T result = task.call();

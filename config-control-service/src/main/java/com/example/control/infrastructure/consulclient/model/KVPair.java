@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
 /**
@@ -65,7 +66,7 @@ public record KVPair(
      */
     public static KVPair withStringValue(String key, String stringValue, long flags,
                                          long createIndex, long modifyIndex, long lockIndex, String session) {
-        String base64Value = stringValue != null ? Base64.getEncoder().encodeToString(stringValue.getBytes()) : "";
+        String base64Value = stringValue != null ? Base64.getEncoder().encodeToString(stringValue.getBytes(StandardCharsets.UTF_8)) : "";
         return new KVPair(key, base64Value, flags, createIndex, modifyIndex, lockIndex, session);
     }
 

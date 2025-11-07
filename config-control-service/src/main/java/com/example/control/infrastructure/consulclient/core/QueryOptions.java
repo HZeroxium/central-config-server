@@ -40,16 +40,6 @@ public class QueryOptions {
     private Duration wait;
 
     /**
-     * Filter expression for the query.
-     */
-    private String filter;
-
-    /**
-     * Use cached results when available.
-     */
-    private Boolean cached;
-
-    /**
      * Recurse into subdirectories (for list operations).
      */
     private Boolean recurse;
@@ -114,18 +104,6 @@ public class QueryOptions {
         if (wait != null) {
             if (!first) query.append("&");
             query.append("wait=").append(wait.toSeconds()).append("s");
-            first = false;
-        }
-
-        if (filter != null && !filter.isEmpty()) {
-            if (!first) query.append("&");
-            query.append("filter=").append(filter);
-            first = false;
-        }
-
-        if (cached != null) {
-            if (!first) query.append("&");
-            query.append("cached=").append(cached);
             first = false;
         }
 
