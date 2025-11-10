@@ -19,18 +19,37 @@ import { handleApiError } from "@lib/api/errorHandler";
 
 export interface UseKVStoreOptions {
   serviceId: string;
-  path?: string;
+  /** Current prefix for navigation */
+  prefix?: string;
+  /** Selected entry path (for fetching entry value) */
+  selectedPath?: string;
+  /** List parameters (optional, defaults to keysOnly=true, recurse=false) */
   listParams?: ListKVEntriesParams;
+  /** Get entry parameters */
   getParams?: GetKVEntryParams;
 }
 
 export function useKVStore(options: UseKVStoreOptions) {
-  const { serviceId, path, listParams, getParams } = options;
+  const {
+    serviceId,
+    prefix = "",
+    selectedPath,
+    listParams,
+    getParams,
+  } = options;
 
-  // List entries
+  // Optimized list query: keysOnly=true, recurse=false for navigation
+  const optimizedListParams: ListKVEntriesParams = {
+    prefix,
+    keysOnly: true,
+    recurse: false,
+    ...listParams, // Allow override if needed
+  };
+
+  // List keys (for navigation)
   const listQuery = useListKVEntries(
     serviceId,
-    listParams,
+    optimizedListParams,
     {
       query: {
         enabled: !!serviceId,
@@ -39,14 +58,14 @@ export function useKVStore(options: UseKVStoreOptions) {
     }
   );
 
-  // Get single entry
+  // Get single entry (only when a leaf node is selected)
   const getQuery = useGetKVEntry(
     serviceId,
-    path || "",
+    selectedPath || "",
     getParams,
     {
       query: {
-        enabled: !!serviceId && !!path,
+        enabled: !!serviceId && !!selectedPath,
         staleTime: 10_000,
       },
     }
@@ -59,7 +78,7 @@ export function useKVStore(options: UseKVStoreOptions) {
         toast.success("KV entry saved successfully");
         // Invalidate queries
         listQuery.refetch();
-        if (path) {
+        if (selectedPath) {
           getQuery.refetch();
         }
       },
@@ -85,7 +104,7 @@ export function useKVStore(options: UseKVStoreOptions) {
         toast.success("KV entry deleted successfully");
         // Invalidate queries
         listQuery.refetch();
-        if (path) {
+        if (selectedPath) {
           getQuery.refetch();
         }
       },
@@ -133,8 +152,20 @@ export function useKVStore(options: UseKVStoreOptions) {
     });
   };
 
+  // Extract keys from response (handles both KeysResponse and ListResponse)
+  const keys = listQuery.data
+    ? "keys" in listQuery.data && Array.isArray(listQuery.data.keys)
+      ? listQuery.data.keys
+      : []
+    : [];
+
   return {
-    // List data
+    // List data (keys)
+    keys,
+    keysLoading: listQuery.isLoading,
+    keysError: listQuery.error,
+    refetchKeys: listQuery.refetch,
+    // Legacy support
     entries: listQuery.data,
     entriesLoading: listQuery.isLoading,
     entriesError: listQuery.error,

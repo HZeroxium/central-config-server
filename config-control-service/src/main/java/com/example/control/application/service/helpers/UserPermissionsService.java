@@ -147,6 +147,7 @@ public class UserPermissionsService {
             uiRoutes.add("/service-shares");
             uiRoutes.add("/iam/users");
             uiRoutes.add("/iam/teams");
+            uiRoutes.add("/kv");
             return uiRoutes;
         }
 
@@ -157,6 +158,7 @@ public class UserPermissionsService {
             uiRoutes.add("/drift-events");
             uiRoutes.add("/approvals");
             uiRoutes.add("/service-shares");
+            uiRoutes.add("/kv");
         }
 
         return uiRoutes;

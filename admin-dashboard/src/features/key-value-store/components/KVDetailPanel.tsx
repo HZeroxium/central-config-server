@@ -31,7 +31,7 @@ import type { KVPutRequest } from "@lib/api/models";
 export interface KVDetailPanelProps {
   entry?: KVEntry;
   path: string;
-  onEdit: (data: KVPutRequest) => Promise<void>;
+  onEdit: (path: string, data: KVPutRequest) => Promise<void>;
   onDelete: () => Promise<void>;
   onRefresh: () => void;
   isReadOnly?: boolean;
@@ -54,8 +54,8 @@ export function KVDetailPanel({
   const [tabValue, setTabValue] = useState(0);
   const [editMode, setEditMode] = useState(false);
 
-  const handleEdit = async (data: KVPutRequest) => {
-    await onEdit(data);
+  const handleEdit = async (editPath: string, data: KVPutRequest) => {
+    await onEdit(editPath, data);
     setEditMode(false);
   };
 

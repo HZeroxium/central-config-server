@@ -7,10 +7,6 @@ import {
   Box,
   TextField,
   Button,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Stack,
   Typography,
   Alert,
@@ -20,14 +16,18 @@ import {
   Save as SaveIcon,
   Cancel as CancelIcon,
 } from "@mui/icons-material";
-import type { KVEntry, KVEncoding } from "../types";
+import type { KVEntry, KVEncoding, PathValidationResult } from "../types";
 import type { KVPutRequest } from "@lib/api/models";
-import { KVPutRequestEncoding } from "@lib/api/models";
+import { validateKVPath } from "../types";
+import { KVJsonEditor } from "./KVJsonEditor";
 
 export interface KVEntryEditorProps {
   entry?: KVEntry;
+  /** Initial path (can be edited for new entries) */
   path: string;
-  onSave: (data: KVPutRequest) => Promise<void>;
+  /** Current prefix for pre-filling path */
+  currentPrefix?: string;
+  onSave: (path: string, data: KVPutRequest) => Promise<void>;
   onCancel: () => void;
   isReadOnly?: boolean;
   isSaving?: boolean;
@@ -35,21 +35,28 @@ export interface KVEntryEditorProps {
 
 export function KVEntryEditor({
   entry,
-  path,
+  path: initialPath,
+  currentPrefix = "",
   onSave,
   onCancel,
   isReadOnly = false,
   isSaving = false,
 }: KVEntryEditorProps) {
   const isEdit = !!entry;
+  const [path, setPath] = useState(initialPath);
   const [value, setValue] = useState("");
   const [encoding, setEncoding] = useState<KVEncoding>("utf8");
   const [flags, setFlags] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
+  const [pathValidation, setPathValidation] = useState<PathValidationResult>({
+    isValid: true,
+  });
 
   // Initialize form from entry
   useEffect(() => {
     if (entry) {
+      // Path cannot be changed when editing
+      setPath(entry.path || initialPath);
       // Decode base64 value
       if (entry.valueBase64) {
         try {
@@ -62,19 +69,64 @@ export function KVEntryEditor({
       setFlags(entry.flags || 0);
       setEncoding("utf8"); // Default encoding
     } else {
-      // New entry
+      // New entry: pre-fill path with current prefix
+      if (currentPrefix) {
+        const normalizedPrefix = currentPrefix.endsWith("/")
+          ? currentPrefix.slice(0, -1)
+          : currentPrefix;
+        setPath(`${normalizedPrefix}/new-key`);
+      } else {
+        setPath("new-key");
+      }
       setValue("");
       setEncoding("utf8");
       setFlags(0);
     }
-  }, [entry]);
+  }, [entry, initialPath, currentPrefix]);
+
+  // Validate path in real-time
+  useEffect(() => {
+    if (!isEdit && path) {
+      const validation = validateKVPath(path, false);
+      setPathValidation(validation);
+    } else {
+      setPathValidation({ isValid: true });
+    }
+  }, [path, isEdit]);
 
   const handleSave = async () => {
     setError(null);
 
+    // Validate path (strict validation on save)
+    if (!isEdit) {
+      const strictValidation = validateKVPath(path, true);
+      if (!strictValidation.isValid) {
+        setError(strictValidation.error || "Invalid path");
+        return;
+      }
+    }
+
     if (!value.trim() && encoding !== "raw") {
       setError("Value is required");
       return;
+    }
+
+    // Validate JSON if encoding is UTF-8 and looks like JSON
+    if (encoding === "utf8" && value.trim()) {
+      const trimmed = value.trim();
+      if (
+        (trimmed.startsWith("{") && trimmed.endsWith("}")) ||
+        (trimmed.startsWith("[") && trimmed.endsWith("]"))
+      ) {
+        try {
+          JSON.parse(value);
+        } catch (e) {
+          setError(
+            `Invalid JSON: ${e instanceof Error ? e.message : "Parse error"}`
+          );
+          return;
+        }
+      }
     }
 
     try {
@@ -86,7 +138,7 @@ export function KVEntryEditor({
         cas: entry?.modifyIndex,
       };
 
-      await onSave(putRequest);
+      await onSave(path, putRequest);
     } catch (err) {
       setError(
         err && typeof err === "object" && "message" in err
@@ -114,55 +166,30 @@ export function KVEntryEditor({
             fullWidth
             label="Path"
             value={path}
-            disabled
+            onChange={(e) => setPath(e.target.value)}
+            disabled={isEdit || isReadOnly || isSaving}
             size="small"
-            helperText="Path cannot be changed"
-          />
-        </Grid>
-
-        <Grid size={{ xs: 12 }}>
-          <TextField
-            fullWidth
-            label="Value"
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            disabled={isReadOnly || isSaving}
-            multiline
-            rows={8}
-            size="small"
-            placeholder="Enter value..."
+            error={!pathValidation.isValid}
             helperText={
-              encoding === "base64"
-                ? "Enter base64-encoded value"
-                : encoding === "utf8"
-                ? "Enter UTF-8 text"
-                : "Enter raw value"
+              pathValidation.error ||
+              pathValidation.warning ||
+              (isEdit
+                ? "Path cannot be changed when editing"
+                : "Enter the full path for this key (e.g., config/database/url)")
             }
           />
         </Grid>
 
-        <Grid size={{ xs: 12, sm: 6 }}>
-          <FormControl fullWidth size="small">
-            <InputLabel>Encoding</InputLabel>
-            <Select
-              value={encoding}
-              onChange={(e) =>
-                setEncoding(e.target.value as KVEncoding)
-              }
-              disabled={isReadOnly || isSaving}
-              label="Encoding"
-            >
-              <MenuItem value={KVPutRequestEncoding.utf8}>
-                UTF-8
-              </MenuItem>
-              <MenuItem value={KVPutRequestEncoding.base64}>
-                Base64
-              </MenuItem>
-              <MenuItem value={KVPutRequestEncoding.raw}>
-                Raw
-              </MenuItem>
-            </Select>
-          </FormControl>
+        <Grid size={{ xs: 12 }}>
+          <KVJsonEditor
+            value={value}
+            encoding={encoding}
+            onChange={setValue}
+            onEncodingChange={setEncoding}
+            readOnly={isReadOnly || isSaving}
+            error={error || undefined}
+            height={400}
+          />
         </Grid>
 
         <Grid size={{ xs: 12, sm: 6 }}>

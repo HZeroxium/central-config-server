@@ -2,7 +2,7 @@
  * KV Store Page - Main KV store interface
  */
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Box,
@@ -25,13 +25,20 @@ import {
   KVDetailPanel,
   KVEntryEditor,
   KVSearchBar,
-  KVBulkActions,
+  KVBreadcrumb,
+  KVFlatListView,
 } from "../components";
 import { useKVStore, useKVPermissions, useKVTree } from "../hooks";
-import { normalizePath, encodePath, decodePath } from "../types";
+import {
+  normalizePath,
+  encodePath,
+  decodePath,
+  getParentPath,
+} from "../types";
 import { useFindApplicationServiceById } from "@lib/api/hooks";
-import type { KVEntry } from "../types";
 import type { KVPutRequest } from "@lib/api/models";
+import { ToggleButton, ToggleButtonGroup } from "@mui/material";
+import { ViewList as ViewListIcon, AccountTree as TreeIcon } from "@mui/icons-material";
 
 export interface KVStorePageProps {
   /** Service ID (when used as tab, overrides URL param) */
@@ -51,12 +58,12 @@ export default function KVStorePage({
   const serviceId = propServiceId || urlServiceId || "";
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
+  const [currentPrefix, setCurrentPrefix] = useState("");
   const [selectedPath, setSelectedPath] = useState<string | undefined>(
     !propServiceId && pathParam ? decodePath(pathParam) : undefined
   );
   const [createMode, setCreateMode] = useState(false);
-  const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set());
-  const [prefix] = useState("");
+  const [viewMode, setViewMode] = useState<"tree" | "flat">("flat");
 
   // Fetch service info
   const {
@@ -73,12 +80,12 @@ export default function KVStorePage({
   // Check permissions
   const permissions = useKVPermissions(serviceId || "");
 
-  // KV Store operations
+  // KV Store operations - optimized queries
   const {
-    entries: listData,
-    entriesLoading,
-    entriesError,
-    refetchEntries,
+    keys,
+    keysLoading,
+    keysError,
+    refetchKeys,
     entry,
     entryLoading,
     refetchEntry,
@@ -88,35 +95,21 @@ export default function KVStorePage({
     isDeleting,
   } = useKVStore({
     serviceId: serviceId || "",
-    path: selectedPath,
-    listParams: {
-      prefix,
-      recurse: true,
-      keysOnly: false,
-    },
+    prefix: currentPrefix,
+    selectedPath: selectedPath && !createMode ? selectedPath : undefined,
     getParams: {
       raw: false,
     },
   });
 
-  // Determine entries from list response
-  const entries: KVEntry[] = useMemo(() => {
-    if (!listData) return [];
-    // Check if it's KVListResponse or KVKeysResponse
-    if ("items" in listData && Array.isArray(listData.items)) {
-      return listData.items;
-    }
-    return [];
-  }, [listData]);
-
-  // Build tree
+  // Build tree from keys
   const {
     tree,
     expandedNodes,
     toggleNode,
   } = useKVTree({
-    entries,
-    prefix,
+    keys,
+    prefix: currentPrefix,
     searchQuery,
   });
 
@@ -132,71 +125,69 @@ export default function KVStorePage({
     }
   }, [pathParam, propServiceId]);
 
-  // Navigate to path
-  const handlePathSelect = (path: string) => {
+  // Navigate to folder or select file
+  const handlePathSelect = (path: string, isFolder: boolean) => {
     const normalized = normalizePath(path);
-    if (propServiceId) {
-      // When used as tab, update state only (no URL navigation)
-      setSelectedPath(normalized);
+    
+    if (isFolder) {
+      // Navigate into folder
+      setCurrentPrefix(normalized);
+      setSelectedPath(undefined);
       setCreateMode(false);
     } else {
-      // When used standalone, navigate URL
-      const encoded = encodePath(normalized);
-      navigate(`/kv/${serviceId}/${encoded}`, { replace: true });
+      // Select file to view/edit
       setSelectedPath(normalized);
       setCreateMode(false);
+      if (!propServiceId) {
+        const encoded = encodePath(normalized);
+        navigate(`/kv/${serviceId}/${encoded}`, { replace: true });
+      }
     }
   };
 
-  // Handle create
-  const handleCreate = async (data: KVPutRequest) => {
-    if (!selectedPath) return;
-    await putEntry(selectedPath, data);
+  // Navigate to prefix (for breadcrumb)
+  const handlePrefixNavigate = (prefix: string) => {
+    setCurrentPrefix(prefix);
+    setSelectedPath(undefined);
     setCreateMode(false);
-    // Navigate to the created entry
-    handlePathSelect(selectedPath);
+  };
+
+  // Navigate back (go to parent folder)
+  const handleBack = () => {
+    const parentPrefix = getParentPath(currentPrefix);
+    handlePrefixNavigate(parentPrefix);
+  };
+
+  // Handle create
+  const handleCreate = async (path: string, data: KVPutRequest) => {
+    await putEntry(path, data);
+    setCreateMode(false);
+    // Refresh keys and navigate to the created entry
+    await refetchKeys();
+    handlePathSelect(path, false);
   };
 
   // Handle edit
-  const handleEdit = async (data: KVPutRequest) => {
+  const handleEdit = async (_path: string, data: KVPutRequest) => {
     if (!selectedPath) return;
     await putEntry(selectedPath, data);
+    await refetchKeys();
   };
 
   // Handle delete
   const handleDelete = async () => {
     if (!selectedPath) return;
     await deleteEntry(selectedPath);
-    // Navigate back to root
-    if (propServiceId) {
-      setSelectedPath(undefined);
-    } else {
-      navigate(`/kv/${serviceId}`, { replace: true });
-      setSelectedPath(undefined);
-    }
-  };
-
-  // Handle bulk delete
-  const handleBulkDelete = async (paths: string[], recursive: boolean) => {
-    for (const path of paths) {
-      await deleteEntry(path, { recurse: recursive });
-    }
-    setSelectedPaths(new Set());
-    refetchEntries();
+    // Refresh keys and clear selection
+    await refetchKeys();
+    setSelectedPath(undefined);
+    setCreateMode(false);
   };
 
   // Handle new entry
   const handleNewEntry = () => {
-    const newPath = prefix ? `${prefix}/new-key` : "new-key";
-    if (propServiceId) {
-      setSelectedPath(newPath);
-      setCreateMode(true);
-    } else {
-      const encoded = encodePath(newPath);
-      navigate(`/kv/${serviceId}/${encoded}`, { replace: true });
-      setSelectedPath(newPath);
-      setCreateMode(true);
-    }
+    setCreateMode(true);
+    setSelectedPath(undefined);
   };
 
   if (serviceLoading) {
@@ -244,11 +235,11 @@ export default function KVStorePage({
         />
       )}
 
-      {entriesError && (
+      {keysError && (
         <Alert severity="error" sx={{ mb: 2 }}>
-          Failed to load entries:{" "}
-          {entriesError && typeof entriesError === "object" && "detail" in entriesError
-            ? (entriesError.detail as string)
+          Failed to load keys:{" "}
+          {keysError && typeof keysError === "object" && "detail" in keysError
+            ? (keysError.detail as string)
             : "Unknown error"}
         </Alert>
       )}
@@ -260,7 +251,7 @@ export default function KVStorePage({
       )}
 
       <Grid container spacing={2} sx={{ mt: 1 }}>
-        {/* Left Panel - Tree View */}
+        {/* Left Panel - Navigation */}
         <Grid size={{ xs: 12, md: 4 }}>
           <Card>
             <CardContent sx={{ p: 0 }}>
@@ -285,6 +276,35 @@ export default function KVStorePage({
                     </Button>
                   )}
                 </Box>
+
+                {/* Breadcrumb */}
+                <Box sx={{ mb: 2 }}>
+                  <KVBreadcrumb
+                    prefix={currentPrefix}
+                    onNavigate={handlePrefixNavigate}
+                    onBack={handleBack}
+                    showBackButton={!!currentPrefix}
+                  />
+                </Box>
+
+                {/* View mode toggle */}
+                <Box sx={{ mb: 2, display: "flex", justifyContent: "flex-end" }}>
+                  <ToggleButtonGroup
+                    value={viewMode}
+                    exclusive
+                    onChange={(_, newMode) => newMode && setViewMode(newMode)}
+                    size="small"
+                    aria-label="view mode"
+                  >
+                    <ToggleButton value="flat" aria-label="flat list">
+                      <ViewListIcon fontSize="small" />
+                    </ToggleButton>
+                    <ToggleButton value="tree" aria-label="tree view">
+                      <TreeIcon fontSize="small" />
+                    </ToggleButton>
+                  </ToggleButtonGroup>
+                </Box>
+
                 <KVSearchBar
                   value={searchQuery}
                   onChange={setSearchQuery}
@@ -292,24 +312,27 @@ export default function KVStorePage({
                 />
               </Box>
 
-              <KVBulkActions
-                entries={entries}
-                selectedPaths={selectedPaths}
-                onSelectionChange={setSelectedPaths}
-                onBulkDelete={handleBulkDelete}
-                isDeleting={isDeleting}
-              />
-
-              <Box sx={{ maxHeight: "calc(100vh - 400px)", overflow: "auto" }}>
-                <KVTreeView
-                  tree={tree}
-                  selectedPath={selectedPath}
-                  onSelect={handlePathSelect}
-                  expandedNodes={expandedNodes}
-                  onToggleNode={toggleNode}
-                  isLoading={entriesLoading}
-                  searchQuery={searchQuery}
-                />
+              <Box sx={{ maxHeight: "calc(100vh - 500px)", overflow: "auto" }}>
+                {viewMode === "flat" ? (
+                  <KVFlatListView
+                    keys={keys}
+                    prefix={currentPrefix}
+                    selectedPath={selectedPath}
+                    onSelect={handlePathSelect}
+                    isLoading={keysLoading}
+                  />
+                ) : (
+                  <KVTreeView
+                    tree={tree}
+                    selectedPath={selectedPath}
+                    onSelect={handlePathSelect}
+                    expandedNodes={expandedNodes}
+                    onToggleNode={toggleNode}
+                    isLoading={keysLoading}
+                    searchQuery={searchQuery}
+                    onFolderNavigate={handlePrefixNavigate}
+                  />
+                )}
               </Box>
             </CardContent>
           </Card>
@@ -322,22 +345,21 @@ export default function KVStorePage({
               <CardContent>
                 <KVEntryEditor
                   path={selectedPath || ""}
+                  currentPrefix={currentPrefix}
                   onSave={handleCreate}
                   onCancel={() => {
                     setCreateMode(false);
-                    if (!propServiceId) {
-                      navigate(`/kv/${serviceId}`, { replace: true });
-                    }
+                    setSelectedPath(undefined);
                   }}
                   isReadOnly={permissions.isReadOnly}
                   isSaving={isPutting}
                 />
               </CardContent>
             </Card>
-          ) : (
+          ) : selectedPath ? (
             <KVDetailPanel
               entry={entry && typeof entry === "object" && "path" in entry ? entry : undefined}
-              path={selectedPath || ""}
+              path={selectedPath}
               onEdit={handleEdit}
               onDelete={handleDelete}
               onRefresh={refetchEntry}
@@ -346,6 +368,16 @@ export default function KVStorePage({
               isDeleting={isDeleting}
               isLoading={entryLoading}
             />
+          ) : (
+            <Card>
+              <CardContent>
+                <Box sx={{ textAlign: "center", py: 4 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Select an entry to view details, or create a new entry
+                  </Typography>
+                </Box>
+              </CardContent>
+            </Card>
           )}
         </Grid>
       </Grid>

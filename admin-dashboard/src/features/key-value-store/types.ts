@@ -36,6 +36,28 @@ export type KVPut = KVPutRequest;
 export type KVEncoding = KVPutRequestEncoding;
 
 /**
+ * Node type: folder or file
+ */
+export type KVNodeType = "folder" | "file";
+
+/**
+ * Path validation result
+ */
+export interface PathValidationResult {
+  isValid: boolean;
+  error?: string;
+  warning?: string;
+}
+
+/**
+ * Navigation state for KV store
+ */
+export interface KVNavigationState {
+  currentPrefix: string;
+  selectedPath?: string;
+}
+
+/**
  * Tree node structure for hierarchical display
  */
 export interface KVTreeNode {
@@ -43,6 +65,8 @@ export interface KVTreeNode {
   name: string;
   /** Full path from root */
   fullPath: string;
+  /** Node type: folder or file */
+  nodeType: KVNodeType;
   /** Whether this is a leaf node (file) */
   isLeaf: boolean;
   /** Child nodes */
@@ -125,7 +149,134 @@ export function getPathSegments(path: string): string[] {
 }
 
 /**
+ * Check if a key represents a folder (has trailing slash or is a prefix of other keys)
+ */
+export function isFolderKey(key: string, allKeys: string[]): boolean {
+  // If key ends with /, it's a folder
+  if (key.endsWith("/")) {
+    return true;
+  }
+  
+  // If there are other keys that start with this key + "/", it's a folder
+  const normalizedKey = normalizePath(key);
+  return allKeys.some(
+    (k) => k !== key && normalizePath(k).startsWith(normalizedKey + "/")
+  );
+}
+
+/**
+ * Get immediate children of a prefix from keys list
+ */
+export function getImmediateChildren(
+  keys: string[],
+  prefix: string = ""
+): { folders: string[]; files: string[] } {
+  const normalizedPrefix = normalizePath(prefix);
+  const folders = new Set<string>();
+  const files = new Set<string>();
+
+  keys.forEach((key) => {
+    const normalizedKey = normalizePath(key);
+    
+    // Skip if key doesn't match prefix
+    if (normalizedPrefix) {
+      if (!normalizedKey.startsWith(normalizedPrefix + "/")) {
+        return;
+      }
+    }
+
+    // Get relative path
+    const relativePath = normalizedPrefix
+      ? normalizedKey.substring(normalizedPrefix.length + 1)
+      : normalizedKey;
+
+    if (!relativePath) return;
+
+    const segments = relativePath.split("/").filter(Boolean);
+    
+    // Get the first segment (immediate child)
+    if (segments.length > 0) {
+      const firstSegment = segments[0];
+      const childPath = normalizedPrefix
+        ? `${normalizedPrefix}/${firstSegment}`
+        : firstSegment;
+
+      // Check if it's a folder (has more segments) or a file (exact match)
+      if (segments.length > 1 || isFolderKey(key, keys)) {
+        folders.add(childPath);
+      } else {
+        files.add(childPath);
+      }
+    }
+  });
+
+  return {
+    folders: Array.from(folders).sort(),
+    files: Array.from(files).sort(),
+  };
+}
+
+/**
+ * Build tree from keys list (for keys-only responses)
+ */
+export function buildKVTreeFromKeys(
+  keys: string[],
+  prefix: string = ""
+): KVTree {
+  const tree: KVTree = {};
+  const normalizedPrefix = normalizePath(prefix);
+
+  // Process each key
+  keys.forEach((key) => {
+    const keyPath = normalizePath(key);
+    if (!keyPath) return;
+
+    // Skip if key doesn't match prefix
+    if (normalizedPrefix && !keyPath.startsWith(normalizedPrefix + "/")) {
+      return;
+    }
+
+    // Get relative path from prefix
+    const relativePath = normalizedPrefix
+      ? keyPath.substring(normalizedPrefix.length + 1)
+      : keyPath;
+
+    if (!relativePath) return;
+
+    const segments = relativePath.split("/").filter(Boolean);
+    let current = tree;
+
+    segments.forEach((segment, index) => {
+      const isLast = index === segments.length - 1;
+
+      if (!current[segment]) {
+        // Build full path
+        const parentSegments = segments.slice(0, index);
+        const fullPath = normalizedPrefix
+          ? `${normalizedPrefix}/${[...parentSegments, segment].join("/")}`
+          : [...parentSegments, segment].join("/");
+
+        current[segment] = {
+          name: segment,
+          fullPath: normalizePath(fullPath),
+          nodeType: isLast ? "file" : "folder",
+          isLeaf: isLast,
+          children: isLast ? undefined : {},
+        };
+      }
+
+      if (!isLast && current[segment].children) {
+        current = current[segment].children!;
+      }
+    });
+  });
+
+  return tree;
+}
+
+/**
  * Transform flat key list into hierarchical tree structure
+ * (For entries with values)
  */
 export function buildKVTree(
   entries: KVEntry[],
@@ -150,21 +301,22 @@ export function buildKVTree(
 
     if (!relativePath) return;
 
-    const segments = relativePath.split("/");
+    const segments = relativePath.split("/").filter(Boolean);
     let current = tree;
 
     segments.forEach((segment, index) => {
       const isLast = index === segments.length - 1;
 
       if (!current[segment]) {
-        const parentPath = segments.slice(0, index).join("/");
+        const parentSegments = segments.slice(0, index);
         const fullPath = normalizedPrefix
-          ? `${normalizedPrefix}/${parentPath ? `${parentPath}/` : ""}${segment}`
-          : segment;
+          ? `${normalizedPrefix}/${[...parentSegments, segment].join("/")}`
+          : [...parentSegments, segment].join("/");
 
         current[segment] = {
           name: segment,
           fullPath: normalizePath(fullPath),
+          nodeType: isLast ? "file" : "folder",
           isLeaf: isLast,
           children: isLast ? undefined : {},
           entry: isLast ? entry : undefined,
@@ -191,11 +343,11 @@ export function flattenKVTree(tree: KVTree): KVEntry[] {
       entries.push(node.entry);
     }
     if (node.children) {
-      Object.values(node.children).forEach(traverse);
+      Object.values(node.children).forEach((child) => traverse(child));
     }
   }
 
-  Object.values(tree).forEach(traverse);
+  Object.values(tree).forEach((node) => traverse(node));
   return entries;
 }
 
@@ -232,12 +384,89 @@ export function findNodeInTree(
 }
 
 /**
- * Check if path is a valid KV path
+ * Validate KV path with detailed error messages
+ */
+export function validateKVPath(
+  path: string,
+  strict: boolean = false
+): PathValidationResult {
+  if (!path) {
+    return {
+      isValid: false,
+      error: strict ? "Path is required" : undefined,
+      warning: !strict ? "Path cannot be empty" : undefined,
+    };
+  }
+
+  const normalized = normalizePath(path);
+
+  // Check for empty segments (double slashes)
+  if (path.includes("//")) {
+    return {
+      isValid: false,
+      error: strict ? "Path contains invalid double slashes" : undefined,
+      warning: !strict ? "Path contains double slashes" : undefined,
+    };
+  }
+
+  const segments = normalized.split("/").filter(Boolean);
+
+  // Check for empty segments
+  if (segments.some((seg) => seg.length === 0)) {
+    return {
+      isValid: false,
+      error: strict ? "Path contains empty segments" : undefined,
+      warning: !strict ? "Path should not contain empty segments" : undefined,
+    };
+  }
+
+  // Check for invalid characters (basic check)
+  const invalidChars = /[<>:"|?*\x00-\x1f]/;
+  for (const segment of segments) {
+    if (invalidChars.test(segment)) {
+      return {
+        isValid: false,
+        error: strict
+          ? `Invalid character in path segment: ${segment}`
+          : undefined,
+        warning: !strict
+          ? `Path segment contains invalid characters: ${segment}`
+          : undefined,
+      };
+    }
+  }
+
+  // Check for reserved names (Windows-style, but we'll be conservative)
+  const reservedNames = ["CON", "PRN", "AUX", "NUL"];
+  const upperSegments = segments.map((s) => s.toUpperCase());
+  for (const reserved of reservedNames) {
+    if (upperSegments.includes(reserved)) {
+      return {
+        isValid: false,
+        error: strict ? `Reserved name not allowed: ${reserved}` : undefined,
+        warning: !strict
+          ? `Path contains reserved name: ${reserved}`
+          : undefined,
+      };
+    }
+  }
+
+  // Check path length (reasonable limit)
+  if (normalized.length > 512) {
+    return {
+      isValid: false,
+      error: strict ? "Path is too long (max 512 characters)" : undefined,
+      warning: !strict ? "Path is very long" : undefined,
+    };
+  }
+
+  return { isValid: true };
+}
+
+/**
+ * Check if path is a valid KV path (simple boolean check)
  */
 export function isValidKVPath(path: string): boolean {
-  if (!path) return false;
-  // Basic validation: no empty segments, no double slashes
-  const normalized = normalizePath(path);
-  return normalized.split("/").every((segment) => segment.length > 0);
+  return validateKVPath(path, true).isValid;
 }
 

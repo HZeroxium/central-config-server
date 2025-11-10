@@ -7,6 +7,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 
 import java.time.Duration;
@@ -144,7 +146,7 @@ public class HttpTransport {
      */
     private <T> ConsulResponse<T> executeRequest(RequestExecutor<T> executor) {
         try {
-            org.springframework.http.ResponseEntity<T> response = executor.execute();
+            ResponseEntity<T> response = executor.execute();
 
             Map<String, String> headers = new HashMap<>();
             response.getHeaders().forEach((name, values) -> {
@@ -161,7 +163,7 @@ public class HttpTransport {
                     .headers(headers)
                     .build();
 
-        } catch (org.springframework.web.client.HttpClientErrorException.NotFound e) {
+        } catch (HttpClientErrorException.NotFound e) {
             // Consul returns 404 when key doesn't exist - return response with null body
             log.debug("Resource not found (404): {}", e.getMessage());
             return ConsulResponse.<T>builder()
@@ -276,6 +278,6 @@ public class HttpTransport {
      */
     @FunctionalInterface
     private interface RequestExecutor<T> {
-        org.springframework.http.ResponseEntity<T> execute() throws Exception;
+        ResponseEntity<T> execute() throws Exception;
     }
 }

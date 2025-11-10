@@ -26,11 +26,12 @@ import type { KVTree, KVTreeNode } from "../types";
 export interface KVTreeViewProps {
   tree: KVTree;
   selectedPath?: string;
-  onSelect: (path: string) => void;
+  onSelect: (path: string, isFolder: boolean) => void;
   expandedNodes: Set<string>;
   onToggleNode: (path: string) => void;
   isLoading?: boolean;
   searchQuery?: string;
+  onFolderNavigate?: (path: string) => void;
 }
 
 function TreeNode({
@@ -41,24 +42,33 @@ function TreeNode({
   expandedNodes,
   onToggleNode,
   searchQuery,
+  onFolderNavigate,
 }: {
   node: KVTreeNode;
   level?: number;
   selectedPath?: string;
-  onSelect: (path: string) => void;
+  onSelect: (path: string, isFolder: boolean) => void;
   expandedNodes: Set<string>;
   onToggleNode: (path: string) => void;
   searchQuery?: string;
+  onFolderNavigate?: (path: string) => void;
 }) {
   const isExpanded = expandedNodes.has(node.fullPath);
   const isSelected = selectedPath === node.fullPath;
   const hasChildren = node.children && Object.keys(node.children).length > 0;
 
   const handleClick = () => {
-    if (node.isLeaf) {
-      onSelect(node.fullPath);
+    if (node.isLeaf || node.nodeType === "file") {
+      // File/leaf: select to view/edit
+      onSelect(node.fullPath, false);
     } else {
-      onToggleNode(node.fullPath);
+      // Folder: navigate into it
+      if (onFolderNavigate) {
+        onFolderNavigate(node.fullPath);
+      } else {
+        // Fallback: toggle expansion
+        onToggleNode(node.fullPath);
+      }
     }
   };
 
@@ -101,12 +111,12 @@ function TreeNode({
         )}
         {!hasChildren && <Box sx={{ width: 32 }} />}
         <ListItemIcon sx={{ minWidth: 32 }}>
-          {node.isLeaf ? (
+          {node.isLeaf || node.nodeType === "file" ? (
             <FileIcon fontSize="small" color="action" />
           ) : isExpanded ? (
             <FolderOpenIcon fontSize="small" color="primary" />
           ) : (
-            <FolderIcon fontSize="small" color="action" />
+            <FolderIcon fontSize="small" color="primary" />
           )}
         </ListItemIcon>
         <ListItemText
@@ -136,6 +146,7 @@ function TreeNode({
                 expandedNodes={expandedNodes}
                 onToggleNode={onToggleNode}
                 searchQuery={searchQuery}
+                onFolderNavigate={onFolderNavigate}
               />
             ))}
           </List>
@@ -153,9 +164,10 @@ export function KVTreeView({
   onToggleNode,
   isLoading,
   searchQuery,
+  onFolderNavigate,
 }: KVTreeViewProps) {
   const rootNodes = useMemo(() => {
-    return Object.values(tree);
+    return Object.values(tree) as KVTreeNode[];
   }, [tree]);
 
   if (isLoading) {
@@ -194,6 +206,7 @@ export function KVTreeView({
           expandedNodes={expandedNodes}
           onToggleNode={onToggleNode}
           searchQuery={searchQuery}
+          onFolderNavigate={onFolderNavigate}
         />
       ))}
     </List>

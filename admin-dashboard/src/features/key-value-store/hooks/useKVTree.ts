@@ -3,29 +3,30 @@
  */
 
 import { useState, useMemo, useCallback } from "react";
-import type { KVEntry } from "../types";
 import {
-  buildKVTree,
+  buildKVTreeFromKeys,
   findNodeInTree,
   type KVTree,
   normalizePath,
 } from "../types";
 
 export interface UseKVTreeOptions {
-  entries?: KVEntry[];
+  /** List of keys (for keys-only responses) */
+  keys?: string[];
+  /** Current prefix */
   prefix?: string;
   searchQuery?: string;
 }
 
 export function useKVTree(options: UseKVTreeOptions) {
-  const { entries = [], prefix = "", searchQuery = "" } = options;
+  const { keys = [], prefix = "", searchQuery = "" } = options;
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
 
-  // Build tree from entries
+  // Build tree from keys (keys-only response)
   const tree = useMemo(() => {
-    if (!entries.length) return {};
-    return buildKVTree(entries, prefix);
-  }, [entries, prefix]);
+    if (!keys.length) return {};
+    return buildKVTreeFromKeys(keys, prefix);
+  }, [keys, prefix]);
 
   // Filter tree by search query
   const filteredTree = useMemo(() => {
