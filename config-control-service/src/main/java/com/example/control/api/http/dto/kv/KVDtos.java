@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotNull;
 
 import java.util.Base64;
 import java.util.List;
+import java.util.Map;
 
 /**
  * DTOs for KV API operations.
@@ -131,6 +132,170 @@ public class KVDtos {
             @JsonProperty("success")
             @Schema(description = "Whether the operation succeeded", example = "true")
             boolean success
+    ) {
+    }
+
+    /**
+     * Request DTO for KV transaction execution.
+     */
+    @Schema(name = "KVTransactionRequest", description = "Request to execute atomic KV operations")
+    public record TransactionRequest(
+            @Schema(description = "Operations to execute atomically", required = true)
+            @NotNull(message = "operations must not be null")
+            List<Operation> operations
+    ) {
+
+        @Schema(name = "KVTransactionOperation", description = "Single transaction operation")
+        public record Operation(
+                @Schema(description = "Operation verb", example = "set", allowableValues = {"set", "delete"}, required = true)
+                @NotNull(message = "op is required")
+                String op,
+
+                @Schema(description = "Relative path of the key", example = "config/db.url", required = true)
+                @NotNull(message = "path is required")
+                String path,
+
+                @Schema(description = "Value payload (required for set operations)", example = "postgres://user:pass@db/prod")
+                String value,
+
+                @Schema(description = "Value encoding", example = "utf8", allowableValues = {"base64", "utf8", "raw"})
+                String encoding,
+
+                @Min(value = 0, message = "Flags must be non-negative")
+                @Schema(description = "Flags metadata to persist with the key", example = "1")
+                Long flags,
+
+                @Schema(description = "CAS modify index for conditional write/delete", example = "12345")
+                Long cas
+        ) {
+            public byte[] valueBytes() {
+                if (value == null) {
+                    return new byte[0];
+                }
+                String enc = encoding == null || encoding.isBlank() ? "utf8" : encoding.toLowerCase();
+                return switch (enc) {
+                    case "base64" -> Base64.getDecoder().decode(value);
+                    case "raw" -> value.getBytes(java.nio.charset.StandardCharsets.ISO_8859_1);
+                    default -> value.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                };
+            }
+        }
+    }
+
+    /**
+     * Response DTO for KV transaction execution.
+     */
+    @Schema(name = "KVTransactionResponse", description = "Result of KV transaction execution")
+    public record TransactionResponse(
+            @Schema(description = "Whether every operation in the transaction succeeded", example = "true")
+            boolean success,
+
+            @Schema(description = "Detailed outcome per operation (in request order)")
+            List<TransactionResult> results,
+
+            @Schema(description = "Error message when transaction fails", example = "CAS check failed", nullable = true)
+            String error
+    ) {
+
+        @Schema(name = "KVTransactionResult", description = "Outcome of a single transaction operation")
+        public record TransactionResult(
+                @Schema(description = "Relative path of the key", example = "config/db.url")
+                String path,
+
+                @Schema(description = "Whether the operation succeeded", example = "true")
+                boolean success,
+
+                @Schema(description = "Modify index returned by Consul", example = "12346", nullable = true)
+                Long modifyIndex,
+
+                @Schema(description = "Message describing the failure, if any", example = "CAS mismatch", nullable = true)
+                String message
+        ) {
+        }
+    }
+
+    /**
+     * DTO representing a logical object stored under a prefix.
+     */
+    @Schema(name = "KVObjectResponse", description = "Structured object stored in KV")
+    public record ObjectResponse(
+            @Schema(description = "Key-value structure representing the object")
+            Map<String, Object> data,
+
+            @Schema(description = "Logical type derived from flags", example = "OBJECT")
+            String type
+    ) {
+    }
+
+    /**
+     * Request payload to upsert a logical object.
+     */
+    @Schema(name = "KVObjectWriteRequest", description = "Request to create or update an object structure")
+    public record ObjectWriteRequest(
+            @NotNull(message = "data is required")
+            @Schema(description = "Object structure to persist")
+            Map<String, Object> data
+    ) {
+    }
+
+    /**
+     * DTO representing manifest metadata for a list.
+     */
+    @Schema(name = "KVListManifest", description = "List ordering and metadata manifest")
+    public record ListManifest(
+            @Schema(description = "Ordering of item IDs")
+            List<String> order,
+
+            @Schema(description = "Manifest version (monotonic increment)", example = "1")
+            long version,
+
+            @Schema(description = "ETag-style concurrency token", example = "abc123", nullable = true)
+            String etag,
+
+            @Schema(description = "Additional metadata for consumers")
+            Map<String, Object> metadata
+    ) {
+    }
+
+    /**
+     * DTO representing a logical list of items.
+     */
+    @Schema(name = "KVListResponseV2", description = "Structured list stored in KV")
+    public record ListResponseV2(
+            @Schema(description = "List of logical items")
+            List<ListItem> items,
+
+            @Schema(description = "Manifest metadata")
+            ListManifest manifest,
+
+            @Schema(description = "Logical type derived from flags", example = "LIST")
+            String type
+    ) {
+
+        @Schema(name = "KVListItem", description = "Single item within a structured list")
+        public record ListItem(
+                @Schema(description = "Stable identifier of the item", example = "item-1")
+                String id,
+
+                @Schema(description = "Structured data representing the item")
+                Map<String, Object> data
+        ) {
+        }
+    }
+
+    /**
+     * Request payload to upsert a logical list.
+     */
+    @Schema(name = "KVListWriteRequest", description = "Request to create or update a list structure")
+    public record ListWriteRequest(
+            @Schema(description = "Items to persist with their identifiers")
+            List<ListResponseV2.ListItem> items,
+
+            @Schema(description = "Manifest metadata controlling ordering and versioning")
+            ListManifest manifest,
+
+            @Schema(description = "Identifiers of items that should be removed from storage")
+            List<String> deletes
     ) {
     }
 }

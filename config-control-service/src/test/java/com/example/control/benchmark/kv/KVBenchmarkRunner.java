@@ -2,7 +2,7 @@ package com.example.control.benchmark.kv;
 
 import com.example.control.application.service.KVService;
 import com.example.control.benchmark.kv.BenchmarkConfig.Operation;
-import com.example.control.domain.model.KVEntry;
+import com.example.control.domain.model.kv.KVEntry;
 import com.example.control.domain.port.KVStorePort;
 import com.example.control.infrastructure.adapter.kv.PrefixPolicy;
 import com.example.control.infrastructure.config.security.UserContext;

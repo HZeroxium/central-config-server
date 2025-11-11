@@ -1,6 +1,6 @@
 package com.example.control.infrastructure.adapter.kv;
 
-import com.example.control.domain.model.KVEntry;
+import com.example.control.domain.model.kv.KVEntry;
 import com.example.control.domain.port.KVStorePort;
 import com.example.control.infrastructure.consulclient.client.KVClient;
 import com.example.control.infrastructure.consulclient.core.ConsulResponse;

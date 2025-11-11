@@ -84,6 +84,7 @@ dependencies {
     
     // Jackson
     implementation libs.bundles.jackson
+    implementation libs.snakeyaml
     
     // Lombok
     compileOnly libs.lombok
@@ -238,6 +239,48 @@ task e2eTest(type: Test) {
     
     doFirst {
         println "Running E2E tests against services at ${System.getProperty('api.base.url', 'http://localhost:8081/api')}"
+    }
+}
+
+// KV Benchmark task
+task benchmarkKv(type: Test) {
+    group = 'verification'
+    description = 'Run KV benchmark tests (does not run automatically with test task)'
+    useJUnitPlatform()
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    
+    include '**/benchmark/kv/**'
+    
+    // Pass system properties to benchmark config
+    systemProperty 'benchmark.layer', System.getProperty('benchmark.layer', 'both')
+    systemProperty 'benchmark.ops', System.getProperty('benchmark.ops', 'GET,PUT,DELETE,LIST_KEYS,LIST_RECURSE')
+    systemProperty 'benchmark.consistency', System.getProperty('benchmark.consistency', 'DEFAULT')
+    systemProperty 'benchmark.prefix', System.getProperty('benchmark.prefix', 'bench/kv')
+    systemProperty 'benchmark.fanout', System.getProperty('benchmark.fanout', '8')
+    systemProperty 'benchmark.depth', System.getProperty('benchmark.depth', '3')
+    systemProperty 'benchmark.keysPerLeaf', System.getProperty('benchmark.keysPerLeaf', '4')
+    systemProperty 'benchmark.valueSize', System.getProperty('benchmark.valueSize', '512')
+    systemProperty 'benchmark.runs', System.getProperty('benchmark.runs', '2000')
+    systemProperty 'benchmark.threads', System.getProperty('benchmark.threads', '8')
+    systemProperty 'benchmark.warmup', System.getProperty('benchmark.warmup', '300')
+    systemProperty 'benchmark.outputDir', System.getProperty('benchmark.outputDir', "${buildDir}/benchmark-results")
+    systemProperty 'benchmark.serviceId', System.getProperty('benchmark.serviceId', 'benchmark-service')
+    systemProperty 'benchmark.measureBytes', System.getProperty('benchmark.measureBytes', 'false')
+    
+    systemProperty 'junit.jupiter.execution.parallel.enabled', 'false'
+    
+    doFirst {
+        println "Running KV benchmark tests..."
+        println "Layer: ${System.getProperty('benchmark.layer', 'both')}"
+        println "Operations: ${System.getProperty('benchmark.ops', 'GET,PUT,DELETE,LIST_KEYS,LIST_RECURSE')}"
+        println "Runs: ${System.getProperty('benchmark.runs', '2000')}"
+        println "Threads: ${System.getProperty('benchmark.threads', '8')}"
+        println "Output: ${System.getProperty('benchmark.outputDir', "${buildDir}/benchmark-results")}"
+    }
+    
+    doLast {
+        println "KV benchmark completed. Results available in: ${System.getProperty('benchmark.outputDir', "${buildDir}/benchmark-results")}"
     }
 }
 

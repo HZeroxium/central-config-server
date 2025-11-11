@@ -1,6 +1,6 @@
 package com.example.control.infrastructure.adapter.kv;
 
-import com.example.control.domain.valueobject.KVPath;
+import com.example.control.domain.model.kv.KVPath;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 

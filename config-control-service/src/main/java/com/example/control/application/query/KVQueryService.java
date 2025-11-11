@@ -1,6 +1,6 @@
 package com.example.control.application.query;
 
-import com.example.control.domain.model.KVEntry;
+import com.example.control.domain.model.kv.KVEntry;
 import com.example.control.domain.port.KVStorePort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

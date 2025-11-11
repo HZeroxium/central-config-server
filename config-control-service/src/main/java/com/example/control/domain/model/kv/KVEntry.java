@@ -1,4 +1,4 @@
-package com.example.control.domain.model;
+package com.example.control.domain.model.kv;
 
 import lombok.Builder;
 

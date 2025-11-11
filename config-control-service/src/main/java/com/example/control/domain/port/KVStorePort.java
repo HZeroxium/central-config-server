@@ -1,6 +1,6 @@
 package com.example.control.domain.port;
 
-import com.example.control.domain.model.KVEntry;
+import com.example.control.domain.model.kv.KVEntry;
 import lombok.Builder;
 import lombok.Data;
 
