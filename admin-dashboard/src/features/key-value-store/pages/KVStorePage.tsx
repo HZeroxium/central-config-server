@@ -35,7 +35,6 @@ import {
   KVSearchBar,
   KVBreadcrumb,
   KVFlatListView,
-  KVCreateDialog,
   KVObjectEditor,
   KVListEditor,
   type KVCreateType,
@@ -46,6 +45,9 @@ import {
   encodePath,
   decodePath,
   getParentPath,
+  isListPrefix,
+  isObjectPrefix,
+  isFolderPrefix,
 } from "../types";
 import { useFindApplicationServiceById } from "@lib/api/hooks";
 import type { KVPutRequest } from "@lib/api/models";
@@ -84,7 +86,6 @@ export default function KVStorePage({
   const [createMode, setCreateMode] = useState(false);
   const [createType, setCreateType] = useState<KVCreateType | null>(null);
   const [createPrefix, setCreatePrefix] = useState("");
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [createMenuAnchor, setCreateMenuAnchor] = useState<null | HTMLElement>(null);
   const [viewMode, setViewMode] = useState<"tree" | "flat">("flat");
 
@@ -196,15 +197,13 @@ export default function KVStorePage({
   const handlePathSelect = (path: string, isFolder: boolean) => {
     const normalized = normalizePath(path);
     
-    if (isFolder) {
-      // Navigate into folder
-      setCurrentPrefix(normalized);
-      setSelectedPath(undefined);
-      setCreateMode(false);
-      setCreateType(null);
-      setCreatePrefix("");
-    } else {
-      // Select file to view/edit
+    // Check if this is a List/Object prefix - treat as single entity, don't navigate into it
+    const isList = isListPrefix(normalized, keys);
+    const isObject = isObjectPrefix(normalized, keys);
+    const isFolderType = isFolderPrefix(normalized, keys);
+    
+    if (isList || isObject) {
+      // List/Object: select to view/edit (don't navigate into internal structure)
       setSelectedPath(normalized);
       setCreateMode(false);
       setCreateType(null);
@@ -213,6 +212,27 @@ export default function KVStorePage({
         const encoded = encodePath(normalized);
         navigate(`/kv/${serviceId}/${encoded}`, { replace: true });
       }
+      return;
+    }
+    
+    if (isFolderType || isFolder) {
+      // FOLDER: navigate into folder (set currentPrefix)
+      setCurrentPrefix(normalized);
+      setSelectedPath(undefined);
+      setCreateMode(false);
+      setCreateType(null);
+      setCreatePrefix("");
+      return;
+    }
+    
+    // Select file/leaf to view/edit
+    setSelectedPath(normalized);
+    setCreateMode(false);
+    setCreateType(null);
+    setCreatePrefix("");
+    if (!propServiceId) {
+      const encoded = encodePath(normalized);
+      navigate(`/kv/${serviceId}/${encoded}`, { replace: true });
     }
   };
 
@@ -247,10 +267,15 @@ export default function KVStorePage({
     await refetchKeys();
   };
 
+  // Handle edit object (used by detail panel)
+  const handleEditObjectFromDetail = async (prefix: string, data: Record<string, unknown>) => {
+    return handleEditObject(prefix, data);
+  };
+  
   // Handle edit object
-  const handleEditObject = async (path: string, data: Record<string, unknown>) => {
+  const handleEditObject = async (prefix: string, data: Record<string, unknown>) => {
     return new Promise<void>((resolve, reject) => {
-      const params: PutKVObjectParams = { prefix: path };
+      const params: PutKVObjectParams = { prefix };
       const requestData: KVObjectWriteRequest = {
         data: toKVObjectWriteRequestData(data),
       };
@@ -269,15 +294,25 @@ export default function KVStorePage({
     });
   };
 
+  // Handle edit list (used by detail panel)
+  const handleEditListFromDetail = async (
+    prefix: string,
+    items: UIListItem[],
+    manifest: { order?: string[]; version?: number; etag?: string | null; metadata?: Record<string, unknown> },
+    deletes: string[]
+  ) => {
+    return handleEditList(prefix, items, manifest, deletes);
+  };
+  
   // Handle edit list
   const handleEditList = async (
-    path: string,
+    prefix: string,
     items: UIListItem[],
     manifest: { order?: string[]; version?: number; etag?: string | null; metadata?: Record<string, unknown> },
     deletes: string[]
   ) => {
     return new Promise<void>((resolve, reject) => {
-      const params: PutKVListParams = { prefix: path };
+      const params: PutKVListParams = { prefix };
       
       const requestData: KVListWriteRequest = {
         items: toGeneratedKVListItemArray(items),
@@ -325,47 +360,40 @@ export default function KVStorePage({
 
   const handleNewEntryMenuSelect = (type: KVCreateType) => {
     setCreateMenuAnchor(null);
-    setCreateDialogOpen(true);
-    // Pre-select type in dialog
-    setCreateType(type);
-  };
-
-  // Handle create dialog
-  const handleCreateDialogClose = () => {
-    setCreateDialogOpen(false);
-    setCreateType(null);
-    setCreatePrefix("");
-  };
-
-  const handleCreateDialogConfirm = (type: KVCreateType, prefix: string) => {
-    setCreateType(type);
-    setCreatePrefix(prefix);
-    setCreateDialogOpen(false);
     
     if (type === "leaf") {
-      // For leaf entries, set createMode and use prefix as path
+      // For leaf: open editor with path input (pre-filled with currentPrefix)
+      const defaultPath = currentPrefix 
+        ? `${currentPrefix}/new-key` 
+        : "new-key";
       setCreateMode(true);
-      setSelectedPath(prefix);
+      setCreateType("leaf");
+      setSelectedPath(defaultPath);
+      setCreatePrefix("");
     } else {
-      // For object/list, set createMode and show appropriate editor
+      // For object/list: use currentPrefix directly, allow editing name part
+      const defaultPrefix = currentPrefix 
+        ? `${currentPrefix}/new-${type}` 
+        : `new-${type}`;
       setCreateMode(true);
+      setCreateType(type);
+      setCreatePrefix(defaultPrefix);
       setSelectedPath(undefined);
     }
   };
 
   // Handle create object
-  const handleCreateObject = async (data: Record<string, unknown>) => {
+  const handleCreateObject = async (prefix: string, data: Record<string, unknown>) => {
     try {
-      await handleEditObject(createPrefix, data);
+      await handleEditObject(prefix, data);
       // After success, navigate to view created object
       setCreateMode(false);
       setCreateType(null);
-      const prefixToSelect = createPrefix;
       setCreatePrefix("");
       // Wait for keys to refresh, then navigate
       await refetchKeys();
       // Select the prefix to view the created object
-      handlePathSelect(prefixToSelect, false);
+      handlePathSelect(prefix, false);
     } catch (error) {
       // Error is already handled by handleEditObject
       throw error;
@@ -374,21 +402,21 @@ export default function KVStorePage({
 
   // Handle create list
   const handleCreateList = async (
+    prefix: string,
     items: UIListItem[],
     manifest: { order?: string[]; version?: number; etag?: string | null; metadata?: Record<string, unknown> },
     deletes: string[]
   ) => {
     try {
-      await handleEditList(createPrefix, items, manifest, deletes);
+      await handleEditList(prefix, items, manifest, deletes);
       // After success, navigate to view created list
       setCreateMode(false);
       setCreateType(null);
-      const prefixToSelect = createPrefix;
       setCreatePrefix("");
       // Wait for keys to refresh, then navigate
       await refetchKeys();
       // Select the prefix to view the created list
-      handlePathSelect(prefixToSelect, false);
+      handlePathSelect(prefix, false);
     } catch (error) {
       // Error is already handled by handleEditList
       throw error;
@@ -593,6 +621,7 @@ export default function KVStorePage({
                     isLoading={keysLoading}
                     searchQuery={searchQuery}
                     onFolderNavigate={handlePrefixNavigate}
+                    allKeys={keys}
                   />
                 )}
               </Box>
@@ -665,9 +694,10 @@ export default function KVStorePage({
                 const normalizedKey = normalizePath(key);
                 return normalizedKey.startsWith(normalizedPath + "/");
               })}
+              allKeys={keys}
               onEdit={handleEdit}
-              onEditObject={handleEditObject}
-              onEditList={handleEditList}
+              onEditObject={handleEditObjectFromDetail}
+              onEditList={handleEditListFromDetail}
               onDelete={handleDelete}
               onRefresh={refetchEntry}
               isPrefix={keys.some((key) => {
@@ -694,14 +724,6 @@ export default function KVStorePage({
         </Grid>
       </Grid>
 
-      {/* Create Dialog */}
-      <KVCreateDialog
-        open={createDialogOpen}
-        onClose={handleCreateDialogClose}
-        onConfirm={handleCreateDialogConfirm}
-        currentPrefix={currentPrefix}
-        initialType={createType || undefined}
-      />
     </Box>
   );
 }

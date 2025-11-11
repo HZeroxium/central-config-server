@@ -3,7 +3,7 @@ export default {
       input: {
         target: '../config-control-service/spec/openapi.json',
         filter: {
-          tags: ['Application Services', 'Service Shares', 'Approval Requests', 'IAM Users', 'IAM Teams', 'User Management', 'Drift Events', 'Service Instances', 'Service Registry', 'Config Server'],
+          tags: ['Application Services', 'Service Shares', 'Approval Requests', 'IAM Users', 'IAM Teams', 'User Management', 'Drift Events', 'Service Instances', 'Service Registry', 'Config Server', 'Key-Value Store'],
         },
       },
       output: {

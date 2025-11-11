@@ -38,11 +38,13 @@ export function useKVStore(options: UseKVStoreOptions) {
     getParams,
   } = options;
 
-  // Optimized list query: keysOnly=true, recurse=false for navigation
+  // Optimized list query: keysOnly=true, recurse=true for proper List/Object detection
+  // We need recurse=true to see all keys (including .manifest) for detecting List/Object prefixes
+  // The filtering logic will handle showing only immediate children in the UI
   const optimizedListParams: ListKVEntriesParams = {
     prefix,
     keysOnly: true,
-    recurse: false,
+    recurse: true, // Changed to true to enable List/Object detection
     ...listParams, // Allow override if needed
   };
 

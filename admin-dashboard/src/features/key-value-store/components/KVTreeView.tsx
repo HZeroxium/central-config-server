@@ -13,6 +13,7 @@ import {
   IconButton,
   CircularProgress,
   Collapse,
+  Chip,
 } from "@mui/material";
 import {
   Folder as FolderIcon,
@@ -20,8 +21,11 @@ import {
   InsertDriveFile as FileIcon,
   ExpandMore as ExpandMoreIcon,
   ChevronRight as ChevronRightIcon,
+  Code as ObjectIcon,
+  List as ListIcon,
 } from "@mui/icons-material";
 import type { KVTree, KVTreeNode } from "../types";
+import { isListPrefix, isObjectPrefix, isFolderPrefix } from "../types";
 
 export interface KVTreeViewProps {
   tree: KVTree;
@@ -32,6 +36,8 @@ export interface KVTreeViewProps {
   isLoading?: boolean;
   searchQuery?: string;
   onFolderNavigate?: (path: string) => void;
+  /** All keys (for detecting List/Object types) */
+  allKeys?: string[];
 }
 
 function TreeNode({
@@ -43,6 +49,7 @@ function TreeNode({
   onToggleNode,
   searchQuery,
   onFolderNavigate,
+  allKeys,
 }: {
   node: KVTreeNode;
   level?: number;
@@ -52,17 +59,35 @@ function TreeNode({
   onToggleNode: (path: string) => void;
   searchQuery?: string;
   onFolderNavigate?: (path: string) => void;
+  allKeys?: string[];
 }) {
   const isExpanded = expandedNodes.has(node.fullPath);
   const isSelected = selectedPath === node.fullPath;
   const hasChildren = node.children && Object.keys(node.children).length > 0;
+  
+  // Detect List/Object/Folder types
+  const isList = allKeys ? isListPrefix(node.fullPath, allKeys) : false;
+  const isObject = allKeys ? isObjectPrefix(node.fullPath, allKeys) : false;
+  const isFolder = allKeys ? isFolderPrefix(node.fullPath, allKeys) : false;
+  const isListOrObject = isList || isObject;
 
   const handleClick = () => {
-    if (node.isLeaf || node.nodeType === "file") {
+    if (isListOrObject) {
+      // List/Object: select to view/edit (don't navigate into internal structure)
+      onSelect(node.fullPath, false);
+    } else if (isFolder) {
+      // Folder: navigate into it
+      if (onFolderNavigate) {
+        onFolderNavigate(node.fullPath);
+      } else {
+        // Fallback: toggle expansion
+        onToggleNode(node.fullPath);
+      }
+    } else if (node.isLeaf || node.nodeType === "file") {
       // File/leaf: select to view/edit
       onSelect(node.fullPath, false);
     } else {
-      // Folder: navigate into it
+      // Regular folder (fallback): navigate into it
       if (onFolderNavigate) {
         onFolderNavigate(node.fullPath);
       } else {
@@ -109,9 +134,14 @@ function TreeNode({
             )}
           </IconButton>
         )}
-        {!hasChildren && <Box sx={{ width: 32 }} />}
+        {!hasChildren && !isListOrObject && <Box sx={{ width: 32 }} />}
+        {isListOrObject && <Box sx={{ width: 32 }} />}
         <ListItemIcon sx={{ minWidth: 32 }}>
-          {node.isLeaf || node.nodeType === "file" ? (
+          {isList ? (
+            <ListIcon fontSize="small" color="secondary" />
+          ) : isObject ? (
+            <ObjectIcon fontSize="small" color="primary" />
+          ) : node.isLeaf || node.nodeType === "file" ? (
             <FileIcon fontSize="small" color="action" />
           ) : isExpanded ? (
             <FolderOpenIcon fontSize="small" color="primary" />
@@ -121,19 +151,29 @@ function TreeNode({
         </ListItemIcon>
         <ListItemText
           primary={
-            <Typography
-              variant="body2"
-              sx={{
-                fontWeight: isSelected ? 600 : 400,
-                wordBreak: "break-word",
-              }}
-            >
-              {node.name}
-            </Typography>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <Typography
+                variant="body2"
+                sx={{
+                  fontWeight: isSelected ? 600 : 400,
+                  wordBreak: "break-word",
+                }}
+              >
+                {node.name}
+              </Typography>
+              {isListOrObject && (
+                <Chip
+                  label={isList ? "LIST" : "OBJECT"}
+                  size="small"
+                  color={isList ? "secondary" : "primary"}
+                  sx={{ height: 18, fontSize: "0.65rem" }}
+                />
+              )}
+            </Box>
           }
         />
       </ListItemButton>
-      {hasChildren && (
+      {hasChildren && !isListOrObject && (
         <Collapse in={isExpanded} timeout="auto" unmountOnExit>
           <List component="div" disablePadding>
             {children.map((child) => (
@@ -147,6 +187,7 @@ function TreeNode({
                 onToggleNode={onToggleNode}
                 searchQuery={searchQuery}
                 onFolderNavigate={onFolderNavigate}
+                allKeys={allKeys}
               />
             ))}
           </List>
@@ -165,6 +206,7 @@ export function KVTreeView({
   isLoading,
   searchQuery,
   onFolderNavigate,
+  allKeys,
 }: KVTreeViewProps) {
   const rootNodes = useMemo(() => {
     return Object.values(tree) as KVTreeNode[];
@@ -207,6 +249,7 @@ export function KVTreeView({
           onToggleNode={onToggleNode}
           searchQuery={searchQuery}
           onFolderNavigate={onFolderNavigate}
+          allKeys={allKeys}
         />
       ))}
     </List>

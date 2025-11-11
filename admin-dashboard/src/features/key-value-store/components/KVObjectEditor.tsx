@@ -30,6 +30,7 @@ import { KVPutRequestEncoding } from "@lib/api/models";
 import { useGetKVObject, type GetKVObjectParams } from "../hooks";
 import { fromKVObjectResponseData } from "../utils/typeAdapters";
 import { Skeleton } from "@mui/material";
+import { normalizePath, validateKVPath } from "../types";
 
 export type ObjectEditorMode = "form" | "json";
 
@@ -39,7 +40,7 @@ export interface KVObjectEditorProps {
   /** Initial object data */
   initialData?: Record<string, unknown>;
   /** Callback when save is triggered */
-  onSave: (data: Record<string, unknown>) => Promise<void>;
+  onSave: (prefix: string, data: Record<string, unknown>) => Promise<void>;
   /** Callback when cancel is triggered */
   onCancel: () => void;
   /** Whether editor is read-only */
@@ -57,7 +58,7 @@ interface FormField {
 
 export function KVObjectEditor({
   serviceId,
-  prefix,
+  prefix: initialPrefix,
   initialData = {},
   onSave,
   onCancel,
@@ -69,6 +70,8 @@ export function KVObjectEditor({
   const [formFields, setFormFields] = useState<FormField[]>([]);
   const [jsonValue, setJsonValue] = useState("");
   const [jsonError, setJsonError] = useState<string | null>(null);
+  const [prefix, setPrefix] = useState(initialPrefix);
+  const [prefixError, setPrefixError] = useState<string | null>(null);
 
   // Auto-load data if initialData is empty and not in create mode
   const shouldAutoLoad = !isCreateMode && Object.keys(initialData).length === 0;
@@ -197,7 +200,33 @@ export function KVObjectEditor({
     }
   };
 
+  // Validate prefix in create mode
+  useEffect(() => {
+    if (isCreateMode && prefix) {
+      const normalized = normalizePath(prefix);
+      const validation = validateKVPath(normalized, false);
+      if (!validation.isValid) {
+        setPrefixError(validation.error || validation.warning || null);
+      } else {
+        setPrefixError(null);
+      }
+    } else {
+      setPrefixError(null);
+    }
+  }, [prefix, isCreateMode]);
+
   const handleSave = async () => {
+    // Validate prefix in create mode
+    if (isCreateMode) {
+      const normalized = normalizePath(prefix);
+      const validation = validateKVPath(normalized, true);
+      if (!validation.isValid) {
+        setPrefixError(validation.error || "Invalid prefix");
+        toast.error(validation.error || "Invalid prefix");
+        return;
+      }
+    }
+
     try {
       let data: Record<string, unknown>;
 
@@ -229,7 +258,8 @@ export function KVObjectEditor({
         }
       }
 
-      await onSave(data);
+      const normalizedPrefix = normalizePath(prefix);
+      await onSave(normalizedPrefix, data);
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Failed to save object"
@@ -298,6 +328,35 @@ export function KVObjectEditor({
           <Typography variant="h6" component="h2">
             {isCreateMode ? "Create Object" : "Edit Object"}
           </Typography>
+        </Box>
+
+        {isCreateMode && (
+          <Box sx={{ mb: 2 }}>
+            <TextField
+              fullWidth
+              label="Prefix"
+              value={prefix}
+              onChange={(e) => setPrefix(e.target.value)}
+              disabled={isReadOnly || isSaving}
+              size="small"
+              error={!!prefixError}
+              helperText={
+                prefixError ||
+                "Prefix where the object will be stored (e.g., config/app)"
+              }
+              aria-describedby={prefixError ? "prefix-error" : "prefix-help"}
+            />
+          </Box>
+        )}
+
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "flex-end",
+            alignItems: "center",
+            mb: 2,
+          }}
+        >
           <ToggleButtonGroup
             value={mode}
             exclusive
@@ -414,7 +473,7 @@ export function KVObjectEditor({
             <Button
               startIcon={<SaveIcon />}
               onClick={handleSave}
-              disabled={isSaving || (mode === "json" && !!jsonError)}
+              disabled={isSaving || (mode === "json" && !!jsonError) || (isCreateMode && !!prefixError)}
               variant="contained"
               aria-label="Save object"
             >

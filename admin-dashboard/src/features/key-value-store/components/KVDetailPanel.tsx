@@ -27,6 +27,8 @@ import { TabPanel } from "@components/common/TabPanel";
 import { KVEntryEditor } from "./KVEntryEditor";
 import { KVListEditor } from "./KVListEditor";
 import { KVObjectEditor } from "./KVObjectEditor";
+import { KVListView } from "./KVListView";
+import { KVObjectView } from "./KVObjectView";
 import { KVPrefixView } from "./KVPrefixView";
 import type { KVEntry } from "../types";
 import { decodeBase64, normalizePath } from "../types";
@@ -41,12 +43,14 @@ export interface KVDetailPanelProps {
   serviceId: string;
   /** List of child keys (for structure-based type detection) */
   childKeys?: string[];
+  /** All keys (for better type detection) */
+  allKeys?: string[];
   /** Callback for editing leaf entries */
   onEdit: (path: string, data: KVPutRequest) => Promise<void>;
   /** Callback for editing objects */
-  onEditObject?: (path: string, data: Record<string, unknown>) => Promise<void>;
+  onEditObject?: (prefix: string, data: Record<string, unknown>) => Promise<void>;
   /** Callback for editing lists */
-  onEditList?: (path: string, items: UIListItem[], manifest: UIListManifest, deletes: string[]) => Promise<void>;
+  onEditList?: (prefix: string, items: UIListItem[], manifest: UIListManifest, deletes: string[]) => Promise<void>;
   /** Callback for deleting */
   onDelete: () => Promise<void>;
   /** Callback for refreshing */
@@ -64,6 +68,7 @@ export function KVDetailPanel({
   path,
   serviceId,
   childKeys = [],
+  allKeys = [],
   onEdit,
   onEditObject,
   onEditList,
@@ -78,11 +83,14 @@ export function KVDetailPanel({
   const [tabValue, setTabValue] = useState(0);
   const [editMode, setEditMode] = useState(false);
 
-  // Detect type
+  // Detect type - use allKeys if available for better detection
+  const keysForDetection = allKeys.length > 0 ? allKeys : childKeys;
   const detectedType = useKVTypeDetection({
     entry,
     childKeys,
     isPrefix,
+    allKeys: keysForDetection,
+    path,
   });
 
   // Check if this is actually a prefix (has children)
@@ -102,20 +110,21 @@ export function KVDetailPanel({
     setEditMode(false);
   };
 
-  const handleEditObject = async (data: Record<string, unknown>) => {
+  const handleEditObject = async (editPrefix: string, data: Record<string, unknown>) => {
     if (onEditObject) {
-      await onEditObject(path, data);
+      await onEditObject(editPrefix, data);
       setEditMode(false);
     }
   };
 
   const handleEditList = async (
+    editPrefix: string,
     items: UIListItem[],
     manifest: UIListManifest,
     deletes: string[]
   ) => {
     if (onEditList) {
-      await onEditList(path, items, manifest, deletes);
+      await onEditList(editPrefix, items, manifest, deletes);
       setEditMode(false);
     }
   };
@@ -152,60 +161,82 @@ export function KVDetailPanel({
         return "primary";
       case KVType.LIST:
         return "secondary";
+      case KVType.FOLDER:
+        return "info";
       default:
         return "default";
     }
   };
 
-  // If this is a prefix and not in edit mode, show prefix view
+  // If this is a prefix and not in edit mode, route to appropriate view
   if (isActualPrefix && !editMode && detectedType !== KVType.LEAF) {
-    return (
-      <Card>
-        <CardContent>
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              mb: 2,
-            }}
-          >
-            <Stack direction="row" spacing={1} alignItems="center">
-              <Typography variant="h6">Prefix View</Typography>
-              <Chip
-                label={detectedType}
-                size="small"
-                color={getTypeBadgeColor(detectedType)}
-              />
-            </Stack>
-            <Stack direction="row" spacing={1}>
-              <Tooltip title="Refresh">
-                <IconButton size="small" onClick={onRefresh} aria-label="Refresh">
-                  <RefreshIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-              {!isReadOnly && (
-                <Tooltip title="Edit">
-                  <IconButton
-                    size="small"
-                    onClick={() => setEditMode(true)}
-                    aria-label="Edit"
-                  >
-                    <EditIcon fontSize="small" />
+    // LIST type: show List view
+    if (detectedType === KVType.LIST) {
+      return (
+        <KVListView
+          serviceId={serviceId}
+          prefix={path}
+          onEdit={!isReadOnly ? () => setEditMode(true) : undefined}
+          onRefresh={onRefresh}
+          isReadOnly={isReadOnly}
+          isLoading={isLoading}
+        />
+      );
+    }
+
+    // OBJECT type: show Object view
+    if (detectedType === KVType.OBJECT) {
+      return (
+        <KVObjectView
+          serviceId={serviceId}
+          prefix={path}
+          onEdit={!isReadOnly ? () => setEditMode(true) : undefined}
+          onRefresh={onRefresh}
+          isReadOnly={isReadOnly}
+          isLoading={isLoading}
+        />
+      );
+    }
+
+    // FOLDER type: show prefix view (for navigation)
+    if (detectedType === KVType.FOLDER) {
+      return (
+        <Card>
+          <CardContent>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                mb: 2,
+              }}
+            >
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Typography variant="h6">Folder View</Typography>
+                <Chip
+                  label={detectedType}
+                  size="small"
+                  color={getTypeBadgeColor(detectedType)}
+                />
+              </Stack>
+              <Stack direction="row" spacing={1}>
+                <Tooltip title="Refresh">
+                  <IconButton size="small" onClick={onRefresh} aria-label="Refresh">
+                    <RefreshIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
-              )}
-            </Stack>
-          </Box>
-          <KVPrefixView
-            serviceId={serviceId}
-            prefix={path}
-            initialFormat="json"
-            isLoading={isLoading}
-          />
-        </CardContent>
-      </Card>
-    );
+              </Stack>
+            </Box>
+            <KVPrefixView
+              serviceId={serviceId}
+              prefix={path}
+              initialFormat="json"
+              isLoading={isLoading}
+            />
+          </CardContent>
+        </Card>
+      );
+    }
   }
 
   // Edit mode - route to appropriate editor

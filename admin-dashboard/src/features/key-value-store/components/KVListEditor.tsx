@@ -59,6 +59,7 @@ import {
   fromKVListManifestMetadata,
   type UIListItem,
 } from "../utils/typeAdapters";
+import { normalizePath, validateKVPath } from "../types";
 
 // UI representation of manifest (with Record<string, unknown> metadata)
 export type UIListManifest = {
@@ -76,7 +77,7 @@ export interface KVListEditorProps {
   /** Initial manifest */
   initialManifest?: UIListManifest;
   /** Callback when save is triggered */
-  onSave: (items: UIListItem[], manifest: UIListManifest, deletes: string[]) => Promise<void>;
+  onSave: (prefix: string, items: UIListItem[], manifest: UIListManifest, deletes: string[]) => Promise<void>;
   /** Callback when cancel is triggered */
   onCancel: () => void;
   /** Whether editor is read-only */
@@ -341,7 +342,7 @@ function ItemEditorDialog({
 
 export function KVListEditor({
   serviceId,
-  prefix,
+  prefix: initialPrefix,
   initialItems = [],
   initialManifest,
   onSave,
@@ -350,6 +351,9 @@ export function KVListEditor({
   isSaving = false,
   isCreateMode = false,
 }: KVListEditorProps) {
+  const [prefix, setPrefix] = useState(initialPrefix);
+  const [prefixError, setPrefixError] = useState<string | null>(null);
+  
   // Auto-load data if initialItems is empty and not in create mode
   const shouldAutoLoad = !isCreateMode && initialItems.length === 0 && !initialManifest;
   const params: GetKVListParams | undefined = shouldAutoLoad && serviceId && prefix
@@ -452,7 +456,33 @@ export function KVListEditor({
     setEditingItem(null);
   };
 
+  // Validate prefix in create mode
+  useEffect(() => {
+    if (isCreateMode && prefix) {
+      const normalized = normalizePath(prefix);
+      const validation = validateKVPath(normalized, false);
+      if (!validation.isValid) {
+        setPrefixError(validation.error || validation.warning || null);
+      } else {
+        setPrefixError(null);
+      }
+    } else {
+      setPrefixError(null);
+    }
+  }, [prefix, isCreateMode]);
+
   const handleSave = async () => {
+    // Validate prefix in create mode
+    if (isCreateMode) {
+      const normalized = normalizePath(prefix);
+      const validation = validateKVPath(normalized, true);
+      if (!validation.isValid) {
+        setPrefixError(validation.error || "Invalid prefix");
+        toast.error(validation.error || "Invalid prefix");
+        return;
+      }
+    }
+
     const order = items.map((item) => item.id);
     // Create UI manifest for callback (metadata is already in UI format)
     const manifest: UIListManifest = {
@@ -462,7 +492,8 @@ export function KVListEditor({
       metadata: effectiveManifest?.metadata,
     };
 
-    await onSave(items, manifest, deletedIds);
+    const normalizedPrefix = normalizePath(prefix);
+    await onSave(normalizedPrefix, items, manifest, deletedIds);
   };
 
   // Show loading state with skeleton
@@ -536,6 +567,26 @@ export function KVListEditor({
             </Button>
           )}
         </Box>
+
+          {isCreateMode && (
+            <Box sx={{ mb: 2 }}>
+              <TextField
+                fullWidth
+                label="Prefix"
+                value={prefix}
+                onChange={(e) => setPrefix(e.target.value)}
+                disabled={isReadOnly || isSaving}
+                size="small"
+                error={!!prefixError}
+                helperText={
+                  prefixError ||
+                  "Prefix where the list will be stored (e.g., config/app)"
+                }
+                aria-describedby={prefixError ? "prefix-error" : "prefix-help"}
+              />
+            </Box>
+          )}
+
 
         {effectiveManifest && (
           <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
@@ -636,7 +687,7 @@ export function KVListEditor({
             <Button
               startIcon={<SaveIcon />}
               onClick={handleSave}
-              disabled={isSaving}
+              disabled={isSaving || (isCreateMode && !!prefixError)}
               variant="contained"
             >
               {isSaving ? "Saving..." : "Save"}

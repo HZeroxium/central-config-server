@@ -8,6 +8,8 @@ export { KVJsonEditor } from "./KVJsonEditor";
 export { KVFlatListView } from "./KVFlatListView";
 export { KVListEditor } from "./KVListEditor";
 export { KVObjectEditor } from "./KVObjectEditor";
+export { KVListView } from "./KVListView";
+export { KVObjectView } from "./KVObjectView";
 export { KVPrefixView } from "./KVPrefixView";
 export { KVCreateDialog } from "./KVCreateDialog";
 export type { KVSearchBarProps } from "./KVSearchBar";
@@ -21,6 +23,8 @@ export type { KVFlatListViewProps } from "./KVFlatListView";
 export type { KVListEditorProps, UIListManifest } from "./KVListEditor";
 export type { UIListItem } from "../utils/typeAdapters";
 export type { KVObjectEditorProps } from "./KVObjectEditor";
+export type { KVListViewProps } from "./KVListView";
+export type { KVObjectViewProps } from "./KVObjectView";
 export type { KVPrefixViewProps, KVStructuredFormat } from "./KVPrefixView";
 export type { KVCreateDialogProps, KVCreateType } from "./KVCreateDialog";
 

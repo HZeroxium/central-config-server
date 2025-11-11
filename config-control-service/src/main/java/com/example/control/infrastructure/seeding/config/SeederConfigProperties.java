@@ -74,6 +74,12 @@ public class SeederConfigProperties {
     private AdminConfig admin = new AdminConfig();
 
     /**
+     * KV seeding configuration.
+     */
+    @NotNull(message = "KV configuration is required")
+    private KVConfig kv = new KVConfig();
+
+    /**
      * Calculate total number of services to generate.
      *
      * @return total service count
@@ -263,5 +269,162 @@ public class SeederConfigProperties {
          */
         @NotNull(message = "Admin user ID is required")
         private String userId = "admin";
+    }
+
+    /**
+     * KV seeding configuration.
+     */
+    @Data
+    public static class KVConfig {
+        /**
+         * Whether KV seeding is enabled.
+         * Default: true.
+         */
+        private boolean enabled = true;
+
+        /**
+         * Whether to clean existing KV entries before seeding.
+         * Default: true (ensures idempotency).
+         */
+        private boolean cleanBeforeSeed = true;
+
+        /**
+         * Entries per service configuration.
+         */
+        @NotNull(message = "Entries per service configuration is required")
+        private EntriesPerServiceConfig entriesPerService = new EntriesPerServiceConfig();
+
+        /**
+         * Distribution configuration for KV types.
+         */
+        @NotNull(message = "Distribution configuration is required")
+        private DistributionConfig distribution = new DistributionConfig();
+
+        /**
+         * Category-specific configuration.
+         */
+        @NotNull(message = "Categories configuration is required")
+        private CategoriesConfig categories = new CategoriesConfig();
+    }
+
+    /**
+     * Entries per service configuration.
+     */
+    @Data
+    public static class EntriesPerServiceConfig {
+        /**
+         * Minimum entries per service.
+         */
+        @Min(value = 1, message = "Minimum entries must be at least 1")
+        private int min = 5;
+
+        /**
+         * Maximum entries per service.
+         */
+        @Min(value = 1, message = "Maximum entries must be at least 1")
+        private int max = 15;
+    }
+
+    /**
+     * Distribution configuration for KV types.
+     */
+    @Data
+    public static class DistributionConfig {
+        /**
+         * Percentage of leaf entries (0-100).
+         */
+        @Min(value = 0, message = "Leaf percentage must be non-negative")
+        private int leafPercentage = 60;
+
+        /**
+         * Percentage of object entries (0-100).
+         */
+        @Min(value = 0, message = "Object percentage must be non-negative")
+        private int objectPercentage = 25;
+
+        /**
+         * Percentage of list entries (0-100).
+         */
+        @Min(value = 0, message = "List percentage must be non-negative")
+        private int listPercentage = 15;
+    }
+
+    /**
+     * Categories configuration.
+     */
+    @Data
+    public static class CategoriesConfig {
+        /**
+         * Config category configuration.
+         */
+        @NotNull(message = "Config category configuration is required")
+        private CategoryConfig config = new CategoryConfig(true, 2, 6, 70, 25, 5);
+
+        /**
+         * Secrets category configuration.
+         */
+        @NotNull(message = "Secrets category configuration is required")
+        private CategoryConfig secrets = new CategoryConfig(true, 1, 3, 80, 20, 0);
+
+        /**
+         * Feature flags category configuration.
+         */
+        @NotNull(message = "Feature flags category configuration is required")
+        private CategoryConfig featureFlags = new CategoryConfig(true, 1, 4, 50, 30, 20);
+    }
+
+    /**
+     * Category-specific configuration.
+     */
+    @Data
+    public static class CategoryConfig {
+        /**
+         * Whether this category is enabled.
+         */
+        private boolean enabled;
+
+        /**
+         * Minimum entries for this category.
+         */
+        @Min(value = 0, message = "Minimum entries must be non-negative")
+        private int minEntries;
+
+        /**
+         * Maximum entries for this category.
+         */
+        @Min(value = 0, message = "Maximum entries must be non-negative")
+        private int maxEntries;
+
+        /**
+         * Percentage of leaf entries for this category (0-100).
+         */
+        @Min(value = 0, message = "Leaf percentage must be non-negative")
+        private int leafPercentage;
+
+        /**
+         * Percentage of object entries for this category (0-100).
+         */
+        @Min(value = 0, message = "Object percentage must be non-negative")
+        private int objectPercentage;
+
+        /**
+         * Percentage of list entries for this category (0-100).
+         */
+        @Min(value = 0, message = "List percentage must be non-negative")
+        private int listPercentage;
+
+        public CategoryConfig() {
+            // Default constructor for Spring
+        }
+
+        public CategoryConfig(boolean enabled, int minEntries, int maxEntries,
+                             int leafPercentage, int objectPercentage, int listPercentage) {
+            this.enabled = enabled;
+            this.minEntries = minEntries;
+            this.maxEntries = maxEntries;
+            this.leafPercentage = leafPercentage;
+            this.objectPercentage = objectPercentage;
+            this.listPercentage = listPercentage;
+        }
     }
 }

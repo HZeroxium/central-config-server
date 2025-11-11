@@ -166,21 +166,34 @@ export function isFolderKey(key: string, allKeys: string[]): boolean {
 
 /**
  * Get immediate children of a prefix from keys list
+ * Filters out List/Object internal keys but preserves List/Object prefixes
+ * 
+ * @param keys List of all keys
+ * @param prefix Current prefix (default: "")
+ * @param entries Optional list of entries with flags (for accurate OBJECT detection)
  */
 export function getImmediateChildren(
   keys: string[],
-  prefix: string = ""
+  prefix: string = "",
+  entries?: Array<{ path?: string; flags?: number }>
 ): { folders: string[]; files: string[] } {
+  // Get filtered keys (includes List/Object prefixes)
+  const filteredKeys = filterListObjectKeys(keys, entries);
   const normalizedPrefix = normalizePath(prefix);
   const folders = new Set<string>();
   const files = new Set<string>();
 
-  keys.forEach((key) => {
+  filteredKeys.forEach((key) => {
     const normalizedKey = normalizePath(key);
     
     // Skip if key doesn't match prefix
     if (normalizedPrefix) {
       if (!normalizedKey.startsWith(normalizedPrefix + "/")) {
+        return;
+      }
+    } else {
+      // Root level - skip keys that are nested (they'll be shown when navigating into folders)
+      if (normalizedKey.includes("/")) {
         return;
       }
     }
@@ -190,7 +203,8 @@ export function getImmediateChildren(
       ? normalizedKey.substring(normalizedPrefix.length + 1)
       : normalizedKey;
 
-    if (!relativePath) return;
+    // Skip empty relative path (shouldn't happen, but safeguard)
+    if (!relativePath || relativePath === normalizedPrefix) return;
 
     const segments = relativePath.split("/").filter(Boolean);
     
@@ -201,10 +215,19 @@ export function getImmediateChildren(
         ? `${normalizedPrefix}/${firstSegment}`
         : firstSegment;
 
-      // Check if it's a folder (has more segments) or a file (exact match)
-      if (segments.length > 1 || isFolderKey(key, keys)) {
+      // Use ORIGINAL keys array for detection (not filtered)
+      // This ensures we correctly identify List/Object prefixes even if their children are filtered
+      const isList = isListPrefix(childPath, keys);
+      const isObject = isObjectPrefix(childPath, keys, entries);
+      
+      if (isList || isObject) {
+        // List/Object prefixes are treated as folders (single entity, not navigable)
+        folders.add(childPath);
+      } else if (segments.length > 1 || isFolderKey(key, filteredKeys)) {
+        // Regular folder (has children or is a prefix of other keys)
         folders.add(childPath);
       } else {
+        // Regular file/leaf entry
         files.add(childPath);
       }
     }
@@ -218,16 +241,24 @@ export function getImmediateChildren(
 
 /**
  * Build tree from keys list (for keys-only responses)
+ * Filters out List/Object internal keys and marks List/Object nodes appropriately
+ * 
+ * @param keys List of all keys
+ * @param prefix Current prefix (default: "")
+ * @param entries Optional list of entries with flags (for accurate OBJECT detection)
  */
 export function buildKVTreeFromKeys(
   keys: string[],
-  prefix: string = ""
+  prefix: string = "",
+  entries?: Array<{ path?: string; flags?: number }>
 ): KVTree {
+  // Get filtered keys (includes List/Object prefixes)
+  const filteredKeys = filterListObjectKeys(keys, entries);
   const tree: KVTree = {};
   const normalizedPrefix = normalizePath(prefix);
 
-  // Process each key
-  keys.forEach((key) => {
+  // Process each filtered key
+  filteredKeys.forEach((key) => {
     const keyPath = normalizePath(key);
     if (!keyPath) return;
 
@@ -249,20 +280,32 @@ export function buildKVTreeFromKeys(
     segments.forEach((segment, index) => {
       const isLast = index === segments.length - 1;
 
-      if (!current[segment]) {
-        // Build full path
-        const parentSegments = segments.slice(0, index);
-        const fullPath = normalizedPrefix
-          ? `${normalizedPrefix}/${[...parentSegments, segment].join("/")}`
-          : [...parentSegments, segment].join("/");
+      // Build full path
+      const parentSegments = segments.slice(0, index);
+      const fullPath = normalizedPrefix
+        ? `${normalizedPrefix}/${[...parentSegments, segment].join("/")}`
+        : [...parentSegments, segment].join("/");
+      const normalizedFullPath = normalizePath(fullPath);
 
+      // Use ORIGINAL keys array for detection (not filtered)
+      const isList = isListPrefix(normalizedFullPath, keys);
+      const isObject = isObjectPrefix(normalizedFullPath, keys, entries);
+      const isListOrObject = isList || isObject;
+
+      if (!current[segment]) {
         current[segment] = {
           name: segment,
-          fullPath: normalizePath(fullPath),
-          nodeType: isLast ? "file" : "folder",
-          isLeaf: isLast,
-          children: isLast ? undefined : {},
+          fullPath: normalizedFullPath,
+          // List/Object prefixes should be treated as folders (single entity)
+          nodeType: isLast && !isListOrObject ? "file" : "folder",
+          isLeaf: isLast && !isListOrObject,
+          children: isLast && !isListOrObject ? undefined : {},
         };
+      }
+
+      // If this is a List/Object prefix, don't navigate deeper (stop processing children)
+      if (isListOrObject) {
+        return;
       }
 
       if (!isLast && current[segment].children) {
@@ -385,6 +428,7 @@ export function findNodeInTree(
 
 /**
  * Validate KV path with detailed error messages
+ * Allows '/' characters in paths (for nested paths)
  */
 export function validateKVPath(
   path: string,
@@ -400,7 +444,7 @@ export function validateKVPath(
 
   const normalized = normalizePath(path);
 
-  // Check for empty segments (double slashes)
+  // Check for empty segments (double slashes) - but allow single slashes
   if (path.includes("//")) {
     return {
       isValid: false,
@@ -420,7 +464,7 @@ export function validateKVPath(
     };
   }
 
-  // Check for invalid characters (basic check)
+  // Check for invalid characters (basic check) - but allow '/' in the path itself
   const invalidChars = /[<>:"|?*\x00-\x1f]/;
   for (const segment of segments) {
     if (invalidChars.test(segment)) {
@@ -468,5 +512,214 @@ export function validateKVPath(
  */
 export function isValidKVPath(path: string): boolean {
   return validateKVPath(path, true).isValid;
+}
+
+/**
+ * Check if a prefix represents a List structure (has .manifest key)
+ */
+export function isListPrefix(prefix: string, keys: string[]): boolean {
+  const normalizedPrefix = normalizePath(prefix);
+  return keys.some((key) => {
+    const normalizedKey = normalizePath(key);
+    return (
+      normalizedKey === `${normalizedPrefix}/.manifest` ||
+      (normalizedKey === ".manifest" && normalizedPrefix === "")
+    );
+  });
+}
+
+/**
+ * Check if a prefix represents an Object structure.
+ * 
+ * Note: Without entry flags, we cannot reliably detect OBJECT from keys alone.
+ * OBJECT detection requires entry flags (flags=1) which are only available
+ * when fetching full entries (not keysOnly). This function will return false
+ * when only keys are available, and OBJECT detection should rely on entry flags
+ * in useKVTypeDetection hook.
+ * 
+ * @param prefix The prefix to check
+ * @param keys List of all keys
+ * @param entries Optional list of entries with flags (for accurate detection)
+ * @returns true if prefix is an OBJECT (only if entries with flags=1 are provided)
+ */
+export function isObjectPrefix(prefix: string, keys: string[], entries?: Array<{ path?: string; flags?: number }>): boolean {
+  if (isListPrefix(prefix, keys)) return false;
+  
+  // If we have entries with flags, check for flags=1 (OBJECT)
+  if (entries && entries.length > 0) {
+    const normalizedPrefix = normalizePath(prefix);
+    return entries.some((entry) => {
+      const entryPath = normalizePath(entry.path || "");
+      // Check if entry is at the prefix level or is a direct child with flags=1
+      if (entryPath === normalizedPrefix || entryPath.startsWith(normalizedPrefix + "/")) {
+        return entry.flags === 1; // OBJECT flag
+      }
+      return false;
+    });
+  }
+  
+  // Without entry flags, we cannot reliably detect OBJECT
+  // Default to false (will be treated as FOLDER if has children)
+  return false;
+}
+
+/**
+ * Check if a prefix represents a Folder structure (has children but not List/Object)
+ * Folder has children and is used for navigation/organization
+ * 
+ * This is the default type for prefixes with children that are not explicitly LIST or OBJECT
+ */
+export function isFolderPrefix(prefix: string, keys: string[], entries?: Array<{ path?: string; flags?: number }>): boolean {
+  // Not a List prefix
+  if (isListPrefix(prefix, keys)) {
+    return false;
+  }
+  
+  // Not an Object prefix (check with entries if available)
+  if (isObjectPrefix(prefix, keys, entries)) {
+    return false;
+  }
+  
+  const normalizedPrefix = normalizePath(prefix);
+  
+  // Get direct children of this prefix
+  const directChildren = keys.filter((key) => {
+    const normalizedKey = normalizePath(key);
+    if (!normalizedKey.startsWith(normalizedPrefix + "/")) {
+      return false;
+    }
+    // Skip .manifest keys (they indicate LIST)
+    if (normalizedKey === `${normalizedPrefix}/.manifest`) {
+      return false;
+    }
+    // Check if it's a direct child (no intermediate segments)
+    const relativePath = normalizedKey.substring(normalizedPrefix.length + 1);
+    return !relativePath.includes("/");
+  });
+  
+  // Folder has children (for navigation/organization)
+  return directChildren.length > 0;
+}
+
+/**
+ * Get all List/Object prefixes from keys
+ * 
+ * Note: Only LIST prefixes can be reliably detected from keys alone (via .manifest).
+ * OBJECT prefixes require entry flags (flags=1) which are not available in keysOnly mode.
+ */
+export function getListObjectPrefixes(keys: string[], entries?: Array<{ path?: string; flags?: number }>): Set<string> {
+  const prefixes = new Set<string>();
+  const processedPrefixes = new Set<string>();
+
+  // Detect LIST prefixes (have .manifest key)
+  keys.forEach((key) => {
+    const normalizedKey = normalizePath(key);
+    
+    // Check if this is a .manifest key
+    if (normalizedKey.endsWith("/.manifest")) {
+      const prefix = normalizedKey.slice(0, -"/.manifest".length);
+      if (prefix && !processedPrefixes.has(prefix)) {
+        prefixes.add(prefix);
+        processedPrefixes.add(prefix);
+      }
+    } else if (normalizedKey === ".manifest") {
+      // Root level list
+      if (!processedPrefixes.has("")) {
+        prefixes.add("");
+        processedPrefixes.add("");
+      }
+    }
+  });
+
+  // Detect OBJECT prefixes (have entries with flags=1)
+  // Only if entries with flags are provided
+  if (entries && entries.length > 0) {
+    entries.forEach((entry) => {
+      if (entry.flags === 1) {
+        // This entry has OBJECT flag
+        const entryPath = normalizePath(entry.path || "");
+        if (entryPath) {
+          // Check if this is a prefix-level entry or find the prefix
+          const segments = entryPath.split("/");
+          // Check each parent prefix
+          for (let i = 1; i <= segments.length; i++) {
+            const prefix = segments.slice(0, i).join("/");
+            if (!processedPrefixes.has(prefix) && !isListPrefix(prefix, keys)) {
+              prefixes.add(prefix);
+              processedPrefixes.add(prefix);
+            }
+          }
+        }
+      }
+    });
+  }
+
+  return prefixes;
+}
+
+/**
+ * Filter out List/Object internal keys from keys list
+ * Removes .manifest keys and keys that are children of List/Object prefixes
+ * BUT preserves List/Object prefixes themselves so they can be displayed
+ * 
+ * @param keys List of all keys
+ * @param entries Optional list of entries with flags (for accurate OBJECT detection)
+ */
+export function filterListObjectKeys(keys: string[], entries?: Array<{ path?: string; flags?: number }>): string[] {
+  const listObjectPrefixes = getListObjectPrefixes(keys, entries);
+  const filtered = new Set<string>();
+  
+  // First, add all List/Object prefixes (they should be visible)
+  listObjectPrefixes.forEach(prefix => {
+    filtered.add(normalizePath(prefix));
+  });
+  
+  // Then, add regular keys that are NOT internal to List/Object
+  keys.forEach((key) => {
+    const normalizedKey = normalizePath(key);
+    
+    // Skip .manifest keys
+    if (normalizedKey.endsWith("/.manifest") || normalizedKey === ".manifest") {
+      return;
+    }
+    
+    // Skip keys that are children of List/Object prefixes
+    let isInternal = false;
+    for (const prefix of listObjectPrefixes) {
+      const normalizedPrefix = normalizePath(prefix);
+      if (normalizedPrefix) {
+        // Check if key is a child of this prefix (but not the prefix itself)
+        if (normalizedKey.startsWith(normalizedPrefix + "/") && 
+            normalizedKey !== normalizedPrefix) {
+          isInternal = true;
+          break;
+        }
+      } else {
+        // Root prefix case - check if key is a direct child of root List/Object
+        const segments = normalizedKey.split("/");
+        if (segments.length === 1) {
+          // Top-level key - check if it's a List/Object prefix
+          if (listObjectPrefixes.has(segments[0])) {
+            // This is the prefix itself, already added above
+            return;
+          }
+        } else if (segments.length > 1) {
+          // Nested key - check if first segment is a List/Object prefix
+          const firstSegment = segments[0];
+          if (listObjectPrefixes.has(firstSegment)) {
+            // This is a child of a root-level List/Object prefix
+            isInternal = true;
+            break;
+          }
+        }
+      }
+    }
+    
+    if (!isInternal) {
+      filtered.add(normalizedKey);
+    }
+  });
+  
+  return Array.from(filtered);
 }
 

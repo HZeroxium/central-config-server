@@ -4,6 +4,7 @@ import com.example.control.domain.model.ApplicationService;
 import com.example.control.domain.port.repository.*;
 import com.example.control.infrastructure.config.security.UserContext;
 import com.example.control.domain.model.*;
+import com.example.control.infrastructure.seeding.config.SeederConfigProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -12,6 +13,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -55,6 +57,8 @@ public class DataSeederService {
     private final ServiceShareRepositoryPort serviceShareRepository;
     private final ApprovalRequestRepositoryPort approvalRequestRepository;
     private final ApprovalDecisionRepositoryPort approvalDecisionRepository;
+    private final KVSeederService kvSeederService;
+    private final SeederConfigProperties config;
 
     /**
      * Cleans all non-IAM data from the database.
@@ -82,6 +86,20 @@ public class DataSeederService {
 
         try {
             CleanResult result = new CleanResult();
+
+            // Clean KV entries first (before deleting services)
+            if (config.getKv().isEnabled() && config.getKv().isCleanBeforeSeed()) {
+                // Get all service IDs from existing services before deletion
+                List<String> serviceIds = applicationServiceRepository.findAll(null, Pageable.unpaged())
+                        .getContent()
+                        .stream()
+                        .map(s -> s.getId().id())
+                        .toList();
+                result.kvEntriesDeleted = kvSeederService.cleanKVForServices(serviceIds);
+                log.info("Deleted {} KV entries", result.kvEntriesDeleted);
+            } else {
+                result.kvEntriesDeleted = 0;
+            }
 
             // Delete in reverse order of dependencies to respect referential integrity
             result.approvalDecisionsDeleted = approvalDecisionRepository.deleteAll();
@@ -203,6 +221,15 @@ public class DataSeederService {
             result.approvalDecisionsSeeded = data.approvalDecisions.size();
             log.info("Persisted {} approval decisions", result.approvalDecisionsSeeded);
 
+            // 7. KV Entries
+            if (config.getKv().isEnabled()) {
+                log.info("Seeding KV entries for {} services...", data.kvEntriesByService.size());
+                result.kvEntriesSeeded = kvSeederService.seedKVEntriesForServices(data.kvEntriesByService);
+                log.info("Seeded {} KV entries", result.kvEntriesSeeded);
+            } else {
+                result.kvEntriesSeeded = 0;
+            }
+
             log.info("Seed operation complete. Total seeded: {}", result.getTotalSeeded());
 
             return result;
@@ -299,10 +326,12 @@ public class DataSeederService {
         public long sharesDeleted;
         public long approvalRequestsDeleted;
         public long approvalDecisionsDeleted;
+        public long kvEntriesDeleted;
 
         public long getTotalDeleted() {
             return servicesDeleted + instancesDeleted + driftEventsDeleted +
-                    sharesDeleted + approvalRequestsDeleted + approvalDecisionsDeleted;
+                    sharesDeleted + approvalRequestsDeleted + approvalDecisionsDeleted +
+                    kvEntriesDeleted;
         }
     }
 
@@ -316,10 +345,12 @@ public class DataSeederService {
         public int sharesSeeded;
         public int approvalRequestsSeeded;
         public int approvalDecisionsSeeded;
+        public int kvEntriesSeeded;
 
         public int getTotalSeeded() {
             return servicesSeeded + instancesSeeded + driftEventsSeeded +
-                    sharesSeeded + approvalRequestsSeeded + approvalDecisionsSeeded;
+                    sharesSeeded + approvalRequestsSeeded + approvalDecisionsSeeded +
+                    kvEntriesSeeded;
         }
     }
 

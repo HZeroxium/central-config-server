@@ -102,6 +102,7 @@ public class SeederApplicationRunner implements ApplicationRunner {
         log.info("    - {} drift events", result.cleanResult.driftEventsDeleted);
         log.info("    - {} service instances", result.cleanResult.instancesDeleted);
         log.info("    - {} application services", result.cleanResult.servicesDeleted);
+        log.info("    - {} KV entries", result.cleanResult.kvEntriesDeleted);
         log.info("  Seeded:");
         log.info("    - {} application services", result.seedResult.servicesSeeded);
         log.info("    - {} service instances", result.seedResult.instancesSeeded);
@@ -109,6 +110,7 @@ public class SeederApplicationRunner implements ApplicationRunner {
         log.info("    - {} service shares", result.seedResult.sharesSeeded);
         log.info("    - {} approval requests", result.seedResult.approvalRequestsSeeded);
         log.info("    - {} approval decisions", result.seedResult.approvalDecisionsSeeded);
+        log.info("    - {} KV entries", result.seedResult.kvEntriesSeeded);
         log.info("  Total: Deleted {}, Seeded {}",
                 result.cleanResult.getTotalDeleted(),
                 result.seedResult.getTotalSeeded());
@@ -125,6 +127,7 @@ public class SeederApplicationRunner implements ApplicationRunner {
         log.info("  - {} service shares", result.sharesSeeded);
         log.info("  - {} approval requests", result.approvalRequestsSeeded);
         log.info("  - {} approval decisions", result.approvalDecisionsSeeded);
+        log.info("  - {} KV entries", result.kvEntriesSeeded);
         log.info("  Total: Seeded {}", result.getTotalSeeded());
     }
 }
