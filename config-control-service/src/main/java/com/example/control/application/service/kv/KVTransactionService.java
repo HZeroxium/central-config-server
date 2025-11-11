@@ -3,7 +3,6 @@ package com.example.control.application.service.kv;
 import com.example.control.domain.model.kv.KVTransactionOperation;
 import com.example.control.domain.model.kv.KVTransactionRequest;
 import com.example.control.domain.model.kv.KVTransactionResponse;
-import com.example.control.infrastructure.consulclient.client.ConsulClient;
 import com.example.control.infrastructure.consulclient.client.TxnClient;
 import com.example.control.infrastructure.consulclient.core.ConsulResponse;
 import com.example.control.infrastructure.consulclient.model.TxnOp;

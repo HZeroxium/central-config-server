@@ -6,6 +6,7 @@ import com.example.control.api.http.mapper.kv.KVApiMapper;
 import com.example.control.application.service.KVService;
 import com.example.control.domain.model.kv.KVEntry;
 import com.example.control.domain.model.kv.KVListStructure;
+import com.example.control.domain.model.kv.KVPath;
 import com.example.control.domain.model.kv.KVTransactionResponse;
 import com.example.control.domain.port.KVStorePort;
 import com.example.control.infrastructure.adapter.kv.PrefixPolicy;
@@ -255,131 +256,294 @@ public class KVController {
             @Parameter(description = "Use consistent read") @RequestParam(defaultValue = "false") boolean consistent,
             @Parameter(description = "Use stale read") @RequestParam(defaultValue = "false") boolean stale,
             @AuthenticationPrincipal Jwt jwt) {
-        log.debug("Listing KV entries for service: {}, prefix: {}, keysOnly: {}", serviceId, prefix, keysOnly);
-
-        UserContext userContext = UserContext.fromJwt(jwt);
-        KVStorePort.KVListOptions options = KVStorePort.KVListOptions.builder()
-                .recurse(recurse)
-                .keysOnly(keysOnly)
-                .separator(separator)
-                .consistent(consistent)
-                .stale(stale)
-                .build();
-
         try {
+            String normalizedPrefix = normalizePrefix(prefix);
+            log.debug("Listing KV entries for service: {}, prefix: {} (normalized: {}), keysOnly: {}", serviceId, prefix, normalizedPrefix, keysOnly);
+
+            UserContext userContext = UserContext.fromJwt(jwt);
+            KVStorePort.KVListOptions options = KVStorePort.KVListOptions.builder()
+                    .recurse(recurse)
+                    .keysOnly(keysOnly)
+                    .separator(separator)
+                    .consistent(consistent)
+                    .stale(stale)
+                    .build();
+
             if (keysOnly) {
-                List<String> keys = kvService.listKeys(serviceId, prefix, options, userContext);
+                List<String> keys = kvService.listKeys(serviceId, normalizedPrefix, options, userContext);
                 return ResponseEntity.ok(new KVDtos.KeysResponse(keys));
             } else {
-                List<KVEntry> entries = kvService.listEntries(serviceId, prefix, options, userContext);
+                List<KVEntry> entries = kvService.listEntries(serviceId, normalizedPrefix, options, userContext);
                 KVDtos.ListResponse response = KVApiMapper.toListResponse(entries, serviceId, prefixPolicy);
                 return ResponseEntity.ok(response);
             }
         } catch (IllegalArgumentException e) {
+            // Check if this is a prefix validation error (from normalizePrefix) or service error
+            // Prefix validation errors typically contain "Path" or "prefix" in the message
+            if (e.getMessage() != null && (e.getMessage().contains("Path") || e.getMessage().contains("prefix"))) {
+                log.warn("Invalid prefix format for KV list: {}", e.getMessage());
+                return ResponseEntity.badRequest().build();
+            }
             log.warn("Invalid request for KV list: {}", e.getMessage());
             return ResponseEntity.notFound().build();
         }
     }
 
-    @GetMapping(value = {"/object", "/{*path}/object"}, produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping("/object")
     @Operation(
             summary = "Get a structured object",
-            description = "Assemble a logical object stored under the given prefix.",
+            description = """
+                    Assemble a logical object stored under the given prefix.
+                    
+                    **Prefix Parameter:**
+                    - Use `?prefix=...` to specify the prefix (relative to service root)
+                    - Empty prefix `?prefix=` or omitted means root prefix
+                    - Prefix is automatically normalized (trimmed, leading slashes removed)
+                    """,
             security = {
                     @SecurityRequirement(name = "oauth2_auth_code"),
                     @SecurityRequirement(name = "oauth2_password")
             },
             operationId = "getKVObject"
     )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Object structure found",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = KVDtos.ObjectResponse.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Object not found or access denied",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = ErrorResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = ErrorResponse.class))
+            )
+    })
     public ResponseEntity<KVDtos.ObjectResponse> getObject(
-            @PathVariable String serviceId,
-            @PathVariable(value = "path", required = false) String path,
-            @RequestParam(defaultValue = "false") boolean consistent,
-            @RequestParam(defaultValue = "false") boolean stale,
+            @Parameter(description = "Application service ID", example = "sample-service") @PathVariable String serviceId,
+            @Parameter(description = "Prefix to retrieve object from (relative to service root)", example = "config") @RequestParam(defaultValue = "") String prefix,
+            @Parameter(description = "Use consistent read") @RequestParam(defaultValue = "false") boolean consistent,
+            @Parameter(description = "Use stale read") @RequestParam(defaultValue = "false") boolean stale,
             @AuthenticationPrincipal Jwt jwt) {
-        String normalizedPath = normalizePath(path);
-        UserContext userContext = UserContext.fromJwt(jwt);
-        KVStorePort.KVReadOptions options = KVStorePort.KVReadOptions.builder()
-                .consistent(consistent)
-                .stale(stale)
-                .build();
-        return kvService.getObject(serviceId, normalizedPath, options, userContext)
-                .map(KVApiMapper::toObjectResponse)
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+        try {
+            String normalizedPrefix = normalizePrefix(prefix);
+            log.debug("Getting KV object for service: {}, prefix: {} (normalized: {})", serviceId, prefix, normalizedPrefix);
+            
+            UserContext userContext = UserContext.fromJwt(jwt);
+            KVStorePort.KVReadOptions options = KVStorePort.KVReadOptions.builder()
+                    .consistent(consistent)
+                    .stale(stale)
+                    .build();
+            return kvService.getObject(serviceId, normalizedPrefix, options, userContext)
+                    .map(KVApiMapper::toObjectResponse)
+                    .map(ResponseEntity::ok)
+                    .orElseGet(() -> ResponseEntity.notFound().build());
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid prefix for KV object get: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
     }
 
-    @PutMapping(value = {"/object", "/{*path}/object"}, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @PutMapping(value = "/object", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(
             summary = "Create or update a structured object",
-            description = "Writes an object structure under the specified prefix using transactional semantics.",
+            description = """
+                    Writes an object structure under the specified prefix using transactional semantics.
+                    
+                    **Prefix Parameter:**
+                    - Use `?prefix=...` to specify the prefix (relative to service root)
+                    - Empty prefix `?prefix=` or omitted means root prefix
+                    - Prefix is automatically normalized (trimmed, leading slashes removed)
+                    """,
             security = {
                     @SecurityRequirement(name = "oauth2_auth_code"),
                     @SecurityRequirement(name = "oauth2_password")
             },
             operationId = "putKVObject"
     )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Object structure created/updated successfully",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = KVDtos.TransactionResponse.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Invalid request",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = ErrorResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Service not found or access denied",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = ErrorResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = ErrorResponse.class))
+            )
+    })
     public ResponseEntity<KVDtos.TransactionResponse> putObject(
-            @PathVariable String serviceId,
-            @PathVariable(value = "path", required = false) String path,
-            @Valid @RequestBody KVDtos.ObjectWriteRequest request,
+            @Parameter(description = "Application service ID", example = "sample-service") @PathVariable String serviceId,
+            @Parameter(description = "Prefix to store object under (relative to service root)", example = "config") @RequestParam(defaultValue = "") String prefix,
+            @Parameter(description = "Object structure to persist") @Valid @RequestBody KVDtos.ObjectWriteRequest request,
             @AuthenticationPrincipal Jwt jwt) {
-        String normalizedPath = normalizePath(path);
-        UserContext userContext = UserContext.fromJwt(jwt);
-        KVTransactionResponse response = kvService.putObject(serviceId, normalizedPath, request.data(), userContext);
-        KVDtos.TransactionResponse dto = KVApiMapper.toTransactionResponse(serviceId, response, prefixPolicy);
-        return ResponseEntity.ok(dto);
+        try {
+            String normalizedPrefix = normalizePrefix(prefix);
+            log.info("Putting KV object for service: {}, prefix: {} (normalized: {})", serviceId, prefix, normalizedPrefix);
+            
+            UserContext userContext = UserContext.fromJwt(jwt);
+            KVTransactionResponse response = kvService.putObject(serviceId, normalizedPrefix, request.data(), userContext);
+            KVDtos.TransactionResponse dto = KVApiMapper.toTransactionResponse(serviceId, response, prefixPolicy);
+            return ResponseEntity.ok(dto);
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid prefix for KV object put: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
     }
 
-    @GetMapping(value = {"/list", "/{*path}/list"}, produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping("/list")
     @Operation(
             summary = "Get a structured list",
-            description = "Assemble a logical list stored under the given prefix.",
+            description = """
+                    Assemble a logical list stored under the given prefix.
+                    
+                    **Prefix Parameter:**
+                    - Use `?prefix=...` to specify the prefix (relative to service root)
+                    - Empty prefix `?prefix=` or omitted means root prefix
+                    - Prefix is automatically normalized (trimmed, leading slashes removed)
+                    """,
             security = {
                     @SecurityRequirement(name = "oauth2_auth_code"),
                     @SecurityRequirement(name = "oauth2_password")
             },
             operationId = "getKVList"
     )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "List structure found",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = KVDtos.ListResponseV2.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "List not found or access denied",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = ErrorResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = ErrorResponse.class))
+            )
+    })
     public ResponseEntity<KVDtos.ListResponseV2> getList(
-            @PathVariable String serviceId,
-            @PathVariable(value = "path", required = false) String path,
-            @RequestParam(defaultValue = "false") boolean consistent,
-            @RequestParam(defaultValue = "false") boolean stale,
+            @Parameter(description = "Application service ID", example = "sample-service") @PathVariable String serviceId,
+            @Parameter(description = "Prefix to retrieve list from (relative to service root)", example = "config") @RequestParam(defaultValue = "") String prefix,
+            @Parameter(description = "Use consistent read") @RequestParam(defaultValue = "false") boolean consistent,
+            @Parameter(description = "Use stale read") @RequestParam(defaultValue = "false") boolean stale,
             @AuthenticationPrincipal Jwt jwt) {
-        String normalizedPath = normalizePath(path);
-        UserContext userContext = UserContext.fromJwt(jwt);
-        KVStorePort.KVReadOptions options = KVStorePort.KVReadOptions.builder()
-                .consistent(consistent)
-                .stale(stale)
-                .build();
-        return kvService.getList(serviceId, normalizedPath, options, userContext)
-                .map(KVApiMapper::toListResponse)
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+        try {
+            String normalizedPrefix = normalizePrefix(prefix);
+            log.debug("Getting KV list for service: {}, prefix: {} (normalized: {})", serviceId, prefix, normalizedPrefix);
+            
+            UserContext userContext = UserContext.fromJwt(jwt);
+            KVStorePort.KVReadOptions options = KVStorePort.KVReadOptions.builder()
+                    .consistent(consistent)
+                    .stale(stale)
+                    .build();
+            return kvService.getList(serviceId, normalizedPrefix, options, userContext)
+                    .map(KVApiMapper::toListResponse)
+                    .map(ResponseEntity::ok)
+                    .orElseGet(() -> ResponseEntity.notFound().build());
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid prefix for KV list get: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
     }
 
-    @PutMapping(value = {"/list", "/{*path}/list"}, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @PutMapping(value = "/list", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(
             summary = "Create or update a structured list",
-            description = "Writes list items and manifest atomically using transactions.",
+            description = """
+                    Writes list items and manifest atomically using transactions.
+                    
+                    **Prefix Parameter:**
+                    - Use `?prefix=...` to specify the prefix (relative to service root)
+                    - Empty prefix `?prefix=` or omitted means root prefix
+                    - Prefix is automatically normalized (trimmed, leading slashes removed)
+                    """,
             security = {
                     @SecurityRequirement(name = "oauth2_auth_code"),
                     @SecurityRequirement(name = "oauth2_password")
             },
             operationId = "putKVList"
     )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "List structure created/updated successfully",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = KVDtos.TransactionResponse.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Invalid request",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = ErrorResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Service not found or access denied",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = ErrorResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = ErrorResponse.class))
+            )
+    })
     public ResponseEntity<KVDtos.TransactionResponse> putList(
-            @PathVariable String serviceId,
-            @PathVariable(value = "path", required = false) String path,
-            @Valid @RequestBody KVDtos.ListWriteRequest request,
+            @Parameter(description = "Application service ID", example = "sample-service") @PathVariable String serviceId,
+            @Parameter(description = "Prefix to store list under (relative to service root)", example = "config") @RequestParam(defaultValue = "") String prefix,
+            @Parameter(description = "List structure to persist") @Valid @RequestBody KVDtos.ListWriteRequest request,
             @AuthenticationPrincipal Jwt jwt) {
-        String normalizedPath = normalizePath(path);
-        UserContext userContext = UserContext.fromJwt(jwt);
-        KVListStructure structure = KVApiMapper.toListStructure(request);
-        KVTransactionResponse response = kvService.putList(serviceId, normalizedPath, structure, KVApiMapper.toDeleteIds(request), userContext);
-        KVDtos.TransactionResponse dto = KVApiMapper.toTransactionResponse(serviceId, response, prefixPolicy);
-        return ResponseEntity.ok(dto);
+        try {
+            String normalizedPrefix = normalizePrefix(prefix);
+            log.info("Putting KV list for service: {}, prefix: {} (normalized: {})", serviceId, prefix, normalizedPrefix);
+            
+            UserContext userContext = UserContext.fromJwt(jwt);
+            KVListStructure structure = KVApiMapper.toListStructure(request);
+            KVTransactionResponse response = kvService.putList(serviceId, normalizedPrefix, structure, KVApiMapper.toDeleteIds(request), userContext);
+            KVDtos.TransactionResponse dto = KVApiMapper.toTransactionResponse(serviceId, response, prefixPolicy);
+            return ResponseEntity.ok(dto);
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid prefix for KV list put: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
     }
     /**
      * Create or update a KV entry.
@@ -540,7 +704,37 @@ public class KVController {
         return path.startsWith("/") ? path.substring(1) : path;
     }
 
-    @GetMapping(value = {"/view", "/{*path}/view"})
+    /**
+     * Normalize prefix using KVPath validation and normalization.
+     * <p>
+     * Automatically normalizes the prefix by:
+     * - Trimming whitespace
+     * - Removing leading slashes
+     * - Collapsing multiple slashes
+     * - Validating path format
+     * </p>
+     * <p>
+     * Returns empty string for null/empty/blank prefixes (indicating root).
+     * </p>
+     *
+     * @param prefix the raw prefix from query parameter
+     * @return normalized prefix, or empty string if prefix is null/empty/blank
+     * @throws IllegalArgumentException if prefix contains invalid characters or path traversal
+     */
+    private String normalizePrefix(String prefix) {
+        if (prefix == null || prefix.isBlank()) {
+            return "";
+        }
+        try {
+            KVPath path = KVPath.of(prefix);
+            return path.isEmpty() ? "" : path.value();
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid prefix format: {}, error: {}", prefix, e.getMessage());
+            throw e;
+        }
+    }
+
+    @GetMapping("/view")
     @Operation(
             summary = "View prefix as structured document",
             description = "Returns a read-only view of all keys under a prefix in JSON, YAML, or Properties format.",
@@ -551,14 +745,14 @@ public class KVController {
             operationId = "viewKVPrefix"
     )
     public ResponseEntity<String> viewPrefix(
-            @PathVariable String serviceId,
-            @PathVariable(required = false) String path,
-            @RequestParam(defaultValue = "json") String format,
-            @RequestParam(defaultValue = "false") boolean consistent,
-            @RequestParam(defaultValue = "false") boolean stale,
+            @Parameter(description = "Application service ID", example = "sample-service") @PathVariable String serviceId,
+            @Parameter(description = "Prefix to view (relative to service root)", example = "config/") @RequestParam(required = false, defaultValue = "") String prefix,
+            @Parameter(description = "Output format: json, yaml, or properties", example = "json") @RequestParam(defaultValue = "json") String format,
+            @Parameter(description = "Use consistent read") @RequestParam(defaultValue = "false") boolean consistent,
+            @Parameter(description = "Use stale read") @RequestParam(defaultValue = "false") boolean stale,
             @AuthenticationPrincipal Jwt jwt) {
 
-        String normalizedPath = normalizePath(path);
+        String normalizedPrefix = normalizePrefix(prefix);
         UserContext userContext = UserContext.fromJwt(jwt);
         KVStorePort.KVReadOptions options = KVStorePort.KVReadOptions.builder()
                 .consistent(consistent)
@@ -566,7 +760,7 @@ public class KVController {
                 .build();
 
         KVTypeCodec.StructuredFormat structuredFormat = parseFormat(format);
-        return kvService.view(serviceId, normalizedPath, structuredFormat, options, userContext)
+        return kvService.view(serviceId, normalizedPrefix, structuredFormat, options, userContext)
                 .map(bytes -> ResponseEntity.ok()
                         .contentType(mediaTypeFor(structuredFormat))
                         .body(new String(bytes, StandardCharsets.UTF_8)))

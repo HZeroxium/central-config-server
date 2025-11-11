@@ -169,6 +169,10 @@ public class HttpTransport {
             return ConsulResponse.<T>builder()
                     .body(null)
                     .build();
+        } catch (HttpClientErrorException e) {
+            // Re-throw HttpClientErrorException so callers can handle specific status codes
+            // (e.g., 409 for transaction rollbacks)
+            throw e;
         } catch (Exception e) {
             log.error("Request failed", e);
             throw new ConsulException("Request failed: " + e.getMessage(), e);

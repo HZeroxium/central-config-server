@@ -11,11 +11,19 @@ import {
   Typography,
   Alert,
   Button,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
 } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import {
   Add as AddIcon,
   ArrowBack as BackIcon,
+  ArrowDropDown as ArrowDropDownIcon,
+  InsertDriveFile as LeafIcon,
+  Code as ObjectIcon,
+  List as ListIcon,
 } from "@mui/icons-material";
 import { PageHeader } from "@components/common/PageHeader";
 import { DetailPageSkeleton } from "@components/common/skeletons";
@@ -27,8 +35,12 @@ import {
   KVSearchBar,
   KVBreadcrumb,
   KVFlatListView,
+  KVCreateDialog,
+  KVObjectEditor,
+  KVListEditor,
+  type KVCreateType,
 } from "../components";
-import { useKVStore, useKVPermissions, useKVTree } from "../hooks";
+import { useKVStore, useKVPermissions, useKVTree, usePutKVObject, usePutKVList } from "../hooks";
 import {
   normalizePath,
   encodePath,
@@ -39,6 +51,13 @@ import { useFindApplicationServiceById } from "@lib/api/hooks";
 import type { KVPutRequest } from "@lib/api/models";
 import { ToggleButton, ToggleButtonGroup } from "@mui/material";
 import { ViewList as ViewListIcon, AccountTree as TreeIcon } from "@mui/icons-material";
+import { useQueryClient } from "@tanstack/react-query";
+import { showTransactionToast } from "../utils/errorHandling";
+import { toGeneratedKVListItemArray, toKVObjectWriteRequestData, toKVListManifestMetadata } from "../utils/typeAdapters";
+import type { UIListItem } from "../utils/typeAdapters";
+import type { KVListWriteRequest, KVObjectWriteRequest, PutKVListParams, PutKVObjectParams } from "../hooks";
+import { handleApiError } from "@lib/api/errorHandler";
+import { getGetKVListQueryKey, getGetKVObjectQueryKey } from "@lib/api/generated/key-value-store/key-value-store";
 
 export interface KVStorePageProps {
   /** Service ID (when used as tab, overrides URL param) */
@@ -63,6 +82,10 @@ export default function KVStorePage({
     !propServiceId && pathParam ? decodePath(pathParam) : undefined
   );
   const [createMode, setCreateMode] = useState(false);
+  const [createType, setCreateType] = useState<KVCreateType | null>(null);
+  const [createPrefix, setCreatePrefix] = useState("");
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [createMenuAnchor, setCreateMenuAnchor] = useState<null | HTMLElement>(null);
   const [viewMode, setViewMode] = useState<"tree" | "flat">("flat");
 
   // Fetch service info
@@ -79,6 +102,46 @@ export default function KVStorePage({
 
   // Check permissions
   const permissions = useKVPermissions(serviceId || "");
+  const queryClient = useQueryClient();
+
+  // Object/List mutations with error handling
+  const putObjectMutation = usePutKVObject({
+    mutation: {
+      onSuccess: (response, variables) => {
+        showTransactionToast(response, "Object saved successfully");
+        // Invalidate related queries using generated query keys
+        queryClient.invalidateQueries({
+          queryKey: getGetKVObjectQueryKey(variables.serviceId, variables.params),
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["kv", serviceId],
+        });
+        refetchKeys();
+      },
+      onError: (error) => {
+        handleApiError(error);
+      },
+    },
+  });
+
+  const putListMutation = usePutKVList({
+    mutation: {
+      onSuccess: (response, variables) => {
+        showTransactionToast(response, "List saved successfully");
+        // Invalidate related queries using generated query keys
+        queryClient.invalidateQueries({
+          queryKey: getGetKVListQueryKey(variables.serviceId, variables.params),
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["kv", serviceId],
+        });
+        refetchKeys();
+      },
+      onError: (error) => {
+        handleApiError(error);
+      },
+    },
+  });
 
   // KV Store operations - optimized queries
   const {
@@ -119,9 +182,13 @@ export default function KVStorePage({
       const decoded = decodePath(pathParam);
       setSelectedPath(decoded);
       setCreateMode(false);
+      setCreateType(null);
+      setCreatePrefix("");
     } else if (!propServiceId) {
       setSelectedPath(undefined);
       setCreateMode(false);
+      setCreateType(null);
+      setCreatePrefix("");
     }
   }, [pathParam, propServiceId]);
 
@@ -134,10 +201,14 @@ export default function KVStorePage({
       setCurrentPrefix(normalized);
       setSelectedPath(undefined);
       setCreateMode(false);
+      setCreateType(null);
+      setCreatePrefix("");
     } else {
       // Select file to view/edit
       setSelectedPath(normalized);
       setCreateMode(false);
+      setCreateType(null);
+      setCreatePrefix("");
       if (!propServiceId) {
         const encoded = encodePath(normalized);
         navigate(`/kv/${serviceId}/${encoded}`, { replace: true });
@@ -150,6 +221,8 @@ export default function KVStorePage({
     setCurrentPrefix(prefix);
     setSelectedPath(undefined);
     setCreateMode(false);
+    setCreateType(null);
+    setCreatePrefix("");
   };
 
   // Navigate back (go to parent folder)
@@ -167,11 +240,68 @@ export default function KVStorePage({
     handlePathSelect(path, false);
   };
 
-  // Handle edit
+  // Handle edit (for leaf entries)
   const handleEdit = async (_path: string, data: KVPutRequest) => {
     if (!selectedPath) return;
     await putEntry(selectedPath, data);
     await refetchKeys();
+  };
+
+  // Handle edit object
+  const handleEditObject = async (path: string, data: Record<string, unknown>) => {
+    return new Promise<void>((resolve, reject) => {
+      const params: PutKVObjectParams = { prefix: path };
+      const requestData: KVObjectWriteRequest = {
+        data: toKVObjectWriteRequestData(data),
+      };
+
+      putObjectMutation.mutate(
+        {
+          serviceId: serviceId || "",
+          data: requestData,
+          params,
+        },
+        {
+          onSuccess: () => resolve(),
+          onError: (error) => reject(error),
+        }
+      );
+    });
+  };
+
+  // Handle edit list
+  const handleEditList = async (
+    path: string,
+    items: UIListItem[],
+    manifest: { order?: string[]; version?: number; etag?: string | null; metadata?: Record<string, unknown> },
+    deletes: string[]
+  ) => {
+    return new Promise<void>((resolve, reject) => {
+      const params: PutKVListParams = { prefix: path };
+      
+      const requestData: KVListWriteRequest = {
+        items: toGeneratedKVListItemArray(items),
+        manifest: {
+          order: manifest.order ?? [],
+          version: manifest.version ?? 0,
+          etag: manifest.etag ?? null,
+          metadata: toKVListManifestMetadata(manifest.metadata),
+        },
+        deletes: deletes.length > 0 ? deletes : undefined,
+      };
+
+      putListMutation.mutate(
+        {
+          serviceId: serviceId || "",
+          data: requestData,
+          params,
+        },
+        {
+          onSuccess: () => resolve(),
+          onError: (error) => reject(error),
+        }
+      );
+    });
   };
 
   // Handle delete
@@ -184,10 +314,85 @@ export default function KVStorePage({
     setCreateMode(false);
   };
 
-  // Handle new entry
-  const handleNewEntry = () => {
-    setCreateMode(true);
-    setSelectedPath(undefined);
+  // Handle new entry menu
+  const handleNewEntryMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setCreateMenuAnchor(event.currentTarget);
+  };
+
+  const handleNewEntryMenuClose = () => {
+    setCreateMenuAnchor(null);
+  };
+
+  const handleNewEntryMenuSelect = (type: KVCreateType) => {
+    setCreateMenuAnchor(null);
+    setCreateDialogOpen(true);
+    // Pre-select type in dialog
+    setCreateType(type);
+  };
+
+  // Handle create dialog
+  const handleCreateDialogClose = () => {
+    setCreateDialogOpen(false);
+    setCreateType(null);
+    setCreatePrefix("");
+  };
+
+  const handleCreateDialogConfirm = (type: KVCreateType, prefix: string) => {
+    setCreateType(type);
+    setCreatePrefix(prefix);
+    setCreateDialogOpen(false);
+    
+    if (type === "leaf") {
+      // For leaf entries, set createMode and use prefix as path
+      setCreateMode(true);
+      setSelectedPath(prefix);
+    } else {
+      // For object/list, set createMode and show appropriate editor
+      setCreateMode(true);
+      setSelectedPath(undefined);
+    }
+  };
+
+  // Handle create object
+  const handleCreateObject = async (data: Record<string, unknown>) => {
+    try {
+      await handleEditObject(createPrefix, data);
+      // After success, navigate to view created object
+      setCreateMode(false);
+      setCreateType(null);
+      const prefixToSelect = createPrefix;
+      setCreatePrefix("");
+      // Wait for keys to refresh, then navigate
+      await refetchKeys();
+      // Select the prefix to view the created object
+      handlePathSelect(prefixToSelect, false);
+    } catch (error) {
+      // Error is already handled by handleEditObject
+      throw error;
+    }
+  };
+
+  // Handle create list
+  const handleCreateList = async (
+    items: UIListItem[],
+    manifest: { order?: string[]; version?: number; etag?: string | null; metadata?: Record<string, unknown> },
+    deletes: string[]
+  ) => {
+    try {
+      await handleEditList(createPrefix, items, manifest, deletes);
+      // After success, navigate to view created list
+      setCreateMode(false);
+      setCreateType(null);
+      const prefixToSelect = createPrefix;
+      setCreatePrefix("");
+      // Wait for keys to refresh, then navigate
+      await refetchKeys();
+      // Select the prefix to view the created list
+      handlePathSelect(prefixToSelect, false);
+    } catch (error) {
+      // Error is already handled by handleEditList
+      throw error;
+    }
   };
 
   if (serviceLoading) {
@@ -266,14 +471,71 @@ export default function KVStorePage({
                 >
                   <Typography variant="h6">Navigation</Typography>
                   {!permissions.isReadOnly && (
-                    <Button
-                      size="small"
-                      startIcon={<AddIcon />}
-                      onClick={handleNewEntry}
-                      variant="contained"
-                    >
-                      New Entry
-                    </Button>
+                    <>
+                      <Button
+                        size="small"
+                        startIcon={<AddIcon />}
+                        endIcon={<ArrowDropDownIcon />}
+                        onClick={handleNewEntryMenuOpen}
+                        variant="contained"
+                        aria-label="Create new entry"
+                        aria-haspopup="true"
+                        aria-controls={createMenuAnchor ? "create-menu" : undefined}
+                      >
+                        New Entry
+                      </Button>
+                      <Menu
+                        id="create-menu"
+                        anchorEl={createMenuAnchor}
+                        open={Boolean(createMenuAnchor)}
+                        onClose={handleNewEntryMenuClose}
+                        anchorOrigin={{
+                          vertical: "bottom",
+                          horizontal: "right",
+                        }}
+                        transformOrigin={{
+                          vertical: "top",
+                          horizontal: "right",
+                        }}
+                      >
+                        <MenuItem
+                          onClick={() => handleNewEntryMenuSelect("leaf")}
+                          aria-label="Create leaf entry"
+                        >
+                          <ListItemIcon>
+                            <LeafIcon fontSize="small" />
+                          </ListItemIcon>
+                          <ListItemText
+                            primary="Leaf Entry"
+                            secondary="Simple key-value entry"
+                          />
+                        </MenuItem>
+                        <MenuItem
+                          onClick={() => handleNewEntryMenuSelect("object")}
+                          aria-label="Create object"
+                        >
+                          <ListItemIcon>
+                            <ObjectIcon fontSize="small" />
+                          </ListItemIcon>
+                          <ListItemText
+                            primary="Object"
+                            secondary="Structured key-value pairs"
+                          />
+                        </MenuItem>
+                        <MenuItem
+                          onClick={() => handleNewEntryMenuSelect("list")}
+                          aria-label="Create list"
+                        >
+                          <ListItemIcon>
+                            <ListIcon fontSize="small" />
+                          </ListItemIcon>
+                          <ListItemText
+                            primary="List"
+                            secondary="Ordered list of items"
+                          />
+                        </MenuItem>
+                      </Menu>
+                    </>
                   )}
                 </Box>
 
@@ -343,28 +605,78 @@ export default function KVStorePage({
           {createMode ? (
             <Card>
               <CardContent>
-                <KVEntryEditor
-                  path={selectedPath || ""}
-                  currentPrefix={currentPrefix}
-                  onSave={handleCreate}
-                  onCancel={() => {
-                    setCreateMode(false);
-                    setSelectedPath(undefined);
-                  }}
-                  isReadOnly={permissions.isReadOnly}
-                  isSaving={isPutting}
-                />
+                {createType === "object" ? (
+                  <KVObjectEditor
+                    serviceId={serviceId}
+                    prefix={createPrefix}
+                    initialData={{}}
+                    onSave={handleCreateObject}
+                    onCancel={() => {
+                      setCreateMode(false);
+                      setCreateType(null);
+                      setCreatePrefix("");
+                      setSelectedPath(undefined);
+                    }}
+                    isReadOnly={permissions.isReadOnly}
+                    isSaving={putObjectMutation.isPending}
+                    isCreateMode={true}
+                  />
+                ) : createType === "list" ? (
+                  <KVListEditor
+                    serviceId={serviceId}
+                    prefix={createPrefix}
+                    initialItems={[]}
+                    initialManifest={undefined}
+                    onSave={handleCreateList}
+                    onCancel={() => {
+                      setCreateMode(false);
+                      setCreateType(null);
+                      setCreatePrefix("");
+                      setSelectedPath(undefined);
+                    }}
+                    isReadOnly={permissions.isReadOnly}
+                    isSaving={putListMutation.isPending}
+                    isCreateMode={true}
+                  />
+                ) : (
+                  <KVEntryEditor
+                    path={selectedPath || createPrefix}
+                    currentPrefix={currentPrefix}
+                    onSave={handleCreate}
+                    onCancel={() => {
+                      setCreateMode(false);
+                      setCreateType(null);
+                      setCreatePrefix("");
+                      setSelectedPath(undefined);
+                    }}
+                    isReadOnly={permissions.isReadOnly}
+                    isSaving={isPutting}
+                  />
+                )}
               </CardContent>
             </Card>
           ) : selectedPath ? (
             <KVDetailPanel
               entry={entry && typeof entry === "object" && "path" in entry ? entry : undefined}
               path={selectedPath}
+              serviceId={serviceId}
+              childKeys={keys.filter((key) => {
+                const normalizedPath = normalizePath(selectedPath);
+                const normalizedKey = normalizePath(key);
+                return normalizedKey.startsWith(normalizedPath + "/");
+              })}
               onEdit={handleEdit}
+              onEditObject={handleEditObject}
+              onEditList={handleEditList}
               onDelete={handleDelete}
               onRefresh={refetchEntry}
+              isPrefix={keys.some((key) => {
+                const normalizedPath = normalizePath(selectedPath);
+                const normalizedKey = normalizePath(key);
+                return normalizedKey.startsWith(normalizedPath + "/");
+              })}
               isReadOnly={permissions.isReadOnly}
-              isEditing={isPutting}
+              isEditing={isPutting || putObjectMutation.isPending || putListMutation.isPending}
               isDeleting={isDeleting}
               isLoading={entryLoading}
             />
@@ -381,6 +693,15 @@ export default function KVStorePage({
           )}
         </Grid>
       </Grid>
+
+      {/* Create Dialog */}
+      <KVCreateDialog
+        open={createDialogOpen}
+        onClose={handleCreateDialogClose}
+        onConfirm={handleCreateDialogConfirm}
+        currentPrefix={currentPrefix}
+        initialType={createType || undefined}
+      />
     </Box>
   );
 }
