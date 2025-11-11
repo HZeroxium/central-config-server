@@ -93,6 +93,33 @@
       "name": "zcm.sdk.bus.kafka.bootstrap-servers",
       "type": "java.lang.String",
       "description": "Kafka bootstrap servers for refresh listener"
+    },
+    {
+      "name": "zcm.sdk.kv.enabled",
+      "type": "java.lang.Boolean",
+      "defaultValue": false,
+      "description": "Enable Key-Value store functionality"
+    },
+    {
+      "name": "zcm.sdk.kv.keycloak.token-endpoint",
+      "type": "java.lang.String",
+      "description": "Keycloak token endpoint URL for client credentials flow (e.g., http://keycloak:8080/realms/config-control/protocol/openid-connect/token)"
+    },
+    {
+      "name": "zcm.sdk.kv.keycloak.client-id",
+      "type": "java.lang.String",
+      "description": "Keycloak client ID for client credentials flow"
+    },
+    {
+      "name": "zcm.sdk.kv.keycloak.client-secret",
+      "type": "java.lang.String",
+      "description": "Keycloak client secret for client credentials flow"
+    },
+    {
+      "name": "zcm.sdk.kv.keycloak.realm",
+      "type": "java.lang.String",
+      "defaultValue": "config-control",
+      "description": "Keycloak realm name"
     }
   ]
 }

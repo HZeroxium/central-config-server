@@ -1,5 +1,6 @@
 package com.vng.zing.zcm.loadbalancer;
 
+import com.vng.zing.zcm.loadbalancer.strategy.*;
 import lombok.extern.slf4j.Slf4j;
 
 /**

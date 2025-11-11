@@ -55,6 +55,12 @@ public class SdkProperties {
   /** Configuration for Spring Cloud Bus integration (for config refresh events). */
   private Bus bus = new Bus();
 
+  /** Configuration for Unleash Feature Flags integration. */
+  private FeatureFlags featureFlags = new FeatureFlags();
+
+  /** Configuration for Key-Value store integration. */
+  private KV kv = new KV();
+
   /**
    * Configuration related to service discovery.
    */
@@ -148,5 +154,65 @@ public class SdkProperties {
 
     /** Kafka bootstrap servers for Cloud Bus communication. */
     private String kafkaBootstrapServers;
+  }
+
+  /**
+   * Configuration for Unleash Feature Flags integration.
+   */
+  @Data
+  public static class FeatureFlags {
+
+    /** Whether feature flags functionality is enabled. */
+    private boolean enabled = false;
+
+    /** Base URL of the Unleash Server API (e.g., http://unleash:4242/api/). */
+    private String unleashApiUrl;
+
+    /** API key (backend token) for authenticating with Unleash Server. */
+    private String apiKey;
+
+    /** Application name used for Unleash (defaults to serviceName). */
+    private String appName;
+
+    /** Instance ID for Unleash (defaults to instanceId). */
+    private String instanceId;
+
+    /** Whether to fetch flags synchronously on initialization. */
+    private boolean synchronousFetchOnInitialisation = true;
+
+    /** Interval in seconds for sending metrics to Unleash Server (default: 60s). */
+    private int sendMetricsInterval = 60;
+  }
+
+  /**
+   * Configuration for Key-Value store integration.
+   */
+  @Data
+  public static class KV {
+
+    /** Whether KV functionality is enabled. */
+    private boolean enabled = false;
+
+    /** Keycloak configuration for authentication. */
+    private KVKeycloak keycloak = new KVKeycloak();
+  }
+
+  /**
+   * Keycloak configuration for KV authentication.
+   */
+  @Data
+  public static class KVKeycloak {
+
+    /** Token endpoint URL (e.g., http://keycloak:8080/realms/config-control/protocol/openid-connect/token). */
+    private String tokenEndpoint;
+
+    /** Client ID for client credentials flow. */
+    private String clientId;
+
+    /** Client secret for client credentials flow. */
+    private String clientSecret;
+
+    /** Realm name (default: config-control). */
+    private String realm = "config-control";
   }
 }

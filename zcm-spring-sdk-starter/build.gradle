@@ -42,6 +42,13 @@ dependencies {
   // Spring Kafka (client utils)
   implementation("org.springframework.kafka:spring-kafka")
 
+  // Unleash Feature Flags
+  implementation("io.getunleash:unleash-client-java:9.0.0")
+
+  // Spring Security (optional - for JWT pass-through support)
+  compileOnly("org.springframework.security:spring-security-core")
+  compileOnly("org.springframework.security:spring-security-oauth2-resource-server")
+
   // Thrift
   implementation("org.apache.thrift:libthrift:0.22.0")
 

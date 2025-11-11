@@ -1,4 +1,4 @@
-package com.vng.zing.zcm.client;
+package com.vng.zing.zcm.client.config;
 
 import java.util.Map;
 

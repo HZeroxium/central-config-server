@@ -1,4 +1,4 @@
-package com.vng.zing.zcm.client;
+package com.vng.zing.zcm.client.http;
 
 import org.springframework.web.client.RestClient;
 

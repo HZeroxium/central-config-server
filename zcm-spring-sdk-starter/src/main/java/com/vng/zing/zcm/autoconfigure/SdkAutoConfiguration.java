@@ -1,7 +1,15 @@
 package com.vng.zing.zcm.autoconfigure;
 
 import com.vng.zing.zcm.client.*;
+import com.vng.zing.zcm.client.featureflag.FeatureFlagApi;
+import com.vng.zing.zcm.client.featureflag.FeatureFlagApiImpl;
+import com.vng.zing.zcm.client.kv.KVApi;
+import com.vng.zing.zcm.client.kv.KVApiImpl;
 import com.vng.zing.zcm.config.SdkProperties;
+import com.vng.zing.zcm.featureflags.SpringUnleashContextProvider;
+import com.vng.zing.zcm.kv.ClientCredentialsTokenService;
+import com.vng.zing.zcm.kv.HybridKVTokenProvider;
+import com.vng.zing.zcm.kv.KVTokenProvider;
 import com.vng.zing.zcm.loadbalancer.LoadBalancerStrategy;
 import com.vng.zing.zcm.loadbalancer.LoadBalancerStrategyFactory;
 import com.vng.zing.zcm.pingconfig.ConfigHashCalculator;
@@ -14,7 +22,11 @@ import com.vng.zing.zcm.pingconfig.strategy.PingProtocol;
 import com.vng.zing.zcm.pingconfig.strategy.HttpRestPingStrategy;
 import com.vng.zing.zcm.pingconfig.strategy.ThriftRpcPingStrategy;
 import com.vng.zing.zcm.pingconfig.strategy.GrpcPingStrategy;
+import io.getunleash.DefaultUnleash;
+import io.getunleash.Unleash;
+import io.getunleash.util.UnleashConfig;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -31,6 +43,7 @@ import org.springframework.cloud.loadbalancer.annotation.LoadBalancerClients;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.Environment;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
@@ -66,6 +79,7 @@ import org.springframework.web.client.RestClient;
 @EnableScheduling
 @LoadBalancerClients
 @RequiredArgsConstructor
+@Slf4j
 public class SdkAutoConfiguration {
 
   /** Centralized SDK configuration loaded from {@code application.yml} (prefix: zcm.sdk). */
@@ -217,6 +231,7 @@ public class SdkAutoConfiguration {
    * @param hashCalc           config hash calculator
    * @param pingSender         ping sender
    * @param loadBalancerStrategy chosen LB strategy
+   * @param featureFlagApi     optional FeatureFlagApi (if Unleash is enabled)
    * @return a fully configured {@link ClientApi} implementation
    */
   @Bean
@@ -225,8 +240,200 @@ public class SdkAutoConfiguration {
       DiscoveryClient discoveryClient,
       ConfigHashCalculator hashCalc,
       PingSender pingSender,
-      LoadBalancerStrategy loadBalancerStrategy) {
-    return new ClientImpl(lbRestClientBuilder, discoveryClient, hashCalc, pingSender, loadBalancerStrategy);
+      LoadBalancerStrategy loadBalancerStrategy,
+      @org.springframework.beans.factory.annotation.Autowired(required = false) FeatureFlagApi featureFlagApi,
+      @org.springframework.beans.factory.annotation.Autowired(required = false) KVApi kvApi) {
+    ClientImpl client = new ClientImpl(lbRestClientBuilder, discoveryClient, hashCalc, pingSender, loadBalancerStrategy);
+    if (featureFlagApi != null) {
+      client.setFeatureFlagApi(featureFlagApi);
+    }
+    if (kvApi != null) {
+      client.setKVApi(kvApi);
+    }
+    return client;
+  }
+
+  // ======================================================================
+  //  SECTION 6. Feature Flags (Unleash Integration)
+  // ======================================================================
+
+  /**
+   * Creates a singleton {@link Unleash} client bean if feature flags are enabled.
+   * <p>
+   * The client is configured with:
+   * <ul>
+   *   <li>Unleash API URL and API key from {@link SdkProperties}</li>
+   *   <li>App name and instance ID (mapped from serviceName/instanceId)</li>
+   *   <li>Synchronous fetch on initialization for immediate flag availability</li>
+   *   <li>Optional UnleashContextProvider for automatic context building</li>
+   * </ul>
+   *
+   * @param env Spring environment for resolving app name and profile
+   * @param contextProvider optional UnleashContextProvider (request-scoped)
+   * @return a configured {@link Unleash} instance, or null if disabled
+   */
+  @Bean(destroyMethod = "shutdown")
+  @ConditionalOnMissingBean
+  @org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
+      prefix = "zcm.sdk.feature-flags", name = "enabled", havingValue = "true", matchIfMissing = false)
+  public Unleash unleashClient(Environment env,
+      @org.springframework.beans.factory.annotation.Autowired(required = false) SpringUnleashContextProvider contextProvider) {
+    SdkProperties.FeatureFlags ff = props.getFeatureFlags();
+    
+    if (ff.getUnleashApiUrl() == null || ff.getUnleashApiUrl().isBlank()) {
+      log.warn("Unleash feature flags enabled but unleash-api-url is not configured. Disabling feature flags.");
+      return null;
+    }
+    
+    if (ff.getApiKey() == null || ff.getApiKey().isBlank()) {
+      log.warn("Unleash feature flags enabled but api-key is not configured. Disabling feature flags.");
+      return null;
+    }
+
+    // Map appName from serviceName if not explicitly set
+    String appName = ff.getAppName();
+    if (appName == null || appName.isBlank()) {
+      appName = props.getServiceName();
+      if (appName == null || appName.isBlank()) {
+        appName = env.getProperty("spring.application.name", "unknown");
+      }
+    }
+
+    // Map instanceId from SDK instanceId if not explicitly set
+    String instanceId = ff.getInstanceId();
+    if (instanceId == null || instanceId.isBlank()) {
+      instanceId = props.getInstanceId();
+      if (instanceId == null || instanceId.isBlank()) {
+        instanceId = appName + "-" + System.currentTimeMillis();
+      }
+    }
+
+    log.info("Initializing Unleash client: appName={}, instanceId={}, apiUrl={}", 
+        appName, instanceId, ff.getUnleashApiUrl());
+
+    UnleashConfig.Builder configBuilder = UnleashConfig.builder()
+        .appName(appName)
+        .instanceId(instanceId)
+        .unleashAPI(ff.getUnleashApiUrl())
+        .apiKey(ff.getApiKey())
+        .synchronousFetchOnInitialisation(ff.isSynchronousFetchOnInitialisation())
+        .sendMetricsInterval(ff.getSendMetricsInterval());
+
+    // Attach context provider if available
+    if (contextProvider != null) {
+      configBuilder.unleashContextProvider(contextProvider);
+    }
+
+    UnleashConfig config = configBuilder.build();
+    return new DefaultUnleash(config);
+  }
+
+  /**
+   * Creates a {@link FeatureFlagApi} bean wrapping the Unleash client.
+   *
+   * @param unleash the Unleash client (may be null if disabled)
+   * @return a {@link FeatureFlagApi} instance, or null if Unleash is disabled
+   */
+  @Bean
+  @ConditionalOnMissingBean
+  @org.springframework.boot.autoconfigure.condition.ConditionalOnBean(Unleash.class)
+  public FeatureFlagApi featureFlagApi(Unleash unleash) {
+    if (unleash == null) {
+      return null;
+    }
+    log.info("Creating FeatureFlagApi bean");
+    return new FeatureFlagApiImpl(unleash);
+  }
+
+  // ======================================================================
+  //  SECTION 7. Key-Value Store Integration
+  // ======================================================================
+
+  /**
+   * Creates a non-load-balanced RestClient for KV operations.
+   * This client is used to call config-control-service directly (not through service discovery).
+   *
+   * @return a RestClient.Builder for KV operations
+   */
+  @Bean(name = "kvRestClientBuilder")
+  @ConditionalOnMissingBean(name = "kvRestClientBuilder")
+  @ConditionalOnProperty(prefix = "zcm.sdk.kv", name = "enabled", havingValue = "true", matchIfMissing = false)
+  public RestClient.Builder kvRestClientBuilder() {
+    return RestClient.builder();
+  }
+
+  /**
+   * Creates a ClientCredentialsTokenService for fetching and caching tokens from Keycloak.
+   *
+   * @param kvRestClientBuilder RestClient builder for KV operations
+   * @param env Spring environment for reading environment variables
+   * @return a ClientCredentialsTokenService instance
+   */
+  @Bean
+  @ConditionalOnMissingBean
+  @ConditionalOnProperty(prefix = "zcm.sdk.kv", name = "enabled", havingValue = "true", matchIfMissing = false)
+  public ClientCredentialsTokenService clientCredentialsTokenService(
+      RestClient.Builder kvRestClientBuilder,
+      Environment env) {
+    SdkProperties.KVKeycloak keycloakConfig = props.getKv().getKeycloak();
+
+    // Support environment variable overrides
+    String tokenEndpoint = env.getProperty("ZCM_SDK_KV_KEYCLOAK_TOKEN_ENDPOINT", keycloakConfig.getTokenEndpoint());
+    String clientId = env.getProperty("ZCM_SDK_KV_KEYCLOAK_CLIENT_ID", keycloakConfig.getClientId());
+    String clientSecret = env.getProperty("ZCM_SDK_KV_KEYCLOAK_CLIENT_SECRET", keycloakConfig.getClientSecret());
+    String realm = env.getProperty("ZCM_SDK_KV_KEYCLOAK_REALM", keycloakConfig.getRealm());
+
+    // Create a copy of config with environment variable overrides
+    SdkProperties.KVKeycloak effectiveConfig = new SdkProperties.KVKeycloak();
+    effectiveConfig.setTokenEndpoint(tokenEndpoint);
+    effectiveConfig.setClientId(clientId);
+    effectiveConfig.setClientSecret(clientSecret);
+    effectiveConfig.setRealm(realm != null ? realm : "config-control");
+
+    if (effectiveConfig.getTokenEndpoint() == null || effectiveConfig.getTokenEndpoint().isBlank()) {
+      log.warn("KV enabled but token-endpoint is not configured. KV operations may fail.");
+    }
+    if (effectiveConfig.getClientId() == null || effectiveConfig.getClientId().isBlank()) {
+      log.warn("KV enabled but client-id is not configured. KV operations may fail.");
+    }
+    if (effectiveConfig.getClientSecret() == null || effectiveConfig.getClientSecret().isBlank()) {
+      log.warn("KV enabled but client-secret is not configured. KV operations may fail.");
+    }
+
+    log.info("Creating ClientCredentialsTokenService for KV client");
+    return new ClientCredentialsTokenService(kvRestClientBuilder.build(), effectiveConfig);
+  }
+
+  /**
+   * Creates a HybridKVTokenProvider that uses pass-through JWT from SecurityContext
+   * or falls back to client credentials.
+   *
+   * @param clientCredentialsTokenService the client credentials token service
+   * @return a HybridKVTokenProvider instance
+   */
+  @Bean
+  @ConditionalOnMissingBean
+  @ConditionalOnProperty(prefix = "zcm.sdk.kv", name = "enabled", havingValue = "true", matchIfMissing = false)
+  public KVTokenProvider kvTokenProvider(ClientCredentialsTokenService clientCredentialsTokenService) {
+    log.info("Creating HybridKVTokenProvider for KV client");
+    return new HybridKVTokenProvider(clientCredentialsTokenService);
+  }
+
+  /**
+   * Creates a KVApi bean for accessing Key-Value store.
+   *
+   * @param kvRestClientBuilder RestClient builder for KV operations
+   * @param kvTokenProvider token provider for authentication
+   * @return a KVApi instance
+   */
+  @Bean
+  @ConditionalOnMissingBean
+  @ConditionalOnProperty(prefix = "zcm.sdk.kv", name = "enabled", havingValue = "true", matchIfMissing = false)
+  public KVApi kvApi(
+      @org.springframework.beans.factory.annotation.Qualifier("kvRestClientBuilder") RestClient.Builder kvRestClientBuilder,
+      KVTokenProvider kvTokenProvider) {
+    log.info("Creating KVApi bean");
+    return new KVApiImpl(kvRestClientBuilder.build(), kvTokenProvider, props);
   }
 
   // ======================================================================

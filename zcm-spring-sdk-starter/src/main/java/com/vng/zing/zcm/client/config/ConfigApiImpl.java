@@ -1,4 +1,4 @@
-package com.vng.zing.zcm.client;
+package com.vng.zing.zcm.client.config;
 
 import com.vng.zing.zcm.configsnapshot.ConfigSnapshotBuilder;
 import com.vng.zing.zcm.pingconfig.ConfigHashCalculator;
@@ -10,7 +10,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 @RequiredArgsConstructor
-class ConfigApiImpl implements ConfigApi {
+public class ConfigApiImpl implements ConfigApi {
   
   private final ConfigHashCalculator hashCalc;
   

@@ -1,5 +1,7 @@
-package com.vng.zing.zcm.loadbalancer;
+package com.vng.zing.zcm.loadbalancer.strategy;
 
+import com.vng.zing.zcm.loadbalancer.LbRequest;
+import com.vng.zing.zcm.loadbalancer.LoadBalancerStrategy;
 import org.springframework.cloud.client.ServiceInstance;
 import java.util.List;
 import java.util.TreeMap;

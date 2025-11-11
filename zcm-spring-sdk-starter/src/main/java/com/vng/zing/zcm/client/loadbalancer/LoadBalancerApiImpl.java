@@ -1,4 +1,4 @@
-package com.vng.zing.zcm.client;
+package com.vng.zing.zcm.client.loadbalancer;
 
 import com.vng.zing.zcm.loadbalancer.LoadBalancerStrategy;
 import com.vng.zing.zcm.loadbalancer.LoadBalancerStrategyFactory;
@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
-class LoadBalancerApiImpl implements LoadBalancerApi {
+public class LoadBalancerApiImpl implements LoadBalancerApi {
   
   private final DiscoveryClient discoveryClient;
   private final LoadBalancerStrategy defaultLoadBalancerStrategy;

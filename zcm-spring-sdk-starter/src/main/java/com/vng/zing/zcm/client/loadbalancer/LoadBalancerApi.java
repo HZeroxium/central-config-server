@@ -1,4 +1,4 @@
-package com.vng.zing.zcm.client;
+package com.vng.zing.zcm.client.loadbalancer;
 
 import com.vng.zing.zcm.loadbalancer.LoadBalancerStrategy;
 import com.vng.zing.zcm.loadbalancer.LbRequest;

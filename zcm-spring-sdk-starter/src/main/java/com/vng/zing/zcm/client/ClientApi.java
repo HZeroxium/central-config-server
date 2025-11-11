@@ -1,5 +1,11 @@
 package com.vng.zing.zcm.client;
 
+import com.vng.zing.zcm.client.config.ConfigApi;
+import com.vng.zing.zcm.client.featureflag.FeatureFlagApi;
+import com.vng.zing.zcm.client.http.HttpApi;
+import com.vng.zing.zcm.client.kv.KVApi;
+import com.vng.zing.zcm.client.loadbalancer.LoadBalancerApi;
+
 /**
  * Main SDK Client API providing access to configuration, load balancing, and HTTP services.
  * 
@@ -32,6 +38,20 @@ public interface ClientApi {
    * @return the HttpApi instance
    */
   HttpApi http();
+  
+  /**
+   * Access feature flags API.
+   * 
+   * @return the FeatureFlagApi instance
+   */
+  FeatureFlagApi featureFlags();
+
+  /**
+   * Access Key-Value store API.
+   *
+   * @return the KVApi instance
+   */
+  KVApi kv();
   
   /**
    * Sends an immediate ping to the control service.

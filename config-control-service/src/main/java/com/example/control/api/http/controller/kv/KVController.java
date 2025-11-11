@@ -4,10 +4,13 @@ import com.example.control.api.http.dto.kv.KVDtos;
 import com.example.control.api.http.exception.ErrorResponse;
 import com.example.control.api.http.mapper.kv.KVApiMapper;
 import com.example.control.application.service.KVService;
-import com.example.control.domain.model.KVEntry;
+import com.example.control.domain.model.kv.KVEntry;
+import com.example.control.domain.model.kv.KVListStructure;
+import com.example.control.domain.model.kv.KVTransactionResponse;
 import com.example.control.domain.port.KVStorePort;
 import com.example.control.infrastructure.adapter.kv.PrefixPolicy;
 import com.example.control.infrastructure.config.security.UserContext;
+import com.example.control.application.service.kv.KVTypeCodec;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -27,6 +30,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
 
@@ -277,6 +281,106 @@ public class KVController {
         }
     }
 
+    @GetMapping(value = {"/object", "/{*path}/object"}, produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(
+            summary = "Get a structured object",
+            description = "Assemble a logical object stored under the given prefix.",
+            security = {
+                    @SecurityRequirement(name = "oauth2_auth_code"),
+                    @SecurityRequirement(name = "oauth2_password")
+            },
+            operationId = "getKVObject"
+    )
+    public ResponseEntity<KVDtos.ObjectResponse> getObject(
+            @PathVariable String serviceId,
+            @PathVariable(value = "path", required = false) String path,
+            @RequestParam(defaultValue = "false") boolean consistent,
+            @RequestParam(defaultValue = "false") boolean stale,
+            @AuthenticationPrincipal Jwt jwt) {
+        String normalizedPath = normalizePath(path);
+        UserContext userContext = UserContext.fromJwt(jwt);
+        KVStorePort.KVReadOptions options = KVStorePort.KVReadOptions.builder()
+                .consistent(consistent)
+                .stale(stale)
+                .build();
+        return kvService.getObject(serviceId, normalizedPath, options, userContext)
+                .map(KVApiMapper::toObjectResponse)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @PutMapping(value = {"/object", "/{*path}/object"}, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(
+            summary = "Create or update a structured object",
+            description = "Writes an object structure under the specified prefix using transactional semantics.",
+            security = {
+                    @SecurityRequirement(name = "oauth2_auth_code"),
+                    @SecurityRequirement(name = "oauth2_password")
+            },
+            operationId = "putKVObject"
+    )
+    public ResponseEntity<KVDtos.TransactionResponse> putObject(
+            @PathVariable String serviceId,
+            @PathVariable(value = "path", required = false) String path,
+            @Valid @RequestBody KVDtos.ObjectWriteRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        String normalizedPath = normalizePath(path);
+        UserContext userContext = UserContext.fromJwt(jwt);
+        KVTransactionResponse response = kvService.putObject(serviceId, normalizedPath, request.data(), userContext);
+        KVDtos.TransactionResponse dto = KVApiMapper.toTransactionResponse(serviceId, response, prefixPolicy);
+        return ResponseEntity.ok(dto);
+    }
+
+    @GetMapping(value = {"/list", "/{*path}/list"}, produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(
+            summary = "Get a structured list",
+            description = "Assemble a logical list stored under the given prefix.",
+            security = {
+                    @SecurityRequirement(name = "oauth2_auth_code"),
+                    @SecurityRequirement(name = "oauth2_password")
+            },
+            operationId = "getKVList"
+    )
+    public ResponseEntity<KVDtos.ListResponseV2> getList(
+            @PathVariable String serviceId,
+            @PathVariable(value = "path", required = false) String path,
+            @RequestParam(defaultValue = "false") boolean consistent,
+            @RequestParam(defaultValue = "false") boolean stale,
+            @AuthenticationPrincipal Jwt jwt) {
+        String normalizedPath = normalizePath(path);
+        UserContext userContext = UserContext.fromJwt(jwt);
+        KVStorePort.KVReadOptions options = KVStorePort.KVReadOptions.builder()
+                .consistent(consistent)
+                .stale(stale)
+                .build();
+        return kvService.getList(serviceId, normalizedPath, options, userContext)
+                .map(KVApiMapper::toListResponse)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @PutMapping(value = {"/list", "/{*path}/list"}, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(
+            summary = "Create or update a structured list",
+            description = "Writes list items and manifest atomically using transactions.",
+            security = {
+                    @SecurityRequirement(name = "oauth2_auth_code"),
+                    @SecurityRequirement(name = "oauth2_password")
+            },
+            operationId = "putKVList"
+    )
+    public ResponseEntity<KVDtos.TransactionResponse> putList(
+            @PathVariable String serviceId,
+            @PathVariable(value = "path", required = false) String path,
+            @Valid @RequestBody KVDtos.ListWriteRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        String normalizedPath = normalizePath(path);
+        UserContext userContext = UserContext.fromJwt(jwt);
+        KVListStructure structure = KVApiMapper.toListStructure(request);
+        KVTransactionResponse response = kvService.putList(serviceId, normalizedPath, structure, KVApiMapper.toDeleteIds(request), userContext);
+        KVDtos.TransactionResponse dto = KVApiMapper.toTransactionResponse(serviceId, response, prefixPolicy);
+        return ResponseEntity.ok(dto);
+    }
     /**
      * Create or update a KV entry.
      *
@@ -434,6 +538,58 @@ public class KVController {
         }
         // Strip leading slash if present
         return path.startsWith("/") ? path.substring(1) : path;
+    }
+
+    @GetMapping(value = {"/view", "/{*path}/view"})
+    @Operation(
+            summary = "View prefix as structured document",
+            description = "Returns a read-only view of all keys under a prefix in JSON, YAML, or Properties format.",
+            security = {
+                    @SecurityRequirement(name = "oauth2_auth_code"),
+                    @SecurityRequirement(name = "oauth2_password")
+            },
+            operationId = "viewKVPrefix"
+    )
+    public ResponseEntity<String> viewPrefix(
+            @PathVariable String serviceId,
+            @PathVariable(required = false) String path,
+            @RequestParam(defaultValue = "json") String format,
+            @RequestParam(defaultValue = "false") boolean consistent,
+            @RequestParam(defaultValue = "false") boolean stale,
+            @AuthenticationPrincipal Jwt jwt) {
+
+        String normalizedPath = normalizePath(path);
+        UserContext userContext = UserContext.fromJwt(jwt);
+        KVStorePort.KVReadOptions options = KVStorePort.KVReadOptions.builder()
+                .consistent(consistent)
+                .stale(stale)
+                .build();
+
+        KVTypeCodec.StructuredFormat structuredFormat = parseFormat(format);
+        return kvService.view(serviceId, normalizedPath, structuredFormat, options, userContext)
+                .map(bytes -> ResponseEntity.ok()
+                        .contentType(mediaTypeFor(structuredFormat))
+                        .body(new String(bytes, StandardCharsets.UTF_8)))
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    private KVTypeCodec.StructuredFormat parseFormat(String format) {
+        if (format == null) {
+            return KVTypeCodec.StructuredFormat.JSON;
+        }
+        return switch (format.toLowerCase()) {
+            case "yaml", "yml" -> KVTypeCodec.StructuredFormat.YAML;
+            case "properties", "props", "prop" -> KVTypeCodec.StructuredFormat.PROPERTIES;
+            default -> KVTypeCodec.StructuredFormat.JSON;
+        };
+    }
+
+    private MediaType mediaTypeFor(KVTypeCodec.StructuredFormat format) {
+        return switch (format) {
+            case JSON -> MediaType.APPLICATION_JSON;
+            case YAML -> MediaType.valueOf("application/x-yaml");
+            case PROPERTIES -> MediaType.TEXT_PLAIN;
+        };
     }
 }
 

@@ -1,5 +1,13 @@
 package com.vng.zing.zcm.client;
 
+import com.vng.zing.zcm.client.config.ConfigApi;
+import com.vng.zing.zcm.client.config.ConfigApiImpl;
+import com.vng.zing.zcm.client.featureflag.FeatureFlagApi;
+import com.vng.zing.zcm.client.http.HttpApi;
+import com.vng.zing.zcm.client.http.HttpApiImpl;
+import com.vng.zing.zcm.client.kv.KVApi;
+import com.vng.zing.zcm.client.loadbalancer.LoadBalancerApi;
+import com.vng.zing.zcm.client.loadbalancer.LoadBalancerApiImpl;
 import com.vng.zing.zcm.loadbalancer.LoadBalancerStrategy;
 import com.vng.zing.zcm.pingconfig.ConfigHashCalculator;
 import com.vng.zing.zcm.pingconfig.PingSender;
@@ -23,6 +31,8 @@ public class ClientImpl implements ClientApi {
   private ConfigApi configApi;
   private LoadBalancerApi loadBalancerApi;
   private HttpApi httpApi;
+  private FeatureFlagApi featureFlagApi;
+  private KVApi kvApi;
   
   @Override
   public ConfigApi config() {
@@ -49,7 +59,41 @@ public class ClientImpl implements ClientApi {
   }
   
   @Override
+  public FeatureFlagApi featureFlags() {
+    if (featureFlagApi == null) {
+      throw new IllegalStateException("FeatureFlagApi is not initialized. Ensure Unleash is configured and enabled.");
+    }
+    return featureFlagApi;
+  }
+
+  @Override
+  public KVApi kv() {
+    if (kvApi == null) {
+      throw new IllegalStateException("KVApi is not initialized. Ensure KV is enabled (zcm.sdk.kv.enabled=true) and configured.");
+    }
+    return kvApi;
+  }
+  
+  @Override
   public void pingNow() {
     pingSender.send();
+  }
+  
+  /**
+   * Sets the FeatureFlagApi instance (used by auto-configuration).
+   * 
+   * @param featureFlagApi the FeatureFlagApi instance
+   */
+  public void setFeatureFlagApi(FeatureFlagApi featureFlagApi) {
+    this.featureFlagApi = featureFlagApi;
+  }
+
+  /**
+   * Sets the KVApi instance (used by auto-configuration).
+   *
+   * @param kvApi the KVApi instance
+   */
+  public void setKVApi(KVApi kvApi) {
+    this.kvApi = kvApi;
   }
 }
