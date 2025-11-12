@@ -9,6 +9,7 @@ import { isListPrefix, isFolderPrefix } from "../types";
 export const KVType = {
   LEAF: "LEAF",
   LIST: "LIST",
+  LEAF_LIST: "LEAF_LIST",
   FOLDER: "FOLDER",
 } as const;
 
@@ -48,10 +49,13 @@ export function useKVTypeDetection(
 
   return useMemo(() => {
     // 1. Check flags first (most authoritative)
-    // Flags: 0=LEAF, 2=LIST (flag=1 is reserved, falls back to LEAF/FOLDER)
+    // Flags: 0=LEAF, 2=LIST, 3=LEAF_LIST (flag=1 is reserved, falls back to LEAF/FOLDER)
     if (entry?.flags !== undefined && entry.flags !== null) {
       if (entry.flags === 2) {
         return KVType.LIST;
+      }
+      if (entry.flags === 3) {
+        return KVType.LEAF_LIST;
       }
       // flags === 0 explicitly means LEAF (or flag=1 reserved, treat as LEAF)
       if (entry.flags === 0 || entry.flags === 1) {

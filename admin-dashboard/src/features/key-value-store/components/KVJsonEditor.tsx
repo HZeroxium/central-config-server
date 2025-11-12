@@ -22,6 +22,7 @@ import {
   Description as TextIcon,
 } from "@mui/icons-material";
 import Editor from "@monaco-editor/react";
+import { useColorMode } from "@theme/colorModeContext";
 import type { KVEncoding } from "../types";
 import { KVPutRequestEncoding } from "@lib/api/models";
 
@@ -78,6 +79,7 @@ export function KVJsonEditor({
   error,
   height = 400,
 }: KVJsonEditorProps) {
+  const { mode } = useColorMode();
   const [editorMode, setEditorMode] = useState<EditorMode>("text");
   const [jsonError, setJsonError] = useState<string | null>(null);
 
@@ -258,7 +260,7 @@ export function KVJsonEditor({
             formatOnPaste: editorMode === "json",
             formatOnType: editorMode === "json",
           }}
-          theme="vs"
+          theme={mode === "dark" ? "vs-dark" : "vs"}
         />
       </Box>
 

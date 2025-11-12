@@ -43,20 +43,25 @@ export function KVEntryEditor({
   isSaving = false,
 }: KVEntryEditorProps) {
   const isEdit = !!entry;
-  const [path, setPath] = useState(initialPath);
+  const [key, setKey] = useState("");
   const [value, setValue] = useState("");
   const [encoding, setEncoding] = useState<KVEncoding>("utf8");
   const [flags, setFlags] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
-  const [pathValidation, setPathValidation] = useState<PathValidationResult>({
+  const [keyValidation, setKeyValidation] = useState<PathValidationResult>({
     isValid: true,
   });
 
   // Initialize form from entry
   useEffect(() => {
     if (entry) {
-      // Path cannot be changed when editing
-      setPath(entry.path || initialPath);
+      // For edit mode: extract key from full path for display
+      const fullPath = entry.path || initialPath;
+      if (currentPrefix && fullPath.startsWith(currentPrefix + "/")) {
+        setKey(fullPath.slice(currentPrefix.length + 1));
+      } else {
+        setKey(fullPath);
+      }
       // Decode base64 value
       if (entry.valueBase64) {
         try {
@@ -69,39 +74,51 @@ export function KVEntryEditor({
       setFlags(entry.flags || 0);
       setEncoding("utf8"); // Default encoding
     } else {
-      // New entry: pre-fill path with current prefix
-      if (currentPrefix) {
-        const normalizedPrefix = currentPrefix.endsWith("/")
-          ? currentPrefix.slice(0, -1)
-          : currentPrefix;
-        setPath(`${normalizedPrefix}/new-key`);
-      } else {
-        setPath("new-key");
-      }
+      // New entry: start with empty key (user will enter it)
+      setKey("new-key");
       setValue("");
       setEncoding("utf8");
       setFlags(0);
     }
   }, [entry, initialPath, currentPrefix]);
 
-  // Validate path in real-time
+  // Validate key in real-time (for new entries)
   useEffect(() => {
-    if (!isEdit && path) {
-      const validation = validateKVPath(path, false);
-      setPathValidation(validation);
+    if (!isEdit && key) {
+      // Construct full path for validation
+      const fullPath = currentPrefix
+        ? `${currentPrefix}/${key}`
+        : key;
+      const validation = validateKVPath(fullPath, false);
+      setKeyValidation(validation);
     } else {
-      setPathValidation({ isValid: true });
+      setKeyValidation({ isValid: true });
     }
-  }, [path, isEdit]);
+  }, [key, isEdit, currentPrefix]);
 
   const handleSave = async () => {
     setError(null);
 
-    // Validate path (strict validation on save)
-    if (!isEdit) {
-      const strictValidation = validateKVPath(path, true);
+    // Construct full path from key and currentPrefix
+    let fullPath: string;
+    if (isEdit) {
+      // In edit mode, use the original path
+      fullPath = entry?.path || initialPath;
+    } else {
+      // In create mode, prepend currentPrefix to key
+      if (currentPrefix) {
+        const normalizedPrefix = currentPrefix.endsWith("/")
+          ? currentPrefix.slice(0, -1)
+          : currentPrefix;
+        fullPath = `${normalizedPrefix}/${key}`;
+      } else {
+        fullPath = key;
+      }
+      
+      // Validate path (strict validation on save)
+      const strictValidation = validateKVPath(fullPath, true);
       if (!strictValidation.isValid) {
-        setError(strictValidation.error || "Invalid path");
+        setError(strictValidation.error || "Invalid key");
         return;
       }
     }
@@ -138,7 +155,7 @@ export function KVEntryEditor({
         cas: entry?.modifyIndex,
       };
 
-      await onSave(path, putRequest);
+      await onSave(fullPath, putRequest);
     } catch (err) {
       setError(
         err && typeof err === "object" && "message" in err
@@ -164,18 +181,20 @@ export function KVEntryEditor({
         <Grid size={{ xs: 12 }}>
           <TextField
             fullWidth
-            label="Path"
-            value={path}
-            onChange={(e) => setPath(e.target.value)}
+            label={isEdit ? "Path" : "Key"}
+            value={key}
+            onChange={(e) => setKey(e.target.value)}
             disabled={isEdit || isReadOnly || isSaving}
             size="small"
-            error={!pathValidation.isValid}
+            error={!keyValidation.isValid}
             helperText={
-              pathValidation.error ||
-              pathValidation.warning ||
+              keyValidation.error ||
+              keyValidation.warning ||
               (isEdit
                 ? "Path cannot be changed when editing"
-                : "Enter the full path for this key (e.g., config/database/url)")
+                : currentPrefix
+                ? `Key (will be saved as: ${currentPrefix}/${key || "..."})`
+                : "Enter the key (can contain '/' characters, e.g., key/subkey)")
             }
           />
         </Grid>

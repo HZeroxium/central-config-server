@@ -53,13 +53,21 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { toast } from "@lib/toast/toast";
 import { useGetKVList, type GetKVListParams } from "../hooks";
-import { Skeleton } from "@mui/material";
+import { Skeleton, Tooltip, Checkbox, Collapse, Divider } from "@mui/material";
 import {
   fromGeneratedKVListItemArray,
   fromKVListManifestMetadata,
   type UIListItem,
 } from "../utils/typeAdapters";
 import { normalizePath, validateKVPath } from "../types";
+import { generateUniqueItemId } from "../utils/itemIdGenerator";
+import {
+  ContentCopy as DuplicateIcon,
+  FileUpload as ImportIcon,
+  FileDownload as ExportIcon,
+  SelectAll as SelectAllIcon,
+  Deselect as DeselectIcon,
+} from "@mui/icons-material";
 
 // UI representation of manifest (with Record<string, unknown> metadata)
 export type UIListManifest = {
@@ -72,6 +80,8 @@ export type UIListManifest = {
 export interface KVListEditorProps {
   serviceId: string;
   prefix: string;
+  /** Current prefix for auto-prepending to key in create mode */
+  currentPrefix?: string;
   /** Initial list items */
   initialItems?: UIListItem[];
   /** Initial manifest */
@@ -93,7 +103,11 @@ interface SortableRowProps {
   index: number;
   onEdit: (item: UIListItem) => void;
   onDelete: (id: string) => void;
+  onDuplicate: (item: UIListItem) => void;
   isReadOnly?: boolean;
+  isSelected?: boolean;
+  onSelect?: (id: string, selected: boolean) => void;
+  showSelection?: boolean;
 }
 
 function SortableRow({
@@ -101,7 +115,11 @@ function SortableRow({
   index,
   onEdit,
   onDelete,
+  onDuplicate,
   isReadOnly = false,
+  isSelected = false,
+  onSelect,
+  showSelection = false,
 }: SortableRowProps) {
   const {
     attributes,
@@ -118,48 +136,107 @@ function SortableRow({
     opacity: isDragging ? 0.5 : 1,
   };
 
+  const fieldCount = Object.keys(item.data).length;
+  const fieldPreview = Object.entries(item.data)
+    .slice(0, 2)
+    .map(([key, value]) => `${key}: ${typeof value === "string" ? value : JSON.stringify(value)}`)
+    .join(", ");
+  const hasMoreFields = fieldCount > 2;
+
   return (
-    <TableRow ref={setNodeRef} style={style}>
+    <TableRow 
+      ref={setNodeRef} 
+      style={style}
+      selected={isSelected}
+      sx={{
+        "&:hover": {
+          backgroundColor: "action.hover",
+        },
+      }}
+    >
+      {showSelection && onSelect && (
+        <TableCell padding="checkbox">
+          <Checkbox
+            checked={isSelected}
+            onChange={(e) => onSelect(item.id, e.target.checked)}
+            aria-label={`Select item ${index + 1}`}
+          />
+        </TableCell>
+      )}
       <TableCell>
-        <IconButton
-          size="small"
-          {...attributes}
-          {...listeners}
-          disabled={isReadOnly}
-          sx={{ cursor: isReadOnly ? "default" : "grab" }}
-          aria-label={`Drag to reorder item ${item.id}`}
-        >
-          <DragIcon fontSize="small" />
-        </IconButton>
+        <Tooltip title="Drag to reorder">
+          <IconButton
+            size="small"
+            {...attributes}
+            {...listeners}
+            disabled={isReadOnly}
+            sx={{ cursor: isReadOnly ? "default" : "grab" }}
+            aria-label={`Drag to reorder item ${index + 1}`}
+          >
+            <DragIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
       </TableCell>
-      <TableCell>{index + 1}</TableCell>
       <TableCell>
-        <Chip label={item.id} size="small" aria-label={`Item ID: ${item.id}`} />
-      </TableCell>
-      <TableCell>
-        <Typography variant="body2" noWrap sx={{ maxWidth: { xs: 150, sm: 300 } }}>
-          {Object.keys(item.data).length} field(s)
+        <Typography variant="body2" fontWeight="medium">
+          {index + 1}
         </Typography>
       </TableCell>
       <TableCell>
-        <Stack direction="row" spacing={1}>
-          <IconButton
-            size="small"
-            onClick={() => onEdit(item)}
-            disabled={isReadOnly}
-            aria-label={`Edit item ${item.id}`}
-          >
-            <EditIcon fontSize="small" />
-          </IconButton>
-          {!isReadOnly && (
+        <Tooltip title={`Item ID: ${item.id}`} arrow>
+          <Box>
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                maxWidth: { xs: 200, sm: 400 },
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {fieldPreview}
+              {hasMoreFields && ` (+${fieldCount - 2} more)`}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {fieldCount} field{fieldCount !== 1 ? "s" : ""}
+            </Typography>
+          </Box>
+        </Tooltip>
+      </TableCell>
+      <TableCell>
+        <Stack direction="row" spacing={0.5}>
+          <Tooltip title="Edit item">
             <IconButton
               size="small"
-              onClick={() => onDelete(item.id)}
-              color="error"
-              aria-label={`Delete item ${item.id}`}
+              onClick={() => onEdit(item)}
+              disabled={isReadOnly}
+              aria-label={`Edit item ${index + 1}`}
             >
-              <DeleteIcon fontSize="small" />
+              <EditIcon fontSize="small" />
             </IconButton>
+          </Tooltip>
+          {!isReadOnly && (
+            <>
+              <Tooltip title="Duplicate item">
+                <IconButton
+                  size="small"
+                  onClick={() => onDuplicate(item)}
+                  aria-label={`Duplicate item ${index + 1}`}
+                >
+                  <DuplicateIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Delete item">
+                <IconButton
+                  size="small"
+                  onClick={() => onDelete(item.id)}
+                  color="error"
+                  aria-label={`Delete item ${index + 1}`}
+                >
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </>
           )}
         </Stack>
       </TableCell>
@@ -173,6 +250,7 @@ interface ItemEditorDialogProps {
   onClose: () => void;
   onSave: (item: UIListItem) => void;
   isReadOnly?: boolean;
+  existingItems?: UIListItem[];
 }
 
 function ItemEditorDialog({
@@ -181,12 +259,18 @@ function ItemEditorDialog({
   onClose,
   onSave,
   isReadOnly = false,
+  existingItems = [],
 }: ItemEditorDialogProps) {
   const [id, setId] = useState("");
   const [fields, setFields] = useState<Array<{ key: string; value: string }>>([]);
+  const [showItemId, setShowItemId] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<number, string>>({});
+
+  const isNewItem = !item;
 
   useEffect(() => {
     if (item) {
+      // Editing existing item: use existing itemId
       setId(item.id);
       setFields(
         Object.entries(item.data).map(([key, value]) => ({
@@ -194,11 +278,16 @@ function ItemEditorDialog({
           value: typeof value === "string" ? value : JSON.stringify(value),
         }))
       );
+      setShowItemId(false); // Hide itemId by default for existing items
     } else {
-      setId("");
+      // Creating new item: auto-generate itemId
+      const newId = generateUniqueItemId(existingItems);
+      setId(newId);
       setFields([{ key: "", value: "" }]);
+      setShowItemId(false); // Hide itemId for new items
     }
-  }, [item, open]);
+    setFieldErrors({});
+  }, [item, open, existingItems]);
 
   const handleAddField = () => {
     setFields([...fields, { key: "", value: "" }]);
@@ -206,6 +295,10 @@ function ItemEditorDialog({
 
   const handleRemoveField = (index: number) => {
     setFields(fields.filter((_, i) => i !== index));
+    // Remove error for this field
+    const newErrors = { ...fieldErrors };
+    delete newErrors[index];
+    setFieldErrors(newErrors);
   };
 
   const handleFieldChange = (
@@ -216,27 +309,77 @@ function ItemEditorDialog({
     const updated = [...fields];
     updated[index] = { ...updated[index], [field]: newValue };
     setFields(updated);
+    
+    // Validate field
+    if (field === "key" && newValue.trim()) {
+      // Check for duplicate keys
+      const duplicateIndex = updated.findIndex(
+        (f, i) => i !== index && f.key === newValue.trim()
+      );
+      if (duplicateIndex !== -1) {
+        setFieldErrors({ ...fieldErrors, [index]: "Duplicate key" });
+      } else {
+        const newErrors = { ...fieldErrors };
+        delete newErrors[index];
+        setFieldErrors(newErrors);
+      }
+    } else if (field === "key" && !newValue.trim()) {
+      const newErrors = { ...fieldErrors };
+      delete newErrors[index];
+      setFieldErrors(newErrors);
+    }
   };
 
   const handleSave = () => {
-    if (!id.trim()) {
-      toast.error("Item ID is required");
-      return;
-    }
-
-    const data: Record<string, unknown> = {};
-    fields.forEach((field) => {
-      if (field.key) {
-        try {
-          data[field.key] = JSON.parse(field.value);
-        } catch {
-          data[field.key] = field.value;
+    // Validate fields
+    const errors: Record<number, string> = {};
+    fields.forEach((field, index) => {
+      if (!field.key.trim()) {
+        errors[index] = "Key is required";
+      } else {
+        // Check for duplicate keys
+        const duplicateIndex = fields.findIndex(
+          (f, i) => i !== index && f.key === field.key.trim()
+        );
+        if (duplicateIndex !== -1) {
+          errors[index] = "Duplicate key";
         }
       }
     });
 
-    onSave({ id: id.trim(), data });
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      toast.error("Please fix field errors before saving");
+      return;
+    }
+
+    // Build data object
+    const data: Record<string, unknown> = {};
+    fields.forEach((field) => {
+      if (field.key.trim()) {
+        try {
+          // Try to parse as JSON
+          data[field.key.trim()] = JSON.parse(field.value);
+        } catch {
+          // Not valid JSON, use as string
+          data[field.key.trim()] = field.value;
+        }
+      }
+    });
+
+    // Use auto-generated ID for new items, existing ID for edits
+    const itemId = isNewItem ? generateUniqueItemId(existingItems) : id.trim();
+
+    onSave({ id: itemId, data });
     onClose();
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+      handleSave();
+    } else if (e.key === "Escape") {
+      onClose();
+    }
   };
 
   return (
@@ -246,72 +389,108 @@ function ItemEditorDialog({
       maxWidth="md" 
       fullWidth
       aria-labelledby="item-editor-dialog-title"
+      onKeyDown={handleKeyDown}
     >
       <DialogTitle id="item-editor-dialog-title">
         {item ? "Edit Item" : "Add New Item"}
+        {!isNewItem && (
+          <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
+            Item ID: {id}
+          </Typography>
+        )}
       </DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ mt: 1 }}>
-          <TextField
-            label="Item ID"
-            value={id}
-            onChange={(e) => setId(e.target.value)}
-            disabled={isReadOnly || !!item}
-            fullWidth
-            required
-            helperText={item ? "ID cannot be changed" : "Unique identifier for this item"}
-            aria-describedby={item ? "item-id-readonly" : "item-id-help"}
-          />
+          {/* Item ID section - collapsible for existing items, hidden for new items */}
+          {!isNewItem && (
+            <Box>
+              <Button
+                size="small"
+                onClick={() => setShowItemId(!showItemId)}
+                sx={{ mb: 1 }}
+                aria-label={showItemId ? "Hide item ID" : "Show item ID"}
+              >
+                {showItemId ? "Hide" : "Show"} Item ID
+              </Button>
+              <Collapse in={showItemId}>
+                <TextField
+                  label="Item ID"
+                  value={id}
+                  disabled
+                  fullWidth
+                  size="small"
+                  helperText="Item ID is auto-generated and cannot be changed"
+                  aria-describedby="item-id-readonly"
+                />
+              </Collapse>
+            </Box>
+          )}
+
+          <Divider />
 
           <Typography variant="subtitle2" component="h3">
             Fields
           </Typography>
-          {fields.map((field, index) => (
-            <Box
-              key={index}
-              sx={{
-                display: "flex",
-                gap: 1,
-                alignItems: "flex-start",
-              }}
-            >
-              <TextField
-                label="Key"
-                value={field.key}
-                onChange={(e) =>
-                  handleFieldChange(index, "key", e.target.value)
-                }
-                disabled={isReadOnly}
-                size="small"
-                sx={{ flex: 1 }}
-                aria-label={`Field ${index + 1} key`}
-              />
-              <TextField
-                label="Value"
-                value={field.value}
-                onChange={(e) =>
-                  handleFieldChange(index, "value", e.target.value)
-                }
-                disabled={isReadOnly}
-                size="small"
-                sx={{ flex: 2 }}
-                multiline
-                minRows={1}
-                aria-label={`Field ${index + 1} value`}
-              />
-              {!isReadOnly && (
-                <IconButton
-                  onClick={() => handleRemoveField(index)}
-                  color="error"
+          {fields.length === 0 ? (
+            <Alert severity="info">
+              No fields yet. Add a field to get started.
+            </Alert>
+          ) : (
+            fields.map((field, index) => (
+              <Box
+                key={index}
+                sx={{
+                  display: "flex",
+                  gap: 1,
+                  alignItems: "flex-start",
+                }}
+              >
+                <TextField
+                  label="Key"
+                  value={field.key}
+                  onChange={(e) =>
+                    handleFieldChange(index, "key", e.target.value)
+                  }
+                  disabled={isReadOnly}
                   size="small"
-                  sx={{ mt: 0.5 }}
-                  aria-label={`Remove field ${index + 1}`}
-                >
-                  <DeleteIcon fontSize="small" />
-                </IconButton>
-              )}
-            </Box>
-          ))}
+                  sx={{ flex: 1 }}
+                  error={!!fieldErrors[index]}
+                  helperText={fieldErrors[index]}
+                  required
+                  aria-label={`Field ${index + 1} key`}
+                  aria-required="true"
+                  aria-invalid={!!fieldErrors[index]}
+                />
+                <TextField
+                  label="Value"
+                  value={field.value}
+                  onChange={(e) =>
+                    handleFieldChange(index, "value", e.target.value)
+                  }
+                  disabled={isReadOnly}
+                  size="small"
+                  sx={{ flex: 2 }}
+                  multiline
+                  minRows={1}
+                  placeholder="Enter value (JSON will be auto-parsed)"
+                  aria-label={`Field ${index + 1} value`}
+                />
+                {!isReadOnly && (
+                  <Tooltip title="Remove field">
+                    <IconButton
+                      onClick={() => handleRemoveField(index)}
+                      color="error"
+                      size="small"
+                      sx={{ mt: 0.5 }}
+                      aria-label={`Remove field ${index + 1}`}
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                )}
+              </Box>
+            ))
+          )}
 
           {!isReadOnly && (
             <Button
@@ -324,6 +503,10 @@ function ItemEditorDialog({
               Add Field
             </Button>
           )}
+
+          <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
+            Tip: Use Ctrl+Enter (Cmd+Enter on Mac) to save, Escape to cancel
+          </Typography>
         </Stack>
       </DialogContent>
       <DialogActions>
@@ -331,7 +514,12 @@ function ItemEditorDialog({
           Cancel
         </Button>
         {!isReadOnly && (
-          <Button onClick={handleSave} variant="contained" aria-label="Save item">
+          <Button 
+            onClick={handleSave} 
+            variant="contained" 
+            aria-label="Save item"
+            disabled={fields.length === 0 || Object.keys(fieldErrors).length > 0}
+          >
             Save
           </Button>
         )}
@@ -343,6 +531,7 @@ function ItemEditorDialog({
 export function KVListEditor({
   serviceId,
   prefix: initialPrefix,
+  currentPrefix = "",
   initialItems = [],
   initialManifest,
   onSave,
@@ -351,6 +540,15 @@ export function KVListEditor({
   isSaving = false,
   isCreateMode = false,
 }: KVListEditorProps) {
+  // Extract key from prefix for create mode
+  const getKeyFromPrefix = (fullPrefix: string): string => {
+    if (currentPrefix && fullPrefix.startsWith(currentPrefix + "/")) {
+      return fullPrefix.slice(currentPrefix.length + 1);
+    }
+    return fullPrefix;
+  };
+
+  const [key, setKey] = useState(isCreateMode ? getKeyFromPrefix(initialPrefix) : "");
   const [prefix, setPrefix] = useState(initialPrefix);
   const [prefixError, setPrefixError] = useState<string | null>(null);
   
@@ -400,6 +598,8 @@ export function KVListEditor({
   const [deletedIds, setDeletedIds] = useState<string[]>([]);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<UIListItem | null>(null);
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  const [showSelection, setShowSelection] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -456,6 +656,109 @@ export function KVListEditor({
   const handleDeleteItem = (id: string) => {
     setItems(items.filter((item) => item.id !== id));
     setDeletedIds([...deletedIds, id]);
+    // Remove from selection if selected
+    const newSelected = new Set(selectedItems);
+    newSelected.delete(id);
+    setSelectedItems(newSelected);
+  };
+
+  const handleDuplicateItem = (item: UIListItem) => {
+    const newId = generateUniqueItemId(items);
+    const duplicatedItem: UIListItem = {
+      id: newId,
+      data: { ...item.data },
+    };
+    // Insert after the original item
+    const index = items.findIndex((i) => i.id === item.id);
+    const newItems = [...items];
+    newItems.splice(index + 1, 0, duplicatedItem);
+    setItems(newItems);
+    toast.success("Item duplicated");
+  };
+
+
+  const handleSelectItem = (id: string, selected: boolean) => {
+    const newSelected = new Set(selectedItems);
+    if (selected) {
+      newSelected.add(id);
+    } else {
+      newSelected.delete(id);
+    }
+    setSelectedItems(newSelected);
+  };
+
+  const handleSelectAll = () => {
+    if (selectedItems.size === items.length) {
+      setSelectedItems(new Set());
+    } else {
+      setSelectedItems(new Set(items.map((item) => item.id)));
+    }
+  };
+
+  const handleDeleteSelected = () => {
+    const idsToDelete = Array.from(selectedItems);
+    setItems(items.filter((item) => !selectedItems.has(item.id)));
+    setDeletedIds([...deletedIds, ...idsToDelete]);
+    setSelectedItems(new Set());
+    toast.success(`Deleted ${idsToDelete.length} item(s)`);
+  };
+
+  const handleExportJSON = () => {
+    const exportData = {
+      items: items.map((item) => ({
+        id: item.id,
+        data: item.data,
+      })),
+      manifest: effectiveManifest,
+    };
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `kv-list-${prefix.replace(/\//g, "-")}-${Date.now()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success("List exported to JSON");
+  };
+
+  const handleImportJSON = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "application/json";
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const content = event.target?.result as string;
+          const imported = JSON.parse(content);
+          
+          if (imported.items && Array.isArray(imported.items)) {
+            // Generate new IDs for imported items to avoid conflicts
+            const importedItems: UIListItem[] = imported.items.map((item: any) => ({
+              id: generateUniqueItemId(items),
+              data: item.data || {},
+            }));
+            
+            setItems([...items, ...importedItems]);
+            toast.success(`Imported ${importedItems.length} item(s)`);
+          } else {
+            toast.error("Invalid JSON format");
+          }
+        } catch (error) {
+          console.error("Failed to import JSON:", error);
+          toast.error("Failed to import JSON: Invalid format");
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
   };
 
   const handleSaveItem = (item: UIListItem) => {
@@ -471,6 +774,20 @@ export function KVListEditor({
     setEditDialogOpen(false);
     setEditingItem(null);
   };
+
+  // Update prefix when key changes in create mode
+  useEffect(() => {
+    if (isCreateMode && key) {
+      if (currentPrefix) {
+        const normalizedPrefix = currentPrefix.endsWith("/")
+          ? currentPrefix.slice(0, -1)
+          : currentPrefix;
+        setPrefix(`${normalizedPrefix}/${key}`);
+      } else {
+        setPrefix(key);
+      }
+    }
+  }, [key, isCreateMode, currentPrefix]);
 
   // Validate prefix in create mode
   useEffect(() => {
@@ -571,32 +888,84 @@ export function KVListEditor({
           <Typography variant="h6" component="h2">
             {isCreateMode ? "Create List" : "Edit List"}
           </Typography>
-          {!isReadOnly && (
-            <Button
-              startIcon={<AddIcon />}
-              onClick={handleAddItem}
-              variant="outlined"
-              size="small"
-              aria-label="Add new list item"
-            >
-              Add Item
-            </Button>
-          )}
+          <Stack direction="row" spacing={1}>
+            {!isReadOnly && items.length > 0 && (
+              <>
+                <Button
+                  startIcon={showSelection ? <DeselectIcon /> : <SelectAllIcon />}
+                  onClick={() => {
+                    setShowSelection(!showSelection);
+                    if (!showSelection) {
+                      setSelectedItems(new Set());
+                    }
+                  }}
+                  variant="outlined"
+                  size="small"
+                  aria-label={showSelection ? "Hide selection" : "Show selection"}
+                >
+                  {showSelection ? "Cancel" : "Select"}
+                </Button>
+                {showSelection && selectedItems.size > 0 && (
+                  <Button
+                    startIcon={<DeleteIcon />}
+                    onClick={handleDeleteSelected}
+                    variant="outlined"
+                    color="error"
+                    size="small"
+                    aria-label={`Delete ${selectedItems.size} selected item(s)`}
+                  >
+                    Delete ({selectedItems.size})
+                  </Button>
+                )}
+                <Button
+                  startIcon={<ExportIcon />}
+                  onClick={handleExportJSON}
+                  variant="outlined"
+                  size="small"
+                  aria-label="Export to JSON"
+                >
+                  Export
+                </Button>
+                <Button
+                  startIcon={<ImportIcon />}
+                  onClick={handleImportJSON}
+                  variant="outlined"
+                  size="small"
+                  aria-label="Import from JSON"
+                >
+                  Import
+                </Button>
+              </>
+            )}
+            {!isReadOnly && (
+              <Button
+                startIcon={<AddIcon />}
+                onClick={handleAddItem}
+                variant="contained"
+                size="small"
+                aria-label="Add new list item"
+              >
+                Add Item
+              </Button>
+            )}
+          </Stack>
         </Box>
 
           {isCreateMode && (
             <Box sx={{ mb: 2 }}>
               <TextField
                 fullWidth
-                label="Prefix"
-                value={prefix}
-                onChange={(e) => setPrefix(e.target.value)}
+                label="Key"
+                value={key}
+                onChange={(e) => setKey(e.target.value)}
                 disabled={isReadOnly || isSaving}
                 size="small"
                 error={!!prefixError}
                 helperText={
                   prefixError ||
-                  "Prefix where the list will be stored (e.g., config/app)"
+                  (currentPrefix
+                    ? `Key (will be saved as: ${currentPrefix}/${key || "..."})`
+                    : "Enter the key (can contain '/' characters, e.g., key/subkey)")
                 }
                 aria-describedby={prefixError ? "prefix-error" : "prefix-help"}
               />
@@ -637,11 +1006,22 @@ export function KVListEditor({
             <Table size="small" aria-label="List items table">
               <TableHead>
                 <TableRow>
+                  {showSelection && (
+                    <TableCell padding="checkbox" width={50}>
+                      <Checkbox
+                        indeterminate={
+                          selectedItems.size > 0 && selectedItems.size < items.length
+                        }
+                        checked={items.length > 0 && selectedItems.size === items.length}
+                        onChange={handleSelectAll}
+                        aria-label="Select all items"
+                      />
+                    </TableCell>
+                  )}
                   <TableCell width={50} aria-label="Drag handle"></TableCell>
-                  <TableCell width={50}>#</TableCell>
-                  <TableCell>ID</TableCell>
-                  <TableCell>Fields</TableCell>
-                  <TableCell width={120}>Actions</TableCell>
+                  <TableCell width={60}>#</TableCell>
+                  <TableCell>Data Preview</TableCell>
+                  <TableCell width={showSelection ? 180 : 140}>Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -652,16 +1032,24 @@ export function KVListEditor({
                   accessibility={{
                     announcements: {
                       onDragStart({ active }) {
-                        return `Picked up item ${active.id}`;
+                        const item = items.find((i) => i.id === active.id);
+                        const index = items.findIndex((i) => i.id === active.id);
+                        return `Picked up item ${index + 1}${item ? ` (ID: ${item.id})` : ""}`;
                       },
                       onDragOver({ active, over }) {
-                        return `Moving item ${active.id} over ${over?.id ?? "position"}`;
+                        const activeIndex = items.findIndex((i) => i.id === active.id);
+                        const overIndex = over
+                          ? items.findIndex((i) => i.id === over.id)
+                          : -1;
+                        return `Moving item ${activeIndex + 1} to position ${overIndex + 1}`;
                       },
                       onDragEnd({ active, over }) {
                         if (over) {
-                          return `Moved item ${active.id} to position ${over.id}`;
+                          const activeIndex = items.findIndex((i) => i.id === active.id);
+                          const overIndex = items.findIndex((i) => i.id === over.id);
+                          return `Moved item ${activeIndex + 1} to position ${overIndex + 1}`;
                         }
-                        return `Cancelled moving item ${active.id}`;
+                        return "Drag cancelled";
                       },
                       onDragCancel() {
                         return "Drag cancelled";
@@ -680,7 +1068,11 @@ export function KVListEditor({
                         index={index}
                         onEdit={handleEditItem}
                         onDelete={handleDeleteItem}
+                        onDuplicate={handleDuplicateItem}
                         isReadOnly={isReadOnly}
+                        isSelected={selectedItems.has(item.id)}
+                        onSelect={handleSelectItem}
+                        showSelection={showSelection}
                       />
                     ))}
                   </SortableContext>
@@ -720,6 +1112,7 @@ export function KVListEditor({
           }}
           onSave={handleSaveItem}
           isReadOnly={isReadOnly}
+          existingItems={items}
         />
       </CardContent>
     </Card>

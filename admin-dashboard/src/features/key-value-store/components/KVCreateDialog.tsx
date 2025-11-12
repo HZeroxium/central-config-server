@@ -23,10 +23,11 @@ import {
 import {
   InsertDriveFile as LeafIcon,
   List as ListIcon,
+  FormatListBulleted as LeafListIcon,
 } from "@mui/icons-material";
 import { validateKVPath, normalizePath } from "../types";
 
-export type KVCreateType = "leaf" | "list";
+export type KVCreateType = "leaf" | "list" | "leaf-list";
 
 export interface KVCreateDialogProps {
   open: boolean;
@@ -97,11 +98,13 @@ export function KVCreateDialog({
   const typeDescriptions = {
     leaf: "A simple key-value entry with a single value (text, JSON, binary, etc.)",
     list: "An ordered list of items with a manifest for ordering and metadata",
+    "leaf-list": "A comma-separated list stored in a single key (e.g., 'item1,item2,item3')",
   };
 
   const typeIcons = {
     leaf: <LeafIcon />,
     list: <ListIcon />,
+    "leaf-list": <LeafListIcon />,
   };
 
   return (
@@ -126,7 +129,7 @@ export function KVCreateDialog({
               onChange={(e) => setSelectedType(e.target.value as KVCreateType)}
               aria-label="entry type"
             >
-              {(["leaf", "list"] as const).map((type) => (
+              {(["leaf", "list", "leaf-list"] as const).map((type) => (
                 <Card
                   key={type}
                   variant="outlined"
@@ -155,7 +158,7 @@ export function KVCreateDialog({
                           </Box>
                           <Box>
                             <Typography variant="body1" fontWeight="medium">
-                              {type === "leaf" ? "Leaf Entry" : "List"}
+                              {type === "leaf" ? "Leaf Entry" : type === "list" ? "List" : "Leaf List"}
                             </Typography>
                             <Typography variant="caption" color="text.secondary">
                               {typeDescriptions[type]}
@@ -180,13 +183,17 @@ export function KVCreateDialog({
               placeholder={
                 selectedType === "leaf"
                   ? "e.g., config/database/url"
-                  : "e.g., config/app"
+                  : selectedType === "list"
+                  ? "e.g., config/app"
+                  : "e.g., config/allowed-domains"
               }
               helperText={
                 validationError ||
                 (selectedType === "leaf"
                   ? "Full path for the key (e.g., config/database/url)"
-                  : "Prefix where the structure will be stored (e.g., config/app)")
+                  : selectedType === "list"
+                  ? "Prefix where the structure will be stored (e.g., config/app)"
+                  : "Full path for the key storing comma-separated list (e.g., config/allowed-domains)")
               }
               error={!!validationError}
               size="small"
@@ -194,10 +201,16 @@ export function KVCreateDialog({
                 validationError ? "prefix-error" : "prefix-help"
               }
             />
-            {selectedType !== "leaf" && (
+            {selectedType === "list" && (
               <Alert severity="info" sx={{ mt: 1 }} role="note">
                 Lists are stored under a prefix. All key-value pairs
                 will be created under this prefix path.
+              </Alert>
+            )}
+            {selectedType === "leaf-list" && (
+              <Alert severity="info" sx={{ mt: 1 }} role="note">
+                Leaf List stores a comma-separated list in a single key.
+                Example: "item1,item2,item3"
               </Alert>
             )}
           </Box>

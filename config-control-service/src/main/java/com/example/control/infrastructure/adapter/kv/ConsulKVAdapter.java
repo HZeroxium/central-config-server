@@ -87,11 +87,17 @@ public class ConsulKVAdapter implements KVStorePort {
 
     @Override
     public KVWriteResult put(String absoluteKey, byte[] value, KVWriteOptions options) {
-        log.debug("Putting KV entry: {} with CAS: {}", absoluteKey, options.getCas());
+        log.debug("Putting KV entry: {} with CAS: {}, flags: {}", 
+                absoluteKey, options.getCas(), options.getFlags());
 
-        WriteOptions writeOptions = WriteOptions.builder().build();
-        Long cas = options.getCas();
-        ConsulResponse<Boolean> response = kvClient.put(absoluteKey, value, writeOptions, cas);
+        WriteOptions writeOptions = WriteOptions.builder()
+                .flags(options.getFlags())
+                .cas(options.getCas())
+                .build();
+        
+        // Pass WriteOptions with cas and flags to KVClient
+        // KVClient will merge cas into WriteOptions and let HttpTransport build query string
+        ConsulResponse<Boolean> response = kvClient.put(absoluteKey, value, writeOptions, null);
 
         Boolean success = response.getBody();
         if (Boolean.TRUE.equals(success)) {

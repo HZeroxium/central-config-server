@@ -20,12 +20,14 @@ export function useDynamicBreadcrumbLabel(
 ): { label: string | null; isLoading: boolean } {
   const queryClient = useQueryClient();
 
-  // Application Service
+  // Application Service (also used for KV store serviceId)
   const applicationServiceQuery = useFindApplicationServiceById(
-    params.id || "",
+    params.id || params.serviceId || "",
     {
       query: {
-        enabled: routePattern === "application-services/:id" && !!params.id,
+        enabled: (routePattern === "application-services/:id" && !!params.id) ||
+                (routePattern === "kv/:serviceId" && !!params.serviceId) ||
+                (routePattern === "kv/:serviceId/*" && !!params.serviceId),
         staleTime: 5 * 60 * 1000, // 5 minutes cache
         gcTime: 10 * 60 * 1000, // 10 minutes garbage collection
       },
@@ -122,6 +124,40 @@ export function useDynamicBreadcrumbLabel(
       }
       case "registry/:serviceName": {
         return params.serviceName || null;
+      }
+      case "kv/:serviceId": {
+        // Try to get service name from cache or params
+        const serviceId = params.serviceId;
+        if (!serviceId) return null;
+        
+        // Try cache first
+        const cached = queryClient.getQueryData(
+          getFindApplicationServiceByIdQueryKey(serviceId)
+        ) as { displayName?: string; attributes?: { displayName?: string } } | undefined;
+        if (cached?.displayName) return cached.displayName;
+        if (cached?.attributes?.displayName) return cached.attributes.displayName;
+        
+        // Use applicationServiceQuery if available
+        if (applicationServiceQuery.data?.displayName) {
+          return applicationServiceQuery.data.displayName;
+        }
+        if (applicationServiceQuery.data?.attributes?.displayName) {
+          return applicationServiceQuery.data.attributes.displayName;
+        }
+        
+        return serviceId;
+      }
+      case "kv/:serviceId/*": {
+        // For KV store with path, decode the path parameter
+        const pathParam = params["*"];
+        if (pathParam) {
+          try {
+            return decodeURIComponent(pathParam);
+          } catch {
+            return pathParam;
+          }
+        }
+        return params.serviceId || null;
       }
       default:
         return null;

@@ -22,7 +22,6 @@ import {
 } from "@mui/icons-material";
 import { normalizePath, isListPrefix, getParentPath } from "../types";
 import { getImmediateChildren } from "../types";
-import { KVBreadcrumb } from "./KVBreadcrumb";
 
 export interface KVFlatListViewProps {
   /** List of all keys */
@@ -60,12 +59,6 @@ export function KVFlatListView({
   const handleNavigateUp = () => {
     if (onNavigateUp && hasParent) {
       onNavigateUp(parentPath);
-    }
-  };
-
-  const handleBreadcrumbNavigate = (targetPrefix: string) => {
-    if (onNavigateUp) {
-      onNavigateUp(targetPrefix);
     }
   };
 
@@ -112,18 +105,6 @@ export function KVFlatListView({
 
   return (
     <Box>
-      {/* Breadcrumb navigation */}
-      {hasParent && (
-        <Box sx={{ px: 2, py: 1, borderBottom: 1, borderColor: "divider" }}>
-          <KVBreadcrumb
-            prefix={prefix}
-            onNavigate={handleBreadcrumbNavigate}
-            onBack={handleNavigateUp}
-            showBackButton={true}
-          />
-        </Box>
-      )}
-
       <List component="nav" dense>
         {/* Parent directory entry */}
         {hasParent && (

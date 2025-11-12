@@ -28,10 +28,19 @@ import {
   Edit as EditIcon,
   Refresh as RefreshIcon,
   List as ListIcon,
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon,
+  UnfoldMore as UnfoldMoreIcon,
+  UnfoldLess as UnfoldLessIcon,
 } from "@mui/icons-material";
 import { useGetKVList, type GetKVListParams } from "../hooks";
 import { fromGeneratedKVListItemArray, fromKVListManifestMetadata } from "../utils/typeAdapters";
 import type { UIListItem } from "../utils/typeAdapters";
+import { useState } from "react";
+import Collapse from "@mui/material/Collapse";
+import SyntaxHighlighter from "react-syntax-highlighter";
+import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { useColorMode } from "@theme/colorModeContext";
 
 export interface KVListViewProps {
   serviceId: string;
@@ -57,6 +66,10 @@ export function KVListView({
   isLoading: providedLoading,
   error: providedError,
 }: KVListViewProps) {
+  const { mode } = useColorMode();
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+  const [expandAll, setExpandAll] = useState(false);
+
   const params: GetKVListParams | undefined = serviceId && prefix
     ? { prefix, consistent: false, stale: false }
     : undefined;
@@ -83,6 +96,29 @@ export function KVListView({
   const handleRefresh = () => {
     refetch();
     onRefresh?.();
+  };
+
+  const handleToggleItem = (itemId: string) => {
+    setExpandedItems((prev) => {
+      const next = new Set(prev);
+      if (next.has(itemId)) {
+        next.delete(itemId);
+      } else {
+        next.add(itemId);
+      }
+      return next;
+    });
+  };
+
+  const handleExpandAll = (itemsToExpand: UIListItem[]) => {
+    if (expandAll) {
+      setExpandedItems(new Set());
+      setExpandAll(false);
+    } else {
+      const allIds = new Set(itemsToExpand.map((item) => item.id));
+      setExpandedItems(allIds);
+      setExpandAll(true);
+    }
   };
 
   // Convert loaded data to UI representation
@@ -263,6 +299,21 @@ export function KVListView({
             )}
           </Stack>
           <Stack direction="row" spacing={1}>
+            {items.length > 0 && (
+              <Tooltip title={expandAll ? "Collapse All" : "Expand All"}>
+                <IconButton
+                  size="small"
+                  onClick={() => handleExpandAll(items)}
+                  aria-label={expandAll ? "Collapse all items" : "Expand all items"}
+                >
+                  {expandAll ? (
+                    <UnfoldLessIcon fontSize="small" />
+                  ) : (
+                    <UnfoldMoreIcon fontSize="small" />
+                  )}
+                </IconButton>
+              </Tooltip>
+            )}
             <Tooltip title="Refresh">
               <IconButton 
                 size="small" 
@@ -358,60 +409,135 @@ export function KVListView({
             <Table size="small" stickyHeader>
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 600, minWidth: 150 }}>ID</TableCell>
+                  <TableCell sx={{ fontWeight: 600, width: 60 }}>#</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Data</TableCell>
+                  <TableCell sx={{ fontWeight: 600, width: 100 }}>Details</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {orderedItems.map((item) => (
-                  <TableRow 
-                    key={item.id} 
-                    hover
-                    sx={{
-                      "&:last-child td": { borderBottom: 0 },
-                    }}
-                  >
-                    <TableCell>
-                      <Typography
-                        variant="body2"
+                {orderedItems.map((item, index) => {
+                  const fieldCount = Object.keys(item.data).length;
+                  const fieldPreview = Object.entries(item.data)
+                    .slice(0, 2)
+                    .map(([key, value]) => `${key}: ${typeof value === "string" ? value : JSON.stringify(value)}`)
+                    .join(", ");
+                  const hasMoreFields = fieldCount > 2;
+                  const isExpanded = expandedItems.has(item.id);
+                  const fullDataJson = JSON.stringify(item.data, null, 2);
+                  
+                  return (
+                    <>
+                      <TableRow 
+                        key={item.id} 
+                        hover
                         sx={{
-                          fontFamily: "monospace",
-                          fontWeight: 500,
-                          wordBreak: "break-word",
+                          "&:last-child td": { borderBottom: 0 },
+                          cursor: "pointer",
                         }}
+                        onClick={() => handleToggleItem(item.id)}
                       >
-                        {item.id}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Box
-                        sx={{
-                          maxWidth: "100%",
-                          overflow: "auto",
-                        }}
-                      >
-                        <Typography
-                          variant="body2"
-                          component="pre"
-                          sx={{
-                            fontFamily: "monospace",
-                            fontSize: "0.75rem",
-                            whiteSpace: "pre-wrap",
-                            wordBreak: "break-word",
-                            m: 0,
-                            p: 1.5,
-                            bgcolor: "background.default",
-                            borderRadius: 1,
-                            border: 1,
-                            borderColor: "divider",
-                          }}
-                        >
-                          {JSON.stringify(item.data, null, 2)}
-                        </Typography>
-                      </Box>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                        <TableCell>
+                          <Typography variant="body2" fontWeight="medium">
+                            {index + 1}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                            <IconButton
+                              size="small"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleToggleItem(item.id);
+                              }}
+                              aria-label={isExpanded ? "Collapse" : "Expand"}
+                              sx={{ p: 0.5 }}
+                            >
+                              {isExpanded ? (
+                                <ExpandLessIcon fontSize="small" />
+                              ) : (
+                                <ExpandMoreIcon fontSize="small" />
+                              )}
+                            </IconButton>
+                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                              <Typography
+                                variant="body2"
+                                sx={{
+                                  maxWidth: { xs: 200, sm: 400 },
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  whiteSpace: "nowrap",
+                                  mb: 0.5,
+                                }}
+                              >
+                                {fieldPreview}
+                                {hasMoreFields && ` (+${fieldCount - 2} more)`}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {fieldCount} field{fieldCount !== 1 ? "s" : ""}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        </TableCell>
+                        <TableCell>
+                          <Tooltip title={`Item ID: ${item.id}`} arrow>
+                            <Chip
+                              label={isExpanded ? "Hide" : "View"}
+                              size="small"
+                              variant="outlined"
+                              clickable
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleToggleItem(item.id);
+                              }}
+                              aria-label={`${isExpanded ? "Hide" : "View"} details for item ${index + 1}`}
+                            />
+                          </Tooltip>
+                        </TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell colSpan={3} sx={{ py: 0, borderBottom: isExpanded ? 1 : 0, borderColor: "divider" }}>
+                          <Collapse in={isExpanded} timeout="auto" unmountOnExit>
+                            <Box
+                              sx={{
+                                p: 2,
+                                bgcolor: "background.default",
+                                borderTop: 1,
+                                borderColor: "divider",
+                              }}
+                            >
+                              <Typography variant="subtitle2" gutterBottom sx={{ mb: 1 }}>
+                                Full Data (Item ID: {item.id})
+                              </Typography>
+                              <Box
+                                sx={{
+                                  border: 1,
+                                  borderColor: "divider",
+                                  borderRadius: 1,
+                                  overflow: "hidden",
+                                  maxHeight: 400,
+                                  overflowY: "auto",
+                                }}
+                              >
+                                <SyntaxHighlighter
+                                  language="json"
+                                  style={mode === "dark" ? vscDarkPlus : undefined}
+                                  customStyle={{
+                                    margin: 0,
+                                    borderRadius: 0,
+                                    fontSize: "0.875rem",
+                                    backgroundColor: mode === "dark" ? undefined : "transparent",
+                                  }}
+                                >
+                                  {fullDataJson}
+                                </SyntaxHighlighter>
+                              </Box>
+                            </Box>
+                          </Collapse>
+                        </TableCell>
+                      </TableRow>
+                    </>
+                  );
+                })}
               </TableBody>
             </Table>
           </TableContainer>

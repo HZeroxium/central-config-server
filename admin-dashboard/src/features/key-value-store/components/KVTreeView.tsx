@@ -22,7 +22,9 @@ import {
   ExpandMore as ExpandMoreIcon,
   ChevronRight as ChevronRightIcon,
   List as ListIcon,
+  ArrowUpward as ArrowUpwardIcon,
 } from "@mui/icons-material";
+import { Button, Breadcrumbs, Link } from "@mui/material";
 import type { KVTree, KVTreeNode } from "../types";
 import { isListPrefix, isFolderPrefix } from "../types";
 
@@ -37,6 +39,8 @@ export interface KVTreeViewProps {
   onFolderNavigate?: (path: string) => void;
   /** All keys (for detecting List/Object types) */
   allKeys?: string[];
+  /** Current prefix for parent navigation */
+  currentPrefix?: string;
 }
 
 function TreeNode({
@@ -202,10 +206,22 @@ export function KVTreeView({
   searchQuery,
   onFolderNavigate,
   allKeys,
+  currentPrefix = "",
 }: KVTreeViewProps) {
   const rootNodes = useMemo(() => {
     return Object.values(tree) as KVTreeNode[];
   }, [tree]);
+
+  // Get parent path for navigation
+  const getParentPath = (path: string): string | null => {
+    if (!path || path === "") return null;
+    const parts = path.split("/").filter(Boolean);
+    if (parts.length === 0) return null;
+    parts.pop();
+    return parts.length > 0 ? parts.join("/") : "";
+  };
+
+  const parentPath = currentPrefix ? getParentPath(currentPrefix) : null;
 
   if (isLoading) {
     return (
@@ -232,22 +248,97 @@ export function KVTreeView({
     );
   }
 
+  const handleParentClick = () => {
+    if (parentPath !== null && onFolderNavigate) {
+      onFolderNavigate(parentPath);
+    }
+  };
+
   return (
-    <List component="nav" dense sx={{ py: 1 }}>
-      {rootNodes.map((node) => (
-        <TreeNode
-          key={node.fullPath}
-          node={node}
-          selectedPath={selectedPath}
-          onSelect={onSelect}
-          expandedNodes={expandedNodes}
-          onToggleNode={onToggleNode}
-          searchQuery={searchQuery}
-          onFolderNavigate={onFolderNavigate}
-          allKeys={allKeys}
-        />
-      ))}
-    </List>
+    <Box>
+      {/* Breadcrumb-style parent navigation */}
+      {parentPath !== null && (
+        <Box sx={{ px: 2, py: 1, borderBottom: 1, borderColor: "divider" }}>
+          <Breadcrumbs separator="›" aria-label="breadcrumb">
+            <Link
+              component="button"
+              variant="body2"
+              onClick={handleParentClick}
+              sx={{
+                cursor: "pointer",
+                textDecoration: "none",
+                "&:hover": { textDecoration: "underline" },
+              }}
+            >
+              {parentPath === "" ? "Root" : parentPath}
+            </Link>
+            <Typography variant="body2" color="text.primary">
+              {currentPrefix.split("/").pop() || "Current"}
+            </Typography>
+          </Breadcrumbs>
+        </Box>
+      )}
+
+      {/* Parent entry button */}
+      {parentPath !== null && (
+        <Box sx={{ px: 2, py: 1 }}>
+          <Button
+            fullWidth
+            startIcon={<ArrowUpwardIcon />}
+            onClick={handleParentClick}
+            variant="outlined"
+            size="small"
+            sx={{
+              justifyContent: "flex-start",
+              textTransform: "none",
+              fontStyle: "italic",
+            }}
+            aria-label="Navigate to parent folder"
+          >
+            .. (Parent: {parentPath === "" ? "Root" : parentPath})
+          </Button>
+        </Box>
+      )}
+
+      <List component="nav" dense sx={{ py: 1 }}>
+        {/* Parent entry at top of tree */}
+        {parentPath !== null && (
+          <ListItemButton
+            onClick={handleParentClick}
+            sx={{
+              fontStyle: "italic",
+              color: "text.secondary",
+              "&:hover": {
+                bgcolor: "action.hover",
+              },
+            }}
+            aria-label="Navigate to parent folder"
+          >
+            <ListItemIcon sx={{ minWidth: 36 }}>
+              <ArrowUpwardIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText
+              primary=".."
+              secondary={parentPath === "" ? "Root" : parentPath}
+            />
+          </ListItemButton>
+        )}
+
+        {rootNodes.map((node) => (
+          <TreeNode
+            key={node.fullPath}
+            node={node}
+            selectedPath={selectedPath}
+            onSelect={onSelect}
+            expandedNodes={expandedNodes}
+            onToggleNode={onToggleNode}
+            searchQuery={searchQuery}
+            onFolderNavigate={onFolderNavigate}
+            allKeys={allKeys}
+          />
+        ))}
+      </List>
+    </Box>
   );
 }
 

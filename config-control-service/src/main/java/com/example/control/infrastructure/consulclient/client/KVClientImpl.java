@@ -140,35 +140,33 @@ public class KVClientImpl implements KVClient {
 
     @Override
     public ConsulResponse<Boolean> put(String key, byte[] value, WriteOptions options, Long cas) {
-        log.debug("Putting KV key: {} with CAS: {}", key, cas);
+        log.debug("Putting KV key: {} with CAS: {}, flags: {}", key, cas, options != null ? options.getFlags() : null);
 
         try {
             String path = "/v1/kv/" + key;
 
-            // Build query parameters
-            StringBuilder query = new StringBuilder();
+            // Merge cas parameter into WriteOptions if provided
+            WriteOptions finalOptions = options;
             if (cas != null) {
-                query.append("cas=").append(cas);
-            }
-
-            // Add write options
-            if (options != null) {
-                String optionsQuery = options.buildQueryString();
-                if (!optionsQuery.isEmpty()) {
-                    if (query.length() > 0) {
-                        query.append("&");
-                    }
-                    query.append(optionsQuery);
-                }
-            }
-
-            String fullPath = path;
-            if (query.length() > 0) {
-                fullPath += "?" + query;
+                // If cas is provided as parameter, merge it into options
+                WriteOptions.WriteOptionsBuilder builder = options != null 
+                    ? WriteOptions.builder()
+                        .datacenter(options.getDatacenter())
+                        .token(options.getToken())
+                        .timeout(options.getTimeout())
+                        .recurse(options.getRecurse())
+                        .flags(options.getFlags())
+                        .cas(cas)
+                    : WriteOptions.builder().cas(cas);
+                finalOptions = builder.build();
+            } else if (options != null && options.getCas() != null) {
+                // Use cas from options if not provided as parameter
+                finalOptions = options;
             }
 
             // PUT the raw bytes (Consul expects raw bytes, not base64)
-            ConsulResponse<Boolean> response = httpTransport.put(fullPath, value, options, Boolean.class);
+            // HttpTransport will build the query string from WriteOptions
+            ConsulResponse<Boolean> response = httpTransport.put(path, value, finalOptions, Boolean.class);
             return response;
 
         } catch (Exception e) {

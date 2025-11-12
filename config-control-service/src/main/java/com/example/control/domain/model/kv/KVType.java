@@ -10,6 +10,7 @@ import lombok.Getter;
  * <ul>
  *     <li>{@code 0} - {@link #LEAF}</li>
  *     <li>{@code 2} - {@link #LIST}</li>
+ *     <li>{@code 3} - {@link #LEAF_LIST}</li>
  * </ul>
  * </p>
  * <p>
@@ -20,7 +21,8 @@ import lombok.Getter;
 @Getter
 public enum KVType {
     LEAF(0),
-    LIST(2);
+    LIST(2),
+    LEAF_LIST(3);
 
     private final long flagValue;
 
@@ -52,10 +54,10 @@ public enum KVType {
      * Determines whether a flags value explicitly encodes a type.
      *
      * @param flags Consul KV flags value
-     * @return {@code true} when the value matches one of the known type flags (LIST only)
+     * @return {@code true} when the value matches one of the known type flags (LIST or LEAF_LIST)
      */
     public static boolean isTypeFlag(long flags) {
-        return flags == LIST.flagValue;
+        return flags == LIST.flagValue || flags == LEAF_LIST.flagValue;
     }
 }
 

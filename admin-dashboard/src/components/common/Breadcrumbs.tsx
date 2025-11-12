@@ -43,6 +43,7 @@ const ROUTE_LABELS: Record<string, string> = {
   "service-shares": "Service Shares",
   configs: "Configuration",
   registry: "Service Registry",
+  kv: "Key-Value Store",
   iam: "IAM",
   users: "Users",
   teams: "Teams",
@@ -82,6 +83,14 @@ const DYNAMIC_LABEL_ROUTES: Record<
   },
   "registry/:serviceName": async (params) => {
     return params.serviceName || null;
+  },
+  "kv/:serviceId": async () => {
+    // Dynamic label fetching is handled by useDynamicBreadcrumbLabel hook
+    return null;
+  },
+  "kv/:serviceId/*": async () => {
+    // Dynamic label fetching is handled by useDynamicBreadcrumbLabel hook
+    return null;
   },
 };
 
@@ -198,7 +207,26 @@ export default function Breadcrumbs({
         Object.keys(params).includes(name) ||
         Object.values(params).includes(name);
 
-      let label: string | React.ReactNode = getRouteLabel(name, customLabels);
+      // Special handling for KV store routes - decode path parameter
+      let decodedName = name;
+      if (segments[0] === "kv" && segments.length >= 2 && index === segments.length - 1 && isParam) {
+        // This is likely the path parameter in /kv/:serviceId/:path*
+        try {
+          decodedName = decodeURIComponent(name);
+        } catch {
+          // If decoding fails, use original name
+          decodedName = name;
+        }
+      } else if (name.includes("%")) {
+        // Try to decode any encoded characters
+        try {
+          decodedName = decodeURIComponent(name);
+        } catch {
+          decodedName = name;
+        }
+      }
+
+      let label: string | React.ReactNode = getRouteLabel(decodedName, customLabels);
 
       // For dynamic labels on detail pages
       if (isLast && isDetailPage && isParam) {
@@ -207,12 +235,19 @@ export default function Breadcrumbs({
         } else if (dynamicLabel) {
           label = dynamicLabel;
         } else {
-          // Fallback to param value or ID
-          label = params[name as keyof typeof params] || name;
+          // Fallback to param value or ID (decoded)
+          label = params[name as keyof typeof params] 
+            ? (typeof params[name as keyof typeof params] === "string" 
+                ? decodeURIComponent(params[name as keyof typeof params] || "")
+                : params[name as keyof typeof params])
+            : decodedName;
         }
       } else if (isLast && !isDetailPage && isParam) {
-        // Use the param value or ID as fallback
-        label = params[name as keyof typeof params] || name;
+        // Use the param value or ID as fallback (decoded)
+        const paramValue = params[name as keyof typeof params];
+        label = paramValue 
+          ? (typeof paramValue === "string" ? decodeURIComponent(paramValue) : paramValue)
+          : decodedName;
       }
 
       if (isLast) {

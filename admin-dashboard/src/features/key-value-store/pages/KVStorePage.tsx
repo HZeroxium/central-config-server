@@ -23,6 +23,7 @@ import {
   ArrowDropDown as ArrowDropDownIcon,
   InsertDriveFile as LeafIcon,
   List as ListIcon,
+  FormatListBulleted as LeafListIcon,
 } from "@mui/icons-material";
 import { PageHeader } from "@components/common/PageHeader";
 import { DetailPageSkeleton } from "@components/common/skeletons";
@@ -35,6 +36,7 @@ import {
   KVBreadcrumb,
   KVFlatListView,
   KVListEditor,
+  KVLeafListEditor,
   type KVCreateType,
 } from "../components";
 import { useKVStore, useKVPermissions, useKVTree, usePutKVList } from "../hooks";
@@ -311,23 +313,18 @@ export default function KVStorePage({
   const handleNewEntryMenuSelect = (type: KVCreateType) => {
     setCreateMenuAnchor(null);
     
-    if (type === "leaf") {
-      // For leaf: open editor with path input (pre-filled with currentPrefix)
-      const defaultPath = currentPrefix 
-        ? `${currentPrefix}/new-key` 
-        : "new-key";
-      setCreateMode(true);
-      setCreateType("leaf");
-      setSelectedPath(defaultPath);
-      setCreatePrefix("");
-    } else {
-      // For list: use currentPrefix directly, allow editing name part
-      const defaultPrefix = currentPrefix 
-        ? `${currentPrefix}/new-${type}` 
-        : `new-${type}`;
+    if (type === "leaf" || type === "leaf-list") {
+      // For leaf and leaf-list: open editor with key input (pre-filled with "new-key")
+      // The editor will handle prepending currentPrefix
       setCreateMode(true);
       setCreateType(type);
-      setCreatePrefix(defaultPrefix);
+      setSelectedPath("new-key"); // Just the key, not full path
+      setCreatePrefix("");
+    } else {
+      // For list: use key input (will be prepended with currentPrefix)
+      setCreateMode(true);
+      setCreateType(type);
+      setCreatePrefix("new-list"); // Just the key, not full path
       setSelectedPath(undefined);
     }
   };
@@ -482,6 +479,18 @@ export default function KVStorePage({
                             secondary="Ordered list of items"
                           />
                         </MenuItem>
+                        <MenuItem
+                          onClick={() => handleNewEntryMenuSelect("leaf-list")}
+                          aria-label="Create leaf list"
+                        >
+                          <ListItemIcon>
+                            <LeafListIcon fontSize="small" />
+                          </ListItemIcon>
+                          <ListItemText
+                            primary="Leaf List"
+                            secondary="Comma-separated list in single key"
+                          />
+                        </MenuItem>
                       </Menu>
                     </>
                   )}
@@ -544,6 +553,7 @@ export default function KVStorePage({
                     searchQuery={searchQuery}
                     onFolderNavigate={handlePrefixNavigate}
                     allKeys={keys}
+                    currentPrefix={currentPrefix}
                   />
                 )}
               </Box>
@@ -560,6 +570,7 @@ export default function KVStorePage({
                   <KVListEditor
                     serviceId={serviceId}
                     prefix={createPrefix}
+                    currentPrefix={currentPrefix}
                     initialItems={[]}
                     initialManifest={undefined}
                     onSave={handleCreateList}
@@ -571,6 +582,23 @@ export default function KVStorePage({
                     }}
                     isReadOnly={permissions.isReadOnly}
                     isSaving={putListMutation.isPending}
+                    isCreateMode={true}
+                  />
+                ) : createType === "leaf-list" ? (
+                  <KVLeafListEditor
+                    serviceId={serviceId}
+                    path={selectedPath || createPrefix || "new-key"}
+                    currentPrefix={currentPrefix}
+                    initialElements={[]}
+                    onSave={handleCreate}
+                    onCancel={() => {
+                      setCreateMode(false);
+                      setCreateType(null);
+                      setCreatePrefix("");
+                      setSelectedPath(undefined);
+                    }}
+                    isReadOnly={permissions.isReadOnly}
+                    isSaving={isPutting}
                     isCreateMode={true}
                   />
                 ) : (
