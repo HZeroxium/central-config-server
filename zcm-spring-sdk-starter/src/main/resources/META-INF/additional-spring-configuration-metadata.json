@@ -120,6 +120,17 @@
       "type": "java.lang.String",
       "defaultValue": "config-control",
       "description": "Keycloak realm name"
+    },
+    {
+      "name": "zcm.sdk.api-key.enabled",
+      "type": "java.lang.Boolean",
+      "defaultValue": false,
+      "description": "Enable API key authentication for SDK requests to config-control-service"
+    },
+    {
+      "name": "zcm.sdk.api-key.key",
+      "type": "java.lang.String",
+      "description": "API key value to send in X-API-Key header for authentication"
     }
   ]
 }

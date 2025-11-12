@@ -100,6 +100,7 @@ public final class ApplicationServiceApiMapper {
                         : null)
                 .tags(filter != null ? filter.tags() : null)
                 .search(filter != null ? filter.search() : null)
+                .environment(filter != null ? filter.environment() : null)
                 .userTeamIds(userContext.getTeamIds())
                 .build();
     }

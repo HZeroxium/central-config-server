@@ -2,6 +2,8 @@ package com.example.control.infrastructure.config.cache;
 
 import com.example.control.infrastructure.cache.*;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -16,6 +18,8 @@ import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.RedisSerializer;
+// import org.springframework.data.web.config.SpringDataJacksonConfiguration;
+import org.springframework.data.redis.serializer.StringRedisSerializer;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
@@ -300,10 +304,29 @@ public class CacheManagerFactory {
         // Configure JSON serialization (values)
         ObjectMapper mapper = new ObjectMapper();
         mapper.registerModule(new JavaTimeModule()); // java.time support
+        
+
+        // Ignore unknown properties when deserializing from cache
+        // This is essential for cache compatibility when domain models evolve
+        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        
+        mapper.setConfig(mapper.getDeserializationConfig()
+                .without(MapperFeature.USE_GETTERS_AS_SETTERS));
+                
         BasicPolymorphicTypeValidator ptv = BasicPolymorphicTypeValidator.builder()
-                .allowIfBaseType(Object.class) // NOTE: broad; see Security Note in class JavaDoc
+                .allowIfSubType("com.example.")
+                .allowIfSubType("org.springframework.data.domain.")
+                .allowIfBaseType(java.util.Collection.class)
+                .allowIfBaseType(java.util.Map.class)
+                .allowIfBaseType(java.util.Optional.class)
+                // Currently 
+                .allowIfBaseType(java.lang.Object.class)
+                // .allowIfSubType("java.util.*")
                 .build();
         mapper.activateDefaultTyping(ptv, ObjectMapper.DefaultTyping.NON_FINAL, JsonTypeInfo.As.PROPERTY);
+
+        mapper.registerModule(new com.example.control.infrastructure.cache.jackson.PageJacksonModule());
+
         GenericJackson2JsonRedisSerializer baseSerializer = new GenericJackson2JsonRedisSerializer(mapper);
 
         // Wrap with compression if enabled
@@ -319,6 +342,7 @@ public class CacheManagerFactory {
         // Default config (value serializer + default TTL). Key serializer can also be
         // customized if needed.
         RedisCacheConfiguration defaultConfig = RedisCacheConfiguration.defaultCacheConfig()
+                .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(StringRedisSerializer.UTF_8))
                 .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(serializer))
                 .entryTtl(config.getDefaultTtl());
 

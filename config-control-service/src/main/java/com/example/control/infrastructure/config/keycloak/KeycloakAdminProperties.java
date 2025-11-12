@@ -22,6 +22,7 @@ import org.springframework.validation.annotation.Validated;
  *     realm: config-control
  *     client-id: config-control-service
  *     client-secret: secret-value
+ *     parent-group-id: 3b7eccae-859a-437e-81af-0ab909c8d67a  # Optional: parent group ID for teams hierarchy
  * </pre>
  *
  * @author Config Control Team
@@ -57,5 +58,18 @@ public class KeycloakAdminProperties {
      */
     @NotBlank(message = "Keycloak client secret is required")
     private String clientSecret;
+
+    /**
+     * Parent group ID for teams hierarchy.
+     * <p>
+     * If specified, team queries will fetch children groups from this parent group
+     * instead of root-level groups. This is useful when teams are organized under
+     * a parent group (e.g., "/teams").
+     * </p>
+     * <p>
+     * Example: "3b7eccae-859a-437e-81af-0ab909c8d67a"
+     * </p>
+     */
+    private String parentGroupId;
 }
 

@@ -40,9 +40,11 @@ public record ApplicationServiceCriteria(
         ApplicationService.ServiceLifecycle lifecycle,
         List<String> tags,
         String search,
+        String environment,
         List<String> userTeamIds,
         List<String> sharedServiceIds,
-        Boolean includeOrphaned) {
+        Boolean includeOrphaned,
+        boolean unassignedOnly) {
 
     /**
      * Creates criteria with no filtering (admin query).

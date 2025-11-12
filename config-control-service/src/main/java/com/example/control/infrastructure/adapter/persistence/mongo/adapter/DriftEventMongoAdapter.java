@@ -47,9 +47,6 @@ public class DriftEventMongoAdapter
             return query;
 
         // Apply filters
-        if (criteria.serviceName() != null && !criteria.serviceName().isBlank()) {
-            query.addCriteria(Criteria.where("serviceName").is(criteria.serviceName()));
-        }
         if (criteria.instanceId() != null && !criteria.instanceId().isBlank()) {
             query.addCriteria(Criteria.where("instanceId").is(criteria.instanceId()));
         }
@@ -74,6 +71,19 @@ public class DriftEventMongoAdapter
             query.addCriteria(Criteria.where("teamId").in(criteria.userTeamIds()));
         }
 
+        // Text search: use MongoDB text index for efficient full-text search
+        if (criteria.serviceName() != null && !criteria.serviceName().trim().isEmpty()) {
+            String searchTerm = criteria.serviceName().trim();
+            // Use $text search for full-text matching (requires text index)
+            // This is more efficient than regex for search queries
+            query.addCriteria(new Criteria()
+                    .orOperator(
+                            Criteria.where("serviceName")
+                                    .regex(".*" + searchTerm + ".*", "i"), // Fallback regex for partial matching
+                            Criteria.where("serviceName")
+                                    .is(searchTerm) // Exact match
+                    ));
+        }
         return query;
     }
 

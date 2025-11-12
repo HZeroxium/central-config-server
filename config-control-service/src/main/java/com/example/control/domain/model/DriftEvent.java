@@ -1,6 +1,8 @@
 package com.example.control.domain.model;
 
 import com.example.control.domain.valueobject.id.DriftEventId;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -102,6 +104,7 @@ public class DriftEvent {
      * @return {@code true} if status == {@link DriftStatus#RESOLVED}, otherwise
      * {@code false}
      */
+    @JsonIgnore
     public boolean isResolved() {
         return status == DriftStatus.RESOLVED;
     }

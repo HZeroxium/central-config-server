@@ -5,7 +5,11 @@ import lombok.extern.slf4j.Slf4j;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.stream.Collectors;
+
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 /**
  * Utility class for generating safe, deterministic cache keys with standardized
@@ -178,7 +182,7 @@ public final class CacheKeyGenerator {
     }
 
     if (pageable != null) {
-      key.append(":").append(pageable.toString());
+      key.append(":").append(generateKeyFromHash("pageable", serializePageable(pageable)));
     } else {
       key.append(":pageable:null");
     }
@@ -212,5 +216,55 @@ public final class CacheKeyGenerator {
       // Fallback to hashCode if SHA-256 is not available (shouldn't happen)
       return String.valueOf(input.hashCode());
     }
+  }
+
+  /**
+   * Serialize Pageable to a deterministic string representation.
+   * <p>
+   * Format: {@code page:{pageNumber}:size:{pageSize}:sort:{sortString}}
+   * <p>
+   * For unpaged Pageable, returns "unpaged".
+   * 
+   * @param pageable the pageable to serialize
+   * @return deterministic string representation
+   */
+  private static String serializePageable(Object pageable) {
+    if (pageable == null) {
+      return "null";
+    }
+
+    // Handle Spring Data Pageable
+    if (pageable instanceof Pageable) {
+      Pageable p = (Pageable) pageable;
+      
+      if (!p.isPaged()) {
+        return "unpaged";
+      }
+
+      StringBuilder sb = new StringBuilder();
+      sb.append("page:").append(p.getPageNumber());
+      sb.append(":size:").append(p.getPageSize());
+      
+      // Serialize sort in deterministic order
+      Sort sort = p.getSort();
+      if (sort != null && sort.isSorted()) {
+        sb.append(":sort:");
+        // Order by property name for deterministic output
+        String sortString = sort.stream()
+            .sorted(Comparator.comparing(Sort.Order::getProperty))
+            .map(order -> order.getProperty() + ":" + order.getDirection().name()
+                + (order.isIgnoreCase() ? ":ignoreCase" : "")
+                + ":" + order.getNullHandling().name())
+            .collect(Collectors.joining(","));
+        sb.append(sortString);
+      } else {
+        sb.append(":sort:UNSORTED");
+      }
+      
+      return sb.toString();
+    }
+
+    // Fallback to toString() for non-Pageable objects
+    return pageable.toString();
   }
 }

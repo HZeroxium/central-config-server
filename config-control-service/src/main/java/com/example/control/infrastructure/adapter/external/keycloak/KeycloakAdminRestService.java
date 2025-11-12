@@ -342,6 +342,10 @@ public class KeycloakAdminRestService {
 
     /**
      * Get groups with filtering and pagination.
+     * <p>
+     * If parentGroupId is configured, fetches children groups from the parent group.
+     * Otherwise, fetches root-level groups.
+     * </p>
      *
      * @param criteria Filter criteria
      * @param pageable Pagination info
@@ -350,8 +354,18 @@ public class KeycloakAdminRestService {
     public List<KeycloakGroupRepresentation> getGroups(IamTeamCriteria criteria, Pageable pageable) {
         Supplier<List<KeycloakGroupRepresentation>> apiCall = () -> {
             try {
-                String url = String.format("%s/admin/realms/%s/groups",
-                        properties.getUrl(), properties.getRealm());
+                String url;
+                
+                // If parentGroupId is configured, fetch children groups from parent
+                if (properties.getParentGroupId() != null && !properties.getParentGroupId().isBlank()) {
+                    url = String.format("%s/admin/realms/%s/groups/%s/children",
+                            properties.getUrl(), properties.getRealm(), properties.getParentGroupId());
+                    log.debug("Fetching children groups from parent group: {}", properties.getParentGroupId());
+                } else {
+                    url = String.format("%s/admin/realms/%s/groups",
+                            properties.getUrl(), properties.getRealm());
+                    log.debug("Fetching root-level groups");
+                }
 
                 // Build query parameters
                 List<String> params = new ArrayList<>();
@@ -360,6 +374,9 @@ public class KeycloakAdminRestService {
                     params.add("first=" + pageable.getOffset());
                     params.add("max=" + pageable.getPageSize());
                 }
+                
+                // Add briefRepresentation=true for better performance (as per user's curl example)
+                params.add("briefRepresentation=true");
 
                 String fullUrl = url;
                 if (!params.isEmpty()) {

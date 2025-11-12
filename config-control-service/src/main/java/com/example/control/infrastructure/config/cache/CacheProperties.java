@@ -129,7 +129,7 @@ public class CacheProperties {
      * </ul>
      */
     @NotNull
-    private CacheProvider provider = CacheProvider.CAFFEINE;
+    private CacheProvider provider = CacheProvider.REDIS;
 
     /**
      * Application name used for cache key prefix. Defaults to

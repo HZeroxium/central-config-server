@@ -8,6 +8,8 @@ import com.example.control.infrastructure.adapter.persistence.mongo.repository.A
 import com.example.control.infrastructure.adapter.persistence.mongo.documents.ApplicationServiceDocument;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -57,16 +59,19 @@ public class ApplicationServiceMongoAdapter
         if (criteria.tags() != null && !criteria.tags().isEmpty()) {
             query.addCriteria(Criteria.where("tags").in(criteria.tags()));
         }
+        if (criteria.environment() != null && !criteria.environment().trim().isEmpty()) {
+            query.addCriteria(Criteria.where("environments").in(criteria.environment()));
+        }
         // Text search: use MongoDB text index for efficient full-text search
         if (criteria.search() != null && !criteria.search().trim().isEmpty()) {
             String searchTerm = criteria.search().trim();
             // Use $text search for full-text matching (requires text index)
             // This is more efficient than regex for search queries
-            query.addCriteria(new org.springframework.data.mongodb.core.query.Criteria()
+            query.addCriteria(new Criteria()
                     .orOperator(
-                            org.springframework.data.mongodb.core.query.Criteria.where("displayName")
+                            Criteria.where("displayName")
                                     .regex(".*" + searchTerm + ".*", "i"), // Fallback regex for partial matching
-                            org.springframework.data.mongodb.core.query.Criteria.where("displayName")
+                            Criteria.where("displayName")
                                     .is(searchTerm) // Exact match
                     ));
             // Note: MongoDB text search with $text operator requires special syntax
@@ -82,7 +87,7 @@ public class ApplicationServiceMongoAdapter
                 (criteria.sharedServiceIds() != null && !criteria.sharedServiceIds().isEmpty());
 
         if (hasVisibilityFilters) {
-            java.util.List<Criteria> orCriteria = new java.util.ArrayList<>();
+            List<Criteria> orCriteria = new ArrayList<>();
 
             // Include orphaned services (ownerTeamId = null)
             if (criteria.includeOrphaned() != null && criteria.includeOrphaned()) {

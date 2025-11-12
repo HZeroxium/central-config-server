@@ -37,6 +37,7 @@ keycloak:
     realm: config-control
     client-id: ${KEYCLOAK_CLIENT_ID:config-control-service}
     client-secret: ${KEYCLOAK_CLIENT_SECRET:config-control-service-secret}
+    parent-group-id: ${KEYCLOAK_PARENT_GROUP_ID:3b7eccae-859a-437e-81af-0ab909c8d67a}  # Parent group ID for teams hierarchy
 
 # Springdoc OAuth2 configuration for Swagger UI
 springdoc:

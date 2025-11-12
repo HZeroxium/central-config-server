@@ -159,7 +159,11 @@ public class ApplicationServiceDtos {
 
             @Size(max = 200, message = "Search term must not exceed 200 characters")
             @Schema(description = "Search term for service name or description", example = "payment", maxLength = 200)
-            String search
+            String search,
+
+            @Size(max = 50, message = "Environment must not exceed 50 characters")
+            @Schema(description = "Filter by environment", example = "dev", allowableValues = {"dev", "staging", "prod"})
+            String environment
     ) {
     }
 
