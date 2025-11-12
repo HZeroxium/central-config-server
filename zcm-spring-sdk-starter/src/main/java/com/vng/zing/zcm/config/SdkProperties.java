@@ -61,6 +61,9 @@ public class SdkProperties {
   /** Configuration for Key-Value store integration. */
   private KV kv = new KV();
 
+  /** Configuration for API key authentication. */
+  private ApiKey apiKey = new ApiKey();
+
   /**
    * Configuration related to service discovery.
    */
@@ -214,5 +217,18 @@ public class SdkProperties {
 
     /** Realm name (default: config-control). */
     private String realm = "config-control";
+  }
+
+  /**
+   * Configuration for API key authentication.
+   */
+  @Data
+  public static class ApiKey {
+
+    /** Whether API key authentication is enabled. */
+    private boolean enabled = false;
+
+    /** The API key value to send in X-API-Key header. */
+    private String key;
   }
 }

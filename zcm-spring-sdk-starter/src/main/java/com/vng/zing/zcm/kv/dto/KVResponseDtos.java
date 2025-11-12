@@ -40,15 +40,6 @@ public class KVResponseDtos {
   }
 
   /**
-   * Response DTO for structured object.
-   */
-  public record ObjectResponse(
-      @JsonProperty("data") java.util.Map<String, Object> data,
-      @JsonProperty("type") String type
-  ) {
-  }
-
-  /**
    * Response DTO for structured list.
    */
   public record ListResponseV2(

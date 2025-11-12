@@ -7,7 +7,6 @@ import com.vng.zing.zcm.kv.exceptions.KVAuthenticationException;
 import com.vng.zing.zcm.kv.exceptions.KVClientException;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -56,6 +55,28 @@ public interface KVApi {
   Optional<String> getString(String serviceId, String key);
 
   /**
+   * Gets a LEAF_LIST entry and parses it as a comma-separated list.
+   * <p>
+   * This method retrieves a KV entry with flag=3 (LEAF_LIST) and parses
+   * its value as a comma-separated string into a list of elements.
+   * Whitespace around elements is trimmed, and empty elements are filtered out.
+   * </p>
+   * <p>
+   * Note: This method is distinct from {@link #getList(String, String)} which
+   * returns a structured LIST (with manifest) stored under a prefix. This method
+   * takes a single key and returns a simple list of strings parsed from the value.
+   * </p>
+   *
+   * @param serviceId the service ID
+   * @param key       the key path relative to service root (single key, not prefix)
+   * @return optional list of strings, empty if not found or access denied
+   * @throws KVClientException if network or client error occurs
+   * @throws KVAuthenticationException if authentication fails (401)
+   * @throws KVAccessDeniedException if access is denied (403)
+   */
+  Optional<List<String>> getLeafList(String serviceId, String key);
+
+  /**
    * Lists all KV entries under a prefix.
    *
    * @param serviceId the service ID
@@ -78,25 +99,6 @@ public interface KVApi {
    * @throws KVAccessDeniedException if access is denied (403)
    */
   List<String> listKeys(String serviceId, String prefix);
-
-  /**
-   * Retrieves a logical object stored under a prefix.
-   *
-   * @param serviceId the service ID
-   * @param prefix    the prefix relative to service root
-   * @return optional object representation
-   */
-  Optional<Map<String, Object>> getObject(String serviceId, String prefix);
-
-  /**
-   * Writes a logical object structure using transactional semantics.
-   *
-   * @param serviceId the service ID
-   * @param prefix    the prefix relative to service root
-   * @param data      object structure to persist
-   * @return transaction result
-   */
-  KVTransactionResult putObject(String serviceId, String prefix, Map<String, Object> data);
 
   /**
    * Retrieves a logical list stored under a prefix.

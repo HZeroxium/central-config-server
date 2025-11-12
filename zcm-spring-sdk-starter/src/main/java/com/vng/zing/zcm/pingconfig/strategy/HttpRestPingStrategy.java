@@ -1,8 +1,11 @@
 package com.vng.zing.zcm.pingconfig.strategy;
 
+import com.vng.zing.zcm.config.SdkProperties;
 import com.vng.zing.zcm.pingconfig.HeartbeatPayload;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
+import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClient;
 import java.util.HashMap;
 import java.util.Map;
@@ -12,18 +15,33 @@ import java.util.Map;
  * <p>
  * This strategy sends heartbeat messages using HTTP POST requests to the
  * control service's REST API endpoint.
+ * <p>
+ * Supports API key authentication via X-API-Key header when configured.
  */
 @Slf4j
 public class HttpRestPingStrategy implements PingStrategy {
 
+  private final SdkProperties sdkProperties;
   private final RestClient restClient;
 
-  public HttpRestPingStrategy() {
-    // Create a simple RestClient without load balancing
+  /**
+   * Constructor with SdkProperties for API key support.
+   *
+   * @param sdkProperties SDK configuration properties
+   */
+  public HttpRestPingStrategy(SdkProperties sdkProperties) {
+    this.sdkProperties = sdkProperties;
     this.restClient = RestClient.builder().build();
   }
 
-  public HttpRestPingStrategy(RestClient restClient) {
+  /**
+   * Constructor with custom RestClient (for testing).
+   *
+   * @param sdkProperties SDK configuration properties
+   * @param restClient custom RestClient instance
+   */
+  public HttpRestPingStrategy(SdkProperties sdkProperties, RestClient restClient) {
+    this.sdkProperties = sdkProperties;
     this.restClient = restClient;
   }
 
@@ -31,9 +49,20 @@ public class HttpRestPingStrategy implements PingStrategy {
   public void sendHeartbeat(String endpoint, HeartbeatPayload payload) throws Exception {
     Map<String, Object> body = convertToMap(payload);
 
-    restClient.post()
+    var requestBuilder = restClient.post()
         .uri(endpoint + "/api/heartbeat")
-        .contentType(MediaType.APPLICATION_JSON)
+        .contentType(MediaType.APPLICATION_JSON);
+
+    // Add API key header if configured and enabled
+    if (sdkProperties != null 
+        && sdkProperties.getApiKey() != null 
+        && sdkProperties.getApiKey().isEnabled()
+        && StringUtils.hasText(sdkProperties.getApiKey().getKey())) {
+      requestBuilder.header("X-API-Key", sdkProperties.getApiKey().getKey());
+      log.debug("Including API key in heartbeat request");
+    }
+
+    requestBuilder
         .body(body)
         .retrieve()
         .toBodilessEntity();

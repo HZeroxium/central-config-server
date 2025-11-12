@@ -14,6 +14,7 @@ kafka = "3.7.0"
 
 # Jackson
 jackson = "2.17.2"
+snakeyaml = "2.2"
 
 # Micrometer
 micrometer = "1.13.15"
@@ -104,6 +105,8 @@ javax-annotation-api = { group = "javax.annotation", name = "javax.annotation-ap
 # Jackson
 jackson-databind = { group = "com.fasterxml.jackson.core", name = "jackson-databind", version.ref = "jackson" }
 jackson-datatype-jsr310 = { group = "com.fasterxml.jackson.datatype", name = "jackson-datatype-jsr310", version.ref = "jackson" }
+jackson-dataformat-yaml = { group = "com.fasterxml.jackson.dataformat", name = "jackson-dataformat-yaml", version.ref = "jackson" }
+snakeyaml = { group = "org.yaml", name = "snakeyaml", version.ref = "snakeyaml" }
 
 # Micrometer
 micrometer-core = { group = "io.micrometer", name = "micrometer-core", version.ref = "micrometer" }
@@ -184,7 +187,7 @@ spring-boot-cache = ["spring-boot-starter-cache", "caffeine", "lettuce-core"]
 spring-boot-logging = ["spring-boot-starter-log4j2"]
 spring-boot-testing = ["spring-boot-starter-test", "spring-boot-testcontainers"]
 kafka = ["spring-kafka", "kafka-clients"]
-jackson = ["jackson-databind", "jackson-datatype-jsr310"]
+jackson = ["jackson-databind", "jackson-datatype-jsr310", "jackson-dataformat-yaml"]
 micrometer = ["micrometer-core", "micrometer-registry-prometheus", "micrometer-tracing-bridge-otel"]
 # opentelemetry bundle removed - using Spring Boot managed versions
 zipkin = ["zipkin-reporter-brave", "brave"]

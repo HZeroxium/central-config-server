@@ -51,6 +51,13 @@ dependencies {
     // Spring Cloud Refresh (for manual refresh endpoint) - still needed for @RefreshScope
     implementation 'org.springframework.cloud:spring-cloud-context'
 
+    // Unleash Feature Flags (for FeatureFlagController)
+    implementation 'io.getunleash:unleash-client-java:9.0.0'
+
+    // Lombok
+    compileOnly 'org.projectlombok:lombok:1.18.32'
+    annotationProcessor 'org.projectlombok:lombok:1.18.32'
+
     // Configuration Properties support
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
 

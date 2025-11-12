@@ -139,7 +139,7 @@ public class SdkAutoConfiguration {
     PingProtocol pingProtocol = PingProtocol.fromString(protocol);
     
     return switch (pingProtocol) {
-      case HTTP -> new HttpRestPingStrategy();
+      case HTTP -> new HttpRestPingStrategy(props);
       case THRIFT -> new ThriftRpcPingStrategy();
       case GRPC -> new GrpcPingStrategy();
     };

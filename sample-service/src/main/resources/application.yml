@@ -24,10 +24,37 @@ zcm:
         heartbeat:
           enabled: true # Enable Consul heartbeat
         register: true # Enable Consul registration
+    feature-flags:
+      enabled: true # Enable Unleash Feature Flags
+      unleash-api-url: ${UNLEASH_API_URL:http://unleash:4242/api/}
+      api-key: ${UNLEASH_API_KEY:default:development.unleash-insecure-api-token}
+      app-name: ${zcm.sdk.service.name} # Auto-mapped from service name
+      instance-id: ${zcm.sdk.instance.id} # Auto-mapped from instance ID
+      synchronous-fetch-on-initialisation: true
+      send-metrics-interval: 60
+    kv:
+      enabled: true # Enable Key-Value store functionality
+      keycloak:
+        token-endpoint: ${ZCM_SDK_KV_KEYCLOAK_TOKEN_ENDPOINT:http://keycloak:8080/realms/config-control/protocol/openid-connect/token}
+        client-id: ${ZCM_SDK_KV_KEYCLOAK_CLIENT_ID:sample-service}
+        client-secret: ${ZCM_SDK_KV_KEYCLOAK_CLIENT_SECRET:${KEYCLOAK_CLIENT_SECRET:sample-service-secret}}
+        realm: ${ZCM_SDK_KV_KEYCLOAK_REALM:config-control}
 
 # Application server port
 server:
   port: 8080
+  # 'tomcat.threads.max' sets the maximum number of request-processing threads for the embedded Tomcat server.
+  # This controls how many HTTP requests can be served concurrently.
+  # For example: if set to 50, up to 50 requests can be processed at the same time; additional requests will wait in the connection queue (controlled by 'accept-count').
+  tomcat:
+    threads: # Worker 
+      max: 50
+      max-queue-capacity: 1000
+    # The accept-count property controls the maximum number of incoming connections that
+    # can be queued when all request processing threads are busy. If more than this number
+    # of requests arrive while all request threads are in use, additional connections will be
+    # refused or closed until there is room in the queue.
+    accept-count: 5000 # Connection queue
 
 # Profile activation
 spring:
@@ -37,6 +64,11 @@ spring:
   #   config:
   #     allow-override: true
   #     override-none: true
+  # threads:
+  #   virtual:
+  #     enabled: true
+  # main:
+  #   keep-alive: true
 
 # Actuator endpoints (SDK auto-exposes refresh/busrefresh)
 management:
@@ -68,3 +100,4 @@ logging:
     # Disable verbose Kafka consumer logs
     org.apache.kafka.clients: WARN
     org.springframework.kafka: INFO
+

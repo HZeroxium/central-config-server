@@ -13,13 +13,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.util.StringUtils;
+import org.springframework.web.client.RestClient;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
-import org.springframework.web.client.RestClient;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -37,10 +36,11 @@ public class KVApiImpl implements KVApi {
   public Optional<KVEntry> get(String serviceId, String key) {
     try {
       String url = buildGetUrl(serviceId, key, false);
-      KVResponseDtos.EntryResponse response = restClient.get()
+      var requestBuilder = restClient.get()
           .uri(url)
-          .header("Authorization", "Bearer " + tokenProvider.getAccessToken())
-          .accept(MediaType.APPLICATION_JSON)
+          .accept(MediaType.APPLICATION_JSON);
+      addAuthHeaders(requestBuilder);
+      KVResponseDtos.EntryResponse response = requestBuilder
           .retrieve()
           .onStatus(status -> status.value() == 404, (req, res) -> {
             // Handle 404 gracefully - don't throw
@@ -76,10 +76,11 @@ public class KVApiImpl implements KVApi {
   public Optional<byte[]> getRaw(String serviceId, String key) {
     try {
       String url = buildGetUrl(serviceId, key, true);
-      byte[] response = restClient.get()
+      var requestBuilder = restClient.get()
           .uri(url)
-          .header("Authorization", "Bearer " + tokenProvider.getAccessToken())
-          .accept(MediaType.APPLICATION_OCTET_STREAM)
+          .accept(MediaType.APPLICATION_OCTET_STREAM);
+      addAuthHeaders(requestBuilder);
+      byte[] response = requestBuilder
           .retrieve()
           .onStatus(status -> status.value() == 404, (req, res) -> {
             // Handle 404 gracefully - don't throw
@@ -117,13 +118,43 @@ public class KVApiImpl implements KVApi {
   }
 
   @Override
+  public Optional<List<String>> getLeafList(String serviceId, String key) {
+    Optional<String> valueOpt = getString(serviceId, key);
+    if (valueOpt.isEmpty()) {
+      return Optional.empty();
+    }
+
+    String value = valueOpt.get();
+    if (value == null || value.isEmpty()) {
+      return Optional.of(new ArrayList<>());
+    }
+
+    try {
+      // Parse comma-separated string with whitespace trimming
+      List<String> elements = new ArrayList<>();
+      String[] parts = value.split(",");
+      for (String part : parts) {
+        String trimmed = part.trim();
+        if (!trimmed.isEmpty()) {
+          elements.add(trimmed);
+        }
+      }
+      return Optional.of(elements);
+    } catch (Exception e) {
+      log.warn("Failed to parse LEAF_LIST value for service: {}, key: {}, returning empty list", serviceId, key, e);
+      return Optional.of(new ArrayList<>());
+    }
+  }
+
+  @Override
   public List<KVEntry> list(String serviceId, String prefix) {
     try {
       String url = buildListUrl(serviceId, prefix, false);
-      KVResponseDtos.ListResponse response = restClient.get()
+      var requestBuilder = restClient.get()
           .uri(url)
-          .header("Authorization", "Bearer " + tokenProvider.getAccessToken())
-          .accept(MediaType.APPLICATION_JSON)
+          .accept(MediaType.APPLICATION_JSON);
+      addAuthHeaders(requestBuilder);
+      KVResponseDtos.ListResponse response = requestBuilder
           .retrieve()
           .onStatus(status -> status.value() == 404, (req, res) -> {
             // Handle 404 gracefully - don't throw
@@ -164,10 +195,11 @@ public class KVApiImpl implements KVApi {
   public List<String> listKeys(String serviceId, String prefix) {
     try {
       String url = buildListUrl(serviceId, prefix, true);
-      KVResponseDtos.KeysResponse response = restClient.get()
+      var requestBuilder = restClient.get()
           .uri(url)
-          .header("Authorization", "Bearer " + tokenProvider.getAccessToken())
-          .accept(MediaType.APPLICATION_JSON)
+          .accept(MediaType.APPLICATION_JSON);
+      addAuthHeaders(requestBuilder);
+      KVResponseDtos.KeysResponse response = requestBuilder
           .retrieve()
           .onStatus(status -> status.value() == 404, (req, res) -> {
             // Handle 404 gracefully - don't throw
@@ -203,66 +235,14 @@ public class KVApiImpl implements KVApi {
   }
 
   @Override
-  public Optional<Map<String, Object>> getObject(String serviceId, String prefix) {
-    try {
-      String url = buildStructuredUrl(serviceId, prefix, "object");
-      KVResponseDtos.ObjectResponse response = restClient.get()
-          .uri(url)
-          .header("Authorization", "Bearer " + tokenProvider.getAccessToken())
-          .accept(MediaType.APPLICATION_JSON)
-          .retrieve()
-          .onStatus(status -> status.value() == 404, (req, res) -> {
-          })
-          .onStatus(HttpStatusCode::is4xxClientError, (req, res) -> handleClientError(res.getStatusCode(), req.getURI().toString()))
-          .onStatus(HttpStatusCode::is5xxServerError, (req, res) -> {
-            throw new KVServerException("KV server error: " + res.getStatusCode());
-          })
-          .body(KVResponseDtos.ObjectResponse.class);
-      return Optional.ofNullable(response).map(KVResponseDtos.ObjectResponse::data);
-    } catch (KVAuthenticationException | KVAccessDeniedException | KVServerException e) {
-      throw e;
-    } catch (HttpClientErrorException e) {
-      if (e.getStatusCode().value() == 404) {
-        log.debug("KV object not found for service: {}, prefix: {}", serviceId, prefix);
-        return Optional.empty();
-      }
-      throw new KVClientException("KV client error: " + e.getMessage(), e);
-    } catch (Exception e) {
-      log.error("Error getting KV object for service: {}, prefix: {}", serviceId, prefix, e);
-      throw new KVClientException("Failed to get KV object: " + e.getMessage(), e);
-    }
-  }
-
-  @Override
-  public KVTransactionResult putObject(String serviceId, String prefix, Map<String, Object> data) {
-    try {
-      String url = buildStructuredUrl(serviceId, prefix, "object");
-      KVResponseDtos.TransactionResponse response = restClient.put()
-          .uri(url)
-          .header("Authorization", "Bearer " + tokenProvider.getAccessToken())
-          .contentType(MediaType.APPLICATION_JSON)
-          .accept(MediaType.APPLICATION_JSON)
-          .body(new KVRequestDtos.ObjectWriteRequest(data))
-          .retrieve()
-          .onStatus(HttpStatusCode::is4xxClientError, (req, res) -> handleClientError(res.getStatusCode(), req.getURI().toString()))
-          .onStatus(HttpStatusCode::is5xxServerError, (req, res) -> {
-            throw new KVServerException("KV server error: " + res.getStatusCode());
-          })
-          .body(KVResponseDtos.TransactionResponse.class);
-      return toTransactionResult(response);
-    } catch (Exception e) {
-      throw translateException(e, "put KV object", serviceId, prefix);
-    }
-  }
-
-  @Override
   public Optional<KVListResult> getList(String serviceId, String prefix) {
     try {
       String url = buildStructuredUrl(serviceId, prefix, "list");
-      KVResponseDtos.ListResponseV2 response = restClient.get()
+      var requestBuilder = restClient.get()
           .uri(url)
-          .header("Authorization", "Bearer " + tokenProvider.getAccessToken())
-          .accept(MediaType.APPLICATION_JSON)
+          .accept(MediaType.APPLICATION_JSON);
+      addAuthHeaders(requestBuilder);
+      KVResponseDtos.ListResponseV2 response = requestBuilder
           .retrieve()
           .onStatus(status -> status.value() == 404, (req, res) -> {
           })
@@ -311,11 +291,12 @@ public class KVApiImpl implements KVApi {
           .toList();
       KVRequestDtos.ListWriteRequest payload = new KVRequestDtos.ListWriteRequest(dtoItems, manifestDto, request.deletes());
 
-      KVResponseDtos.TransactionResponse response = restClient.put()
+      var requestBuilder = restClient.put()
           .uri(url)
-          .header("Authorization", "Bearer " + tokenProvider.getAccessToken())
           .contentType(MediaType.APPLICATION_JSON)
-          .accept(MediaType.APPLICATION_JSON)
+          .accept(MediaType.APPLICATION_JSON);
+      addAuthHeaders(requestBuilder);
+      KVResponseDtos.TransactionResponse response = requestBuilder
           .body(payload)
           .retrieve()
           .onStatus(HttpStatusCode::is4xxClientError, (req, res) -> handleClientError(res.getStatusCode(), req.getURI().toString()))
@@ -340,11 +321,12 @@ public class KVApiImpl implements KVApi {
           )).toList();
       KVRequestDtos.TransactionRequest payload = new KVRequestDtos.TransactionRequest(ops);
 
-      KVResponseDtos.TransactionResponse response = restClient.post()
+      var requestBuilder = restClient.post()
           .uri(url)
-          .header("Authorization", "Bearer " + tokenProvider.getAccessToken())
           .contentType(MediaType.APPLICATION_JSON)
-          .accept(MediaType.APPLICATION_JSON)
+          .accept(MediaType.APPLICATION_JSON);
+      addAuthHeaders(requestBuilder);
+      KVResponseDtos.TransactionResponse response = requestBuilder
           .body(payload)
           .retrieve()
           .onStatus(HttpStatusCode::is4xxClientError, (req, res) -> handleClientError(res.getStatusCode(), req.getURI().toString()))
@@ -362,10 +344,11 @@ public class KVApiImpl implements KVApi {
   public Optional<String> view(String serviceId, String prefix, KVStructuredFormat format) {
     try {
       String url = buildStructuredUrl(serviceId, prefix, "view") + "?format=" + format.name().toLowerCase();
-      String response = restClient.get()
+      var requestBuilder = restClient.get()
           .uri(url)
-          .header("Authorization", "Bearer " + tokenProvider.getAccessToken())
-          .accept(MediaType.ALL)
+          .accept(MediaType.ALL);
+      addAuthHeaders(requestBuilder);
+      String response = requestBuilder
           .retrieve()
           .onStatus(status -> status.value() == 404, (req, res) -> {
           })
@@ -387,6 +370,31 @@ public class KVApiImpl implements KVApi {
       log.error("Error viewing KV prefix for service: {}, prefix: {}", serviceId, prefix, e);
       throw new KVClientException("Failed to view KV prefix: " + e.getMessage(), e);
     }
+  }
+
+  /**
+   * Adds authentication headers (API key or JWT) to a RestClient request builder.
+   * <p>
+   * API key takes precedence if configured and enabled. Otherwise, uses JWT token.
+   * </p>
+   *
+   * @param requestBuilder the RestClient request builder
+   * @return the request builder with authentication headers added
+   */
+  private <T extends RestClient.RequestHeadersSpec<?>> T addAuthHeaders(T requestBuilder) {
+    // Prefer API key if configured and enabled
+    if (sdkProperties != null 
+        && sdkProperties.getApiKey() != null 
+        && sdkProperties.getApiKey().isEnabled()
+        && StringUtils.hasText(sdkProperties.getApiKey().getKey())) {
+      requestBuilder.header("X-API-Key", sdkProperties.getApiKey().getKey());
+      log.debug("Using API key for KV authentication");
+    } else if (tokenProvider != null) {
+      // Fall back to JWT token
+      requestBuilder.header("Authorization", "Bearer " + tokenProvider.getAccessToken());
+      log.debug("Using JWT token for KV authentication");
+    }
+    return requestBuilder;
   }
 
   /**
