@@ -6,8 +6,6 @@ import {
   Button,
   Card,
   CardContent,
-  TextField,
-  InputAdornment,
   FormControl,
   InputLabel,
   Select,
@@ -17,13 +15,13 @@ import {
 } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import {
-  Search as SearchIcon,
   Refresh as RefreshIcon,
   Add as AddIcon,
 } from "@mui/icons-material";
 import PageHeader from "@components/common/PageHeader";
 import { TableSkeleton } from "@components/common/skeletons";
 import ConfirmDialog from "@components/common/ConfirmDialog";
+import { ManualSearchField } from "@components/common/ManualSearchField";
 import { useFindAllServiceShares, useRevokeServiceShare } from "@lib/api/hooks";
 import { getFindAllServiceSharesQueryKey } from "@lib/api/generated/service-shares/service-shares";
 import { useAuth } from "@features/auth/context";
@@ -32,7 +30,7 @@ import { handleApiError } from "@lib/api/errorHandler";
 import { ServiceShareTable } from "../components/ServiceShareTable";
 import { ShareFormDrawer } from "../components/ShareFormDrawer";
 import type { ServiceShareResponse } from "@lib/api/models";
-import { useDebounce } from "@hooks/useDebounce";
+import { useManualSearch } from "@hooks/useManualSearch";
 
 export default function ServiceShareListPage() {
   const navigate = useNavigate();
@@ -46,7 +44,6 @@ export default function ServiceShareListPage() {
 
   const [page, setPage] = useState(initialPage);
   const [pageSize, setPageSize] = useState(initialPageSize);
-  const [search, setSearch] = useState(searchParams.get("search") || "");
   const [grantToTypeFilter, setGrantToTypeFilter] = useState<
     "TEAM" | "USER" | ""
   >((searchParams.get("grantToType") as "TEAM" | "USER" | null) || "");
@@ -54,22 +51,32 @@ export default function ServiceShareListPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedShareId, setSelectedShareId] = useState<string | null>(null);
 
-  // Debounce search input
-  const debouncedSearch = useDebounce(search, 400);
+  // Manual search hook for service ID
+  const {
+    search,
+    setSearch,
+    submittedSearch,
+    handleSearch,
+    handleReset: resetSearch,
+    handleKeyPress,
+    isPending,
+  } = useManualSearch({
+    initialSearch: searchParams.get("search") || "",
+  });
 
   // Sync URL params when filters change
   useEffect(() => {
     const params = new URLSearchParams();
-    if (debouncedSearch) params.set("search", debouncedSearch);
+    if (submittedSearch) params.set("search", submittedSearch);
     if (grantToTypeFilter) params.set("grantToType", grantToTypeFilter);
     if (page > 0) params.set("page", page.toString());
     if (pageSize !== 20) params.set("size", pageSize.toString());
     setSearchParams(params, { replace: true });
-  }, [debouncedSearch, grantToTypeFilter, page, pageSize, setSearchParams]);
+  }, [submittedSearch, grantToTypeFilter, page, pageSize, setSearchParams]);
 
   const { data, isLoading, error, refetch } = useFindAllServiceShares(
     {
-      serviceId: debouncedSearch || undefined,
+      serviceId: submittedSearch || undefined,
       grantToType: grantToTypeFilter || undefined,
       page,
       size: pageSize,
@@ -101,7 +108,7 @@ export default function ServiceShareListPage() {
           // Invalidate list query to refresh data
           queryClient.invalidateQueries({
             queryKey: getFindAllServiceSharesQueryKey({
-              serviceId: debouncedSearch || undefined,
+              serviceId: submittedSearch || undefined,
               grantToType: grantToTypeFilter || undefined,
               page,
               size: pageSize,
@@ -126,7 +133,7 @@ export default function ServiceShareListPage() {
   };
 
   const handleFilterReset = () => {
-    setSearch("");
+    resetSearch();
     setGrantToTypeFilter("");
     setPage(0);
     setSearchParams({}, { replace: true });
@@ -138,7 +145,7 @@ export default function ServiceShareListPage() {
     // Invalidate list query to refresh data
     queryClient.invalidateQueries({
       queryKey: getFindAllServiceSharesQueryKey({
-        serviceId: debouncedSearch || undefined,
+        serviceId: submittedSearch || undefined,
         grantToType: grantToTypeFilter || undefined,
         page,
         size: pageSize,
@@ -182,25 +189,25 @@ export default function ServiceShareListPage() {
           {/* Filters */}
           <Grid container spacing={2} sx={{ mb: 3 }}>
             <Grid size={{ xs: 12, md: 4 }}>
-              <TextField
-                fullWidth
-                label="Search"
+              <ManualSearchField
                 value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setPage(0);
+                onChange={(value) => {
+                  setSearch(value);
+                  // Don't reset page on every keystroke - only when search triggers
                 }}
-                placeholder="Search by service ID"
-                slotProps={{
-                  input: {
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon />
-                      </InputAdornment>
-                    ),
-                    "aria-label": "Search by service ID",
-                  },
+                onSearch={() => {
+                  handleSearch();
+                  setPage(0); // Reset page when search is triggered
                 }}
+                onKeyPress={handleKeyPress}
+                label="Service ID (Exact Match)"
+                placeholder="Enter exact service ID"
+                loading={isLoading}
+                isPending={isPending}
+                resultCount={metadata?.totalElements}
+                tooltipText="Enter exact service ID."
+                helperText="Click search button or press Enter to search"
+                aria-label="Search by service ID"
               />
             </Grid>
 

@@ -1,16 +1,13 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   AppBar,
   Toolbar,
   Box,
   Typography,
   IconButton,
-  TextField,
-  InputAdornment,
 } from "@mui/material";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
-import SearchIcon from "@mui/icons-material/Search";
 import Breadcrumbs from "@components/common/Breadcrumbs";
 import UserMenu from "@features/auth/components/UserMenu";
 import { useColorMode } from "@theme/colorModeContext";
@@ -38,7 +35,6 @@ export function Header({ isVisible, drawerWidth, isMobile }: HeaderProps) {
   const { mode, toggleMode } = useColorMode();
   const { setOpen: setCommandPaletteOpen } = useCommandPalette();
   const [searchFocused, setSearchFocused] = useState(false);
-  const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Open command palette when search is focused
   useEffect(() => {
@@ -48,14 +44,9 @@ export function Header({ isVisible, drawerWidth, isMobile }: HeaderProps) {
       setTimeout(() => setSearchFocused(false), 100);
     }
   }, [searchFocused, setCommandPaletteOpen]);
-
-  const handleSearchClick = () => {
-    setCommandPaletteOpen(true);
-  };
-
-  const handleSearchFocus = () => {
-    setSearchFocused(true);
-  };
+  
+  // Suppress unused variable warning - isMobile may be used for future responsive features
+  void isMobile;
 
   return (
     <>

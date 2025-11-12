@@ -6,8 +6,6 @@ import {
   Button,
   Card,
   CardContent,
-  TextField,
-  InputAdornment,
   FormControl,
   InputLabel,
   Select,
@@ -19,7 +17,6 @@ import {
 } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import {
-  Search as SearchIcon,
   Refresh as RefreshIcon,
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
@@ -27,13 +24,14 @@ import {
 import PageHeader from "@components/common/PageHeader";
 import { TableSkeleton } from "@components/common/skeletons";
 import { DateRangeFilter } from "@components/common/filters";
+import { SearchFieldWithToggle } from "@components/common/SearchFieldWithToggle";
 import { useFindAllDriftEvents, useUpdateDriftEvent } from "@lib/api/hooks";
 import { getFindAllDriftEventsQueryKey } from "@lib/api/generated/drift-events/drift-events";
 import { DriftEventTable } from "../components/DriftEventTable";
 import { ResolveDialog } from "../components/ResolveDialog";
 import { toast } from "@lib/toast/toast";
 import { handleApiError } from "@lib/api/errorHandler";
-import { useDebounce } from "@hooks/useDebounce";
+import { useSearchWithToggle } from "@hooks/useSearchWithToggle";
 import { formatISO } from "date-fns";
 import type {
   FindAllDriftEventsStatus,
@@ -53,7 +51,6 @@ export default function DriftEventListPage() {
 
   const [page, setPage] = useState(initialPage);
   const [pageSize, setPageSize] = useState(initialPageSize);
-  const [search, setSearch] = useState(searchParams.get("search") || "");
   const [statusFilter, setStatusFilter] = useState<
     FindAllDriftEventsStatus | ""
   >((searchParams.get("status") as FindAllDriftEventsStatus | null) || "");
@@ -83,13 +80,31 @@ export default function DriftEventListPage() {
   const [resolveAction, setResolveAction] =
     useState<DriftEventUpdateRequestStatus>("RESOLVED");
 
-  // Debounce search input
-  const debouncedSearch = useDebounce(search, 400);
+  // Search with toggle hook
+  const {
+    search,
+    setSearch,
+    effectiveSearch,
+    realtimeEnabled,
+    setRealtimeEnabled,
+    handleManualSearch,
+    handleReset: resetSearch,
+    isDebouncing,
+  } = useSearchWithToggle({
+    storageKey: "drift-events-search-realtime",
+    defaultRealtimeEnabled: true,
+    debounceDelay: 800,
+    initialSearch: searchParams.get("search") || "",
+    onDebounceComplete: () => {
+      // Reset page when debounce completes (search triggers)
+      setPage(0);
+    },
+  });
 
   // Sync URL params when filters change
   useEffect(() => {
     const params = new URLSearchParams();
-    if (debouncedSearch) params.set("search", debouncedSearch);
+    if (effectiveSearch) params.set("search", effectiveSearch);
     if (statusFilter) params.set("status", statusFilter);
     if (severityFilter) params.set("severity", severityFilter);
     if (unresolvedOnly) params.set("unresolvedOnly", "true");
@@ -109,7 +124,7 @@ export default function DriftEventListPage() {
     if (pageSize !== 20) params.set("size", pageSize.toString());
     setSearchParams(params, { replace: true });
   }, [
-    debouncedSearch,
+    effectiveSearch,
     statusFilter,
     severityFilter,
     unresolvedOnly,
@@ -122,7 +137,7 @@ export default function DriftEventListPage() {
 
   const { data, isLoading, error, refetch } = useFindAllDriftEvents(
     {
-      serviceName: debouncedSearch || undefined,
+      serviceName: effectiveSearch || undefined,
       status: statusFilter || undefined,
       severity: severityFilter || undefined,
       unresolvedOnly: unresolvedOnly ? "true" : undefined,
@@ -184,7 +199,7 @@ export default function DriftEventListPage() {
           // Invalidate list query to refresh data
           queryClient.invalidateQueries({
             queryKey: getFindAllDriftEventsQueryKey({
-              serviceName: debouncedSearch || undefined,
+              serviceName: effectiveSearch || undefined,
               status: statusFilter || undefined,
               severity: severityFilter || undefined,
               unresolvedOnly: unresolvedOnly ? "true" : undefined,
@@ -207,7 +222,7 @@ export default function DriftEventListPage() {
   };
 
   const handleFilterReset = () => {
-    setSearch("");
+    resetSearch();
     setStatusFilter("");
     setSeverityFilter("");
     setUnresolvedOnly(false);
@@ -259,24 +274,34 @@ export default function DriftEventListPage() {
         <CardContent>
           {/* Filters */}
           <Grid container spacing={2} sx={{ mb: 3 }}>
-            <Grid size={{ xs: 12, md: 3 }}>
-              <TextField
-                fullWidth
-                label="Search by Service Name"
+            <Grid size={{ xs: 12, md: 4 }}>
+              <SearchFieldWithToggle
                 value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
+                onChange={(value) => {
+                  setSearch(value);
+                  // Don't reset page on every keystroke - only when search triggers
+                }}
+                onSearch={() => {
+                  handleManualSearch();
+                  setPage(0); // Reset page when manual search is triggered
+                }}
+                label="Search by Service Name"
+                placeholder="Search by service name"
+                realtimeEnabled={realtimeEnabled}
+                onRealtimeToggle={(enabled) => {
+                  setRealtimeEnabled(enabled);
+                  // Reset page when toggling modes
                   setPage(0);
                 }}
-                slotProps={{
-                  input: {
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon />
-                      </InputAdornment>
-                    ),
-                  },
-                }}
+                loading={isLoading}
+                isDebouncing={isDebouncing}
+                resultCount={metadata?.totalElements}
+                helperText={
+                  realtimeEnabled
+                    ? "Search updates automatically as you type"
+                    : "Click search button or press Enter to search"
+                }
+                aria-label="Search by service name"
               />
             </Grid>
 
@@ -289,7 +314,9 @@ export default function DriftEventListPage() {
                     setStatusFilter(
                       e.target.value as FindAllDriftEventsStatus | ""
                     );
+                    setPage(0);
                   }}
+                  aria-label="Filter by status"
                 >
                   <MenuItem value="">All</MenuItem>
                   <MenuItem value="DETECTED">Detected</MenuItem>

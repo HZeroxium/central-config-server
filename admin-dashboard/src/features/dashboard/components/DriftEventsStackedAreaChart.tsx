@@ -1,8 +1,8 @@
 import React from "react";
 import { Card, CardContent, Typography, Box } from "@mui/material";
 import {
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -21,15 +21,15 @@ interface DriftEventsData {
   low: number;
 }
 
-interface DriftEventsChartProps {
+interface DriftEventsStackedAreaChartProps {
   data: DriftEventsData[];
   loading?: boolean;
+  title?: string;
 }
 
-export const DriftEventsChart: React.FC<DriftEventsChartProps> = ({
-  data,
-  loading = false,
-}) => {
+export const DriftEventsStackedAreaChart: React.FC<
+  DriftEventsStackedAreaChartProps
+> = ({ data, loading = false, title = "Drift Events by Severity" }) => {
   // Validate data
   const isValidData =
     Array.isArray(data) &&
@@ -46,16 +46,26 @@ export const DriftEventsChart: React.FC<DriftEventsChartProps> = ({
     );
 
   // Check if all values are zero (no drift events)
-  const hasData = isValidData && data.some((item) => item.critical + item.high + item.medium + item.low > 0);
+  const hasData =
+    isValidData &&
+    data.some((item) => item.critical + item.high + item.medium + item.low > 0);
 
   if (loading) {
     return (
       <Card sx={{ height: "100%" }}>
         <CardContent>
           <Typography variant="h6" gutterBottom>
-            Drift Events (Last 7 Days)
+            {title}
           </Typography>
-          <Box sx={{ height: 300, width: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <Box
+            sx={{
+              height: 300,
+              width: "100%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
             <Typography variant="body2" color="text.secondary">
               Loading chart data...
             </Typography>
@@ -70,12 +80,12 @@ export const DriftEventsChart: React.FC<DriftEventsChartProps> = ({
       <Card sx={{ height: "100%" }}>
         <CardContent>
           <Typography variant="h6" gutterBottom>
-            Drift Events (Last 7 Days)
+            {title}
           </Typography>
           <Box sx={{ height: 300, width: "100%" }}>
             <EmptyState
               icon={<BarChartIcon sx={{ fontSize: 48 }} />}
-              title="No drift events in the last 7 days"
+              title="No drift events data available"
               description="No configuration drift events were detected during this period."
             />
           </Box>
@@ -88,11 +98,36 @@ export const DriftEventsChart: React.FC<DriftEventsChartProps> = ({
     <Card sx={{ height: "100%" }}>
       <CardContent>
         <Typography variant="h6" gutterBottom>
-          Drift Events (Last 7 Days)
+          {title}
         </Typography>
-        <Box sx={{ height: 300, width: "100%" }} role="img" aria-label="Drift events chart showing severity distribution over the last 7 days">
+        <Box
+          sx={{ height: 300, width: "100%" }}
+          role="img"
+          aria-label={`Stacked area chart showing ${title}`}
+        >
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+            <AreaChart
+              data={data}
+              margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+            >
+              <defs>
+                <linearGradient id="colorCritical" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#dc2626" stopOpacity={0.8} />
+                  <stop offset="95%" stopColor="#dc2626" stopOpacity={0.1} />
+                </linearGradient>
+                <linearGradient id="colorHigh" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#ea580c" stopOpacity={0.8} />
+                  <stop offset="95%" stopColor="#ea580c" stopOpacity={0.1} />
+                </linearGradient>
+                <linearGradient id="colorMedium" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#d97706" stopOpacity={0.8} />
+                  <stop offset="95%" stopColor="#d97706" stopOpacity={0.1} />
+                </linearGradient>
+                <linearGradient id="colorLow" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#2563eb" stopOpacity={0.8} />
+                  <stop offset="95%" stopColor="#2563eb" stopOpacity={0.1} />
+                </linearGradient>
+              </defs>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis
                 dataKey="date"
@@ -111,46 +146,43 @@ export const DriftEventsChart: React.FC<DriftEventsChartProps> = ({
                 }}
               />
               <Legend />
-              <Line
+              <Area
                 type="monotone"
                 dataKey="critical"
+                stackId="1"
                 stroke="#dc2626"
-                strokeWidth={2}
+                fill="url(#colorCritical)"
                 name="Critical"
-                dot={{ r: 4 }}
-                activeDot={{ r: 6 }}
               />
-              <Line
+              <Area
                 type="monotone"
                 dataKey="high"
+                stackId="1"
                 stroke="#ea580c"
-                strokeWidth={2}
+                fill="url(#colorHigh)"
                 name="High"
-                dot={{ r: 4 }}
-                activeDot={{ r: 6 }}
               />
-              <Line
+              <Area
                 type="monotone"
                 dataKey="medium"
+                stackId="1"
                 stroke="#d97706"
-                strokeWidth={2}
+                fill="url(#colorMedium)"
                 name="Medium"
-                dot={{ r: 4 }}
-                activeDot={{ r: 6 }}
               />
-              <Line
+              <Area
                 type="monotone"
                 dataKey="low"
+                stackId="1"
                 stroke="#2563eb"
-                strokeWidth={2}
+                fill="url(#colorLow)"
                 name="Low"
-                dot={{ r: 4 }}
-                activeDot={{ r: 6 }}
               />
-            </LineChart>
+            </AreaChart>
           </ResponsiveContainer>
         </Box>
       </CardContent>
     </Card>
   );
 };
+

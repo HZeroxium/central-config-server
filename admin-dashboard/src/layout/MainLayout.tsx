@@ -2,7 +2,6 @@ import { Outlet } from "react-router-dom";
 import { Box, Toolbar, useMediaQuery, useTheme } from "@mui/material";
 import Sidebar from "@components/layout/Sidebar";
 import Header from "@components/layout/Header";
-import QuickActionsMenu from "@components/common/QuickActionsMenu";
 import CommandPalette from "@components/common/CommandPalette";
 import KeyboardShortcutsDialog from "@components/common/KeyboardShortcutsDialog";
 import { useAppDispatch, useAppSelector } from "@store/hooks";
@@ -12,6 +11,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useKeyboardShortcuts } from "@hooks/useKeyboardShortcuts";
 import { useCommandPalette } from "@components/common/CommandPalette";
 import { useScrollDirection } from "@hooks/useScrollDirection";
+import { useGlobalSearchShortcut } from "@hooks/useGlobalSearchShortcut";
 
 export default function MainLayout() {
   const theme = useTheme();
@@ -37,15 +37,34 @@ export default function MainLayout() {
   // Drawer width calculation
   const drawerWidth = open ? 240 : 60;
 
+  // Global search shortcut (Ctrl+K to focus search fields)
+  // This works alongside command palette - if no search field is focused, command palette opens
+  useGlobalSearchShortcut({
+    enabled: !commandPaletteOpen, // Only enable when command palette is closed
+  });
+
   // Global keyboard shortcuts
   useKeyboardShortcuts({
     shortcuts: [
       {
         key: "ctrl+k",
         handler: () => {
+          // Try to focus search field first, if none found, open command palette
+          const searchFields = document.querySelectorAll<HTMLInputElement>(
+            'input[data-search-field="true"]'
+          );
+          if (searchFields.length > 0) {
+            for (const field of Array.from(searchFields)) {
+              if (field.offsetParent !== null) {
+                field.focus();
+                field.select();
+                return;
+              }
+            }
+          }
           setCommandPaletteOpen(true);
         },
-        description: "Open command palette",
+        description: "Focus search or open command palette",
       },
       {
         key: "ctrl+b",

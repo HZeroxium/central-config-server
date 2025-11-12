@@ -5,8 +5,6 @@ import {
   Button,
   Card,
   CardContent,
-  TextField,
-  InputAdornment,
   FormControl,
   InputLabel,
   Select,
@@ -16,20 +14,20 @@ import {
   Skeleton,
 } from "@mui/material";
 import {
-  Search as SearchIcon,
   Refresh as RefreshIcon,
   Assessment as StatsIcon,
 } from "@mui/icons-material";
 import PageHeader from "@components/common/PageHeader";
 import { TableSkeleton } from "@components/common/skeletons";
 import StatCard from "@components/common/StatCard";
+import { ManualSearchField } from "@components/common/ManualSearchField";
 import { useFindAllApprovalDecisions } from "@lib/api/hooks";
 import type {
   FindAllApprovalDecisionsGate,
   FindAllApprovalDecisionsDecision,
 } from "@lib/api/models";
 import { ApprovalDecisionTable } from "../components/ApprovalDecisionTable";
-import { useDebounce } from "@hooks/useDebounce";
+import { useManualSearch } from "@hooks/useManualSearch";
 
 export default function ApprovalDecisionListPage() {
   const navigate = useNavigate();
@@ -41,9 +39,6 @@ export default function ApprovalDecisionListPage() {
 
   const [page, setPage] = useState(initialPage);
   const [pageSize, setPageSize] = useState(initialPageSize);
-  const [requestIdFilter, setRequestIdFilter] = useState(
-    searchParams.get("requestId") || ""
-  );
   const [gateFilter, setGateFilter] = useState<
     FindAllApprovalDecisionsGate | ""
   >((searchParams.get("gate") as FindAllApprovalDecisionsGate | null) || "");
@@ -54,21 +49,31 @@ export default function ApprovalDecisionListPage() {
       ""
   );
 
-  // Debounce search input
-  const debouncedRequestIdFilter = useDebounce(requestIdFilter, 400);
+  // Manual search hook for request ID
+  const {
+    search: requestIdFilter,
+    setSearch: setRequestIdFilter,
+    submittedSearch: submittedRequestIdFilter,
+    handleSearch,
+    handleReset: resetRequestIdFilter,
+    handleKeyPress,
+    isPending,
+  } = useManualSearch({
+    initialSearch: searchParams.get("requestId") || "",
+  });
 
   // Sync URL params when filters change
   useEffect(() => {
     const params = new URLSearchParams();
-    if (debouncedRequestIdFilter)
-      params.set("requestId", debouncedRequestIdFilter);
+    if (submittedRequestIdFilter)
+      params.set("requestId", submittedRequestIdFilter);
     if (gateFilter) params.set("gate", gateFilter);
     if (decisionFilter) params.set("decision", decisionFilter);
     if (page > 0) params.set("page", page.toString());
     if (pageSize !== 20) params.set("size", pageSize.toString());
     setSearchParams(params, { replace: true });
   }, [
-    debouncedRequestIdFilter,
+    submittedRequestIdFilter,
     gateFilter,
     decisionFilter,
     page,
@@ -78,7 +83,7 @@ export default function ApprovalDecisionListPage() {
 
   const { data, isLoading, error, refetch } = useFindAllApprovalDecisions(
     {
-      requestId: debouncedRequestIdFilter || undefined,
+      requestId: submittedRequestIdFilter || undefined,
       gate: gateFilter || undefined,
       decision: decisionFilter || undefined,
       page,
@@ -117,10 +122,11 @@ export default function ApprovalDecisionListPage() {
   }, [decisions, metadata]);
 
   const handleFilterReset = () => {
-    setRequestIdFilter("");
+    resetRequestIdFilter();
     setGateFilter("");
     setDecisionFilter("");
     setPage(0);
+    setSearchParams({}, { replace: true });
   };
 
   const handleDecisionClick = (decisionId: string) => {
@@ -217,25 +223,25 @@ export default function ApprovalDecisionListPage() {
           {/* Filters */}
           <Grid container spacing={2} sx={{ mb: 3 }}>
             <Grid size={{ xs: 12, md: 4 }}>
-              <TextField
-                fullWidth
-                label="Search"
+              <ManualSearchField
                 value={requestIdFilter}
-                onChange={(e) => {
-                  setRequestIdFilter(e.target.value);
-                  setPage(0);
+                onChange={(value) => {
+                  setRequestIdFilter(value);
+                  // Don't reset page on every keystroke - only when search triggers
                 }}
-                placeholder="Search by request ID"
-                slotProps={{
-                  input: {
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon />
-                      </InputAdornment>
-                    ),
-                    "aria-label": "Search by request ID",
-                  },
+                onSearch={() => {
+                  handleSearch();
+                  setPage(0); // Reset page when search is triggered
                 }}
+                onKeyPress={handleKeyPress}
+                label="Request ID (Exact Match)"
+                placeholder="Enter exact approval request ID"
+                loading={isLoading}
+                isPending={isPending}
+                resultCount={metadata?.totalElements}
+                tooltipText="Enter exact approval request ID."
+                helperText="Click search button or press Enter to search"
+                aria-label="Search by request ID"
               />
             </Grid>
 

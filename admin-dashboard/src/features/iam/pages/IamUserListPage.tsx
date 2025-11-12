@@ -5,21 +5,19 @@ import {
   Button,
   Card,
   CardContent,
-  TextField,
-  InputAdornment,
   Alert,
 } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import {
-  Search as SearchIcon,
   Refresh as RefreshIcon,
 } from "@mui/icons-material";
 import PageHeader from "@components/common/PageHeader";
 import { TableSkeleton } from "@components/common/skeletons";
+import { SearchFieldWithToggle } from "@components/common/SearchFieldWithToggle";
 import { useFindAllIamUsers } from "@lib/api/hooks";
 import { useAuth } from "@lib/keycloak/useAuth";
 import { IamUserTable } from "../components/IamUserTable";
-import { useDebounce } from "@hooks/useDebounce";
+import { useSearchWithToggle } from "@hooks/useSearchWithToggle";
 
 export default function IamUserListPage() {
   const navigate = useNavigate();
@@ -32,30 +30,63 @@ export default function IamUserListPage() {
 
   const [page, setPage] = useState(initialPage);
   const [pageSize, setPageSize] = useState(initialPageSize);
-  const [search, setSearch] = useState(searchParams.get("username") || "");
-  const [emailSearch, setEmailSearch] = useState(
-    searchParams.get("email") || ""
-  );
 
-  // Debounce search inputs
-  const debouncedSearch = useDebounce(search, 400);
-  const debouncedEmailSearch = useDebounce(emailSearch, 400);
+  // Search with toggle hooks for username and email
+  const {
+    search: usernameSearch,
+    setSearch: setUsernameSearch,
+    effectiveSearch: effectiveUsernameSearch,
+    realtimeEnabled: usernameRealtimeEnabled,
+    setRealtimeEnabled: setUsernameRealtimeEnabled,
+    handleManualSearch: handleUsernameManualSearch,
+    handleReset: resetUsernameSearch,
+    isDebouncing: usernameIsDebouncing,
+  } = useSearchWithToggle({
+    storageKey: "iam-users-username-realtime",
+    defaultRealtimeEnabled: true,
+    debounceDelay: 800,
+    initialSearch: searchParams.get("username") || "",
+    onDebounceComplete: () => {
+      // Reset page when debounce completes (search triggers)
+      setPage(0);
+    },
+  });
+
+  const {
+    search: emailSearch,
+    setSearch: setEmailSearch,
+    effectiveSearch: effectiveEmailSearch,
+    realtimeEnabled: emailRealtimeEnabled,
+    setRealtimeEnabled: setEmailRealtimeEnabled,
+    handleManualSearch: handleEmailManualSearch,
+    handleReset: resetEmailSearch,
+    isDebouncing: emailIsDebouncing,
+  } = useSearchWithToggle({
+    storageKey: "iam-users-email-realtime",
+    defaultRealtimeEnabled: true,
+    debounceDelay: 800,
+    initialSearch: searchParams.get("email") || "",
+    onDebounceComplete: () => {
+      // Reset page when debounce completes (search triggers)
+      setPage(0);
+    },
+  });
 
   // Sync URL params when filters change
   useEffect(() => {
     const params = new URLSearchParams();
-    if (debouncedSearch) params.set("username", debouncedSearch);
-    if (debouncedEmailSearch) params.set("email", debouncedEmailSearch);
+    if (effectiveUsernameSearch) params.set("username", effectiveUsernameSearch);
+    if (effectiveEmailSearch) params.set("email", effectiveEmailSearch);
     if (page > 0) params.set("page", page.toString());
     if (pageSize !== 20) params.set("size", pageSize.toString());
     setSearchParams(params, { replace: true });
-  }, [debouncedSearch, debouncedEmailSearch, page, pageSize, setSearchParams]);
+  }, [effectiveUsernameSearch, effectiveEmailSearch, page, pageSize, setSearchParams]);
 
   // Always call hooks, but control with enabled option
   const { data, isLoading, error, refetch } = useFindAllIamUsers(
     {
-      username: debouncedSearch || undefined,
-      email: debouncedEmailSearch || undefined,
+      username: effectiveUsernameSearch || undefined,
+      email: effectiveEmailSearch || undefined,
       page,
       size: pageSize,
     },
@@ -84,8 +115,8 @@ export default function IamUserListPage() {
   const metadata = data?.metadata;
 
   const handleFilterReset = () => {
-    setSearch("");
-    setEmailSearch("");
+    resetUsernameSearch();
+    resetEmailSearch();
     setPage(0);
     setSearchParams({}, { replace: true });
   };
@@ -112,46 +143,64 @@ export default function IamUserListPage() {
           {/* Filters */}
           <Grid container spacing={2} sx={{ mb: 3 }}>
             <Grid size={{ xs: 12, md: 4 }}>
-              <TextField
-                fullWidth
+              <SearchFieldWithToggle
+                value={usernameSearch}
+                onChange={(value) => {
+                  setUsernameSearch(value);
+                  // Don't reset page on every keystroke - only when search triggers
+                }}
+                onSearch={() => {
+                  handleUsernameManualSearch();
+                  setPage(0); // Reset page when manual search is triggered
+                }}
                 label="Search by Username"
-                value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
+                placeholder="Search by username"
+                realtimeEnabled={usernameRealtimeEnabled}
+                onRealtimeToggle={(enabled) => {
+                  setUsernameRealtimeEnabled(enabled);
+                  // Reset page when toggling modes
                   setPage(0);
                 }}
-                slotProps={{
-                  input: {
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon />
-                      </InputAdornment>
-                    ),
-                    "aria-label": "Search by username",
-                  },
-                }}
+                loading={isLoading}
+                isDebouncing={usernameIsDebouncing}
+                resultCount={metadata?.totalElements}
+                helperText={
+                  usernameRealtimeEnabled
+                    ? "Search updates automatically as you type"
+                    : "Click search button or press Enter to search"
+                }
+                aria-label="Search by username"
               />
             </Grid>
 
             <Grid size={{ xs: 12, md: 4 }}>
-              <TextField
-                fullWidth
-                label="Search by Email"
+              <SearchFieldWithToggle
                 value={emailSearch}
-                onChange={(e) => {
-                  setEmailSearch(e.target.value);
+                onChange={(value) => {
+                  setEmailSearch(value);
+                  // Don't reset page on every keystroke - only when search triggers
+                }}
+                onSearch={() => {
+                  handleEmailManualSearch();
+                  setPage(0); // Reset page when manual search is triggered
+                }}
+                label="Search by Email"
+                placeholder="Search by email"
+                realtimeEnabled={emailRealtimeEnabled}
+                onRealtimeToggle={(enabled) => {
+                  setEmailRealtimeEnabled(enabled);
+                  // Reset page when toggling modes
                   setPage(0);
                 }}
-                slotProps={{
-                  input: {
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon />
-                      </InputAdornment>
-                    ),
-                    "aria-label": "Search by email",
-                  },
-                }}
+                loading={isLoading}
+                isDebouncing={emailIsDebouncing}
+                resultCount={metadata?.totalElements}
+                helperText={
+                  emailRealtimeEnabled
+                    ? "Search updates automatically as you type"
+                    : "Click search button or press Enter to search"
+                }
+                aria-label="Search by email"
               />
             </Grid>
 

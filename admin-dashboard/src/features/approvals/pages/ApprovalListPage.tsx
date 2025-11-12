@@ -5,8 +5,6 @@ import {
   Button,
   Card,
   CardContent,
-  TextField,
-  InputAdornment,
   FormControl,
   InputLabel,
   Select,
@@ -21,7 +19,6 @@ import {
 } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import {
-  Search as SearchIcon,
   Refresh as RefreshIcon,
   CheckCircle as ApprovalIcon,
   ExpandMore as ExpandMoreIcon,
@@ -30,10 +27,11 @@ import {
 import PageHeader from "@components/common/PageHeader";
 import { TableSkeleton } from "@components/common/skeletons";
 import { DateRangeFilter } from "@components/common/filters";
+import { ManualSearchField } from "@components/common/ManualSearchField";
 import { useFindAllApprovalRequests } from "@lib/api/hooks";
 import { ApprovalRequestTable } from "../components/ApprovalRequestTable";
 import { useAuth } from "@features/auth/context";
-import { useDebounce } from "@hooks/useDebounce";
+import { useManualSearch } from "@hooks/useManualSearch";
 import { formatISO } from "date-fns";
 
 export default function ApprovalListPage() {
@@ -48,7 +46,6 @@ export default function ApprovalListPage() {
 
   const [page, setPage] = useState(initialPage);
   const [pageSize, setPageSize] = useState(initialPageSize);
-  const [search, setSearch] = useState(searchParams.get("search") || "");
   const [statusFilter, setStatusFilter] = useState(
     searchParams.get("status") || ""
   );
@@ -71,13 +68,23 @@ export default function ApprovalListPage() {
     searchParams.get("fromDate") !== null || searchParams.get("toDate") !== null
   );
 
-  // Debounce search input
-  const debouncedSearch = useDebounce(search, 400);
+  // Manual search hook for requester user ID
+  const {
+    search,
+    setSearch,
+    submittedSearch,
+    handleSearch,
+    handleReset: resetSearch,
+    handleKeyPress,
+    isPending,
+  } = useManualSearch({
+    initialSearch: searchParams.get("search") || "",
+  });
 
   // Sync URL params when filters change
   useEffect(() => {
     const params = new URLSearchParams();
-    if (debouncedSearch) params.set("search", debouncedSearch);
+    if (submittedSearch) params.set("search", submittedSearch);
     if (statusFilter) params.set("status", statusFilter);
     if (requestTypeFilter) params.set("requestType", requestTypeFilter);
     if (showMyApprovalsOnly) params.set("showMyApprovalsOnly", "true");
@@ -92,7 +99,7 @@ export default function ApprovalListPage() {
     if (pageSize !== 20) params.set("size", pageSize.toString());
     setSearchParams(params, { replace: true });
   }, [
-    debouncedSearch,
+    submittedSearch,
     statusFilter,
     requestTypeFilter,
     showMyApprovalsOnly,
@@ -117,7 +124,7 @@ export default function ApprovalListPage() {
 
   const { data, isLoading, error, refetch } = useFindAllApprovalRequests(
     {
-      requesterUserId: debouncedSearch || undefined,
+      requesterUserId: submittedSearch || undefined,
       status: currentStatus,
       requestType: requestTypeFilter || undefined,
       fromDate: fromDate
@@ -175,7 +182,7 @@ export default function ApprovalListPage() {
   };
 
   const handleFilterReset = () => {
-    setSearch("");
+    resetSearch();
     setStatusFilter("");
     setRequestTypeFilter("");
     setShowMyApprovalsOnly(false);
@@ -268,25 +275,26 @@ export default function ApprovalListPage() {
           {/* Filters */}
           <Grid container spacing={2} sx={{ mb: 3 }}>
             <Grid size={{ xs: 12, md: 4 }}>
-              <TextField
-                fullWidth
-                label="Search by Requester User ID"
+              <ManualSearchField
                 value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setPage(0);
+                onChange={(value) => {
+                  setSearch(value);
+                  // Don't reset page on every keystroke - only when search triggers
                 }}
-                disabled={showMyApprovalsOnly}
-                slotProps={{
-                  input: {
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon />
-                      </InputAdornment>
-                    ),
-                    "aria-label": "Search by requester user ID",
-                  },
+                onSearch={() => {
+                  handleSearch();
+                  setPage(0); // Reset page when search is triggered
                 }}
+                onKeyPress={handleKeyPress}
+                label="Requester User ID (Exact Match)"
+                placeholder="Enter exact requester user ID"
+                disabled={showMyApprovalsOnly || isLoading}
+                loading={isLoading}
+                isPending={isPending}
+                resultCount={metadata?.totalElements}
+                tooltipText="Enter exact requester user ID. Use filters below for other searches."
+                helperText="Click search button or press Enter to search"
+                aria-label="Search by requester user ID"
               />
             </Grid>
 

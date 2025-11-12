@@ -5,8 +5,6 @@ import {
   Box,
   Card,
   CardContent,
-  TextField,
-  InputAdornment,
   FormControl,
   InputLabel,
   Select,
@@ -17,7 +15,6 @@ import {
 } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import {
-  Search as SearchIcon,
   Refresh as RefreshIcon,
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
@@ -26,6 +23,7 @@ import PageHeader from "@components/common/PageHeader";
 import ConfirmDialog from "@components/common/ConfirmDialog";
 import { TableSkeleton } from "@components/common/skeletons";
 import { DateRangeFilter } from "@components/common/filters";
+import { ManualSearchField } from "@components/common/ManualSearchField";
 import {
   useFindAllServiceInstances,
   useDeleteServiceInstance,
@@ -38,7 +36,7 @@ import type {
 } from "@lib/api/models";
 import { toast } from "@lib/toast/toast";
 import { handleApiError } from "@lib/api/errorHandler";
-import { useDebounce } from "@hooks/useDebounce";
+import { useManualSearch } from "@hooks/useManualSearch";
 import { formatISO } from "date-fns";
 
 export default function ServiceInstanceListPage() {
@@ -52,7 +50,6 @@ export default function ServiceInstanceListPage() {
 
   const [page, setPage] = useState(initialPage);
   const [pageSize, setPageSize] = useState(initialPageSize);
-  const [search, setSearch] = useState(searchParams.get("search") || "");
   const [environmentFilter, setEnvironmentFilter] = useState<
     FindAllServiceInstancesEnvironment | ""
   >(
@@ -85,13 +82,23 @@ export default function ServiceInstanceListPage() {
     null
   );
 
-  // Debounce search input
-  const debouncedSearch = useDebounce(search, 400);
+  // Manual search hook for service ID
+  const {
+    search,
+    setSearch,
+    submittedSearch,
+    handleSearch,
+    handleReset: resetSearch,
+    handleKeyPress,
+    isPending,
+  } = useManualSearch({
+    initialSearch: searchParams.get("search") || "",
+  });
 
   // Sync URL params when filters change
   useEffect(() => {
     const params = new URLSearchParams();
-    if (debouncedSearch) params.set("search", debouncedSearch);
+    if (submittedSearch) params.set("search", submittedSearch);
     if (environmentFilter) params.set("environment", environmentFilter);
     if (statusFilter) params.set("status", statusFilter);
     if (driftFilter) params.set("drift", driftFilter);
@@ -111,7 +118,7 @@ export default function ServiceInstanceListPage() {
     if (pageSize !== 20) params.set("size", pageSize.toString());
     setSearchParams(params, { replace: true });
   }, [
-    debouncedSearch,
+    submittedSearch,
     environmentFilter,
     statusFilter,
     driftFilter,
@@ -124,7 +131,7 @@ export default function ServiceInstanceListPage() {
 
   const { data, isLoading, error, refetch } = useFindAllServiceInstances(
     {
-      serviceId: debouncedSearch || undefined,
+      serviceId: submittedSearch || undefined,
       status: statusFilter || undefined,
       environment: environmentFilter || undefined,
       hasDrift: driftFilter || undefined,
@@ -164,7 +171,7 @@ export default function ServiceInstanceListPage() {
           // Invalidate list query to refresh data
           queryClient.invalidateQueries({
             queryKey: getFindAllServiceInstancesQueryKey({
-              serviceId: debouncedSearch || undefined,
+              serviceId: submittedSearch || undefined,
               status: statusFilter || undefined,
               environment: environmentFilter || undefined,
               hasDrift: driftFilter || undefined,
@@ -197,7 +204,7 @@ export default function ServiceInstanceListPage() {
   };
 
   const handleFilterReset = () => {
-    setSearch("");
+    resetSearch();
     setEnvironmentFilter("");
     setStatusFilter("");
     setDriftFilter("");
@@ -238,26 +245,26 @@ export default function ServiceInstanceListPage() {
         <CardContent>
           {/* Filters */}
           <Grid container spacing={2} sx={{ mb: 3 }}>
-            <Grid size={{ xs: 12, md: 3 }}>
-              <TextField
-                fullWidth
-                label="Search"
+            <Grid size={{ xs: 12, md: 4 }}>
+              <ManualSearchField
                 value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setPage(0);
+                onChange={(value) => {
+                  setSearch(value);
+                  // Don't reset page on every keystroke - only when search triggers
                 }}
-                placeholder="Search by service ID"
-                slotProps={{
-                  input: {
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon />
-                      </InputAdornment>
-                    ),
-                    "aria-label": "Search by service ID",
-                  },
+                onSearch={() => {
+                  handleSearch();
+                  setPage(0); // Reset page when search is triggered
                 }}
+                onKeyPress={handleKeyPress}
+                label="Service ID (Exact Match)"
+                placeholder="Enter exact service ID"
+                loading={isLoading}
+                isPending={isPending}
+                resultCount={metadata?.totalElements}
+                tooltipText="Enter exact service ID. This search requires an exact match."
+                helperText="Click search button or press Enter to search"
+                aria-label="Search by service ID"
               />
             </Grid>
 

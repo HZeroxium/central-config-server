@@ -7,26 +7,23 @@ import {
   Card,
   CardContent,
   TextField,
-  InputAdornment,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
   Alert,
   Drawer,
-  FormControlLabel,
-  Switch,
   Tooltip,
 } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import {
   Add as AddIcon,
-  Search as SearchIcon,
   Refresh as RefreshIcon,
 } from "@mui/icons-material";
 import PageHeader from "@components/common/PageHeader";
 import { TableSkeleton } from "@components/common/skeletons";
 import ConfirmDialog from "@components/common/ConfirmDialog";
+import { SearchFieldWithToggle } from "@components/common/SearchFieldWithToggle";
 import {
   useFindAllApplicationServices,
   useDeleteApplicationService,
@@ -38,7 +35,7 @@ import { handleApiError } from "@lib/api/errorHandler";
 import { ApplicationServiceTable } from "../components/ApplicationServiceTable";
 import { ApplicationServiceForm } from "../components/ApplicationServiceForm";
 import { ClaimOwnershipDialog } from "../components/ClaimOwnershipDialog";
-import { useDebounce } from "@hooks/useDebounce";
+import { useSearchWithToggle } from "@hooks/useSearchWithToggle";
 import type {
   ApplicationServiceResponse,
   FindAllApplicationServicesParams,
@@ -56,7 +53,6 @@ export default function ApplicationServiceListPage() {
 
   const [page, setPage] = useState(initialPage);
   const [pageSize, setPageSize] = useState(initialPageSize);
-  const [search, setSearch] = useState(searchParams.get("search") || "");
   const [lifecycleFilter, setLifecycleFilter] = useState<
     FindAllApplicationServicesParams["lifecycle"] | ""
   >(
@@ -82,13 +78,31 @@ export default function ApplicationServiceListPage() {
   );
   const [selectedServiceName, setSelectedServiceName] = useState<string>("");
 
-  // Debounce search input
-  const debouncedSearch = useDebounce(search, 400);
+  // Search with toggle hook
+  const {
+    search,
+    setSearch,
+    effectiveSearch,
+    realtimeEnabled,
+    setRealtimeEnabled,
+    handleManualSearch,
+    handleReset: resetSearch,
+    isDebouncing,
+  } = useSearchWithToggle({
+    storageKey: "app-services-search-realtime",
+    defaultRealtimeEnabled: true,
+    debounceDelay: 800,
+    initialSearch: searchParams.get("search") || "",
+    onDebounceComplete: () => {
+      // Reset page when debounce completes (search triggers)
+      setPage(0);
+    },
+  });
 
   // Sync URL params when filters change
   useEffect(() => {
     const params = new URLSearchParams();
-    if (debouncedSearch) params.set("search", debouncedSearch);
+    if (effectiveSearch) params.set("search", effectiveSearch);
     if (lifecycleFilter) params.set("lifecycle", lifecycleFilter);
     if (ownerTeamFilter && !showUnassignedOnly)
       params.set("ownerTeamId", ownerTeamFilter);
@@ -98,7 +112,7 @@ export default function ApplicationServiceListPage() {
     if (pageSize !== 20) params.set("size", pageSize.toString());
     setSearchParams(params, { replace: true });
   }, [
-    debouncedSearch,
+    effectiveSearch,
     lifecycleFilter,
     ownerTeamFilter,
     environmentFilter,
@@ -110,17 +124,14 @@ export default function ApplicationServiceListPage() {
 
   const { data, isLoading, error, refetch } = useFindAllApplicationServices(
     {
-      search: debouncedSearch || undefined,
-      ownerTeamId: showUnassignedOnly ? "null" : ownerTeamFilter || undefined,
+      search: effectiveSearch || undefined,
+      ownerTeamId: showUnassignedOnly ? undefined : ownerTeamFilter || undefined,
       lifecycle: lifecycleFilter || undefined,
       page,
       size: pageSize,
+      environment: environmentFilter as FindAllApplicationServicesParams["environment"] | undefined,
+      unassignedOnly: showUnassignedOnly ? "true" : "false",
     },
-    {
-      query: {
-        staleTime: 30_000,
-      },
-    }
   );
 
   const deleteMutation = useDeleteApplicationService();
@@ -147,7 +158,7 @@ export default function ApplicationServiceListPage() {
           // Invalidate list query to refresh data
           queryClient.invalidateQueries({
             queryKey: getFindAllApplicationServicesQueryKey({
-              search: debouncedSearch || undefined,
+              search: effectiveSearch || undefined,
               ownerTeamId: showUnassignedOnly
                 ? "null"
                 : ownerTeamFilter || undefined,
@@ -175,7 +186,7 @@ export default function ApplicationServiceListPage() {
   };
 
   const handleFilterReset = () => {
-    setSearch("");
+    resetSearch();
     setLifecycleFilter("");
     setOwnerTeamFilter("");
     setEnvironmentFilter("");
@@ -190,7 +201,7 @@ export default function ApplicationServiceListPage() {
     // Invalidate list query to refresh data
     queryClient.invalidateQueries({
       queryKey: getFindAllApplicationServicesQueryKey({
-        search: debouncedSearch || undefined,
+        search: effectiveSearch || undefined,
         ownerTeamId: showUnassignedOnly ? "null" : ownerTeamFilter || undefined,
         lifecycle: lifecycleFilter || undefined,
         page,
@@ -217,7 +228,7 @@ export default function ApplicationServiceListPage() {
     // Invalidate list query to refresh data
     queryClient.invalidateQueries({
       queryKey: getFindAllApplicationServicesQueryKey({
-        search: debouncedSearch || undefined,
+        search: effectiveSearch || undefined,
         ownerTeamId: showUnassignedOnly ? "null" : ownerTeamFilter || undefined,
         lifecycle: lifecycleFilter || undefined,
         page,
@@ -265,25 +276,34 @@ export default function ApplicationServiceListPage() {
         <CardContent>
           {/* Filters */}
           <Grid container spacing={2} sx={{ mb: 3 }}>
-            <Grid size={{ xs: 12, md: 3 }}>
-              <TextField
-                fullWidth
-                label="Search by Name"
+            <Grid size={{ xs: 12, md: 4 }}>
+              <SearchFieldWithToggle
                 value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
+                onChange={(value) => {
+                  setSearch(value);
+                  // Don't reset page on every keystroke - only when search triggers
+                }}
+                onSearch={() => {
+                  handleManualSearch();
+                  setPage(0); // Reset page when manual search is triggered
+                }}
+                label="Search by Name"
+                placeholder="Search by service name"
+                realtimeEnabled={realtimeEnabled}
+                onRealtimeToggle={(enabled) => {
+                  setRealtimeEnabled(enabled);
+                  // Reset page when toggling modes
                   setPage(0);
                 }}
-                slotProps={{
-                  input: {
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon />
-                      </InputAdornment>
-                    ),
-                    "aria-label": "Search by service name",
-                  },
-                }}
+                loading={isLoading}
+                isDebouncing={isDebouncing}
+                resultCount={metadata?.totalElements}
+                helperText={
+                  realtimeEnabled
+                    ? "Search updates automatically as you type"
+                    : "Click search button or press Enter to search"
+                }
+                aria-label="Search by service name"
               />
             </Grid>
 
@@ -349,7 +369,7 @@ export default function ApplicationServiceListPage() {
               />
             </Grid>
 
-            <Grid size={{ xs: 12, md: 2 }}>
+            {/* <Grid size={{ xs: 12, md: 2 }}>
               <FormControlLabel
                 control={
                   <Switch
@@ -366,9 +386,9 @@ export default function ApplicationServiceListPage() {
                 label="Orphans Only"
                 sx={{ height: "56px", display: "flex", alignItems: "center" }}
               />
-            </Grid>
+            </Grid> */}
 
-            <Grid size={{ xs: 12, md: 1 }}>
+            <Grid size={{ xs: 12, md: 2 }}>
               <Button
                 fullWidth
                 variant="outlined"

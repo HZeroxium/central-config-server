@@ -30,7 +30,7 @@ export function IamTeamTable({
 }: IamTeamTableProps) {
   const columns: GridColDef<IamTeamResponse>[] = [
     {
-      field: "id",
+      field: "teamId",
       headerName: "Team ID",
       flex: 1,
       minWidth: 200,
@@ -97,7 +97,7 @@ export function IamTeamTable({
     },
   ];
 
-  // Create rows with unique id for DataGrid (teams already have id field)
+  // Create rows with unique id for DataGrid
   const rows = teams;
 
   return (
@@ -105,6 +105,7 @@ export function IamTeamTable({
       <DataGrid
         rows={rows}
         columns={columns}
+        getRowId={(row) => row.teamId || ""}
         loading={loading}
         paginationMode="server"
         rowCount={totalElements}
@@ -119,6 +120,11 @@ export function IamTeamTable({
         }}
         pageSizeOptions={[10, 20, 50, 100]}
         disableRowSelectionOnClick
+        onRowClick={(params) => {
+          if (params.row.teamId) {
+            onRowClick(params.row.teamId);
+          }
+        }}
         slotProps={{
           noRowsOverlay: {
             children: (

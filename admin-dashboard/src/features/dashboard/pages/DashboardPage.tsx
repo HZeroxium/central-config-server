@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Box, Alert, Button, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid";
@@ -15,7 +15,10 @@ import { StatsCard } from "../components/StatsCard";
 import { ServiceDistributionChart } from "../components/ServiceDistributionChart";
 import { InstanceStatusChart } from "../components/InstanceStatusChart";
 import { DriftEventsChart } from "../components/DriftEventsChart";
+import { DriftEventsStackedAreaChart } from "../components/DriftEventsStackedAreaChart";
 import { RecentActivityList } from "../components/RecentActivityList";
+import { TimeRangeSelector, type TimeRange } from "../components/TimeRangeSelector";
+import { TopServicesDriftTable } from "../components/TopServicesDriftTable";
 import {
   useFindAllApplicationServices,
   useFindAllServiceInstances,
@@ -35,6 +38,15 @@ import type {
 
 export default function DashboardPage() {
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [timeRange, setTimeRange] = useState<TimeRange>("7d");
+  const [customStartDate, setCustomStartDate] = useState<Date | null>(null);
+  const [customEndDate, setCustomEndDate] = useState<Date | null>(null);
+  const [previousStats, setPreviousStats] = useState<{
+    totalServices: number;
+    totalInstances: number;
+    pendingApprovals: number;
+    unresolvedDrifts: number;
+  } | null>(null);
   const queryClient = useQueryClient();
 
   // Optimized: Reduced page sizes for faster initial load
@@ -57,12 +69,24 @@ export default function DashboardPage() {
     { query: { staleTime: 60_000 } }
   );
 
+  // Calculate date range based on timeRange selection
+  const dateRange = useMemo(() => {
+    const endDate = customEndDate || new Date();
+    const startDate = customStartDate || (() => {
+      const days = timeRange === "7d" ? 7 : timeRange === "30d" ? 30 : 90;
+      const date = new Date(endDate);
+      date.setDate(date.getDate() - days);
+      return date;
+    })();
+    return { startDate, endDate };
+  }, [timeRange, customStartDate, customEndDate]);
+
   const {
     data: driftsData,
     isLoading: driftsLoading,
     error: driftsError,
   } = useFindAllDriftEvents(
-    { status: "DETECTED", page: 0, size: 50 }, // Reduced from 100
+    { status: "DETECTED", page: 0, size: 100 }, // Increased for time range support
     { query: { staleTime: 30_000 } }
   );
 
@@ -120,6 +144,24 @@ export default function DashboardPage() {
     };
   }, [servicesData, instancesData, approvalsData, driftsData]);
 
+  // Store previous stats for trend calculation
+  useEffect(() => {
+    if (statsData && !previousStats) {
+      setPreviousStats(statsData);
+    }
+  }, [statsData, previousStats]);
+
+  // Calculate trends
+  const trends = useMemo(() => {
+    if (!previousStats) return null;
+    return {
+      totalServices: statsData.totalServices - previousStats.totalServices,
+      totalInstances: statsData.totalInstances - previousStats.totalInstances,
+      pendingApprovals: statsData.pendingApprovals - previousStats.pendingApprovals,
+      unresolvedDrifts: statsData.unresolvedDrifts - previousStats.unresolvedDrifts,
+    };
+  }, [statsData, previousStats]);
+
   // Calculate chart data from real data
   const serviceDistributionData = useMemo((): ServiceDistributionData[] => {
     const services = servicesData?.items || [];
@@ -164,65 +206,90 @@ export default function DashboardPage() {
 
   const driftEventsData = useMemo((): DriftEventsData[] => {
     const drifts = driftsData?.items || [];
+    const { startDate, endDate } = dateRange;
 
-    // Group by date (last 7 days) and severity
+    // Calculate number of days
+    const daysDiff = Math.ceil(
+      (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+    );
+    const numDays = Math.min(daysDiff, 90); // Cap at 90 days for performance
+
+    // Group by date and severity
     const dates: Record<
       string,
       { critical: number; high: number; medium: number; low: number }
     > = {};
-    const today = new Date();
 
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date(today);
+    // Initialize all dates in range
+    for (let i = numDays - 1; i >= 0; i--) {
+      const date = new Date(endDate);
       date.setDate(date.getDate() - i);
       const dateStr = date.toISOString().split("T")[0];
       dates[dateStr] = { critical: 0, high: 0, medium: 0, low: 0 };
     }
 
+    // Filter and group drift events
     for (const drift of drifts) {
-      if (drift.detectedAt) {
-        // Handle string dates (ISO format)
-        let dateStr: string;
+      if (!drift.detectedAt) continue;
+
+      let driftDate: Date;
+      try {
         if (typeof drift.detectedAt === "string") {
-          dateStr = drift.detectedAt.split("T")[0];
+          driftDate = new Date(drift.detectedAt);
         } else {
-          // Fallback: try to parse as Date if it's not a string
-          try {
-            const dateValue = drift.detectedAt as unknown;
-            if (dateValue instanceof Date) {
-              dateStr = dateValue.toISOString().split("T")[0];
-            } else {
-              // Try to parse as Date string
-              dateStr = new Date(dateValue as string | number)
-                .toISOString()
-                .split("T")[0];
-            }
-          } catch {
-            continue; // Skip invalid dates
+          // Handle other types (number, Date object, etc.)
+          const dateValue = drift.detectedAt as unknown;
+          if (dateValue && typeof dateValue === "object" && "getTime" in dateValue) {
+            driftDate = dateValue as Date;
+          } else {
+            driftDate = new Date(dateValue as string | number);
           }
         }
+
+        // Check if drift is within date range
+        if (driftDate < startDate || driftDate > endDate) continue;
+
+        const dateStr = driftDate.toISOString().split("T")[0];
         if (dates[dateStr] !== undefined) {
-          const severity = (drift.severity || "LOW").toLowerCase() as
-            | "critical"
-            | "high"
-            | "medium"
-            | "low";
-          dates[dateStr][severity] = (dates[dateStr][severity] || 0) + 1;
+          const severity = (drift.severity || "LOW").toUpperCase();
+          switch (severity) {
+            case "CRITICAL":
+              dates[dateStr].critical += 1;
+              break;
+            case "HIGH":
+              dates[dateStr].high += 1;
+              break;
+            case "MEDIUM":
+              dates[dateStr].medium += 1;
+              break;
+            case "LOW":
+            default:
+              dates[dateStr].low += 1;
+              break;
+          }
         }
+      } catch {
+        continue; // Skip invalid dates
       }
     }
 
-    return Object.entries(dates).map(([date, severities]) => ({
-      date: new Date(date).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-      }),
-      critical: severities.critical,
-      high: severities.high,
-      medium: severities.medium,
-      low: severities.low,
-    }));
-  }, [driftsData]);
+    // Format dates for display
+    return Object.entries(dates)
+      .map(([date, severities]) => ({
+        date: new Date(date).toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        }),
+        critical: severities.critical,
+        high: severities.high,
+        medium: severities.medium,
+        low: severities.low,
+      }))
+      .filter((item) => {
+        // Only include dates with data or show all for small ranges
+        return numDays <= 30 || item.critical + item.high + item.medium + item.low > 0;
+      });
+  }, [driftsData, dateRange]);
 
   const recentActivityData = useMemo((): ActivityItem[] => {
     const activities: ActivityItem[] = [];
@@ -260,6 +327,20 @@ export default function DashboardPage() {
       )
       .slice(0, 10);
   }, [approvalsData, driftsData]);
+
+  // Keyboard shortcut for refresh
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === "r") {
+        event.preventDefault();
+        handleRefresh();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (isLoading) {
     return <DashboardSkeleton />;
@@ -301,6 +382,29 @@ export default function DashboardPage() {
         }
       />
 
+      {/* Time Range Selector */}
+      <Box sx={{ mb: 3, display: "flex", justifyContent: "flex-end" }}>
+        <TimeRangeSelector
+          value={timeRange}
+          onChange={(range) => {
+            setTimeRange(range);
+            if (range !== "custom") {
+              setCustomStartDate(null);
+              setCustomEndDate(null);
+            }
+          }}
+          customStartDate={customStartDate}
+          customEndDate={customEndDate}
+          onCustomDateChange={(start, end) => {
+            setCustomStartDate(start);
+            setCustomEndDate(end);
+            if (start && end) {
+              setTimeRange("custom");
+            }
+          }}
+        />
+      </Box>
+
       {/* Stats Cards */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
@@ -310,6 +414,16 @@ export default function DashboardPage() {
             icon={<AppsIcon />}
             color="primary"
             to="/application-services"
+            trend={
+              trends && previousStats && previousStats.totalServices > 0
+                ? {
+                    value: Math.round(
+                      (trends.totalServices / previousStats.totalServices) * 100
+                    ),
+                    isPositive: trends.totalServices >= 0,
+                  }
+                : undefined
+            }
           />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
@@ -319,6 +433,16 @@ export default function DashboardPage() {
             icon={<StorageIcon />}
             color="info"
             to="/service-instances"
+            trend={
+              trends && previousStats && previousStats.totalInstances > 0
+                ? {
+                    value: Math.round(
+                      (trends.totalInstances / previousStats.totalInstances) * 100
+                    ),
+                    isPositive: trends.totalInstances >= 0,
+                  }
+                : undefined
+            }
           />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
@@ -328,6 +452,16 @@ export default function DashboardPage() {
             icon={<AssignmentIcon />}
             color="warning"
             to="/approvals"
+            trend={
+              trends && previousStats && previousStats.pendingApprovals > 0
+                ? {
+                    value: Math.round(
+                      (trends.pendingApprovals / previousStats.pendingApprovals) * 100
+                    ),
+                    isPositive: trends.pendingApprovals <= 0, // Lower is better
+                  }
+                : undefined
+            }
           />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
@@ -337,6 +471,16 @@ export default function DashboardPage() {
             icon={<WarningIcon />}
             color="error"
             to="/drift-events"
+            trend={
+              trends && previousStats && previousStats.unresolvedDrifts > 0
+                ? {
+                    value: Math.round(
+                      (trends.unresolvedDrifts / previousStats.unresolvedDrifts) * 100
+                    ),
+                    isPositive: trends.unresolvedDrifts <= 0, // Lower is better
+                  }
+                : undefined
+            }
           />
         </Grid>
       </Grid>
@@ -351,9 +495,33 @@ export default function DashboardPage() {
         </Grid>
       </Grid>
 
+      {/* Charts */}
+      <Grid container spacing={3} sx={{ mb: 3 }}>
+        <Grid size={{ xs: 12, md: 6 }}>
+          <DriftEventsChart data={driftEventsData} loading={driftsLoading} />
+        </Grid>
+        <Grid size={{ xs: 12, md: 6 }}>
+          <DriftEventsStackedAreaChart
+            data={driftEventsData}
+            loading={driftsLoading}
+            title="Drift Events by Severity (Stacked)"
+          />
+        </Grid>
+      </Grid>
+
+      {/* Top Services and Recent Activity */}
       <Grid container spacing={3}>
         <Grid size={{ xs: 12, md: 8 }}>
-          <DriftEventsChart data={driftEventsData} />
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="h6" sx={{ mb: 2 }}>
+              Top Services with Drift Events
+            </Typography>
+            <TopServicesDriftTable
+              driftEvents={driftsData?.items || []}
+              loading={driftsLoading}
+              maxRows={10}
+            />
+          </Box>
         </Grid>
         <Grid size={{ xs: 12, md: 4 }}>
           <RecentActivityList activities={recentActivityData} />
