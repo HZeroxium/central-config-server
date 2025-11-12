@@ -1,22 +1,20 @@
 package com.example.control.infrastructure.seeding.factory;
 
-import com.example.control.application.service.kv.KVTypeCodec;
-import com.example.control.domain.model.kv.KVEntry;
 import com.example.control.domain.model.kv.KVListManifest;
+import com.example.control.domain.model.kv.KVListStructure;
 import com.example.control.domain.model.kv.KVType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.datafaker.Faker;
 import org.springframework.stereotype.Component;
 
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 /**
  * Factory for generating realistic list KV entries.
  * <p>
- * Generates list structures with manifest and items stored in Consul KV.
- * Lists are stored with KVType.LIST flag on the manifest.
+ * Generates list structures with manifest and items as KVListStructure.
+ * Lists will be stored by KVService.putList().
  * </p>
  *
  * <p>
@@ -58,45 +56,41 @@ public class KVListFactory {
     );
 
     private final Faker faker;
-    private final KVTypeCodec kvTypeCodec;
 
     /**
      * Generates a list KV entry for config category.
      *
-     * @param serviceId service ID
      * @param prefix    list prefix (e.g., "allowed-ips")
      * @param itemCount number of items in the list
-     * @return list of KV entries representing the list structure
+     * @return KVListStructure with items and manifest
      */
-    public List<KVEntry> generateConfigList(String serviceId, String prefix, int itemCount) {
-        List<Map<String, Object>> items = generateConfigListItems(prefix, itemCount);
-        return createListEntries(serviceId, "config", prefix, items);
+    public KVListStructure generateConfigList(String prefix, int itemCount) {
+        List<Map<String, Object>> itemDataList = generateConfigListItems(prefix, itemCount);
+        return buildListStructure(itemDataList);
     }
 
     /**
      * Generates a list KV entry for secrets category.
      *
-     * @param serviceId service ID
      * @param prefix    list prefix (e.g., "api-key-rotations")
      * @param itemCount number of items in the list
-     * @return list of KV entries representing the list structure
+     * @return KVListStructure with items and manifest
      */
-    public List<KVEntry> generateSecretList(String serviceId, String prefix, int itemCount) {
-        List<Map<String, Object>> items = generateSecretListItems(prefix, itemCount);
-        return createListEntries(serviceId, "secrets", prefix, items);
+    public KVListStructure generateSecretList(String prefix, int itemCount) {
+        List<Map<String, Object>> itemDataList = generateSecretListItems(prefix, itemCount);
+        return buildListStructure(itemDataList);
     }
 
     /**
      * Generates a list KV entry for feature flags category.
      *
-     * @param serviceId service ID
      * @param prefix    list prefix (e.g., "rollouts")
      * @param itemCount number of items in the list
-     * @return list of KV entries representing the list structure
+     * @return KVListStructure with items and manifest
      */
-    public List<KVEntry> generateFeatureFlagList(String serviceId, String prefix, int itemCount) {
-        List<Map<String, Object>> items = generateFeatureFlagListItems(prefix, itemCount);
-        return createListEntries(serviceId, "feature-flags", prefix, items);
+    public KVListStructure generateFeatureFlagList(String prefix, int itemCount) {
+        List<Map<String, Object>> itemDataList = generateFeatureFlagListItems(prefix, itemCount);
+        return buildListStructure(itemDataList);
     }
 
     /**
@@ -124,6 +118,30 @@ public class KVListFactory {
      */
     public String generateFeatureFlagListPrefix() {
         return FEATURE_FLAG_LIST_PREFIXES.get(faker.random().nextInt(FEATURE_FLAG_LIST_PREFIXES.size()));
+    }
+
+    /**
+     * Builds a KVListStructure from item data maps.
+     *
+     * @param itemDataList list of item data maps
+     * @return KVListStructure with items and manifest
+     */
+    private KVListStructure buildListStructure(List<Map<String, Object>> itemDataList) {
+        List<KVListStructure.Item> items = new ArrayList<>();
+        List<String> itemIds = new ArrayList<>();
+
+        for (int i = 0; i < itemDataList.size(); i++) {
+            String itemId = "item-" + (i + 1);
+            itemIds.add(itemId);
+            Map<String, Object> itemData = itemDataList.get(i);
+            items.add(new KVListStructure.Item(itemId, itemData));
+        }
+
+        KVListManifest manifest = KVListManifest.withOrder(itemIds, null, faker.internet().uuid());
+
+        log.debug("Generated list KV structure: {} items", items.size());
+
+        return new KVListStructure(items, manifest, KVType.LIST);
     }
 
     /**
@@ -243,69 +261,6 @@ public class KVListFactory {
         }
 
         return items;
-    }
-
-    /**
-     * Creates list KV entries with manifest and items.
-     *
-     * @param serviceId service ID
-     * @param category  category (config, secrets, feature-flags)
-     * @param prefix    list prefix
-     * @param items     list of item data maps
-     * @return list of KV entries
-     */
-    private List<KVEntry> createListEntries(String serviceId, String category, String prefix,
-                                            List<Map<String, Object>> items) {
-        List<KVEntry> entries = new ArrayList<>();
-        String basePath = String.format("apps/%s/kv/%s/%s", serviceId, category, prefix);
-
-        // Generate item IDs
-        List<String> itemIds = new ArrayList<>();
-        for (int i = 0; i < items.size(); i++) {
-            itemIds.add("item-" + (i + 1));
-        }
-
-        // Create manifest
-        KVListManifest manifest = KVListManifest.withOrder(itemIds, null, faker.internet().uuid());
-        byte[] manifestBytes = kvTypeCodec.writeManifest(manifest);
-
-        entries.add(KVEntry.builder()
-                .key(basePath + "/.manifest")
-                .value(manifestBytes)
-                .modifyIndex(0)
-                .createIndex(0)
-                .flags(KVType.LIST.getFlagValue())
-                .lockIndex(0)
-                .session(null)
-                .build());
-
-        // Create item entries
-        for (int i = 0; i < items.size(); i++) {
-            String itemId = itemIds.get(i);
-            Map<String, Object> itemData = items.get(i);
-
-            // Flatten item data into KV entries
-            for (Map.Entry<String, Object> entry : itemData.entrySet()) {
-                String itemKeyPath = basePath + "/items/" + itemId + "/" + entry.getKey();
-                String value = String.valueOf(entry.getValue());
-                byte[] valueBytes = value.getBytes(StandardCharsets.UTF_8);
-
-                entries.add(KVEntry.builder()
-                        .key(itemKeyPath)
-                        .value(valueBytes)
-                        .modifyIndex(0)
-                        .createIndex(0)
-                        .flags(KVType.LEAF.getFlagValue())
-                        .lockIndex(0)
-                        .session(null)
-                        .build());
-            }
-        }
-
-        log.debug("Generated list KV entries: {} ({} items, {} total entries)",
-                basePath, items.size(), entries.size());
-
-        return entries;
     }
 }
 

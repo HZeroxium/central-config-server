@@ -5,7 +5,6 @@ import com.example.control.api.http.dto.kv.KVDtos.ListResponseV2.ListItem;
 import com.example.control.domain.model.kv.KVEntry;
 import com.example.control.domain.model.kv.KVListManifest;
 import com.example.control.domain.model.kv.KVListStructure;
-import com.example.control.domain.model.kv.KVObjectStructure;
 import com.example.control.domain.model.kv.KVTransactionOperation;
 import com.example.control.domain.model.kv.KVTransactionRequest;
 import com.example.control.domain.model.kv.KVTransactionResponse;
@@ -91,10 +90,6 @@ public final class KVApiMapper {
      */
     public static KVDtos.DeleteResponse toDeleteResponse(KVStorePort.KVDeleteResult result) {
         return new KVDtos.DeleteResponse(result.success());
-    }
-
-    public static KVDtos.ObjectResponse toObjectResponse(KVObjectStructure structure) {
-        return new KVDtos.ObjectResponse(structure.value(), structure.type().name());
     }
 
     public static KVDtos.ListResponseV2 toListResponse(KVListStructure structure) {

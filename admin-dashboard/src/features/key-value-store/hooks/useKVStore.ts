@@ -155,11 +155,23 @@ export function useKVStore(options: UseKVStoreOptions) {
   };
 
   // Extract keys from response (handles both KeysResponse and ListResponse)
-  const keys = listQuery.data
-    ? "keys" in listQuery.data && Array.isArray(listQuery.data.keys)
-      ? listQuery.data.keys
-      : []
-    : [];
+  // When keysOnly=true, backend returns KVKeysResponse with { keys: string[] }
+  // When keysOnly=false, backend returns KVListResponse with { items: KVEntryResponse[] }
+  const keys = (() => {
+    if (!listQuery.data) {
+      return [];
+    }
+    
+    // Type guard: check if response is KVKeysResponse (has 'keys' property)
+    if ("keys" in listQuery.data) {
+      const keysResponse = listQuery.data as { keys?: string[] };
+      return Array.isArray(keysResponse.keys) ? keysResponse.keys : [];
+    }
+    
+    // If it's KVListResponse (has 'items' property), return empty array
+    // This shouldn't happen when keysOnly=true, but handle gracefully
+    return [];
+  })();
 
   return {
     // List data (keys)

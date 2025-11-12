@@ -1,5 +1,5 @@
 /**
- * Type adapters for KV List and Object data structures
+ * Type adapters for KV List data structures
  * 
  * Note: The generated types have a nested structure `{[key: string]: { [key: string]: unknown }}`
  * but the Java API accepts `Map<String, Object>` (equivalent to `Record<string, any>`).
@@ -7,8 +7,6 @@
  */
 
 import type { KVListItem } from "@lib/api/models/kVListItem";
-import type { KVObjectWriteRequestData } from "@lib/api/models/kVObjectWriteRequestData";
-import type { KVObjectResponseData } from "@lib/api/models/kVObjectResponseData";
 import type { KVListItemData} from "@lib/api/models/kVListItemData";
 
 /**
@@ -25,25 +23,6 @@ export function toKVListItemData(data: Record<string, unknown>): KVListItemData 
  * Convert KVListItemData to UI representation (Record<string, any>)
  */
 export function fromKVListItemData(data?: KVListItemData): Record<string, unknown> {
-  if (!data) {
-    return {};
-  }
-  // The data structure is actually flat at runtime, so we can safely cast
-  return data as unknown as Record<string, unknown>;
-}
-
-/**
- * Convert UI representation (Record<string, any>) to KVObjectWriteRequestData
- */
-export function toKVObjectWriteRequestData(data: Record<string, unknown>): KVObjectWriteRequestData {
-  // The API accepts any object structure, so we'll just cast it
-  return data as unknown as KVObjectWriteRequestData;
-}
-
-/**
- * Convert KVObjectResponseData to UI representation (Record<string, any>)
- */
-export function fromKVObjectResponseData(data?: KVObjectResponseData): Record<string, unknown> {
   if (!data) {
     return {};
   }

@@ -2,7 +2,7 @@
  * Component for editing KV lists (ordered items with manifest)
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Box,
   Card,
@@ -355,7 +355,11 @@ export function KVListEditor({
   const [prefixError, setPrefixError] = useState<string | null>(null);
   
   // Auto-load data if initialItems is empty and not in create mode
-  const shouldAutoLoad = !isCreateMode && initialItems.length === 0 && !initialManifest;
+  // Also auto-load if initialManifest is empty/minimal (order empty and version 0)
+  const shouldAutoLoad = !isCreateMode && initialItems.length === 0 && (
+    !initialManifest || 
+    (initialManifest.order?.length === 0 && initialManifest.version === 0)
+  );
   const params: GetKVListParams | undefined = shouldAutoLoad && serviceId && prefix
     ? { prefix, consistent: false, stale: false }
     : undefined;
@@ -371,21 +375,27 @@ export function KVListEditor({
     }
   );
 
-  // Convert loaded data to UI representation
-  const loadedItems = listData?.items ? fromGeneratedKVListItemArray(listData.items) : [];
-  const loadedManifest = listData?.manifest 
-    ? {
-        order: listData.manifest.order ?? [],
-        version: listData.manifest.version ?? 0,
-        etag: listData.manifest.etag ?? null,
-        metadata: listData.manifest.metadata ? fromKVListManifestMetadata(listData.manifest.metadata) : undefined,
-      }
-    : undefined;
+  // Convert loaded data to UI representation (memoized to avoid unnecessary recalculations)
+  const loadedItems = useMemo(() => {
+    return listData?.items ? fromGeneratedKVListItemArray(listData.items) : [];
+  }, [listData?.items]);
+  
+  const loadedManifest = useMemo(() => {
+    return listData?.manifest 
+      ? {
+          order: listData.manifest.order ?? [],
+          version: listData.manifest.version ?? 0,
+          etag: listData.manifest.etag ?? null,
+          metadata: listData.manifest.metadata ? fromKVListManifestMetadata(listData.manifest.metadata) : undefined,
+        }
+      : undefined;
+  }, [listData?.manifest]);
 
   // Use loaded data or initial data
   const effectiveItems = loadedItems.length > 0 ? loadedItems : initialItems;
   const effectiveManifest: UIListManifest = loadedManifest || initialManifest || { order: [], version: 0, etag: null };
 
+  // Initialize state with effective items (will be updated by useEffect when data loads)
   const [items, setItems] = useState<UIListItem[]>(effectiveItems);
   const [deletedIds, setDeletedIds] = useState<string[]>([]);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -398,20 +408,26 @@ export function KVListEditor({
     })
   );
 
-  // Update items when effective items change (only on initial load or when data is loaded)
+  // Update items when data loads or initial items change
   useEffect(() => {
-    if (shouldAutoLoad && !isLoadingList && listData) {
-      // Data was just loaded, update items
-      setItems(loadedItems);
-      setDeletedIds([]);
-    } else if (!shouldAutoLoad && initialItems.length > 0) {
-      // Using initial items, update once
-      setItems(initialItems);
-      setDeletedIds([]);
-    } else if (!shouldAutoLoad && (initialItems.length === 0 || isCreateMode)) {
-      // Empty initial items or create mode - start with empty list
-      setItems([]);
-      setDeletedIds([]);
+    if (shouldAutoLoad) {
+      // Auto-load mode: update when data finishes loading
+      if (!isLoadingList && listData) {
+        // Data was just loaded successfully - update items with loaded data
+        setItems(loadedItems);
+        setDeletedIds([]);
+      }
+      // If still loading or no data yet, keep current state (don't reset)
+    } else {
+      // Not auto-loading: use initial items
+      if (initialItems.length > 0) {
+        setItems(initialItems);
+        setDeletedIds([]);
+      } else if (isCreateMode) {
+        // Create mode: start with empty list
+        setItems([]);
+        setDeletedIds([]);
+      }
     }
   }, [shouldAutoLoad, isLoadingList, listData, loadedItems, initialItems, isCreateMode]);
 

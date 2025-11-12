@@ -337,16 +337,10 @@ public class SeederConfigProperties {
         private int leafPercentage = 60;
 
         /**
-         * Percentage of object entries (0-100).
-         */
-        @Min(value = 0, message = "Object percentage must be non-negative")
-        private int objectPercentage = 25;
-
-        /**
          * Percentage of list entries (0-100).
          */
         @Min(value = 0, message = "List percentage must be non-negative")
-        private int listPercentage = 15;
+        private int listPercentage = 40;
     }
 
     /**
@@ -358,19 +352,19 @@ public class SeederConfigProperties {
          * Config category configuration.
          */
         @NotNull(message = "Config category configuration is required")
-        private CategoryConfig config = new CategoryConfig(true, 2, 6, 70, 25, 5);
+        private CategoryConfig config = new CategoryConfig(true, 2, 6, 70, 30);
 
         /**
          * Secrets category configuration.
          */
         @NotNull(message = "Secrets category configuration is required")
-        private CategoryConfig secrets = new CategoryConfig(true, 1, 3, 80, 20, 0);
+        private CategoryConfig secrets = new CategoryConfig(true, 1, 3, 80, 20);
 
         /**
          * Feature flags category configuration.
          */
         @NotNull(message = "Feature flags category configuration is required")
-        private CategoryConfig featureFlags = new CategoryConfig(true, 1, 4, 50, 30, 20);
+        private CategoryConfig featureFlags = new CategoryConfig(true, 1, 4, 50, 50);
     }
 
     /**
@@ -402,12 +396,6 @@ public class SeederConfigProperties {
         private int leafPercentage;
 
         /**
-         * Percentage of object entries for this category (0-100).
-         */
-        @Min(value = 0, message = "Object percentage must be non-negative")
-        private int objectPercentage;
-
-        /**
          * Percentage of list entries for this category (0-100).
          */
         @Min(value = 0, message = "List percentage must be non-negative")
@@ -418,12 +406,11 @@ public class SeederConfigProperties {
         }
 
         public CategoryConfig(boolean enabled, int minEntries, int maxEntries,
-                             int leafPercentage, int objectPercentage, int listPercentage) {
+                             int leafPercentage, int listPercentage) {
             this.enabled = enabled;
             this.minEntries = minEntries;
             this.maxEntries = maxEntries;
             this.leafPercentage = leafPercentage;
-            this.objectPercentage = objectPercentage;
             this.listPercentage = listPercentage;
         }
     }

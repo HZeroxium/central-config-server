@@ -21,11 +21,10 @@ import {
   InsertDriveFile as FileIcon,
   ExpandMore as ExpandMoreIcon,
   ChevronRight as ChevronRightIcon,
-  Code as ObjectIcon,
   List as ListIcon,
 } from "@mui/icons-material";
 import type { KVTree, KVTreeNode } from "../types";
-import { isListPrefix, isObjectPrefix, isFolderPrefix } from "../types";
+import { isListPrefix, isFolderPrefix } from "../types";
 
 export interface KVTreeViewProps {
   tree: KVTree;
@@ -65,15 +64,13 @@ function TreeNode({
   const isSelected = selectedPath === node.fullPath;
   const hasChildren = node.children && Object.keys(node.children).length > 0;
   
-  // Detect List/Object/Folder types
+  // Detect List/Folder types
   const isList = allKeys ? isListPrefix(node.fullPath, allKeys) : false;
-  const isObject = allKeys ? isObjectPrefix(node.fullPath, allKeys) : false;
   const isFolder = allKeys ? isFolderPrefix(node.fullPath, allKeys) : false;
-  const isListOrObject = isList || isObject;
 
   const handleClick = () => {
-    if (isListOrObject) {
-      // List/Object: select to view/edit (don't navigate into internal structure)
+    if (isList) {
+      // List: select to view/edit (don't navigate into internal structure)
       onSelect(node.fullPath, false);
     } else if (isFolder) {
       // Folder: navigate into it
@@ -134,13 +131,11 @@ function TreeNode({
             )}
           </IconButton>
         )}
-        {!hasChildren && !isListOrObject && <Box sx={{ width: 32 }} />}
-        {isListOrObject && <Box sx={{ width: 32 }} />}
+        {!hasChildren && !isList && <Box sx={{ width: 32 }} />}
+        {isList && <Box sx={{ width: 32 }} />}
         <ListItemIcon sx={{ minWidth: 32 }}>
           {isList ? (
             <ListIcon fontSize="small" color="secondary" />
-          ) : isObject ? (
-            <ObjectIcon fontSize="small" color="primary" />
           ) : node.isLeaf || node.nodeType === "file" ? (
             <FileIcon fontSize="small" color="action" />
           ) : isExpanded ? (
@@ -161,11 +156,11 @@ function TreeNode({
               >
                 {node.name}
               </Typography>
-              {isListOrObject && (
+              {isList && (
                 <Chip
-                  label={isList ? "LIST" : "OBJECT"}
+                  label="LIST"
                   size="small"
-                  color={isList ? "secondary" : "primary"}
+                  color="secondary"
                   sx={{ height: 18, fontSize: "0.65rem" }}
                 />
               )}
@@ -173,7 +168,7 @@ function TreeNode({
           }
         />
       </ListItemButton>
-      {hasChildren && !isListOrObject && (
+      {hasChildren && !isList && (
         <Collapse in={isExpanded} timeout="auto" unmountOnExit>
           <List component="div" disablePadding>
             {children.map((child) => (

@@ -3,6 +3,7 @@ package com.example.control.infrastructure.seeding.service;
 import com.example.control.domain.model.ApplicationService;
 import com.example.control.domain.model.*;
 import com.example.control.domain.model.kv.KVEntry;
+import com.example.control.domain.model.kv.KVListStructure;
 import com.example.control.infrastructure.seeding.config.SeederConfigProperties;
 import com.example.control.infrastructure.seeding.factory.*;
 import lombok.RequiredArgsConstructor;
@@ -47,7 +48,6 @@ public class MockDataGenerator {
     private final ApprovalRequestFactory approvalRequestFactory;
     private final ApprovalDecisionFactory approvalDecisionFactory;
     private final KVEntryFactory kvEntryFactory;
-    private final KVObjectFactory kvObjectFactory;
     private final KVListFactory kvListFactory;
 
     /**
@@ -91,10 +91,8 @@ public class MockDataGenerator {
         log.info("Generated {} approval decisions", data.approvalDecisions.size());
 
         // Phase 7: Generate KV Entries
-        data.kvEntriesByService = generateKVEntries(data.services);
-        int totalKVEntries = data.kvEntriesByService.values().stream()
-                .mapToInt(List::size)
-                .sum();
+        data.kvData = generateKVEntries(data.services);
+        int totalKVEntries = data.kvData.getTotalEntryCount();
         log.info("Generated {} KV entries across {} services", totalKVEntries, data.services.size());
 
         log.info("Mock data generation complete. Total entities: {}", data.getTotalCount());
@@ -401,34 +399,31 @@ public class MockDataGenerator {
      * Generates KV entries for all services.
      *
      * @param services list of services
-     * @return map of service ID to list of KV entries
+     * @return KVData container with structured entries
      */
-    private Map<String, List<KVEntry>> generateKVEntries(List<ApplicationService> services) {
-        Map<String, List<KVEntry>> kvEntriesByService = new HashMap<>();
+    private KVData generateKVEntries(List<ApplicationService> services) {
+        KVData kvData = new KVData();
 
         if (!config.getKv().isEnabled()) {
             log.debug("KV seeding is disabled, skipping KV entry generation");
-            return kvEntriesByService;
+            return kvData;
         }
 
         for (ApplicationService service : services) {
             String serviceId = service.getId().id();
-            List<KVEntry> entries = generateKVEntriesForService(serviceId);
-            kvEntriesByService.put(serviceId, entries);
+            generateKVEntriesForService(serviceId, kvData);
         }
 
-        return kvEntriesByService;
+        return kvData;
     }
 
     /**
      * Generates KV entries for a single service.
      *
      * @param serviceId service ID
-     * @return list of KV entries
+     * @param kvData    KVData container to populate
      */
-    private List<KVEntry> generateKVEntriesForService(String serviceId) {
-        List<KVEntry> entries = new ArrayList<>();
-
+    private void generateKVEntriesForService(String serviceId, KVData kvData) {
         // Determine total entry count
         int minEntries = config.getKv().getEntriesPerService().getMin();
         int maxEntries = config.getKv().getEntriesPerService().getMax();
@@ -443,7 +438,7 @@ public class MockDataGenerator {
                     categories.getConfig().getMinEntries(),
                     categories.getConfig().getMaxEntries(),
                     totalEntries);
-            entries.addAll(generateCategoryEntries(serviceId, "config", configEntries, categories.getConfig()));
+            generateCategoryEntries(serviceId, "config", configEntries, categories.getConfig(), kvData);
         }
 
         // Secrets category
@@ -452,7 +447,7 @@ public class MockDataGenerator {
                     categories.getSecrets().getMinEntries(),
                     categories.getSecrets().getMaxEntries(),
                     totalEntries);
-            entries.addAll(generateCategoryEntries(serviceId, "secrets", secretEntries, categories.getSecrets()));
+            generateCategoryEntries(serviceId, "secrets", secretEntries, categories.getSecrets(), kvData);
         }
 
         // Feature flags category
@@ -461,11 +456,9 @@ public class MockDataGenerator {
                     categories.getFeatureFlags().getMinEntries(),
                     categories.getFeatureFlags().getMaxEntries(),
                     totalEntries);
-            entries.addAll(generateCategoryEntries(serviceId, "feature-flags", featureFlagEntries,
-                    categories.getFeatureFlags()));
+            generateCategoryEntries(serviceId, "feature-flags", featureFlagEntries,
+                    categories.getFeatureFlags(), kvData);
         }
-
-        return entries;
     }
 
     /**
@@ -488,65 +481,54 @@ public class MockDataGenerator {
      * @param category  category name (config, secrets, feature-flags)
      * @param count     number of entries to generate
      * @param categoryConfig category configuration
-     * @return list of KV entries
+     * @param kvData    KVData container to populate
      */
-    private List<KVEntry> generateCategoryEntries(String serviceId, String category, int count,
-                                                  SeederConfigProperties.CategoryConfig categoryConfig) {
-        List<KVEntry> entries = new ArrayList<>();
-
+    private void generateCategoryEntries(String serviceId, String category, int count,
+                                        SeederConfigProperties.CategoryConfig categoryConfig,
+                                        KVData kvData) {
         if (count == 0) {
-            return entries;
+            return;
         }
 
         // Calculate distribution
         int leafCount = (int) Math.round(count * categoryConfig.getLeafPercentage() / 100.0);
-        int objectCount = (int) Math.round(count * categoryConfig.getObjectPercentage() / 100.0);
-        int listCount = count - leafCount - objectCount; // Remaining for lists
+        int listCount = count - leafCount; // Remaining for lists
 
         // Generate leaf entries
         for (int i = 0; i < leafCount; i++) {
+            KVEntry entry;
             if ("config".equals(category)) {
                 String key = kvEntryFactory.generateConfigKey();
-                entries.add(kvEntryFactory.generateConfigLeaf(serviceId, key));
+                entry = kvEntryFactory.generateConfigLeaf(serviceId, key);
             } else if ("secrets".equals(category)) {
                 String key = kvEntryFactory.generateSecretKey();
-                entries.add(kvEntryFactory.generateSecretLeaf(serviceId, key));
-            } else if ("feature-flags".equals(category)) {
+                entry = kvEntryFactory.generateSecretLeaf(serviceId, key);
+            } else {
                 String key = kvEntryFactory.generateFeatureFlagKey();
-                entries.add(kvEntryFactory.generateFeatureFlagLeaf(serviceId, key));
+                entry = kvEntryFactory.generateFeatureFlagLeaf(serviceId, key);
             }
-        }
-
-        // Generate object entries
-        for (int i = 0; i < objectCount; i++) {
-            if ("config".equals(category)) {
-                String prefix = kvObjectFactory.generateConfigObjectPrefix();
-                entries.addAll(kvObjectFactory.generateConfigObject(serviceId, prefix));
-            } else if ("secrets".equals(category)) {
-                String prefix = kvObjectFactory.generateSecretObjectPrefix();
-                entries.addAll(kvObjectFactory.generateSecretObject(serviceId, prefix));
-            } else if ("feature-flags".equals(category)) {
-                String prefix = kvObjectFactory.generateFeatureFlagObjectPrefix();
-                entries.addAll(kvObjectFactory.generateFeatureFlagObject(serviceId, prefix));
-            }
+            kvData.leafEntries.computeIfAbsent(serviceId, k -> new ArrayList<>()).add(entry);
         }
 
         // Generate list entries
         for (int i = 0; i < listCount; i++) {
             int itemCount = 3 + (int) (Math.random() * 8); // 3-10 items
+            String prefix;
+            KVListStructure listStructure;
             if ("config".equals(category)) {
-                String prefix = kvListFactory.generateConfigListPrefix();
-                entries.addAll(kvListFactory.generateConfigList(serviceId, prefix, itemCount));
+                prefix = kvListFactory.generateConfigListPrefix();
+                listStructure = kvListFactory.generateConfigList(prefix, itemCount);
             } else if ("secrets".equals(category)) {
-                String prefix = kvListFactory.generateSecretListPrefix();
-                entries.addAll(kvListFactory.generateSecretList(serviceId, prefix, itemCount));
-            } else if ("feature-flags".equals(category)) {
-                String prefix = kvListFactory.generateFeatureFlagListPrefix();
-                entries.addAll(kvListFactory.generateFeatureFlagList(serviceId, prefix, itemCount));
+                prefix = kvListFactory.generateSecretListPrefix();
+                listStructure = kvListFactory.generateSecretList(prefix, itemCount);
+            } else {
+                prefix = kvListFactory.generateFeatureFlagListPrefix();
+                listStructure = kvListFactory.generateFeatureFlagList(prefix, itemCount);
             }
+            String relativePrefix = category + "/" + prefix;
+            kvData.listEntries.computeIfAbsent(serviceId, k -> new ArrayList<>())
+                    .add(new KVListData(relativePrefix, listStructure));
         }
-
-        return entries;
     }
 
     /**
@@ -559,12 +541,56 @@ public class MockDataGenerator {
         public List<ServiceShare> shares = new ArrayList<>();
         public List<ApprovalRequest> approvalRequests = new ArrayList<>();
         public List<ApprovalDecision> approvalDecisions = new ArrayList<>();
-        public Map<String, List<KVEntry>> kvEntriesByService = new HashMap<>();
+        public KVData kvData = new KVData();
 
         public int getTotalCount() {
             return services.size() + instances.size() + driftEvents.size() +
                     shares.size() + approvalRequests.size() + approvalDecisions.size() +
-                    kvEntriesByService.values().stream().mapToInt(List::size).sum();
+                    kvData.getTotalEntryCount();
         }
+    }
+
+    /**
+     * Container for structured KV data.
+     */
+    public static class KVData {
+        /**
+         * Leaf entries by service ID.
+         */
+        public Map<String, List<KVEntry>> leafEntries = new HashMap<>();
+
+        /**
+         * List entries by service ID (with relative prefix).
+         */
+        public Map<String, List<KVListData>> listEntries = new HashMap<>();
+
+        /**
+         * Calculate total entry count across all types.
+         * <p>
+         * For lists, counts items + manifest.
+         * </p>
+         *
+         * @return total entry count
+         */
+        public int getTotalEntryCount() {
+            int leafCount = leafEntries.values().stream().mapToInt(List::size).sum();
+            
+            // Count list items + manifest
+            int listCount = listEntries.values().stream()
+                    .flatMap(List::stream)
+                    .mapToInt(kvListData -> kvListData.listStructure().items().size() + 1) // items + manifest
+                    .sum();
+            
+            return leafCount + listCount;
+        }
+    }
+
+    /**
+     * Wrapper for list data with relative prefix.
+     *
+     * @param relativePrefix relative prefix (e.g., "config/allowed-ips")
+     * @param listStructure  KVListStructure with items and manifest
+     */
+    public record KVListData(String relativePrefix, KVListStructure listStructure) {
     }
 }

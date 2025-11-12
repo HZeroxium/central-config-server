@@ -27,5 +27,6 @@ export interface CleanResult {
   sharesDeleted?: number;
   approvalRequestsDeleted?: number;
   approvalDecisionsDeleted?: number;
+  kvEntriesDeleted?: number;
   totalDeleted?: number;
 }

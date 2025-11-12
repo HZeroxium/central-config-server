@@ -4,7 +4,6 @@ import com.example.control.domain.model.kv.KVEntry;
 import com.example.control.domain.model.kv.KVType;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 
 import java.util.List;
 
@@ -46,11 +45,8 @@ public class KVTypeDetector {
         if (entries == null || entries.isEmpty()) {
             return KVType.LEAF;
         }
-        boolean hasNestedKeys = entries.stream()
-                .map(KVEntry::key)
-                .filter(StringUtils::hasText)
-                .anyMatch(key -> key.contains("/"));
-        return hasNestedKeys ? KVType.OBJECT : KVType.LEAF;
+        // Nested keys are treated as LEAF (previously would have been OBJECT)
+        return KVType.LEAF;
     }
 }
 

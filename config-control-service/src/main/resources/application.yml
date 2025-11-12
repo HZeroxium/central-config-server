@@ -10,8 +10,8 @@ spring:
       dev: "dev,debug,seed-data"
       prod: "prod,observability"
   cache:
-    # type: caffeine
-    type: redis
+    type: caffeine
+    # type: redis
   main:
     allow-bean-definition-overriding: true
   config:

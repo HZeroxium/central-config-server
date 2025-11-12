@@ -9,15 +9,17 @@ import lombok.Getter;
  * creating companion metadata keys. The mapping is:
  * <ul>
  *     <li>{@code 0} - {@link #LEAF}</li>
- *     <li>{@code 1} - {@link #OBJECT}</li>
  *     <li>{@code 2} - {@link #LIST}</li>
  * </ul>
+ * </p>
+ * <p>
+ * Note: Flag value {@code 1} is reserved for future use and will fall back to {@link #LEAF}
+ * for backward compatibility with existing Object entries.
  * </p>
  */
 @Getter
 public enum KVType {
     LEAF(0),
-    OBJECT(1),
     LIST(2);
 
     private final long flagValue;
@@ -31,7 +33,7 @@ public enum KVType {
      * <p>
      * The method is lenient and falls back to {@link #LEAF} when the provided
      * flag does not map to a known type to preserve backward compatibility with
-     * legacy keys.
+     * legacy keys. Flag value 1 (previously OBJECT) is reserved and falls back to LEAF.
      * </p>
      *
      * @param flags Consul KV flags value
@@ -50,10 +52,10 @@ public enum KVType {
      * Determines whether a flags value explicitly encodes a type.
      *
      * @param flags Consul KV flags value
-     * @return {@code true} when the value matches one of the known type flags
+     * @return {@code true} when the value matches one of the known type flags (LIST only)
      */
     public static boolean isTypeFlag(long flags) {
-        return flags == OBJECT.flagValue || flags == LIST.flagValue;
+        return flags == LIST.flagValue;
     }
 }
 

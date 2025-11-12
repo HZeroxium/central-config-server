@@ -17,11 +17,12 @@ import {
 import {
   Folder as FolderIcon,
   InsertDriveFile as FileIcon,
-  Code as ObjectIcon,
   List as ListIcon,
+  ArrowUpward as ArrowUpIcon,
 } from "@mui/icons-material";
-import { normalizePath, isListPrefix, isObjectPrefix } from "../types";
+import { normalizePath, isListPrefix, getParentPath } from "../types";
 import { getImmediateChildren } from "../types";
+import { KVBreadcrumb } from "./KVBreadcrumb";
 
 export interface KVFlatListViewProps {
   /** List of all keys */
@@ -34,6 +35,10 @@ export interface KVFlatListViewProps {
   onSelect: (path: string, isFolder: boolean) => void;
   /** Loading state */
   isLoading?: boolean;
+  /** All keys (for detecting List/Object types) */
+  allKeys?: string[];
+  /** Callback for navigating to parent prefix */
+  onNavigateUp?: (prefix: string) => void;
 }
 
 export function KVFlatListView({
@@ -42,8 +47,27 @@ export function KVFlatListView({
   selectedPath,
   onSelect,
   isLoading = false,
+  allKeys,
+  onNavigateUp,
 }: KVFlatListViewProps) {
+  // Use allKeys for List detection if provided, otherwise fall back to keys
+  const keysForDetection = allKeys && allKeys.length > 0 ? allKeys : keys;
   const { folders, files } = getImmediateChildren(keys, prefix);
+  const normalizedPrefix = normalizePath(prefix);
+  const hasParent = normalizedPrefix.length > 0;
+  const parentPath = hasParent ? getParentPath(normalizedPrefix) : "";
+
+  const handleNavigateUp = () => {
+    if (onNavigateUp && hasParent) {
+      onNavigateUp(parentPath);
+    }
+  };
+
+  const handleBreadcrumbNavigate = (targetPrefix: string) => {
+    if (onNavigateUp) {
+      onNavigateUp(targetPrefix);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -60,7 +84,7 @@ export function KVFlatListView({
     );
   }
 
-  if (folders.length === 0 && files.length === 0) {
+  if (folders.length === 0 && files.length === 0 && !hasParent) {
     return (
       <Box sx={{ p: 3, textAlign: "center" }}>
         <Typography variant="body2" color="text.secondary">
@@ -70,83 +94,178 @@ export function KVFlatListView({
     );
   }
 
-  // Helper to determine if a path is List/Object and get its type
-  const getItemType = (path: string): "list" | "object" | "folder" | "file" => {
-    if (isListPrefix(path, keys)) return "list";
-    if (isObjectPrefix(path, keys)) return "object";
+  // Helper to determine if a path is List and get its type
+  const getItemType = (path: string): "list" | "folder" | "file" => {
+    if (isListPrefix(path, keysForDetection)) return "list";
     // Check if it's in folders or files
     if (folders.includes(path)) return "folder";
     return "file";
   };
 
-  // Separate List/Object from regular folders
-  const listObjectItems = folders.filter(
-    (path) => isListPrefix(path, keys) || isObjectPrefix(path, keys)
+  // Separate List from regular folders
+  const listItems = folders.filter(
+    (path) => isListPrefix(path, keysForDetection)
   );
   const regularFolders = folders.filter(
-    (path) => !isListPrefix(path, keys) && !isObjectPrefix(path, keys)
+    (path) => !isListPrefix(path, keysForDetection)
   );
 
   return (
-    <List component="nav" dense>
-      {/* Regular folders */}
-      {regularFolders.map((folderPath) => {
-        const normalized = normalizePath(folderPath);
-        const name = normalized.split("/").pop() || normalized;
-        const isSelected = selectedPath === normalized;
+    <Box>
+      {/* Breadcrumb navigation */}
+      {hasParent && (
+        <Box sx={{ px: 2, py: 1, borderBottom: 1, borderColor: "divider" }}>
+          <KVBreadcrumb
+            prefix={prefix}
+            onNavigate={handleBreadcrumbNavigate}
+            onBack={handleNavigateUp}
+            showBackButton={true}
+          />
+        </Box>
+      )}
 
-        return (
+      <List component="nav" dense>
+        {/* Parent directory entry */}
+        {hasParent && (
           <ListItemButton
-            key={folderPath}
-            selected={isSelected}
-            onClick={() => onSelect(normalized, true)}
+            onClick={handleNavigateUp}
             sx={{
-              "&.Mui-selected": {
-                backgroundColor: "action.selected",
-                "&:hover": {
-                  backgroundColor: "action.selected",
-                },
+              "&:hover": {
+                backgroundColor: "action.hover",
               },
             }}
           >
             <ListItemIcon sx={{ minWidth: 40 }}>
-              <FolderIcon fontSize="small" color="primary" />
+              <ArrowUpIcon fontSize="small" color="action" />
             </ListItemIcon>
             <ListItemText
               primary={
-                <Typography
-                  variant="body2"
-                  sx={{
-                    fontWeight: isSelected ? 600 : 400,
-                  }}
-                >
-                  {name}
+                <Typography variant="body2" sx={{ fontStyle: "italic" }}>
+                  ..
                 </Typography>
               }
             />
           </ListItemButton>
-        );
-      })}
+        )}
 
-      {/* List/Object items (treated as single entities, not navigable) */}
-      {listObjectItems.map((itemPath) => {
-        const normalized = normalizePath(itemPath);
-        const name = normalized.split("/").pop() || normalized;
-        const isSelected = selectedPath === normalized;
-        const itemType = getItemType(normalized);
-        const isList = itemType === "list";
+        {hasParent && (regularFolders.length > 0 || listItems.length > 0 || files.length > 0) && (
+          <Divider sx={{ my: 0.5 }} />
+        )}
 
-        return (
-          <Tooltip
-            key={itemPath}
-            title={
-              isList
-                ? "List structure - click to view/edit"
-                : "Object structure - click to view/edit"
-            }
-            arrow
-          >
+        {/* Regular folders */}
+        {regularFolders.map((folderPath) => {
+          const normalized = normalizePath(folderPath);
+          const name = normalized.split("/").pop() || normalized;
+          const isSelected = selectedPath === normalized;
+
+          return (
             <ListItemButton
+              key={folderPath}
+              selected={isSelected}
+              onClick={() => onSelect(normalized, true)}
+              sx={{
+                "&.Mui-selected": {
+                  backgroundColor: "action.selected",
+                  "&:hover": {
+                    backgroundColor: "action.selected",
+                  },
+                },
+              }}
+            >
+              <ListItemIcon sx={{ minWidth: 40 }}>
+                <FolderIcon fontSize="small" color="primary" />
+              </ListItemIcon>
+              <ListItemText
+                primary={
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      fontWeight: isSelected ? 600 : 400,
+                    }}
+                  >
+                    {name}
+                  </Typography>
+                }
+              />
+            </ListItemButton>
+          );
+        })}
+
+        {/* List items (treated as single entities, not navigable) */}
+        {listItems.map((itemPath) => {
+          const normalized = normalizePath(itemPath);
+          const name = normalized.split("/").pop() || normalized;
+          const isSelected = selectedPath === normalized;
+          const itemType = getItemType(normalized);
+          const isList = itemType === "list";
+
+          return (
+            <Tooltip
+              key={itemPath}
+              title={
+                isList
+                  ? "List structure - click to view/edit"
+                  : "Folder - click to navigate"
+              }
+              arrow
+            >
+              <ListItemButton
+                selected={isSelected}
+                onClick={() => onSelect(normalized, false)}
+                sx={{
+                  "&.Mui-selected": {
+                    backgroundColor: "action.selected",
+                    "&:hover": {
+                      backgroundColor: "action.selected",
+                    },
+                  },
+                }}
+              >
+                <ListItemIcon sx={{ minWidth: 40 }}>
+                  {isList ? (
+                    <ListIcon fontSize="small" color="secondary" />
+                  ) : (
+                    <FolderIcon fontSize="small" color="primary" />
+                  )}
+                </ListItemIcon>
+                <ListItemText
+                  primary={
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          fontWeight: isSelected ? 600 : 400,
+                        }}
+                      >
+                        {name}
+                      </Typography>
+                      {isList && (
+                        <Chip
+                          label="LIST"
+                          size="small"
+                          color="secondary"
+                          sx={{ height: 18, fontSize: "0.65rem" }}
+                        />
+                      )}
+                    </Box>
+                  }
+                />
+              </ListItemButton>
+            </Tooltip>
+          );
+        })}
+
+        {folders.length > 0 && files.length > 0 && <Divider sx={{ my: 1 }} />}
+
+        {/* Regular files */}
+        {files.map((filePath) => {
+          const normalized = normalizePath(filePath);
+          const name = normalized.split("/").pop() || normalized;
+          const isSelected = selectedPath === normalized;
+
+          return (
+            <ListItemButton
+              key={filePath}
               selected={isSelected}
               onClick={() => onSelect(normalized, false)}
               sx={{
@@ -159,78 +278,25 @@ export function KVFlatListView({
               }}
             >
               <ListItemIcon sx={{ minWidth: 40 }}>
-                {isList ? (
-                  <ListIcon fontSize="small" color="secondary" />
-                ) : (
-                  <ObjectIcon fontSize="small" color="primary" />
-                )}
+                <FileIcon fontSize="small" color="action" />
               </ListItemIcon>
               <ListItemText
                 primary={
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        fontWeight: isSelected ? 600 : 400,
-                      }}
-                    >
-                      {name}
-                    </Typography>
-                    <Chip
-                      label={isList ? "LIST" : "OBJECT"}
-                      size="small"
-                      color={isList ? "secondary" : "primary"}
-                      sx={{ height: 18, fontSize: "0.65rem" }}
-                    />
-                  </Box>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      fontWeight: isSelected ? 600 : 400,
+                    }}
+                  >
+                    {name}
+                  </Typography>
                 }
               />
             </ListItemButton>
-          </Tooltip>
-        );
-      })}
-
-      {folders.length > 0 && files.length > 0 && <Divider sx={{ my: 1 }} />}
-
-      {/* Regular files */}
-      {files.map((filePath) => {
-        const normalized = normalizePath(filePath);
-        const name = normalized.split("/").pop() || normalized;
-        const isSelected = selectedPath === normalized;
-
-        return (
-          <ListItemButton
-            key={filePath}
-            selected={isSelected}
-            onClick={() => onSelect(normalized, false)}
-            sx={{
-              "&.Mui-selected": {
-                backgroundColor: "action.selected",
-                "&:hover": {
-                  backgroundColor: "action.selected",
-                },
-              },
-            }}
-          >
-            <ListItemIcon sx={{ minWidth: 40 }}>
-              <FileIcon fontSize="small" color="action" />
-            </ListItemIcon>
-            <ListItemText
-              primary={
-                <Typography
-                  variant="body2"
-                  sx={{
-                    fontWeight: isSelected ? 600 : 400,
-                  }}
-                >
-                  {name}
-                </Typography>
-              }
-            />
-          </ListItemButton>
-        );
-      })}
-    </List>
+          );
+        })}
+      </List>
+    </Box>
   );
 }
 

@@ -215,30 +215,6 @@ public class KVDtos {
     }
 
     /**
-     * DTO representing a logical object stored under a prefix.
-     */
-    @Schema(name = "KVObjectResponse", description = "Structured object stored in KV")
-    public record ObjectResponse(
-            @Schema(description = "Key-value structure representing the object")
-            Map<String, Object> data,
-
-            @Schema(description = "Logical type derived from flags", example = "OBJECT")
-            String type
-    ) {
-    }
-
-    /**
-     * Request payload to upsert a logical object.
-     */
-    @Schema(name = "KVObjectWriteRequest", description = "Request to create or update an object structure")
-    public record ObjectWriteRequest(
-            @NotNull(message = "data is required")
-            @Schema(description = "Object structure to persist")
-            Map<String, Object> data
-    ) {
-    }
-
-    /**
      * DTO representing manifest metadata for a list.
      */
     @Schema(name = "KVListManifest", description = "List ordering and metadata manifest")

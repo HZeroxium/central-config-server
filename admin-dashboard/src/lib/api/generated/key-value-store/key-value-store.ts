@@ -43,13 +43,10 @@ import type {
   ErrorResponse,
   GetKVEntryParams,
   GetKVListParams,
-  GetKVObjectParams,
   KVDeleteResponse,
   KVEntryResponse,
   KVListResponseV2,
   KVListWriteRequest,
-  KVObjectResponse,
-  KVObjectWriteRequest,
   KVPutRequest,
   KVTransactionRequest,
   KVTransactionResponse,
@@ -57,7 +54,6 @@ import type {
   ListKVEntries200,
   ListKVEntriesParams,
   PutKVListParams,
-  PutKVObjectParams,
   ViewKVPrefixParams
 } from '../../models';
 
@@ -324,185 +320,6 @@ export const useDeleteKVEntry = <TError = ErrorResponse | ErrorResponse,
       > => {
 
       const mutationOptions = getDeleteKVEntryMutationOptions(options);
-
-      return useMutation(mutationOptions, queryClient);
-    }
-    /**
- * Assemble a logical object stored under the given prefix.
-
-**Prefix Parameter:**
-- Use `?prefix=...` to specify the prefix (relative to service root)
-- Empty prefix `?prefix=` or omitted means root prefix
-- Prefix is automatically normalized (trimmed, leading slashes removed)
-
- * @summary Get a structured object
- */
-export const getKVObject = (
-    serviceId: string,
-    params?: GetKVObjectParams,
- options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
-) => {
-      
-      
-      return customInstance<KVObjectResponse>(
-      {url: `/api/application-services/${serviceId}/kv/object`, method: 'GET',
-        params, signal
-    },
-      options);
-    }
-  
-
-
-
-export const getGetKVObjectQueryKey = (serviceId?: string,
-    params?: GetKVObjectParams,) => {
-    return [
-    `/api/application-services/${serviceId}/kv/object`, ...(params ? [params]: [])
-    ] as const;
-    }
-
-    
-export const getGetKVObjectQueryOptions = <TData = Awaited<ReturnType<typeof getKVObject>>, TError = ErrorResponse | ErrorResponse>(serviceId: string,
-    params?: GetKVObjectParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getKVObject>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getGetKVObjectQueryKey(serviceId,params);
-
-  
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getKVObject>>> = ({ signal }) => getKVObject(serviceId,params, requestOptions, signal);
-
-      
-
-      
-
-   return  { queryKey, queryFn, enabled: !!(serviceId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getKVObject>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type GetKVObjectQueryResult = NonNullable<Awaited<ReturnType<typeof getKVObject>>>
-export type GetKVObjectQueryError = ErrorResponse | ErrorResponse
-
-
-export function useGetKVObject<TData = Awaited<ReturnType<typeof getKVObject>>, TError = ErrorResponse | ErrorResponse>(
- serviceId: string,
-    params: undefined |  GetKVObjectParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getKVObject>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getKVObject>>,
-          TError,
-          Awaited<ReturnType<typeof getKVObject>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetKVObject<TData = Awaited<ReturnType<typeof getKVObject>>, TError = ErrorResponse | ErrorResponse>(
- serviceId: string,
-    params?: GetKVObjectParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getKVObject>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getKVObject>>,
-          TError,
-          Awaited<ReturnType<typeof getKVObject>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetKVObject<TData = Awaited<ReturnType<typeof getKVObject>>, TError = ErrorResponse | ErrorResponse>(
- serviceId: string,
-    params?: GetKVObjectParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getKVObject>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary Get a structured object
- */
-
-export function useGetKVObject<TData = Awaited<ReturnType<typeof getKVObject>>, TError = ErrorResponse | ErrorResponse>(
- serviceId: string,
-    params?: GetKVObjectParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getKVObject>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient 
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getGetKVObjectQueryOptions(serviceId,params,options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  query.queryKey = queryOptions.queryKey ;
-
-  return query;
-}
-
-
-
-/**
- * Writes an object structure under the specified prefix using transactional semantics.
-
-**Prefix Parameter:**
-- Use `?prefix=...` to specify the prefix (relative to service root)
-- Empty prefix `?prefix=` or omitted means root prefix
-- Prefix is automatically normalized (trimmed, leading slashes removed)
-
- * @summary Create or update a structured object
- */
-export const putKVObject = (
-    serviceId: string,
-    kVObjectWriteRequest: KVObjectWriteRequest,
-    params?: PutKVObjectParams,
- options?: SecondParameter<typeof customInstance>,) => {
-      
-      
-      return customInstance<KVTransactionResponse>(
-      {url: `/api/application-services/${serviceId}/kv/object`, method: 'PUT',
-      headers: {'Content-Type': 'application/json', },
-      data: kVObjectWriteRequest,
-        params
-    },
-      options);
-    }
-  
-
-
-export const getPutKVObjectMutationOptions = <TError = ErrorResponse | ErrorResponse | ErrorResponse,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putKVObject>>, TError,{serviceId: string;data: KVObjectWriteRequest;params?: PutKVObjectParams}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof putKVObject>>, TError,{serviceId: string;data: KVObjectWriteRequest;params?: PutKVObjectParams}, TContext> => {
-
-const mutationKey = ['putKVObject'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-      
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof putKVObject>>, {serviceId: string;data: KVObjectWriteRequest;params?: PutKVObjectParams}> = (props) => {
-          const {serviceId,data,params} = props ?? {};
-
-          return  putKVObject(serviceId,data,params,requestOptions)
-        }
-
-        
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type PutKVObjectMutationResult = NonNullable<Awaited<ReturnType<typeof putKVObject>>>
-    export type PutKVObjectMutationBody = KVObjectWriteRequest
-    export type PutKVObjectMutationError = ErrorResponse | ErrorResponse | ErrorResponse
-
-    /**
- * @summary Create or update a structured object
- */
-export const usePutKVObject = <TError = ErrorResponse | ErrorResponse | ErrorResponse,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putKVObject>>, TError,{serviceId: string;data: KVObjectWriteRequest;params?: PutKVObjectParams}, TContext>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof putKVObject>>,
-        TError,
-        {serviceId: string;data: KVObjectWriteRequest;params?: PutKVObjectParams},
-        TContext
-      > => {
-
-      const mutationOptions = getPutKVObjectMutationOptions(options);
 
       return useMutation(mutationOptions, queryClient);
     }

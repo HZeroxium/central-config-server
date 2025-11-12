@@ -26,9 +26,7 @@ import {
 import { TabPanel } from "@components/common/TabPanel";
 import { KVEntryEditor } from "./KVEntryEditor";
 import { KVListEditor } from "./KVListEditor";
-import { KVObjectEditor } from "./KVObjectEditor";
 import { KVListView } from "./KVListView";
-import { KVObjectView } from "./KVObjectView";
 import { KVPrefixView } from "./KVPrefixView";
 import type { KVEntry } from "../types";
 import { decodeBase64, normalizePath } from "../types";
@@ -47,8 +45,6 @@ export interface KVDetailPanelProps {
   allKeys?: string[];
   /** Callback for editing leaf entries */
   onEdit: (path: string, data: KVPutRequest) => Promise<void>;
-  /** Callback for editing objects */
-  onEditObject?: (prefix: string, data: Record<string, unknown>) => Promise<void>;
   /** Callback for editing lists */
   onEditList?: (prefix: string, items: UIListItem[], manifest: UIListManifest, deletes: string[]) => Promise<void>;
   /** Callback for deleting */
@@ -70,7 +66,6 @@ export function KVDetailPanel({
   childKeys = [],
   allKeys = [],
   onEdit,
-  onEditObject,
   onEditList,
   onDelete,
   onRefresh,
@@ -108,13 +103,6 @@ export function KVDetailPanel({
   const handleEdit = async (editPath: string, data: KVPutRequest) => {
     await onEdit(editPath, data);
     setEditMode(false);
-  };
-
-  const handleEditObject = async (editPrefix: string, data: Record<string, unknown>) => {
-    if (onEditObject) {
-      await onEditObject(editPrefix, data);
-      setEditMode(false);
-    }
   };
 
   const handleEditList = async (
@@ -157,8 +145,6 @@ export function KVDetailPanel({
     switch (type) {
       case KVType.LEAF:
         return "default";
-      case KVType.OBJECT:
-        return "primary";
       case KVType.LIST:
         return "secondary";
       case KVType.FOLDER:
@@ -174,20 +160,6 @@ export function KVDetailPanel({
     if (detectedType === KVType.LIST) {
       return (
         <KVListView
-          serviceId={serviceId}
-          prefix={path}
-          onEdit={!isReadOnly ? () => setEditMode(true) : undefined}
-          onRefresh={onRefresh}
-          isReadOnly={isReadOnly}
-          isLoading={isLoading}
-        />
-      );
-    }
-
-    // OBJECT type: show Object view
-    if (detectedType === KVType.OBJECT) {
-      return (
-        <KVObjectView
           serviceId={serviceId}
           prefix={path}
           onEdit={!isReadOnly ? () => setEditMode(true) : undefined}
@@ -241,27 +213,13 @@ export function KVDetailPanel({
 
   // Edit mode - route to appropriate editor
   if (editMode) {
-    if (detectedType === KVType.OBJECT) {
-      return (
-        <KVObjectEditor
-          serviceId={serviceId}
-          prefix={path}
-          initialData={{}}
-          onSave={handleEditObject}
-          onCancel={handleCancel}
-          isReadOnly={isReadOnly}
-          isSaving={isEditing}
-        />
-      );
-    }
-
     if (detectedType === KVType.LIST) {
       return (
         <KVListEditor
           serviceId={serviceId}
           prefix={path}
           initialItems={[]}
-          initialManifest={{ order: [], version: 0 }}
+          initialManifest={undefined}
           onSave={handleEditList}
           onCancel={handleCancel}
           isReadOnly={isReadOnly}

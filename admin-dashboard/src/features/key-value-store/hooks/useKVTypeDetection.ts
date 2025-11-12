@@ -1,14 +1,13 @@
 /**
- * Hook for detecting KV entry type (LEAF, OBJECT, LIST, FOLDER)
+ * Hook for detecting KV entry type (LEAF, LIST, FOLDER)
  */
 
 import { useMemo } from "react";
 import type { KVEntry } from "../types";
-import { isListPrefix, isObjectPrefix, isFolderPrefix } from "../types";
+import { isListPrefix, isFolderPrefix } from "../types";
 
 export const KVType = {
   LEAF: "LEAF",
-  OBJECT: "OBJECT",
   LIST: "LIST",
   FOLDER: "FOLDER",
 } as const;
@@ -21,9 +20,9 @@ export interface UseKVTypeDetectionOptions {
   childKeys?: string[];
   /** Whether this is a prefix (has children) */
   isPrefix?: boolean;
-  /** All keys (for detecting List/Object prefixes) */
+  /** All keys (for detecting List prefixes) */
   allKeys?: string[];
-  /** Path of the entry (for detecting List/Object prefixes) */
+  /** Path of the entry (for detecting List prefixes) */
   path?: string;
 }
 
@@ -31,16 +30,16 @@ export interface UseKVTypeDetectionOptions {
  * Detects the type of a KV entry based on flags and structure.
  * 
  * Type detection priority (flags-first approach):
- * 1. Check entry flags (if entry exists): flags=1 → OBJECT, flags=2 → LIST, flags=0 → LEAF
+ * 1. Check entry flags (if entry exists): flags=2 → LIST, flags=0 → LEAF
  * 2. Check for .manifest key → LIST
- * 3. Check if prefix has children → FOLDER (if not LIST/OBJECT)
+ * 3. Check if prefix has children → FOLDER (if not LIST)
  * 4. Default → LEAF
  * 
  * Notes:
  * - Flags are authoritative when available
- * - OBJECT can only be reliably detected from flags (flags=1)
  * - LIST can be detected from .manifest key even without flags
- * - FOLDER is the default for prefixes with children that aren't LIST or OBJECT
+ * - FOLDER is the default for prefixes with children that aren't LIST
+ * - Flag value 1 (previously OBJECT) is reserved and falls back to LEAF/FOLDER
  */
 export function useKVTypeDetection(
   options: UseKVTypeDetectionOptions
@@ -49,16 +48,13 @@ export function useKVTypeDetection(
 
   return useMemo(() => {
     // 1. Check flags first (most authoritative)
-    // Flags: 0=LEAF, 1=OBJECT, 2=LIST
+    // Flags: 0=LEAF, 2=LIST (flag=1 is reserved, falls back to LEAF/FOLDER)
     if (entry?.flags !== undefined && entry.flags !== null) {
-      if (entry.flags === 1) {
-        return KVType.OBJECT;
-      }
       if (entry.flags === 2) {
         return KVType.LIST;
       }
-      // flags === 0 explicitly means LEAF
-      if (entry.flags === 0) {
+      // flags === 0 explicitly means LEAF (or flag=1 reserved, treat as LEAF)
+      if (entry.flags === 0 || entry.flags === 1) {
         // But check if it's actually a prefix with children (should be FOLDER)
         const keysForDetection = allKeys.length > 0 ? allKeys : childKeys;
         const pathToCheck = path || entry?.path || "";
@@ -83,15 +79,8 @@ export function useKVTypeDetection(
         return KVType.LIST;
       }
       
-      // Check if this path is an Object prefix
-      // Note: Without entry flags, isObjectPrefix will return false
-      // So we rely on flags from entry if available
-      if (entry && isObjectPrefix(pathToCheck, keysForDetection, [entry])) {
-        return KVType.OBJECT;
-      }
-      
-      // Check if this path is a Folder prefix (has children but not List/Object)
-      if (isFolderPrefix(pathToCheck, keysForDetection, entry ? [entry] : undefined)) {
+      // Check if this path is a Folder prefix (has children but not List)
+      if (isFolderPrefix(pathToCheck, keysForDetection)) {
         return KVType.FOLDER;
       }
     }
@@ -106,7 +95,7 @@ export function useKVTypeDetection(
         return KVType.LIST;
       }
 
-      // If has children but no manifest and not OBJECT, treat as FOLDER
+      // If has children but no manifest, treat as FOLDER
       return KVType.FOLDER;
     }
 

@@ -223,8 +223,8 @@ public class DataSeederService {
 
             // 7. KV Entries
             if (config.getKv().isEnabled()) {
-                log.info("Seeding KV entries for {} services...", data.kvEntriesByService.size());
-                result.kvEntriesSeeded = kvSeederService.seedKVEntriesForServices(data.kvEntriesByService);
+                log.info("Seeding KV entries for services...");
+                result.kvEntriesSeeded = kvSeederService.seedKVEntriesForServices(data.kvData);
                 log.info("Seeded {} KV entries", result.kvEntriesSeeded);
             } else {
                 result.kvEntriesSeeded = 0;
@@ -284,7 +284,7 @@ public class DataSeederService {
                 .username(SEEDER_ADMIN_USERNAME)
                 .email(SEEDER_ADMIN_EMAIL)
                 .teamIds(List.of()) // No team association
-                .roles(List.of("ROLE_SYS_ADMIN")) // Admin role for seeding operations
+                .roles(List.of("SYS_ADMIN")) // Admin role for seeding operations (bare role name)
                 .build();
 
         // Create authentication token

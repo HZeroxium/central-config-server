@@ -10,7 +10,6 @@ import com.example.control.domain.model.ApplicationService;
 import com.example.control.domain.model.kv.KVEntry;
 import com.example.control.domain.model.kv.KVListManifest;
 import com.example.control.domain.model.kv.KVListStructure;
-import com.example.control.domain.model.kv.KVObjectStructure;
 import com.example.control.domain.model.kv.KVTransactionOperation;
 import com.example.control.domain.model.kv.KVTransactionRequest;
 import com.example.control.domain.model.kv.KVTransactionResponse;
@@ -29,7 +28,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 
 /**
  * Orchestrator service for KV operations.
@@ -75,37 +73,6 @@ public class KVService {
         String absoluteKey = prefixPolicy.buildAbsoluteKey(serviceId, path);
 
         return kvQueryService.get(absoluteKey, options);
-    }
-
-    /**
-     * Get an assembled object represented under a prefix.
-     */
-    public Optional<KVObjectStructure> getObject(String serviceId,
-                                                 String prefix,
-                                                 KVStorePort.KVReadOptions options,
-                                                 UserContext userContext) {
-        log.debug("Getting KV object for service: {}, prefix: {}", serviceId, prefix);
-
-        validateServiceAccess(serviceId, userContext, false);
-
-        String absolutePrefix = prefixPolicy.buildAbsolutePrefix(serviceId, prefix);
-        List<KVEntry> entries = kvQueryService.listEntries(
-                absolutePrefix,
-                toListOptions(options, false)
-        );
-
-        if (entries.isEmpty()) {
-            return Optional.empty();
-        }
-
-        KVType type = entries.stream()
-                .map(kvTypeDetector::fromEntry)
-                .filter(t -> t != KVType.LEAF)
-                .findFirst()
-                .orElse(KVType.OBJECT);
-
-        var value = buildObjectTree(serviceId, prefix, entries, absolutePrefix);
-        return Optional.of(new KVObjectStructure(value, type));
     }
 
     /**
@@ -254,90 +221,6 @@ public class KVService {
     }
 
     @Transactional
-    public KVTransactionResponse putObject(String serviceId,
-                                           String prefix,
-                                           Map<String, Object> data,
-                                           UserContext userContext) {
-        validateServiceAccess(serviceId, userContext, true);
-
-        String absolutePrefix = prefixPolicy.buildAbsolutePrefix(serviceId, prefix);
-
-        // List existing keys under prefix to identify stale keys
-        List<KVEntry> existingEntries = kvQueryService.listEntries(
-                absolutePrefix,
-                KVStorePort.KVListOptions.builder().recurse(true).keysOnly(false).build()
-        );
-
-        // Build flattened structure for new data
-        Map<String, byte[]> flattened = flattenStructure(data);
-        Set<String> newKeys = flattened.keySet();
-
-        // Build operations: delete old keys + write new keys (atomic)
-        List<KVTransactionOperation> operations = new java.util.ArrayList<>();
-
-        // Handle empty data case: delete all existing keys
-        if (flattened.isEmpty()) {
-            if (!existingEntries.isEmpty()) {
-                for (KVEntry entry : existingEntries) {
-                    operations.add(KVTransactionOperation.DeleteOperation.builder()
-                            .key(entry.key())
-                            .cas(null)
-                            .recurse(false)
-                            .targetType(KVType.LEAF)
-                            .build());
-                }
-            }
-            // If no operations (empty data and no existing entries), return success
-            if (operations.isEmpty()) {
-                return new KVTransactionResponse(true, List.of(), "");
-            }
-        } else {
-            // Delete old keys that are not in new data
-            for (KVEntry entry : existingEntries) {
-                // Extract relative key from absolute key (absolutePrefix always ends with "/")
-                String relativeKey = entry.key().substring(absolutePrefix.length());
-                // Skip empty relative key (prefix itself, if exists as a key)
-                if (relativeKey.isEmpty()) {
-                    continue;
-                }
-                // Since absolutePrefix ends with "/", relativeKey should not have leading slash
-                // But handle edge case where it might (defensive programming)
-                if (relativeKey.startsWith("/")) {
-                    relativeKey = relativeKey.substring(1);
-                }
-                // Only delete if this key is not in the new data
-                if (!newKeys.contains(relativeKey)) {
-                    operations.add(KVTransactionOperation.DeleteOperation.builder()
-                            .key(entry.key())
-                            .cas(null)
-                            .recurse(false)
-                            .targetType(KVType.LEAF)
-                            .build());
-                }
-            }
-
-            // Write new/updated keys
-            flattened.forEach((relativeKey, valueBytes) -> operations.add(
-                    KVTransactionOperation.SetOperation.builder()
-                            .key(absolutePrefix + relativeKey)
-                            .value(valueBytes)
-                            .flags(KVType.OBJECT.getFlagValue())
-                            .targetType(KVType.OBJECT)
-                            .build()
-            ));
-        }
-
-        // Ensure we have operations before creating request
-        if (operations.isEmpty()) {
-            log.warn("No operations to execute for putObject. serviceId: {}, prefix: {}", serviceId, prefix);
-            return new KVTransactionResponse(true, List.of(), "");
-        }
-
-        KVTransactionRequest request = new KVTransactionRequest(serviceId, operations);
-        return kvTransactionService.execute(request);
-    }
-
-    @Transactional
     public KVTransactionResponse putList(String serviceId,
                                          String prefix,
                                          KVListStructure structure,
@@ -421,24 +304,6 @@ public class KVService {
                 .consistent(readOptions != null && readOptions.isConsistent())
                 .stale(readOptions != null && readOptions.isStale())
                 .build();
-    }
-
-    private Map<String, Object> buildObjectTree(String serviceId,
-                                                String relativePrefix,
-                                                List<KVEntry> entries,
-                                                String absolutePrefix) {
-        var root = new java.util.LinkedHashMap<String, Object>();
-        for (KVEntry entry : entries) {
-            if (isManifestKey(entry.key(), serviceId, relativePrefix) || isItemsKey(entry.key(), serviceId, relativePrefix)) {
-                continue;
-            }
-            String relativePath = entry.key().substring(absolutePrefix.length());
-            if (relativePath.isBlank()) {
-                continue;
-            }
-            insertValue(root, relativePath, kvTypeCodec.asString(entry.value()));
-        }
-        return java.util.Collections.unmodifiableMap(root);
     }
 
     private void insertValue(Map<String, Object> root, String path, String value) {

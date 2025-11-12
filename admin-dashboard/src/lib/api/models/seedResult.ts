@@ -27,5 +27,6 @@ export interface SeedResult {
   sharesSeeded?: number;
   approvalRequestsSeeded?: number;
   approvalDecisionsSeeded?: number;
+  kvEntriesSeeded?: number;
   totalSeeded?: number;
 }

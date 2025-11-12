@@ -22,12 +22,11 @@ import {
 } from "@mui/material";
 import {
   InsertDriveFile as LeafIcon,
-  Code as ObjectIcon,
   List as ListIcon,
 } from "@mui/icons-material";
 import { validateKVPath, normalizePath } from "../types";
 
-export type KVCreateType = "leaf" | "object" | "list";
+export type KVCreateType = "leaf" | "list";
 
 export interface KVCreateDialogProps {
   open: boolean;
@@ -97,13 +96,11 @@ export function KVCreateDialog({
 
   const typeDescriptions = {
     leaf: "A simple key-value entry with a single value (text, JSON, binary, etc.)",
-    object: "A structured object stored as multiple key-value pairs under a prefix",
     list: "An ordered list of items with a manifest for ordering and metadata",
   };
 
   const typeIcons = {
     leaf: <LeafIcon />,
-    object: <ObjectIcon />,
     list: <ListIcon />,
   };
 
@@ -129,7 +126,7 @@ export function KVCreateDialog({
               onChange={(e) => setSelectedType(e.target.value as KVCreateType)}
               aria-label="entry type"
             >
-              {(["leaf", "object", "list"] as const).map((type) => (
+              {(["leaf", "list"] as const).map((type) => (
                 <Card
                   key={type}
                   variant="outlined"
@@ -158,11 +155,7 @@ export function KVCreateDialog({
                           </Box>
                           <Box>
                             <Typography variant="body1" fontWeight="medium">
-                              {type === "leaf"
-                                ? "Leaf Entry"
-                                : type === "object"
-                                ? "Object"
-                                : "List"}
+                              {type === "leaf" ? "Leaf Entry" : "List"}
                             </Typography>
                             <Typography variant="caption" color="text.secondary">
                               {typeDescriptions[type]}
@@ -203,7 +196,7 @@ export function KVCreateDialog({
             />
             {selectedType !== "leaf" && (
               <Alert severity="info" sx={{ mt: 1 }} role="note">
-                Objects and Lists are stored under a prefix. All key-value pairs
+                Lists are stored under a prefix. All key-value pairs
                 will be created under this prefix path.
               </Alert>
             )}
