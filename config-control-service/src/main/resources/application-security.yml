@@ -48,3 +48,9 @@ springdoc:
       client-id: admin-dashboard
       use-pkce-with-authorization-code-grant: true
     oauth2-redirect-url: http://localhost:8081/swagger-ui/oauth2-redirect.html
+
+# API Key configuration for SDK client authentication
+security:
+  api-key:
+    enabled: ${ZCM_API_KEY_ENABLED:true}
+    key: ${ZCM_API_KEY:zcm-sdk-api-key-default-change-in-production}

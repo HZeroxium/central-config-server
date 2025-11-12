@@ -117,14 +117,29 @@ public class SecurityConfig {
      */
     @Bean
     @Order(1)
-    public SecurityFilterChain apiChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain apiChain(HttpSecurity http,
+                                        @org.springframework.beans.factory.annotation.Autowired(required = false) ApiKeyAuthenticationFilter apiKeyAuthenticationFilter) throws Exception {
         log.info("Configuring API security chain with Keycloak issuer: {}", securityProperties.getJwt().getIssuerUri());
+        
+        // Log API key authentication status
+        if (apiKeyAuthenticationFilter != null) {
+            log.info("API key authentication filter is enabled");
+        } else {
+            log.debug("API key authentication filter is disabled or not configured");
+        }
 
-        http
+        var httpBuilder = http
                 .securityMatcher("/api/**")
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+        
+        // Add API key authentication filter before JWT authentication (if enabled)
+        if (apiKeyAuthenticationFilter != null) {
+            httpBuilder.addFilterBefore(apiKeyAuthenticationFilter, org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter.class);
+        }
+        
+        httpBuilder
                 .authorizeHttpRequests(authz -> {
                     authz.requestMatchers("/api/heartbeat/**").permitAll();
 

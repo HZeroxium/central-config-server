@@ -338,4 +338,32 @@ public class UserContext {
     public Instant getUpdatedAt() {
         return updatedAt;
     }
+
+    /**
+     * Builds a {@link UserContext} from an API key authentication.
+     * <p>
+     * This method creates a minimal UserContext with SYS_ADMIN role for API key
+     * authenticated requests. The context contains only the necessary authorization
+     * information (role) without personal user information.
+     * </p>
+     *
+     * <p><strong>Created context</strong>:
+     * <ul>
+     *   <li>{@code roles = ["SYS_ADMIN"]}</li>
+     *   <li>{@code userId = "system-api-key"}</li>
+     *   <li>{@code username = "api-key-client"}</li>
+     *   <li>All other fields are null/empty</li>
+     * </ul>
+     * </p>
+     *
+     * @return a {@link UserContext} with SYS_ADMIN role for API key authentication
+     */
+    public static UserContext fromApiKey() {
+        return UserContext.builder()
+                .userId("system-api-key")
+                .username("api-key-client")
+                .roles(List.of("SYS_ADMIN"))
+                .teamIds(List.of())
+                .build();
+    }
 }
