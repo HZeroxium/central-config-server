@@ -75,7 +75,7 @@ app:
         allow-null-values: false
       config-hashes:
         ttl: 10m
-        maximum-size: 1000
+        maximum-size: 10000
         allow-null-values: false
       consul-services:
         ttl: 1m
@@ -143,4 +143,23 @@ seeding:
       rejected: 2 # Including cascade rejections
   admin:
     user-id: ${SEEDER_ADMIN_USER_ID:admin} # Default admin user ID from Keycloak
+
+  # Heartbeat optimization configuration
+  heartbeat:
+    async:
+      enabled: ${HEARTBEAT_ASYNC_ENABLED:true} # Feature flag for gradual rollout
+    kafka:
+      topic: ${HEARTBEAT_KAFKA_TOPIC:heartbeat-queue}
+      consumer:
+        concurrency: ${HEARTBEAT_CONSUMER_CONCURRENCY:10}
+        batch-size: ${HEARTBEAT_BATCH_SIZE:50}
+        max-retries: ${HEARTBEAT_MAX_RETRIES:3}
+        retry-backoff-ms: ${HEARTBEAT_RETRY_BACKOFF_MS:1000}
+      dlq:
+        topic: ${HEARTBEAT_DLQ_TOPIC:heartbeat-queue-dlq}
+        enabled: ${HEARTBEAT_DLQ_ENABLED:true}
+    cache:
+      pre-warm:
+        enabled: ${HEARTBEAT_CACHE_PREWARM_ENABLED:true}
+        delay: ${HEARTBEAT_CACHE_PREWARM_DELAY:30s} # Delay after startup before pre-warming
 

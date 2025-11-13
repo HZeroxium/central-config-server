@@ -10,11 +10,19 @@ spring:
       value-deserializer: org.apache.kafka.common.serialization.ByteArrayDeserializer
       properties:
         spring.json.trusted.packages: "*"
+      max-poll-records: 100
+      fetch-min-size: 1024
+      fetch-max-wait: 500ms
+      enable-auto-commit: false  # Manual commit for batch processing
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.ByteArraySerializer
       properties:
         spring.json.add.type.headers: false
+        batch.size: 16384
+        linger.ms: 10
+        compression.type: gzip  # Changed from snappy to gzip (no native libraries required)
+        acks: 1  # Leader acknowledgment for lower latency
 
   # Spring Cloud Bus Configuration
   cloud:
@@ -34,6 +42,7 @@ spring:
           producer-properties:
             key.serializer: org.apache.kafka.common.serialization.StringSerializer
             value.serializer: org.apache.kafka.common.serialization.ByteArraySerializer
+            compression.type: gzip  # Changed from snappy to gzip (no native libraries required)
           consumer-properties:
             key.deserializer: org.apache.kafka.common.serialization.StringDeserializer
             value.deserializer: org.apache.kafka.common.serialization.ByteArrayDeserializer

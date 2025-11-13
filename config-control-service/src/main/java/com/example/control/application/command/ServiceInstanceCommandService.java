@@ -3,6 +3,7 @@ package com.example.control.application.command;
 import com.example.control.domain.valueobject.id.ServiceInstanceId;
 import com.example.control.domain.model.ServiceInstance;
 import com.example.control.domain.port.repository.ServiceInstanceRepositoryPort;
+import com.mongodb.bulk.BulkWriteResult;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -98,5 +100,31 @@ public class ServiceInstanceCommandService {
         long count = repository.bulkUpdateTeamIdByServiceId(serviceId, newTeamId);
         log.info("Updated {} service instances for service: {}", count, serviceId);
         return count;
+    }
+
+    /**
+     * Bulk upsert service instances.
+     * <p>
+     * Efficiently upserts multiple service instances in a single MongoDB bulk operation.
+     * Used for batch heartbeat processing to reduce write overhead.
+     * <p>
+     * Evicts cache entries for all affected instances.
+     *
+     * @param instances list of service instances to upsert
+     * @return bulk write result with counts of inserted/updated documents
+     */
+    @CacheEvict(value = "service-instances", allEntries = true)
+    public BulkWriteResult bulkUpsert(List<ServiceInstance> instances) {
+        if (instances == null || instances.isEmpty()) {
+            log.debug("Empty instances list, skipping bulk upsert");
+            return null;
+        }
+
+        log.info("Bulk upserting {} service instances", instances.size());
+        BulkWriteResult result = repository.bulkUpsert(instances);
+        log.info("Bulk upsert completed: {} inserted, {} modified",
+                result != null ? result.getInsertedCount() : 0,
+                result != null ? result.getModifiedCount() : 0);
+        return result;
     }
 }

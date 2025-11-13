@@ -5,7 +5,9 @@ import com.example.control.domain.criteria.ApplicationServiceCriteria;
 import com.example.control.domain.port.RepositoryPort;
 import com.example.control.domain.valueobject.id.ApplicationServiceId;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Port (hexagonal architecture) for persisting and querying
@@ -30,4 +32,16 @@ public interface ApplicationServiceRepositoryPort
      * @return the application service if found, empty otherwise
      */
     Optional<ApplicationService> findByDisplayName(String displayName);
+
+    /**
+     * Find application services by display names (batch lookup).
+     * <p>
+     * Efficiently loads multiple application services in a single query for batch
+     * processing.
+     * Used during heartbeat batch processing to reduce database queries.
+     *
+     * @param displayNames set of display names to search for
+     * @return list of application services matching the display names
+     */
+    List<ApplicationService> findByDisplayNames(Set<String> displayNames);
 }

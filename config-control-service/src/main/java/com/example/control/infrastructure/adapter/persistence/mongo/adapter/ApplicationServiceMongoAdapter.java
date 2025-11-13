@@ -11,6 +11,8 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -139,5 +141,24 @@ public class ApplicationServiceMongoAdapter
 
         log.debug("Found application service by display name: {}", result.isPresent());
         return result;
+    }
+
+    @Override
+    public List<ApplicationService> findByDisplayNames(Set<String> displayNames) {
+        if (displayNames == null || displayNames.isEmpty()) {
+            return List.of();
+        }
+
+        log.debug("Finding application services by display names: {}", displayNames.size());
+
+        Query query = Query.query(Criteria.where("displayName").in(displayNames));
+        List<ApplicationServiceDocument> documents = mongoTemplate.find(query, ApplicationServiceDocument.class);
+
+        List<ApplicationService> services = documents.stream()
+                .map(this::toDomain)
+                .collect(Collectors.toList());
+
+        log.debug("Found {} application services out of {} requested", services.size(), displayNames.size());
+        return services;
     }
 }

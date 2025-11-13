@@ -43,8 +43,8 @@ public class ThriftServer {
 
             TThreadPoolServer.Args args = new TThreadPoolServer.Args(serverTransport)
                     .processor(processor)
-                    .minWorkerThreads(5)
-                    .maxWorkerThreads(50);
+                    .minWorkerThreads(20)
+                    .maxWorkerThreads(200);
 
             server = new TThreadPoolServer(args);
 

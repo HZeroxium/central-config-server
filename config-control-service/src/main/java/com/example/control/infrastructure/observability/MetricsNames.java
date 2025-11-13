@@ -44,6 +44,26 @@ public final class MetricsNames {
      * {@link com.example.control.application.service.infra.HeartbeatService#processHeartbeat}
      */
     public static final String PROCESS = "heartbeat.process";
+
+    /**
+     * Heartbeat batch processing operation.
+     * <p>
+     * Metric name: {@code heartbeat.batch.process}
+     * <p>
+     * Used in:
+     * {@link com.example.control.application.service.infra.HeartbeatBatchService#processBatch}
+     */
+    public static final String BATCH_PROCESS = "heartbeat.batch.process";
+
+    /**
+     * Heartbeat ingestion (enqueue) operation.
+     * <p>
+     * Metric name: {@code heartbeat.ingestion}
+     * <p>
+     * Used in:
+     * {@link com.example.control.application.service.infra.HeartbeatIngestionService#enqueue}
+     */
+    public static final String INGESTION = "heartbeat.ingestion";
   }
 
   /**

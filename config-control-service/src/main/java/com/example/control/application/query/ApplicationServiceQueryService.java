@@ -85,4 +85,23 @@ public class ApplicationServiceQueryService {
         log.debug("Finding application service by display name: {}", displayName);
         return repository.findByDisplayName(displayName);
     }
+
+    /**
+     * Find application services by display names (batch lookup).
+     * <p>
+     * Efficiently loads multiple application services in a single query for batch
+     * processing. Returns a map keyed by display name for O(1) lookup.
+     *
+     * @param displayNames set of display names to search for
+     * @return map of display name to ApplicationService (may be smaller than input if some don't exist)
+     */
+    public java.util.Map<String, ApplicationService> findByDisplayNamesMap(java.util.Set<String> displayNames) {
+        log.debug("Finding application services by display names: {}", displayNames.size());
+        List<ApplicationService> services = repository.findByDisplayNames(displayNames);
+        return services.stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        ApplicationService::getDisplayName,
+                        service -> service,
+                        (existing, replacement) -> existing)); // Keep first if duplicates
+    }
 }

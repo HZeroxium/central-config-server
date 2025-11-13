@@ -5,6 +5,10 @@ spring:
     mongodb:
       uri: ${MONGODB_URI:mongodb://mongodb:27017/config_control}
       auto-index-creation: true
+      options:
+        max-pool-size: 100
+        min-pool-size: 20
+        max-connection-idle-time: 30s
     redis:
       url: ${REDIS_URL:redis://:redis123@redis:6379}
       timeout: 2000ms

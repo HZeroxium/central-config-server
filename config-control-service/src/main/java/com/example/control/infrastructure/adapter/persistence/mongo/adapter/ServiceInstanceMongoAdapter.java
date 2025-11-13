@@ -6,15 +6,25 @@ import com.example.control.domain.valueobject.id.ServiceInstanceId;
 import com.example.control.domain.port.repository.ServiceInstanceRepositoryPort;
 import com.example.control.infrastructure.adapter.persistence.mongo.repository.ServiceInstanceMongoRepository;
 import com.example.control.infrastructure.adapter.persistence.mongo.documents.ServiceInstanceDocument;
+import com.mongodb.bulk.BulkWriteResult;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.mongodb.core.BulkOperations;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Component;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * MongoDB adapter implementing {@link ServiceInstanceRepositoryPort} using
  * Spring Data and MongoTemplate.
  */
+@Slf4j
 @Component
 public class ServiceInstanceMongoAdapter
         extends
@@ -93,5 +103,74 @@ public class ServiceInstanceMongoAdapter
     @Override
     protected Class<ServiceInstanceDocument> getDocumentClass() {
         return ServiceInstanceDocument.class;
+    }
+
+    @Override
+    public BulkWriteResult bulkUpsert(List<ServiceInstance> instances) {
+        if (instances.isEmpty()) {
+            log.debug("Empty instances list, skipping bulk upsert");
+            return null; // Return null for empty list (caller should handle)
+        }
+
+        log.debug("Bulk upserting {} service instances", instances.size());
+
+        BulkOperations bulkOps = mongoTemplate.bulkOps(
+                BulkOperations.BulkMode.UNORDERED,
+                ServiceInstanceDocument.class);
+
+        Instant now = Instant.now();
+        for (ServiceInstance instance : instances) {
+            ServiceInstanceDocument doc = toDocument(instance);
+            Query query = Query.query(Criteria.where("_id").is(instance.getId().instanceId()));
+            Update update = new Update()
+                    .set("serviceId", doc.getServiceId())
+                    .set("teamId", doc.getTeamId())
+                    .set("host", doc.getHost())
+                    .set("port", doc.getPort())
+                    .set("environment", doc.getEnvironment())
+                    .set("version", doc.getVersion())
+                    .set("configHash", doc.getConfigHash())
+                    .set("lastAppliedHash", doc.getLastAppliedHash())
+                    .set("expectedHash", doc.getExpectedHash())
+                    .set("status", doc.getStatus())
+                    .set("hasDrift", doc.getHasDrift())
+                    .set("driftDetectedAt", doc.getDriftDetectedAt())
+                    .set("lastSeenAt", doc.getLastSeenAt())
+                    .set("updatedAt", now)
+                    .set("metadata", doc.getMetadata())
+                    .setOnInsert("createdAt", doc.getCreatedAt() != null ? doc.getCreatedAt() : now);
+
+            bulkOps.upsert(query, update);
+        }
+
+        BulkWriteResult result = bulkOps.execute();
+        log.debug("Bulk upsert completed: {} inserted, {} modified, {} matched",
+                result.getInsertedCount(), result.getModifiedCount(), result.getMatchedCount());
+
+        return result;
+    }
+
+    @Override
+    public List<ServiceInstance> findAllByIds(Set<ServiceInstanceId> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+
+        log.debug("Finding {} service instances by IDs", ids.size());
+
+        // Extract instanceId strings from ServiceInstanceId set
+        List<String> instanceIdStrings = ids.stream()
+                .map(ServiceInstanceId::instanceId)
+                .collect(Collectors.toList());
+
+        Query query = Query.query(Criteria.where("_id").in(instanceIdStrings));
+        List<ServiceInstanceDocument> documents = mongoTemplate.find(query, ServiceInstanceDocument.class);
+
+        List<ServiceInstance> instances = documents.stream()
+                .map(this::toDomain)
+                .collect(Collectors.toList());
+
+        log.debug("Found {} service instances out of {} requested", instances.size(), ids.size());
+        return instances;
     }
 }

@@ -2,7 +2,9 @@ package com.example.control.api.http.controller.infra;
 
 import com.example.control.domain.model.HeartbeatPayload;
 import com.example.control.application.service.infra.HeartbeatService;
+import com.example.control.application.service.infra.HeartbeatIngestionService;
 import com.example.control.domain.model.ServiceInstance;
+import com.example.control.infrastructure.observability.heartbeat.HeartbeatMetrics;
 import com.example.control.api.http.exception.ErrorResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -16,6 +18,7 @@ import io.swagger.v3.oas.annotations.media.ExampleObject;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -41,6 +44,11 @@ import java.util.Map;
 public class HeartbeatController {
 
   private final HeartbeatService heartbeatService;
+  private final HeartbeatIngestionService heartbeatIngestionService;
+  private final HeartbeatMetrics heartbeatMetrics;
+
+  @Value("${app.heartbeat.async.enabled:true}")
+  private boolean asyncEnabled;
 
   /**
    * Processes a heartbeat payload sent from a service instance.
@@ -89,25 +97,38 @@ public class HeartbeatController {
       @Parameter(description = "Heartbeat payload with service instance information and config hash", schema = @Schema(implementation = HeartbeatPayload.class)) @Valid @RequestBody HeartbeatPayload payload) {
     log.debug("Received heartbeat from {}:{}", payload.getServiceName(), payload.getInstanceId());
 
-    ServiceInstance instance = heartbeatService.processHeartbeat(payload);
+    if (asyncEnabled) {
+      // Async mode: enqueue to Kafka and return immediately
+      heartbeatIngestionService.enqueue(payload);
+      heartbeatMetrics.recordReceived();
 
-    // Build response with null-safe values
-    // Use HashMap instead of Map.of() to handle null values
-    Map<String, Object> instanceMap = new HashMap<>();
-    instanceMap.put("serviceName", instance.getServiceId() != null ? instance.getServiceId() : "unknown");
-    instanceMap.put("instanceId", instance.getInstanceId() != null ? instance.getInstanceId() : "unknown");
-    instanceMap.put("status", instance.getStatus() != null ? instance.getStatus().name() : "UNKNOWN");
-    instanceMap.put("hasDrift", instance.isDrifted());
-    instanceMap.put("configHash", instance.getConfigHash() != null ? instance.getConfigHash() : "unknown");
-    instanceMap.put("lastAppliedHash",
-        instance.getLastAppliedHash() != null ? instance.getLastAppliedHash() : "unknown");
+      Map<String, Object> response = new HashMap<>();
+      response.put("status", "accepted");
+      response.put("message", "Heartbeat queued");
 
-    Map<String, Object> response = new HashMap<>();
-    response.put("status", "ok");
-    response.put("message", "Heartbeat processed");
-    response.put("instance", instanceMap);
+      return ResponseEntity.accepted().body(response);
+    } else {
+      // Synchronous mode: process immediately (backward compatibility)
+      ServiceInstance instance = heartbeatService.processHeartbeat(payload);
 
-    return ResponseEntity.ok(response);
+      // Build response with null-safe values
+      // Use HashMap instead of Map.of() to handle null values
+      Map<String, Object> instanceMap = new HashMap<>();
+      instanceMap.put("serviceName", instance.getServiceId() != null ? instance.getServiceId() : "unknown");
+      instanceMap.put("instanceId", instance.getInstanceId() != null ? instance.getInstanceId() : "unknown");
+      instanceMap.put("status", instance.getStatus() != null ? instance.getStatus().name() : "UNKNOWN");
+      instanceMap.put("hasDrift", instance.isDrifted());
+      instanceMap.put("configHash", instance.getConfigHash() != null ? instance.getConfigHash() : "unknown");
+      instanceMap.put("lastAppliedHash",
+          instance.getLastAppliedHash() != null ? instance.getLastAppliedHash() : "unknown");
+
+      Map<String, Object> response = new HashMap<>();
+      response.put("status", "ok");
+      response.put("message", "Heartbeat processed");
+      response.put("instance", instanceMap);
+
+      return ResponseEntity.ok(response);
+    }
   }
 
   /**
