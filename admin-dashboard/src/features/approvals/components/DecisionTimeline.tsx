@@ -9,7 +9,7 @@ import {
   Alert,
 } from "@mui/material";
 import { CheckCircle, Cancel, AccessTime, Person } from "@mui/icons-material";
-import { format } from "date-fns";
+import { formatTimestamp, parseTimestamp } from "@lib/utils/dateUtils";
 import type { ApprovalRequestResponse } from "@lib/api/models";
 import { useFindApprovalDecisionsByRequestId } from "@lib/api/hooks";
 import { useApproverInfo } from "../hooks/useApproverInfo";
@@ -127,11 +127,12 @@ export const DecisionTimeline: React.FC<DecisionTimelineProps> = ({
       });
     }
 
-    return events.sort(
-      (a, b) =>
-        new Date(a.timestamp || "").getTime() -
-        new Date(b.timestamp || "").getTime()
-    );
+    return events.sort((a, b) => {
+      const dateA = parseTimestamp(a.timestamp);
+      const dateB = parseTimestamp(b.timestamp);
+      if (!dateA || !dateB) return 0;
+      return dateA.getTime() - dateB.getTime();
+    });
   }, [request, decisions]);
 
   if (decisionsError) {
@@ -211,12 +212,7 @@ export const DecisionTimeline: React.FC<DecisionTimelineProps> = ({
                   >
                     <Typography variant="subtitle1">{event.title}</Typography>
                     <Typography variant="caption" color="text.secondary">
-                      {event.timestamp
-                        ? format(
-                            new Date(event.timestamp),
-                            "MMM dd, yyyy HH:mm"
-                          )
-                        : "Unknown"}
+                      {formatTimestamp(event.timestamp, "MMM dd, yyyy HH:mm", "Unknown")}
                     </Typography>
                   </Box>
                   <Box sx={{ mt: 0.5 }}>

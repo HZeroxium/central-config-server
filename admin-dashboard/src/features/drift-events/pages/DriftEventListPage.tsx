@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData } from "@tanstack/react-query";
 import {
   Box,
   Button,
@@ -32,6 +33,7 @@ import { ResolveDialog } from "../components/ResolveDialog";
 import { toast } from "@lib/toast/toast";
 import { handleApiError } from "@lib/api/errorHandler";
 import { useSearchWithToggle } from "@hooks/useSearchWithToggle";
+import { useDebouncedUrlSync } from "@hooks/useDebouncedUrlSync";
 import { formatISO } from "date-fns";
 import type {
   FindAllDriftEventsStatus,
@@ -101,39 +103,46 @@ export default function DriftEventListPage() {
     },
   });
 
-  // Sync URL params when filters change
-  useEffect(() => {
-    const params = new URLSearchParams();
-    if (effectiveSearch) params.set("search", effectiveSearch);
-    if (statusFilter) params.set("status", statusFilter);
-    if (severityFilter) params.set("severity", severityFilter);
-    if (unresolvedOnly) params.set("unresolvedOnly", "true");
-    if (detectedAtFrom) {
-      params.set(
-        "detectedAtFrom",
-        formatISO(detectedAtFrom, { representation: "date" })
-      );
-    }
-    if (detectedAtTo) {
-      params.set(
-        "detectedAtTo",
-        formatISO(detectedAtTo, { representation: "date" })
-      );
-    }
-    if (page > 0) params.set("page", page.toString());
-    if (pageSize !== 20) params.set("size", pageSize.toString());
-    setSearchParams(params, { replace: true });
-  }, [
-    effectiveSearch,
-    statusFilter,
-    severityFilter,
-    unresolvedOnly,
-    detectedAtFrom,
-    detectedAtTo,
-    page,
-    pageSize,
-    setSearchParams,
-  ]);
+  // Memoize search handlers to prevent unnecessary re-renders
+  const handleSearchChange = useCallback(
+    (value: string) => {
+      setSearch(value);
+    },
+    [setSearch]
+  );
+
+  const handleSearchSubmit = useCallback(() => {
+    handleManualSearch();
+    setPage(0);
+  }, [handleManualSearch]);
+
+  const handleRealtimeToggle = useCallback(
+    (enabled: boolean) => {
+      setRealtimeEnabled(enabled);
+      setPage(0);
+    },
+    [setRealtimeEnabled]
+  );
+
+  // Debounced URL sync to prevent blocking UI thread during typing
+  useDebouncedUrlSync({
+    values: {
+      search: effectiveSearch || undefined,
+      status: statusFilter || undefined,
+      severity: severityFilter || undefined,
+      unresolvedOnly: unresolvedOnly ? true : undefined,
+      detectedAtFrom: detectedAtFrom
+        ? formatISO(detectedAtFrom, { representation: "date" })
+        : undefined,
+      detectedAtTo: detectedAtTo
+        ? formatISO(detectedAtTo, { representation: "date" })
+        : undefined,
+      page: page > 0 ? page : undefined,
+      size: pageSize !== 20 ? pageSize : undefined,
+    },
+    debounceDelay: 300,
+    enabled: true,
+  });
 
   const { data, isLoading, error, refetch } = useFindAllDriftEvents(
     {
@@ -153,6 +162,7 @@ export default function DriftEventListPage() {
     {
       query: {
         staleTime: 10_000,
+        placeholderData: keepPreviousData, // Prevents flickering during refetch
         refetchInterval: autoRefresh ? 30000 : undefined, // 30 seconds if auto-refresh enabled
         refetchIntervalInBackground: false,
       },
@@ -277,22 +287,12 @@ export default function DriftEventListPage() {
             <Grid size={{ xs: 12, md: 4 }}>
               <SearchFieldWithToggle
                 value={search}
-                onChange={(value) => {
-                  setSearch(value);
-                  // Don't reset page on every keystroke - only when search triggers
-                }}
-                onSearch={() => {
-                  handleManualSearch();
-                  setPage(0); // Reset page when manual search is triggered
-                }}
+                onChange={handleSearchChange}
+                onSearch={handleSearchSubmit}
                 label="Search by Service Name"
                 placeholder="Search by service name"
                 realtimeEnabled={realtimeEnabled}
-                onRealtimeToggle={(enabled) => {
-                  setRealtimeEnabled(enabled);
-                  // Reset page when toggling modes
-                  setPage(0);
-                }}
+                onRealtimeToggle={handleRealtimeToggle}
                 loading={isLoading}
                 isDebouncing={isDebouncing}
                 resultCount={metadata?.totalElements}

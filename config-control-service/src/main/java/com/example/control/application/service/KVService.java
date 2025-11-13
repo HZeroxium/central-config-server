@@ -84,11 +84,11 @@ public class KVService {
      * Cached for stale reads only. Consistent reads bypass cache to ensure freshness.
      * </p>
      */
-    @Cacheable(
-            value = "kv-entries",
-            key = "T(com.example.control.infrastructure.cache.KVCacheKeyGenerator).generateListStructureKey(#serviceId, #prefix)",
-            condition = "!#options.consistent"
-    )
+    // @Cacheable(
+    //         value = "kv-entries",
+    //         key = "T(com.example.control.infrastructure.cache.KVCacheKeyGenerator).generateListStructureKey(#serviceId, #prefix)",
+    //         condition = "!#options.consistent"
+    // )
     public Optional<KVListStructure> getList(String serviceId,
                                              String prefix,
                                              KVStorePort.KVReadOptions options,
@@ -462,11 +462,11 @@ public class KVService {
      * Cached for stale reads only. Consistent reads bypass cache to ensure freshness.
      * </p>
      */
-    @Cacheable(
-            value = "kv-entries",
-            key = "T(com.example.control.infrastructure.cache.KVCacheKeyGenerator).generateViewKey(#serviceId, #prefix, #format.name())",
-            condition = "!#options.consistent"
-    )
+    // @Cacheable(
+    //         value = "kv-entries",
+    //         key = "T(com.example.control.infrastructure.cache.KVCacheKeyGenerator).generateViewKey(#serviceId, #prefix, #format.name())",
+    //         condition = "!#options.consistent"
+    // )
     @Transactional(readOnly = true)
     public Optional<byte[]> view(String serviceId,
                                  String prefix,

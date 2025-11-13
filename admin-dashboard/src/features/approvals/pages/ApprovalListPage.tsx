@@ -1,5 +1,6 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { keepPreviousData } from "@tanstack/react-query";
 import {
   Box,
   Button,
@@ -76,10 +77,22 @@ export default function ApprovalListPage() {
     handleSearch,
     handleReset: resetSearch,
     handleKeyPress,
-    isPending,
   } = useManualSearch({
     initialSearch: searchParams.get("search") || "",
   });
+
+  // Memoize search handlers to prevent unnecessary re-renders
+  const handleSearchChange = useCallback(
+    (value: string) => {
+      setSearch(value);
+    },
+    [setSearch]
+  );
+
+  const handleSearchSubmit = useCallback(() => {
+    handleSearch();
+    setPage(0);
+  }, [handleSearch]);
 
   // Sync URL params when filters change
   useEffect(() => {
@@ -139,6 +152,7 @@ export default function ApprovalListPage() {
     {
       query: {
         staleTime: 10_000,
+        placeholderData: keepPreviousData, // Prevents flickering during refetch
         refetchInterval: 30_000, // Auto-refresh every 30s
       },
     }
@@ -277,20 +291,13 @@ export default function ApprovalListPage() {
             <Grid size={{ xs: 12, md: 4 }}>
               <ManualSearchField
                 value={search}
-                onChange={(value) => {
-                  setSearch(value);
-                  // Don't reset page on every keystroke - only when search triggers
-                }}
-                onSearch={() => {
-                  handleSearch();
-                  setPage(0); // Reset page when search is triggered
-                }}
+                onChange={handleSearchChange}
+                onSearch={handleSearchSubmit}
                 onKeyPress={handleKeyPress}
                 label="Requester User ID (Exact Match)"
                 placeholder="Enter exact requester user ID"
                 disabled={showMyApprovalsOnly || isLoading}
                 loading={isLoading}
-                isPending={isPending}
                 resultCount={metadata?.totalElements}
                 tooltipText="Enter exact requester user ID. Use filters below for other searches."
                 helperText="Click search button or press Enter to search"

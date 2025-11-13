@@ -34,13 +34,13 @@ public class KVController {
    * Get a KV entry value as string.
    *
    * @param serviceId the service ID
-   * @param key       the key path (relative to service root)
+   * @param key       the key path (relative to service root, may contain slashes)
    * @return the string value or 404 if not found
    */
-  @GetMapping("/{serviceId}/{key}/string")
+  @GetMapping("/{serviceId}/string")
   @Operation(
       summary = "Get a KV entry as string",
-      description = "Retrieve a KV entry value as UTF-8 string"
+      description = "Retrieve a KV entry value as UTF-8 string. Key may contain slashes (e.g., config/api.endpoint)"
   )
   @ApiResponses({
       @ApiResponse(responseCode = "200", description = "KV entry found"),
@@ -50,15 +50,22 @@ public class KVController {
   })
   public ResponseEntity<String> getString(
       @Parameter(description = "Service ID", example = "sample-service") @PathVariable String serviceId,
-      @Parameter(description = "Key path", example = "config/db.url") @PathVariable String key) {
-    log.debug("Getting string KV entry for service: {}, key: {}", serviceId, key);
+      @Parameter(description = "Key path", example = "config/db.url") @RequestParam String key) {
+    // Normalize key: strip leading slash if present (/{*key} captures with leading slash)
+    String normalizedKey = (key != null && key.startsWith("/")) ? key.substring(1) : key;
+    log.debug("Getting string KV entry for service: {}, key: {} (normalized: {})", serviceId, key, normalizedKey);
 
-    String value = clientApi.kv().getString(serviceId, key);
-    if (value == null) {
-      return ResponseEntity.notFound().build();
+    try {
+      String value = clientApi.kv().getString(serviceId, normalizedKey);
+      if (value == null) {
+        log.debug("KV entry not found for service: {}, key: {}", serviceId, normalizedKey);
+        return ResponseEntity.notFound().build();
+      }
+      return ResponseEntity.ok(value);
+    } catch (Exception e) {
+      log.error("Error getting KV entry for service: {}, key: {}", serviceId, normalizedKey, e);
+      return ResponseEntity.status(500).body("Error: " + e.getMessage());
     }
-
-    return ResponseEntity.ok(value);
   }
 
   /**
@@ -68,7 +75,7 @@ public class KVController {
    * @param key       the key path
    * @return the integer value or 404 if not found
    */
-  @GetMapping("/{serviceId}/{key}/integer")
+  @GetMapping("/{serviceId}/integer")
   @Operation(
       summary = "Get a KV entry as integer",
       description = "Retrieve a KV entry value as integer"
@@ -81,10 +88,11 @@ public class KVController {
   })
   public ResponseEntity<Integer> getInteger(
       @Parameter(description = "Service ID", example = "sample-service") @PathVariable String serviceId,
-      @Parameter(description = "Key path", example = "config/server.port") @PathVariable String key) {
-    log.debug("Getting integer KV entry for service: {}, key: {}", serviceId, key);
+      @Parameter(description = "Key path", example = "config/server.port") @RequestParam String key) {
+    String normalizedKey = (key != null && key.startsWith("/")) ? key.substring(1) : key;
+    log.debug("Getting integer KV entry for service: {}, key: {} (normalized: {})", serviceId, key, normalizedKey);
 
-    Integer value = clientApi.kv().getInteger(serviceId, key);
+    Integer value = clientApi.kv().getInteger(serviceId, normalizedKey);
     if (value == null) {
       return ResponseEntity.notFound().build();
     }
@@ -99,7 +107,7 @@ public class KVController {
    * @param key       the key path
    * @return the boolean value or 404 if not found
    */
-  @GetMapping("/{serviceId}/{key}/boolean")
+  @GetMapping("/{serviceId}/boolean")
   @Operation(
       summary = "Get a KV entry as boolean",
       description = "Retrieve a KV entry value as boolean"
@@ -112,10 +120,11 @@ public class KVController {
   })
   public ResponseEntity<Boolean> getBoolean(
       @Parameter(description = "Service ID", example = "sample-service") @PathVariable String serviceId,
-      @Parameter(description = "Key path", example = "config/feature.enabled") @PathVariable String key) {
-    log.debug("Getting boolean KV entry for service: {}, key: {}", serviceId, key);
+      @Parameter(description = "Key path", example = "config/feature.enabled") @RequestParam String key) {
+    String normalizedKey = (key != null && key.startsWith("/")) ? key.substring(1) : key;
+    log.debug("Getting boolean KV entry for service: {}, key: {} (normalized: {})", serviceId, key, normalizedKey);
 
-    Boolean value = clientApi.kv().getBoolean(serviceId, key);
+    Boolean value = clientApi.kv().getBoolean(serviceId, normalizedKey);
     if (value == null) {
       return ResponseEntity.notFound().build();
     }
@@ -130,7 +139,7 @@ public class KVController {
    * @param key       the key path
    * @return the raw bytes or 404 if not found
    */
-  @GetMapping("/{serviceId}/{key}/bytes")
+  @GetMapping("/{serviceId}/bytes")
   @Operation(
       summary = "Get a KV entry as raw bytes",
       description = "Retrieve a KV entry value as raw bytes"
@@ -143,10 +152,11 @@ public class KVController {
   })
   public ResponseEntity<byte[]> getBytes(
       @Parameter(description = "Service ID", example = "sample-service") @PathVariable String serviceId,
-      @Parameter(description = "Key path", example = "config/db.url") @PathVariable String key) {
-    log.debug("Getting raw KV entry for service: {}, key: {}", serviceId, key);
+      @Parameter(description = "Key path", example = "config/db.url") @RequestParam String key) {
+    String normalizedKey = (key != null && key.startsWith("/")) ? key.substring(1) : key;
+    log.debug("Getting raw KV entry for service: {}, key: {} (normalized: {})", serviceId, key, normalizedKey);
 
-    byte[] value = clientApi.kv().getBytes(serviceId, key);
+    byte[] value = clientApi.kv().getBytes(serviceId, normalizedKey);
     if (value == null) {
       return ResponseEntity.notFound().build();
     }
@@ -163,7 +173,7 @@ public class KVController {
    * @param key       the key path
    * @return list of strings or empty list if not found
    */
-  @GetMapping("/{serviceId}/{key}/list")
+  @GetMapping("/{serviceId}/list")
   @Operation(
       summary = "Get a KV entry as list",
       description = "Retrieve a KV entry value as a list of strings (comma-separated or structured list)"
@@ -175,10 +185,11 @@ public class KVController {
   })
   public ResponseEntity<List<String>> getList(
       @Parameter(description = "Service ID", example = "sample-service") @PathVariable String serviceId,
-      @Parameter(description = "Key path", example = "config/hosts") @PathVariable String key) {
-    log.debug("Getting list KV entry for service: {}, key: {}", serviceId, key);
+      @Parameter(description = "Key path", example = "config/hosts") @RequestParam String key) {
+    String normalizedKey = (key != null && key.startsWith("/")) ? key.substring(1) : key;
+    log.debug("Getting list KV entry for service: {}, key: {} (normalized: {})", serviceId, key, normalizedKey);
 
-    List<String> value = clientApi.kv().getList(serviceId, key);
+    List<String> value = clientApi.kv().getList(serviceId, normalizedKey);
     return ResponseEntity.ok(value);
   }
 
@@ -215,7 +226,7 @@ public class KVController {
    * @param prefix    the prefix to list
    * @return list of maps (each map represents an item)
    */
-  @GetMapping("/{serviceId}/{prefix}/structured-list")
+  @GetMapping("/{serviceId}/structured-list")
   @Operation(
       summary = "Get structured list",
       description = "Get a structured list stored under a prefix as a list of maps"
@@ -227,10 +238,11 @@ public class KVController {
   })
   public ResponseEntity<List<Map<String, Object>>> getStructuredList(
       @Parameter(description = "Service ID", example = "sample-service") @PathVariable String serviceId,
-      @Parameter(description = "Prefix", example = "config/items") @PathVariable String prefix) {
-    log.debug("Getting structured list for service: {}, prefix: {}", serviceId, prefix);
+      @Parameter(description = "Prefix", example = "config/items") @RequestParam String prefix) {
+    String normalizedPrefix = (prefix != null && prefix.startsWith("/")) ? prefix.substring(1) : prefix;
+    log.debug("Getting structured list for service: {}, prefix: {} (normalized: {})", serviceId, prefix, normalizedPrefix);
 
-    List<Map<String, Object>> list = clientApi.kv().getStructuredList(serviceId, prefix);
+    List<Map<String, Object>> list = clientApi.kv().getStructuredList(serviceId, normalizedPrefix);
     return ResponseEntity.ok(list);
   }
 
@@ -267,7 +279,7 @@ public class KVController {
    * @param key       the key path
    * @return true if exists, false otherwise
    */
-  @GetMapping("/{serviceId}/{key}/exists")
+  @GetMapping("/{serviceId}/exists")
   @Operation(
       summary = "Check if KV entry exists",
       description = "Check if a KV entry exists"
@@ -279,10 +291,11 @@ public class KVController {
   })
   public ResponseEntity<Boolean> exists(
       @Parameter(description = "Service ID", example = "sample-service") @PathVariable String serviceId,
-      @Parameter(description = "Key path", example = "config/db.url") @PathVariable String key) {
-    log.debug("Checking if KV entry exists for service: {}, key: {}", serviceId, key);
+      @Parameter(description = "Key path", example = "config/db.url") @RequestParam String key) {
+    String normalizedKey = (key != null && key.startsWith("/")) ? key.substring(1) : key;
+    log.debug("Checking if KV entry exists for service: {}, key: {} (normalized: {})", serviceId, key, normalizedKey);
 
-    boolean exists = clientApi.kv().exists(serviceId, key);
+    boolean exists = clientApi.kv().exists(serviceId, normalizedKey);
     return ResponseEntity.ok(exists);
   }
 }

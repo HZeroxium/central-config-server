@@ -10,7 +10,7 @@ import {
 } from "@mui/icons-material";
 import { Box, Chip, Typography } from "@mui/material";
 import type { DriftEventResponse } from "@lib/api/models";
-import { format } from "date-fns";
+import { formatTimestamp } from "@lib/utils/dateUtils";
 
 interface DriftEventTableProps {
   events: DriftEventResponse[];
@@ -120,12 +120,7 @@ export function DriftEventTable({
       headerName: "Detected At",
       width: 160,
       renderCell: (params) => {
-        if (!params.value) return "-";
-        try {
-          return format(new Date(params.value), "MMM dd, yyyy HH:mm");
-        } catch {
-          return params.value;
-        }
+        return formatTimestamp(params.value, "MMM dd, yyyy HH:mm");
       },
     },
     {
@@ -133,12 +128,7 @@ export function DriftEventTable({
       headerName: "Resolved At",
       width: 160,
       renderCell: (params) => {
-        if (!params.value) return "-";
-        try {
-          return format(new Date(params.value), "MMM dd, yyyy HH:mm");
-        } catch {
-          return params.value;
-        }
+        return formatTimestamp(params.value, "MMM dd, yyyy HH:mm");
       },
     },
     {

@@ -5,6 +5,7 @@ import com.vng.zing.zcm.featureflags.SpringUnleashContextProvider;
 import io.getunleash.UnleashContext;
 import io.getunleash.Variant;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -36,7 +37,7 @@ import java.util.Map;
 public class FeatureFlagController {
 
   private final ClientApi client;
-  private final SpringUnleashContextProvider contextProvider;
+  private final ObjectProvider<SpringUnleashContextProvider> contextProviderProvider;
 
   /**
    * Checks if a feature flag is enabled.
@@ -58,7 +59,14 @@ public class FeatureFlagController {
       @RequestParam(required = false, defaultValue = "false") boolean fallback) {
     
     try {
-      UnleashContext context = contextProvider.getContext();
+      SpringUnleashContextProvider provider = contextProviderProvider.getIfAvailable();
+      if (provider == null) {
+        Map<String, Object> error = new LinkedHashMap<>();
+        error.put("status", "error");
+        error.put("message", "SpringUnleashContextProvider is not available. Feature flags may not be properly configured.");
+        return ResponseEntity.badRequest().body(error);
+      }
+      UnleashContext context = provider.getContext();
       boolean enabled = client.featureFlags().isEnabled(flagName, context, fallback);
       
       Map<String, Object> result = new LinkedHashMap<>();
@@ -106,7 +114,14 @@ public class FeatureFlagController {
       @PathVariable String flagName) {
     
     try {
-      UnleashContext context = contextProvider.getContext();
+      SpringUnleashContextProvider provider = contextProviderProvider.getIfAvailable();
+      if (provider == null) {
+        Map<String, Object> error = new LinkedHashMap<>();
+        error.put("status", "error");
+        error.put("message", "SpringUnleashContextProvider is not available. Feature flags may not be properly configured.");
+        return ResponseEntity.badRequest().body(error);
+      }
+      UnleashContext context = provider.getContext();
       Variant variant = client.featureFlags().getVariant(flagName, context);
       
       Map<String, Object> result = new LinkedHashMap<>();

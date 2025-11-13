@@ -77,10 +77,10 @@ public class ConfigController {
     }
 
     /**
-     * Feature flags endpoint
-     * Demonstrates dynamic configuration
+     * Feature flags endpoint (deprecated - use /api/features from FeatureFlagController instead)
+     * Demonstrates dynamic configuration from properties
      */
-    @GetMapping("/features")
+    @GetMapping("/config/features")
     public Map<String, Object> getFeatures() {
         Map<String, Object> features = new HashMap<>();
         features.put("darkMode", environment.getProperty("feature.dark-mode", Boolean.class, false));

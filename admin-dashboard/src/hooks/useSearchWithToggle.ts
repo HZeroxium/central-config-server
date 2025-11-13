@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useDebounce } from "./useDebounce";
 
 export interface UseSearchWithToggleOptions {
@@ -68,7 +68,7 @@ export function useSearchWithToggle(
   });
 
   // Search state
-  const [search, setSearch] = useState(initialSearch);
+  const [searchState, setSearchState] = useState(initialSearch);
   // Initialize manualSearch based on real-time state
   // If real-time is disabled initially, use initialSearch; otherwise empty
   const [manualSearch, setManualSearch] = useState(() => {
@@ -82,14 +82,19 @@ export function useSearchWithToggle(
     }
   });
 
+  // Set search synchronously for immediate visual feedback
+  const setSearch = useCallback((value: string) => {
+    setSearchState(value);
+  }, []);
+
   // Track debouncing state
   const [isDebouncing, setIsDebouncing] = useState(false);
   const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const previousSearchRef = useRef(search);
+  const previousSearchRef = useRef(searchState);
 
   // Debounce search when real-time is enabled
   const debouncedSearch = useDebounce(
-    search,
+    searchState,
     realtimeEnabled ? debounceDelay : 0
   );
 
@@ -101,7 +106,7 @@ export function useSearchWithToggle(
     }
 
     // If search value changed, we're starting to debounce
-    if (search !== previousSearchRef.current) {
+    if (searchState !== previousSearchRef.current) {
       setIsDebouncing(true);
       onDebounceStart?.();
 
@@ -116,7 +121,7 @@ export function useSearchWithToggle(
         onDebounceComplete?.();
       }, debounceDelay);
 
-      previousSearchRef.current = search;
+      previousSearchRef.current = searchState;
     }
 
     return () => {
@@ -124,14 +129,14 @@ export function useSearchWithToggle(
         clearTimeout(debounceTimeoutRef.current);
       }
     };
-  }, [search, realtimeEnabled, debounceDelay, onDebounceStart, onDebounceComplete]);
+  }, [searchState, realtimeEnabled, debounceDelay, onDebounceStart, onDebounceComplete]);
 
   // When debounced value changes, mark debouncing as complete
   useEffect(() => {
-    if (realtimeEnabled && debouncedSearch === search && search !== "") {
+    if (realtimeEnabled && debouncedSearch === searchState && searchState !== "") {
       setIsDebouncing(false);
     }
-  }, [debouncedSearch, search, realtimeEnabled]);
+  }, [debouncedSearch, searchState, realtimeEnabled]);
 
   // Update localStorage when real-time toggle changes
   useEffect(() => {
@@ -142,10 +147,12 @@ export function useSearchWithToggle(
     }
   }, [realtimeEnabled, storageKey]);
 
-  // Get effective search value
+  // Get effective search value (memoized to prevent unnecessary re-renders)
   // When real-time is enabled: use debounced search value
   // When real-time is disabled: use manual search value (set when user clicks search)
-  const effectiveSearch = realtimeEnabled ? debouncedSearch : manualSearch;
+  const effectiveSearch = useMemo(() => {
+    return realtimeEnabled ? debouncedSearch : manualSearch;
+  }, [realtimeEnabled, debouncedSearch, manualSearch]);
 
   // Toggle real-time search
   const setRealtimeEnabled = useCallback((enabled: boolean) => {
@@ -153,30 +160,30 @@ export function useSearchWithToggle(
     setIsDebouncing(false);
     // When switching from real-time to manual, keep current search value as manual
     if (!enabled) {
-      setManualSearch(search);
+      setManualSearch(searchState);
     }
     // When switching from manual to real-time, use current manual search
     if (enabled && manualSearch) {
       setSearch(manualSearch);
     }
-  }, [search, manualSearch]);
+  }, [searchState, manualSearch, setSearch]);
 
   // Trigger manual search
   const handleManualSearch = useCallback(() => {
     if (!realtimeEnabled) {
-      setManualSearch(search);
+      setManualSearch(searchState);
     }
-  }, [realtimeEnabled, search]);
+  }, [realtimeEnabled, searchState]);
 
   // Reset search state
   const handleReset = useCallback(() => {
     setSearch("");
     setManualSearch("");
     setIsDebouncing(false);
-  }, []);
+  }, [setSearch]);
 
   return {
-    search,
+    search: searchState,
     setSearch,
     debouncedSearch,
     manualSearch,

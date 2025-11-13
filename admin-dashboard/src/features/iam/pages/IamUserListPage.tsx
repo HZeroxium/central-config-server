@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { keepPreviousData } from "@tanstack/react-query";
 import {
   Box,
   Button,
@@ -18,6 +19,7 @@ import { useFindAllIamUsers } from "@lib/api/hooks";
 import { useAuth } from "@lib/keycloak/useAuth";
 import { IamUserTable } from "../components/IamUserTable";
 import { useSearchWithToggle } from "@hooks/useSearchWithToggle";
+import { useDebouncedUrlSync } from "@hooks/useDebouncedUrlSync";
 
 export default function IamUserListPage() {
   const navigate = useNavigate();
@@ -72,15 +74,58 @@ export default function IamUserListPage() {
     },
   });
 
-  // Sync URL params when filters change
-  useEffect(() => {
-    const params = new URLSearchParams();
-    if (effectiveUsernameSearch) params.set("username", effectiveUsernameSearch);
-    if (effectiveEmailSearch) params.set("email", effectiveEmailSearch);
-    if (page > 0) params.set("page", page.toString());
-    if (pageSize !== 20) params.set("size", pageSize.toString());
-    setSearchParams(params, { replace: true });
-  }, [effectiveUsernameSearch, effectiveEmailSearch, page, pageSize, setSearchParams]);
+  // Memoize search handlers to prevent unnecessary re-renders
+  const handleUsernameSearchChange = useCallback(
+    (value: string) => {
+      setUsernameSearch(value);
+    },
+    [setUsernameSearch]
+  );
+
+  const handleUsernameSearchSubmit = useCallback(() => {
+    handleUsernameManualSearch();
+    setPage(0);
+  }, [handleUsernameManualSearch]);
+
+  const handleUsernameRealtimeToggle = useCallback(
+    (enabled: boolean) => {
+      setUsernameRealtimeEnabled(enabled);
+      setPage(0);
+    },
+    [setUsernameRealtimeEnabled]
+  );
+
+  const handleEmailSearchChange = useCallback(
+    (value: string) => {
+      setEmailSearch(value);
+    },
+    [setEmailSearch]
+  );
+
+  const handleEmailSearchSubmit = useCallback(() => {
+    handleEmailManualSearch();
+    setPage(0);
+  }, [handleEmailManualSearch]);
+
+  const handleEmailRealtimeToggle = useCallback(
+    (enabled: boolean) => {
+      setEmailRealtimeEnabled(enabled);
+      setPage(0);
+    },
+    [setEmailRealtimeEnabled]
+  );
+
+  // Debounced URL sync to prevent blocking UI thread during typing
+  useDebouncedUrlSync({
+    values: {
+      username: effectiveUsernameSearch || undefined,
+      email: effectiveEmailSearch || undefined,
+      page: page > 0 ? page : undefined,
+      size: pageSize !== 20 ? pageSize : undefined,
+    },
+    debounceDelay: 300,
+    enabled: true,
+  });
 
   // Always call hooks, but control with enabled option
   const { data, isLoading, error, refetch } = useFindAllIamUsers(
@@ -94,6 +139,7 @@ export default function IamUserListPage() {
       query: {
         enabled: isSysAdmin,
         staleTime: 30_000,
+        placeholderData: keepPreviousData, // Prevents flickering during refetch
       },
     }
   );
@@ -145,22 +191,12 @@ export default function IamUserListPage() {
             <Grid size={{ xs: 12, md: 4 }}>
               <SearchFieldWithToggle
                 value={usernameSearch}
-                onChange={(value) => {
-                  setUsernameSearch(value);
-                  // Don't reset page on every keystroke - only when search triggers
-                }}
-                onSearch={() => {
-                  handleUsernameManualSearch();
-                  setPage(0); // Reset page when manual search is triggered
-                }}
+                onChange={handleUsernameSearchChange}
+                onSearch={handleUsernameSearchSubmit}
                 label="Search by Username"
                 placeholder="Search by username"
                 realtimeEnabled={usernameRealtimeEnabled}
-                onRealtimeToggle={(enabled) => {
-                  setUsernameRealtimeEnabled(enabled);
-                  // Reset page when toggling modes
-                  setPage(0);
-                }}
+                onRealtimeToggle={handleUsernameRealtimeToggle}
                 loading={isLoading}
                 isDebouncing={usernameIsDebouncing}
                 resultCount={metadata?.totalElements}
@@ -176,22 +212,12 @@ export default function IamUserListPage() {
             <Grid size={{ xs: 12, md: 4 }}>
               <SearchFieldWithToggle
                 value={emailSearch}
-                onChange={(value) => {
-                  setEmailSearch(value);
-                  // Don't reset page on every keystroke - only when search triggers
-                }}
-                onSearch={() => {
-                  handleEmailManualSearch();
-                  setPage(0); // Reset page when manual search is triggered
-                }}
+                onChange={handleEmailSearchChange}
+                onSearch={handleEmailSearchSubmit}
                 label="Search by Email"
                 placeholder="Search by email"
                 realtimeEnabled={emailRealtimeEnabled}
-                onRealtimeToggle={(enabled) => {
-                  setEmailRealtimeEnabled(enabled);
-                  // Reset page when toggling modes
-                  setPage(0);
-                }}
+                onRealtimeToggle={handleEmailRealtimeToggle}
                 loading={isLoading}
                 isDebouncing={emailIsDebouncing}
                 resultCount={metadata?.totalElements}

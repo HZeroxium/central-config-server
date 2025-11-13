@@ -28,7 +28,7 @@ import { toast } from "@lib/toast/toast";
 import { handleApiError } from "@lib/api/errorHandler";
 import InstanceStatusChip from "../components/InstanceStatusChip";
 import DriftIndicator from "../components/DriftIndicator";
-import { format } from "date-fns";
+import { formatTimestamp } from "@lib/utils/dateUtils";
 
 export default function ServiceInstanceDetailPage() {
   const { serviceName, instanceId } = useParams<{
@@ -299,12 +299,11 @@ export default function ServiceInstanceDetailPage() {
                 Last Seen At
               </Typography>
               <Typography variant="body1">
-                {instance.lastSeenAt
-                  ? format(
-                      new Date(instance.lastSeenAt),
-                      "MMM dd, yyyy HH:mm:ss"
-                    )
-                  : "N/A"}
+                {formatTimestamp(
+                  instance.lastSeenAt,
+                  "MMM dd, yyyy HH:mm:ss",
+                  "N/A"
+                )}
               </Typography>
             </Grid>
 
@@ -318,8 +317,8 @@ export default function ServiceInstanceDetailPage() {
                   Drift Detected At
                 </Typography>
                 <Typography variant="body1">
-                  {format(
-                    new Date(instance.driftDetectedAt),
+                  {formatTimestamp(
+                    instance.driftDetectedAt,
                     "MMM dd, yyyy HH:mm:ss"
                   )}
                 </Typography>

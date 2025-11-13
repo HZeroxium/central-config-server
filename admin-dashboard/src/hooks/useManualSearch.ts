@@ -1,4 +1,4 @@
-import { useState, useCallback, useTransition } from "react";
+import { useState, useCallback } from "react";
 
 export interface UseManualSearchOptions {
   /** Initial search value */
@@ -20,14 +20,12 @@ export interface UseManualSearchReturn {
   handleReset: () => void;
   /** Handle key press (Enter key to submit) */
   handleKeyPress: (e: React.KeyboardEvent<HTMLInputElement>) => void;
-  /** Whether input update is pending (for visual feedback) */
-  isPending: boolean;
 }
 
 /**
  * Hook to manage manual search functionality
  * No debouncing - search is triggered only on button click or Enter key
- * Uses useTransition to mark input updates as non-urgent for better performance
+ * Input updates are synchronous for immediate visual feedback
  */
 export function useManualSearch(
   options: UseManualSearchOptions = {}
@@ -36,13 +34,10 @@ export function useManualSearch(
 
   const [search, setSearchState] = useState(initialSearch);
   const [submittedSearch, setSubmittedSearch] = useState(initialSearch);
-  const [isPending, startTransition] = useTransition();
 
-  // Optimized setSearch using useTransition for non-urgent updates
+  // Set search synchronously for immediate visual feedback
   const setSearch = useCallback((value: string) => {
-    startTransition(() => {
-      setSearchState(value);
-    });
+    setSearchState(value);
   }, []);
 
   // Trigger search (urgent update)
@@ -80,7 +75,6 @@ export function useManualSearch(
     handleSearch,
     handleReset,
     handleKeyPress,
-    isPending,
   };
 }
 

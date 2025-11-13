@@ -33,6 +33,8 @@ import java.util.Map;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -236,13 +238,14 @@ public class SdkAutoConfiguration {
    */
   @Bean
   @ConditionalOnMissingBean
-  public ClientApi zcmClientApi(RestClient.Builder lbRestClientBuilder,
+  public ClientApi zcmClientApi(
+      @Qualifier("zcmLoadBalancedRestClientBuilder") RestClient.Builder lbRestClientBuilder,
       DiscoveryClient discoveryClient,
       ConfigHashCalculator hashCalc,
       PingSender pingSender,
       LoadBalancerStrategy loadBalancerStrategy,
-      @org.springframework.beans.factory.annotation.Autowired(required = false) FeatureFlagApi featureFlagApi,
-      @org.springframework.beans.factory.annotation.Autowired(required = false) KVApi kvApi) {
+      @Autowired(required = false) FeatureFlagApi featureFlagApi,
+      @Autowired(required = false) KVApi kvApi) {
     ClientImpl client = new ClientImpl(lbRestClientBuilder, discoveryClient, hashCalc, pingSender, loadBalancerStrategy);
     if (featureFlagApi != null) {
       client.setFeatureFlagApi(featureFlagApi);
@@ -316,7 +319,8 @@ public class SdkAutoConfiguration {
         .instanceId(instanceId)
         .unleashAPI(ff.getUnleashApiUrl())
         .apiKey(ff.getApiKey())
-        .synchronousFetchOnInitialisation(ff.isSynchronousFetchOnInitialisation())
+        // Disable synchronous fetch to avoid startup failure if Unleash server is unavailable
+        .synchronousFetchOnInitialisation(false)
         .sendMetricsInterval(ff.getSendMetricsInterval());
 
     // Attach context provider if available
@@ -325,7 +329,15 @@ public class SdkAutoConfiguration {
     }
 
     UnleashConfig config = configBuilder.build();
-    return new DefaultUnleash(config);
+    try {
+      Unleash unleash = new DefaultUnleash(config);
+      log.info("Unleash client initialized successfully");
+      return unleash;
+    } catch (Exception e) {
+      log.warn("Failed to initialize Unleash client: {}. Feature flags will be disabled. " +
+          "This is non-fatal and the application will continue to start.", e.getMessage());
+      return null;
+    }
   }
 
   /**
@@ -373,7 +385,7 @@ public class SdkAutoConfiguration {
   @ConditionalOnMissingBean
   @ConditionalOnProperty(prefix = "zcm.sdk.kv", name = "enabled", havingValue = "true", matchIfMissing = false)
   public ClientCredentialsTokenService clientCredentialsTokenService(
-      RestClient.Builder kvRestClientBuilder,
+      @Qualifier("kvRestClientBuilder") RestClient.Builder kvRestClientBuilder,
       Environment env) {
     SdkProperties.KVKeycloak keycloakConfig = props.getKv().getKeycloak();
 

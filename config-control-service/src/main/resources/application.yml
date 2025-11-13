@@ -24,6 +24,9 @@ spring:
       - "classpath:application-datasources.yml"
       - "classpath:application-security.yml"
       - "classpath:application-infrastructure.yml"
+  # threads:
+  #   virtual:
+  #     enabled: true
 
 # Logging Configuration
 logging:

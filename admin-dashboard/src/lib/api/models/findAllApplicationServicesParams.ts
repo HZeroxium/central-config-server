@@ -20,6 +20,7 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { FindAllApplicationServicesLifecycle } from './findAllApplicationServicesLifecycle';
+import type { FindAllApplicationServicesEnvironment } from './findAllApplicationServicesEnvironment';
 
 export type FindAllApplicationServicesParams = {
 /**
@@ -44,6 +45,12 @@ tags?: string;
  * @maxLength 200
  */
 search?: string;
+/**
+ * Filter by environment
+ * @minLength 0
+ * @maxLength 50
+ */
+environment?: FindAllApplicationServicesEnvironment;
 /**
  * Zero-based page index (0..N)
  * @minimum 0

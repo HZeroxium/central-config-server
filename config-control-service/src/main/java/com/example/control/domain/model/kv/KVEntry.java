@@ -1,5 +1,10 @@
 package com.example.control.domain.model.kv;
 
+import com.example.control.infrastructure.cache.jackson.ByteArrayBase64Deserializer;
+import com.example.control.infrastructure.cache.jackson.ByteArrayBase64Serializer;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import lombok.Builder;
 
 import java.util.Base64;
@@ -10,8 +15,13 @@ import java.util.Base64;
  * This is a domain-focused representation that abstracts away Consul-specific
  * details while preserving essential metadata for CAS operations and versioning.
  * </p>
+ * <p>
+ * <strong>Serialization:</strong> The {@code value} field is serialized as Base64 string
+ * to avoid type information issues with Jackson's default typing in Redis cache.
+ * </p>
  */
 @Builder
+@JsonTypeInfo(use = JsonTypeInfo.Id.NONE)
 public record KVEntry(
         /**
          * The absolute key path in Consul (e.g., "apps/service-id/kv/config/db.url").
@@ -20,7 +30,10 @@ public record KVEntry(
 
         /**
          * The value as raw bytes.
+         * Serialized as Base64 string in JSON to avoid type information issues.
          */
+        @JsonSerialize(using = ByteArrayBase64Serializer.class)
+        @JsonDeserialize(using = ByteArrayBase64Deserializer.class)
         byte[] value,
 
         /**

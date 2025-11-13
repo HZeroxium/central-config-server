@@ -40,8 +40,6 @@ export interface ManualSearchFieldProps {
   "aria-label"?: string;
   /** Handle key press event (for Enter key) */
   onKeyPress?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
-  /** Whether input update is pending (from useTransition) */
-  isPending?: boolean;
   /** Search result count for ARIA announcement */
   resultCount?: number;
 }
@@ -50,7 +48,7 @@ export interface ManualSearchFieldProps {
  * Manual search field component
  * Requires explicit button click or Enter key to trigger search
  * Useful for ID-based searches that require exact matches
- * Optimized with React.memo and useTransition for better performance
+ * Optimized with React.memo for better performance
  */
 export const ManualSearchField = memo(function ManualSearchField({
   value,
@@ -65,7 +63,6 @@ export const ManualSearchField = memo(function ManualSearchField({
   fullWidth = true,
   "aria-label": ariaLabel,
   onKeyPress,
-  isPending = false,
   resultCount,
 }: ManualSearchFieldProps) {
   const inputRef = useSearchFieldRef();
@@ -83,6 +80,14 @@ export const ManualSearchField = memo(function ManualSearchField({
       announcementRef.current = "";
     }
   }, [value, loading, resultCount]);
+
+  // Memoize onChange handler to prevent re-renders when parent passes new function
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      onChange(e.target.value);
+    },
+    [onChange]
+  );
 
   const handleClear = useCallback(() => {
     onChange("");
@@ -103,16 +108,13 @@ export const ManualSearchField = memo(function ManualSearchField({
     [onSearch, onKeyPress]
   );
 
-  // Visual feedback for pending state: subtle opacity change
-  const pendingOpacity = isPending ? 0.7 : 1;
-
   const searchField = (
     <TextField
       inputRef={inputRef}
       fullWidth={fullWidth}
       label={label}
       value={value}
-      onChange={(e) => onChange(e.target.value)}
+      onChange={handleChange}
       onKeyPress={handleKeyPressInternal}
       placeholder={placeholder}
       disabled={disabled || loading}
@@ -139,10 +141,6 @@ export const ManualSearchField = memo(function ManualSearchField({
           ) : undefined,
           "aria-label": ariaLabel || label,
         },
-      }}
-      sx={{
-        opacity: pendingOpacity,
-        transition: "opacity 0.2s ease-in-out",
       }}
     />
   );

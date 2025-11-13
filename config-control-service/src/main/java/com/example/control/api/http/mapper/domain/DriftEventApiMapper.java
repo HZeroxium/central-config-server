@@ -53,7 +53,7 @@ public final class DriftEventApiMapper {
                 .environment(ev.getEnvironment())
                 .severity(ev.getSeverity())
                 .status(ev.getStatus())
-                .detectedAt(Instant.now())
+                .detectedAt(ev.getDetectedAt())
                 .resolvedAt(ev.getResolvedAt())
                 .detectedBy(ev.getDetectedBy())
                 .resolvedBy(ev.getResolvedBy())

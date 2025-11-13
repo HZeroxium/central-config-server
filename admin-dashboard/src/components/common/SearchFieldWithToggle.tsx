@@ -90,6 +90,14 @@ export const SearchFieldWithToggle = memo(function SearchFieldWithToggle({
     }
   }, [value, loading, resultCount, isDebouncing]);
 
+  // Memoize onChange handler to prevent re-renders when parent passes new function
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      onChange(e.target.value);
+    },
+    [onChange]
+  );
+
   const handleClear = useCallback(() => {
     onChange("");
     // In real-time mode, clearing automatically triggers search via debounce
@@ -101,9 +109,12 @@ export const SearchFieldWithToggle = memo(function SearchFieldWithToggle({
       if (e.key === "Enter" && !realtimeEnabled) {
         e.preventDefault();
         onSearch();
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        onChange("");
       }
     },
-    [onSearch, realtimeEnabled]
+    [onSearch, onChange, realtimeEnabled]
   );
 
   // Visual feedback for debouncing: subtle border color change
@@ -120,7 +131,7 @@ export const SearchFieldWithToggle = memo(function SearchFieldWithToggle({
             fullWidth={fullWidth}
             label={label}
             value={value}
-            onChange={(e) => onChange(e.target.value)}
+            onChange={handleChange}
             onKeyPress={handleKeyPress}
             placeholder={placeholder}
             disabled={disabled || loading}

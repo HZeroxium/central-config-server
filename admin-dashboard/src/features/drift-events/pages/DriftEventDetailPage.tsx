@@ -33,7 +33,7 @@ import {
 import { useAuth } from "@features/auth/context";
 import { toast } from "@lib/toast/toast";
 import { handleApiError } from "@lib/api/errorHandler";
-import { format } from "date-fns";
+import { formatTimestamp } from "@lib/utils/dateUtils";
 
 const resolveSchema = z.object({
   note: z.string().min(1, "Resolution note is required"),
@@ -314,12 +314,11 @@ export default function DriftEventDetailPage() {
                 Detected At
               </Typography>
               <Typography variant="body1">
-                {driftEvent.detectedAt
-                  ? format(
-                      new Date(driftEvent.detectedAt),
-                      "MMM dd, yyyy HH:mm:ss"
-                    )
-                  : "N/A"}
+                {formatTimestamp(
+                  driftEvent.detectedAt,
+                  "MMM dd, yyyy HH:mm:ss",
+                  "N/A"
+                )}
               </Typography>
             </Grid>
 
@@ -332,12 +331,11 @@ export default function DriftEventDetailPage() {
                 Resolved At
               </Typography>
               <Typography variant="body1">
-                {driftEvent.resolvedAt
-                  ? format(
-                      new Date(driftEvent.resolvedAt),
-                      "MMM dd, yyyy HH:mm:ss"
-                    )
-                  : "Not resolved"}
+                {formatTimestamp(
+                  driftEvent.resolvedAt,
+                  "MMM dd, yyyy HH:mm:ss",
+                  "Not resolved"
+                )}
               </Typography>
             </Grid>
 

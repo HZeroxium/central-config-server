@@ -14,6 +14,7 @@ import {
   Info as InfoIcon,
   Schedule as ScheduleIcon,
 } from "@mui/icons-material";
+import { parseTimestamp } from "@lib/utils/dateUtils";
 
 interface ActivityItem {
   id: string;
@@ -55,7 +56,9 @@ const getActivityIcon = (
 };
 
 const formatTimestamp = (timestamp: string) => {
-  const date = new Date(timestamp);
+  const date = parseTimestamp(timestamp);
+  if (!date) return "Unknown";
+  
   const now = new Date();
   const diffInHours = Math.floor(
     (now.getTime() - date.getTime()) / (1000 * 60 * 60)

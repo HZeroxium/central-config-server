@@ -22,7 +22,7 @@ export function useGlobalSearchShortcut(
     searchFieldSelector = 'input[type="text"][aria-label*="Search"], input[type="text"][placeholder*="Search"], input[type="text"][placeholder*="search"]',
   } = options;
 
-  const handlerRef = useRef<(e: KeyboardEvent) => void>();
+  const handlerRef = useRef<((e: KeyboardEvent) => void) | undefined>(undefined);
 
   useEffect(() => {
     if (!enabled) return;
@@ -71,8 +71,8 @@ export function useGlobalSearchShortcut(
  * Hook to register a search field for Ctrl+K focus
  * Returns ref to attach to input element
  */
-export function useSearchFieldRef(): React.RefObject<HTMLInputElement> {
-  const inputRef = useRef<HTMLInputElement>(null);
+export function useSearchFieldRef(): React.RefObject<HTMLInputElement | null> {
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   const focusHandler = useCallback(() => {
     if (inputRef.current) {

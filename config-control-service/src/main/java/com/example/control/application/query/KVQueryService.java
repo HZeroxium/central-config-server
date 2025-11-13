@@ -36,11 +36,11 @@ public class KVQueryService {
      * @param options     read options
      * @return optional KV entry
      */
-    @Cacheable(
-            value = "kv-entries",
-            key = "T(com.example.control.infrastructure.cache.KVCacheKeyGenerator).generateKeyFromAbsolute(#absoluteKey)",
-            condition = "!#options.consistent && T(com.example.control.infrastructure.cache.KVCacheKeyGenerator).generateKeyFromAbsolute(#absoluteKey) != null"
-    )
+    // @Cacheable(
+    //         value = "kv-entries",
+    //         key = "T(com.example.control.infrastructure.cache.KVCacheKeyGenerator).generateKeyFromAbsolute(#absoluteKey)",
+    //         condition = "!#options.consistent && T(com.example.control.infrastructure.cache.KVCacheKeyGenerator).generateKeyFromAbsolute(#absoluteKey) != null"
+    // )
     public Optional<KVEntry> get(String absoluteKey, KVStorePort.KVReadOptions options) {
         log.debug("Getting KV entry: {}", absoluteKey);
         return kvStorePort.get(absoluteKey, options);
@@ -56,11 +56,11 @@ public class KVQueryService {
      * @param options list options
      * @return list of KV entries
      */
-    @Cacheable(
-            value = "kv-entries",
-            key = "T(com.example.control.infrastructure.cache.KVCacheKeyGenerator).generateListKeyFromAbsolute(#prefix, 'entries', #options)",
-            condition = "!#options.consistent && T(com.example.control.infrastructure.cache.KVCacheKeyGenerator).generateListKeyFromAbsolute(#prefix, 'entries', #options) != null"
-    )
+    // @Cacheable(
+    //         value = "kv-entries",
+    //         key = "T(com.example.control.infrastructure.cache.KVCacheKeyGenerator).generateListKeyFromAbsolute(#prefix, 'entries', #options)",
+    //         condition = "!#options.consistent && T(com.example.control.infrastructure.cache.KVCacheKeyGenerator).generateListKeyFromAbsolute(#prefix, 'entries', #options) != null"
+    // )
     public List<KVEntry> listEntries(String prefix, KVStorePort.KVListOptions options) {
         log.debug("Listing KV entries with prefix: {}", prefix);
         return kvStorePort.listEntries(prefix, options);
@@ -76,11 +76,11 @@ public class KVQueryService {
      * @param options list options
      * @return list of key paths
      */
-    @Cacheable(
-            value = "kv-entries",
-            key = "T(com.example.control.infrastructure.cache.KVCacheKeyGenerator).generateListKeyFromAbsolute(#prefix, 'keys', #options)",
-            condition = "!#options.consistent && T(com.example.control.infrastructure.cache.KVCacheKeyGenerator).generateListKeyFromAbsolute(#prefix, 'keys', #options) != null"
-    )
+    // @Cacheable(
+    //         value = "kv-entries",
+    //         key = "T(com.example.control.infrastructure.cache.KVCacheKeyGenerator).generateListKeyFromAbsolute(#prefix, 'keys', #options)",
+    //         condition = "!#options.consistent && T(com.example.control.infrastructure.cache.KVCacheKeyGenerator).generateListKeyFromAbsolute(#prefix, 'keys', #options) != null"
+    // )
     public List<String> listKeys(String prefix, KVStorePort.KVListOptions options) {
         log.debug("Listing KV keys with prefix: {}", prefix);
         return kvStorePort.listKeys(prefix, options);

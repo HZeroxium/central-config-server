@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Box,
@@ -57,10 +57,22 @@ export default function ApprovalDecisionListPage() {
     handleSearch,
     handleReset: resetRequestIdFilter,
     handleKeyPress,
-    isPending,
   } = useManualSearch({
     initialSearch: searchParams.get("requestId") || "",
   });
+
+  // Memoize search handlers to prevent unnecessary re-renders
+  const handleSearchChange = useCallback(
+    (value: string) => {
+      setRequestIdFilter(value);
+    },
+    [setRequestIdFilter]
+  );
+
+  const handleSearchSubmit = useCallback(() => {
+    handleSearch();
+    setPage(0);
+  }, [handleSearch]);
 
   // Sync URL params when filters change
   useEffect(() => {
@@ -225,19 +237,12 @@ export default function ApprovalDecisionListPage() {
             <Grid size={{ xs: 12, md: 4 }}>
               <ManualSearchField
                 value={requestIdFilter}
-                onChange={(value) => {
-                  setRequestIdFilter(value);
-                  // Don't reset page on every keystroke - only when search triggers
-                }}
-                onSearch={() => {
-                  handleSearch();
-                  setPage(0); // Reset page when search is triggered
-                }}
+                onChange={handleSearchChange}
+                onSearch={handleSearchSubmit}
                 onKeyPress={handleKeyPress}
                 label="Request ID (Exact Match)"
                 placeholder="Enter exact approval request ID"
                 loading={isLoading}
-                isPending={isPending}
                 resultCount={metadata?.totalElements}
                 tooltipText="Enter exact approval request ID."
                 helperText="Click search button or press Enter to search"

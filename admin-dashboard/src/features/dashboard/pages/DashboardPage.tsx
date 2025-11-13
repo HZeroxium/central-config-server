@@ -35,6 +35,7 @@ import type {
   InstanceStatusData,
   DriftEventsData,
 } from "../types";
+import { parseTimestamp } from "@lib/utils/dateUtils";
 
 export default function DashboardPage() {
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
@@ -232,19 +233,9 @@ export default function DashboardPage() {
     for (const drift of drifts) {
       if (!drift.detectedAt) continue;
 
-      let driftDate: Date;
       try {
-        if (typeof drift.detectedAt === "string") {
-          driftDate = new Date(drift.detectedAt);
-        } else {
-          // Handle other types (number, Date object, etc.)
-          const dateValue = drift.detectedAt as unknown;
-          if (dateValue && typeof dateValue === "object" && "getTime" in dateValue) {
-            driftDate = dateValue as Date;
-          } else {
-            driftDate = new Date(dateValue as string | number);
-          }
-        }
+        const driftDate = parseTimestamp(drift.detectedAt);
+        if (!driftDate) continue;
 
         // Check if drift is within date range
         if (driftDate < startDate || driftDate > endDate) continue;

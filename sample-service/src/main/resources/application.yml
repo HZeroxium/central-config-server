@@ -25,7 +25,7 @@ zcm:
           enabled: true # Enable Consul heartbeat
         register: true # Enable Consul registration
     feature-flags:
-      enabled: true # Enable Unleash Feature Flags
+      enabled: false # Enable Unleash Feature Flags
       unleash-api-url: ${UNLEASH_API_URL:http://unleash:4242/api/}
       api-key: ${UNLEASH_API_KEY:default:development.unleash-insecure-api-token}
       app-name: ${zcm.sdk.service.name} # Auto-mapped from service name
@@ -36,9 +36,12 @@ zcm:
       enabled: true # Enable Key-Value store functionality
       keycloak:
         token-endpoint: ${ZCM_SDK_KV_KEYCLOAK_TOKEN_ENDPOINT:http://keycloak:8080/realms/config-control/protocol/openid-connect/token}
-        client-id: ${ZCM_SDK_KV_KEYCLOAK_CLIENT_ID:sample-service}
-        client-secret: ${ZCM_SDK_KV_KEYCLOAK_CLIENT_SECRET:${KEYCLOAK_CLIENT_SECRET:sample-service-secret}}
+        client-id: ${ZCM_SDK_KV_KEYCLOAK_CLIENT_ID:config-control-service}
+        client-secret: ${ZCM_SDK_KV_KEYCLOAK_CLIENT_SECRET:${KEYCLOAK_CLIENT_SECRET:config-control-service-secret}}
         realm: ${ZCM_SDK_KV_KEYCLOAK_REALM:config-control}
+    api-key:
+      enabled: ${ZCM_SDK_API_KEY_ENABLED:true} # Enable API key authentication (preferred over JWT)
+      key: ${ZCM_SDK_API_KEY:zcm-sdk-api-key-default-change-in-production} # API key for SDK client authentication
 
 # Application server port
 server:
@@ -87,17 +90,11 @@ management:
       post:
         enabled: true
 
-# Logging
+# Logging configuration is handled by log4j2-spring.xml
+# This section is kept for backward compatibility but log4j2-spring.xml takes precedence
 logging:
   level:
     root: INFO
-    org.springframework.cloud.config: INFO
     com.example.sample: DEBUG
     com.vng.zing.zcm: DEBUG
-    # Disable verbose Consul HTTP wire logs
-    org.apache.http.wire: WARN
-    org.apache.http.headers: WARN
-    # Disable verbose Kafka consumer logs
-    org.apache.kafka.clients: WARN
-    org.springframework.kafka: INFO
 

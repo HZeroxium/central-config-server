@@ -16,7 +16,10 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.util.UriComponentsBuilder;
 
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -37,30 +40,43 @@ public class KVApiImpl implements KVApi {
   @Override
   public String getString(String serviceId, String key) {
     try {
-      String url = buildGetUrl(serviceId, key, false);
+      URI uri = buildGetUri(serviceId, key, false);
+      log.debug("Getting KV string for service: {}, key: {}, URI: {}", serviceId, key, uri);
+      
       var requestBuilder = restClient.get()
-          .uri(url)
+          .uri(uri)
           .accept(MediaType.APPLICATION_JSON);
       addAuthHeaders(requestBuilder);
-      KVResponseDtos.EntryResponse response = requestBuilder
-          .retrieve()
-          .onStatus(status -> status.value() == 404, (req, res) -> {
-            // Handle 404 gracefully - don't throw
-          })
-          .onStatus(HttpStatusCode::is4xxClientError, (req, res) -> {
-            handleClientError(res.getStatusCode(), req.getURI().toString());
-          })
-          .onStatus(HttpStatusCode::is5xxServerError, (req, res) -> {
-            throw new KVServerException("KV server error: " + res.getStatusCode());
-          })
-          .body(KVResponseDtos.EntryResponse.class);
+      
+      try {
+        KVResponseDtos.EntryResponse response = requestBuilder
+            .retrieve()
+            .onStatus(status -> status.value() == 404, (req, res) -> {
+              log.debug("KV entry not found (404) for service: {}, key: {}", serviceId, key);
+              // Return null by throwing a special exception that we'll catch
+              throw new HttpClientErrorException(res.getStatusCode(), "KV entry not found");
+            })
+            .onStatus(HttpStatusCode::is4xxClientError, (req, res) -> {
+              handleClientError(res.getStatusCode(), req.getURI().toString());
+            })
+            .onStatus(HttpStatusCode::is5xxServerError, (req, res) -> {
+              throw new KVServerException("KV server error: " + res.getStatusCode());
+            })
+            .body(KVResponseDtos.EntryResponse.class);
 
-      if (response == null) {
-        return null;
+        if (response == null) {
+          return null;
+        }
+
+        KVEntry entry = toKVEntry(response);
+        return entry.getValueAsString();
+      } catch (HttpClientErrorException e) {
+        if (e.getStatusCode().value() == 404) {
+          log.debug("KV entry not found for service: {}, key: {}", serviceId, key);
+          return null;
+        }
+        throw e;
       }
-
-      KVEntry entry = toKVEntry(response);
-      return entry.getValueAsString();
     } catch (KVAuthenticationException | KVAccessDeniedException | KVServerException e) {
       throw e;
     } catch (HttpClientErrorException e) {
@@ -144,25 +160,37 @@ public class KVApiImpl implements KVApi {
   @Override
   public byte[] getBytes(String serviceId, String key) {
     try {
-      String url = buildGetUrl(serviceId, key, true);
+      URI uri = buildGetUri(serviceId, key, true);
+      log.debug("Getting KV bytes for service: {}, key: {}, URI: {}", serviceId, key, uri);
+      
       var requestBuilder = restClient.get()
-          .uri(url)
+          .uri(uri)
           .accept(MediaType.APPLICATION_OCTET_STREAM);
       addAuthHeaders(requestBuilder);
-      byte[] response = requestBuilder
-          .retrieve()
-          .onStatus(status -> status.value() == 404, (req, res) -> {
-            // Handle 404 gracefully - don't throw
-          })
-          .onStatus(HttpStatusCode::is4xxClientError, (req, res) -> {
-            handleClientError(res.getStatusCode(), req.getURI().toString());
-          })
-          .onStatus(HttpStatusCode::is5xxServerError, (req, res) -> {
-            throw new KVServerException("KV server error: " + res.getStatusCode());
-          })
-          .body(byte[].class);
+      
+      try {
+        byte[] response = requestBuilder
+            .retrieve()
+            .onStatus(status -> status.value() == 404, (req, res) -> {
+              log.debug("KV entry not found (404) for service: {}, key: {}", serviceId, key);
+              throw new HttpClientErrorException(res.getStatusCode(), "KV entry not found");
+            })
+            .onStatus(HttpStatusCode::is4xxClientError, (req, res) -> {
+              handleClientError(res.getStatusCode(), req.getURI().toString());
+            })
+            .onStatus(HttpStatusCode::is5xxServerError, (req, res) -> {
+              throw new KVServerException("KV server error: " + res.getStatusCode());
+            })
+            .body(byte[].class);
 
-      return response;
+        return response;
+      } catch (HttpClientErrorException e) {
+        if (e.getStatusCode().value() == 404) {
+          log.debug("KV entry not found for service: {}, key: {}", serviceId, key);
+          return null;
+        }
+        throw e;
+      }
     } catch (KVAuthenticationException | KVAccessDeniedException | KVServerException e) {
       throw e;
     } catch (HttpClientErrorException e) {
@@ -233,32 +261,41 @@ public class KVApiImpl implements KVApi {
           .uri(url)
           .accept(MediaType.APPLICATION_JSON);
       addAuthHeaders(requestBuilder);
-      KVResponseDtos.ListResponseV2 response = requestBuilder
-          .retrieve()
-          .onStatus(status -> status.value() == 404, (req, res) -> {
-            // Handle 404 gracefully - don't throw
-          })
-          .onStatus(HttpStatusCode::is4xxClientError, (req, res) -> handleClientError(res.getStatusCode(), req.getURI().toString()))
-          .onStatus(HttpStatusCode::is5xxServerError, (req, res) -> {
-            throw new KVServerException("KV server error: " + res.getStatusCode());
-          })
-          .body(KVResponseDtos.ListResponseV2.class);
+      try {
+        KVResponseDtos.ListResponseV2 response = requestBuilder
+            .retrieve()
+            .onStatus(status -> status.value() == 404, (req, res) -> {
+              log.debug("KV structured list not found (404) for service: {}, prefix: {}", serviceId, prefix);
+              throw new HttpClientErrorException(res.getStatusCode(), "KV structured list not found");
+            })
+            .onStatus(HttpStatusCode::is4xxClientError, (req, res) -> handleClientError(res.getStatusCode(), req.getURI().toString()))
+            .onStatus(HttpStatusCode::is5xxServerError, (req, res) -> {
+              throw new KVServerException("KV server error: " + res.getStatusCode());
+            })
+            .body(KVResponseDtos.ListResponseV2.class);
 
-      if (response == null || response.items() == null) {
-        return new ArrayList<>();
-      }
-
-      // Extract items.data and return as List<Map<String, Object>>
-      // Ignore manifest as per requirements
-      List<Map<String, Object>> result = new ArrayList<>();
-      for (KVResponseDtos.ListResponseV2.ListItem item : response.items()) {
-        if (item.data() != null) {
-          result.add(new LinkedHashMap<>(item.data()));
-        } else {
-          result.add(new LinkedHashMap<>());
+        if (response == null || response.items() == null) {
+          return new ArrayList<>();
         }
+
+        // Extract items.data and return as List<Map<String, Object>>
+        // Ignore manifest as per requirements
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (KVResponseDtos.ListResponseV2.ListItem item : response.items()) {
+          if (item.data() != null) {
+            result.add(new LinkedHashMap<>(item.data()));
+          } else {
+            result.add(new LinkedHashMap<>());
+          }
+        }
+        return result;
+      } catch (HttpClientErrorException e) {
+        if (e.getStatusCode().value() == 404) {
+          log.debug("KV structured list not found for service: {}, prefix: {}", serviceId, prefix);
+          return new ArrayList<>();
+        }
+        throw e;
       }
-      return result;
     } catch (KVAuthenticationException | KVAccessDeniedException | KVServerException e) {
       throw e;
     } catch (HttpClientErrorException e) {
@@ -281,41 +318,50 @@ public class KVApiImpl implements KVApi {
           .uri(url)
           .accept(MediaType.APPLICATION_JSON);
       addAuthHeaders(requestBuilder);
-      KVResponseDtos.ListResponse response = requestBuilder
-          .retrieve()
-          .onStatus(status -> status.value() == 404, (req, res) -> {
-            // Handle 404 gracefully - don't throw
-          })
-          .onStatus(HttpStatusCode::is4xxClientError, (req, res) -> {
-            handleClientError(res.getStatusCode(), req.getURI().toString());
-          })
-          .onStatus(HttpStatusCode::is5xxServerError, (req, res) -> {
-            throw new KVServerException("KV server error: " + res.getStatusCode());
-          })
-          .body(KVResponseDtos.ListResponse.class);
+      try {
+        KVResponseDtos.ListResponse response = requestBuilder
+            .retrieve()
+            .onStatus(status -> status.value() == 404, (req, res) -> {
+              log.debug("KV entries not found (404) for service: {}, prefix: {}", serviceId, prefix);
+              throw new HttpClientErrorException(res.getStatusCode(), "KV entries not found");
+            })
+            .onStatus(HttpStatusCode::is4xxClientError, (req, res) -> {
+              handleClientError(res.getStatusCode(), req.getURI().toString());
+            })
+            .onStatus(HttpStatusCode::is5xxServerError, (req, res) -> {
+              throw new KVServerException("KV server error: " + res.getStatusCode());
+            })
+            .body(KVResponseDtos.ListResponse.class);
 
-      if (response == null || response.items() == null) {
-        return new HashMap<>();
-      }
-
-      // Convert list of entries to flat map
-      Map<String, Object> map = new LinkedHashMap<>();
-      for (KVResponseDtos.EntryResponse entry : response.items()) {
-        KVEntry kvEntry = toKVEntry(entry);
-        String path = kvEntry.path();
-        // Remove prefix from path if present
-        String key = path;
-        if (StringUtils.hasText(prefix) && path.startsWith(prefix)) {
-          key = path.substring(prefix.length());
-          // Remove leading slash if present
-          if (key.startsWith("/")) {
-            key = key.substring(1);
-          }
+        if (response == null || response.items() == null) {
+          return new HashMap<>();
         }
-        map.put(key, kvEntry.getValueAsString());
-      }
 
-      return map;
+        // Convert list of entries to flat map
+        Map<String, Object> map = new LinkedHashMap<>();
+        for (KVResponseDtos.EntryResponse entry : response.items()) {
+          KVEntry kvEntry = toKVEntry(entry);
+          String path = kvEntry.path();
+          // Remove prefix from path if present
+          String key = path;
+          if (StringUtils.hasText(prefix) && path.startsWith(prefix)) {
+            key = path.substring(prefix.length());
+            // Remove leading slash if present
+            if (key.startsWith("/")) {
+              key = key.substring(1);
+            }
+          }
+          map.put(key, kvEntry.getValueAsString());
+        }
+
+        return map;
+      } catch (HttpClientErrorException e) {
+        if (e.getStatusCode().value() == 404) {
+          log.debug("KV entries not found for service: {}, prefix: {}", serviceId, prefix);
+          return new HashMap<>();
+        }
+        throw e;
+      }
     } catch (KVAuthenticationException | KVAccessDeniedException | KVServerException e) {
       throw e;
     } catch (HttpClientErrorException e) {
@@ -341,24 +387,33 @@ public class KVApiImpl implements KVApi {
           .uri(url)
           .accept(MediaType.APPLICATION_JSON);
       addAuthHeaders(requestBuilder);
-      KVResponseDtos.KeysResponse response = requestBuilder
-          .retrieve()
-          .onStatus(status -> status.value() == 404, (req, res) -> {
-            // Handle 404 gracefully - don't throw
-          })
-          .onStatus(HttpStatusCode::is4xxClientError, (req, res) -> {
-            handleClientError(res.getStatusCode(), req.getURI().toString());
-          })
-          .onStatus(HttpStatusCode::is5xxServerError, (req, res) -> {
-            throw new KVServerException("KV server error: " + res.getStatusCode());
-          })
-          .body(KVResponseDtos.KeysResponse.class);
+      try {
+        KVResponseDtos.KeysResponse response = requestBuilder
+            .retrieve()
+            .onStatus(status -> status.value() == 404, (req, res) -> {
+              log.debug("KV keys not found (404) for service: {}, prefix: {}", serviceId, prefix);
+              throw new HttpClientErrorException(res.getStatusCode(), "KV keys not found");
+            })
+            .onStatus(HttpStatusCode::is4xxClientError, (req, res) -> {
+              handleClientError(res.getStatusCode(), req.getURI().toString());
+            })
+            .onStatus(HttpStatusCode::is5xxServerError, (req, res) -> {
+              throw new KVServerException("KV server error: " + res.getStatusCode());
+            })
+            .body(KVResponseDtos.KeysResponse.class);
 
-      if (response == null || response.keys() == null) {
-        return new ArrayList<>();
+        if (response == null || response.keys() == null) {
+          return new ArrayList<>();
+        }
+
+        return new ArrayList<>(response.keys());
+      } catch (HttpClientErrorException e) {
+        if (e.getStatusCode().value() == 404) {
+          log.debug("KV keys not found for service: {}, prefix: {}", serviceId, prefix);
+          return new ArrayList<>();
+        }
+        throw e;
       }
-
-      return new ArrayList<>(response.keys());
     } catch (KVAuthenticationException | KVAccessDeniedException | KVServerException e) {
       throw e;
     } catch (HttpClientErrorException e) {
@@ -379,22 +434,48 @@ public class KVApiImpl implements KVApi {
   @Override
   public String view(String serviceId, String prefix, KVStructuredFormat format) {
     try {
-      String url = buildStructuredUrl(serviceId, prefix, "view") + "?format=" + format.name().toLowerCase();
+      String baseUrl = sdkProperties.getControlUrl();
+      if (!StringUtils.hasText(baseUrl)) {
+        throw new IllegalStateException("Control URL not configured. Set zcm.sdk.control.url");
+      }
+      String normalized = normalizePrefix(prefix);
+      
+      UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(baseUrl)
+          .path("/api/application-services/{serviceId}/kv/view")
+          .queryParam("format", format.name().toLowerCase());
+      
+      if (StringUtils.hasText(normalized)) {
+        builder.queryParam("prefix", normalized);
+      }
+      
+      String url = builder.buildAndExpand(serviceId)
+          .encode(StandardCharsets.UTF_8)
+          .toUriString();
+      
       var requestBuilder = restClient.get()
           .uri(url)
           .accept(MediaType.ALL);
       addAuthHeaders(requestBuilder);
-      String response = requestBuilder
-          .retrieve()
-          .onStatus(status -> status.value() == 404, (req, res) -> {
-            // Handle 404 gracefully - don't throw
-          })
-          .onStatus(HttpStatusCode::is4xxClientError, (req, res) -> handleClientError(res.getStatusCode(), req.getURI().toString()))
-          .onStatus(HttpStatusCode::is5xxServerError, (req, res) -> {
-            throw new KVServerException("KV server error: " + res.getStatusCode());
-          })
-          .body(String.class);
-      return response;
+      try {
+        String response = requestBuilder
+            .retrieve()
+            .onStatus(status -> status.value() == 404, (req, res) -> {
+              log.debug("KV view not found (404) for service: {}, prefix: {}", serviceId, prefix);
+              throw new HttpClientErrorException(res.getStatusCode(), "KV view not found");
+            })
+            .onStatus(HttpStatusCode::is4xxClientError, (req, res) -> handleClientError(res.getStatusCode(), req.getURI().toString()))
+            .onStatus(HttpStatusCode::is5xxServerError, (req, res) -> {
+              throw new KVServerException("KV server error: " + res.getStatusCode());
+            })
+            .body(String.class);
+        return response;
+      } catch (HttpClientErrorException e) {
+        if (e.getStatusCode().value() == 404) {
+          log.debug("KV view not found for service: {}, prefix: {}", serviceId, prefix);
+          return null;
+        }
+        throw e;
+      }
     } catch (KVAuthenticationException | KVAccessDeniedException | KVServerException e) {
       throw e;
     } catch (HttpClientErrorException e) {
@@ -413,9 +494,9 @@ public class KVApiImpl implements KVApi {
   public boolean exists(String serviceId, String key) {
     try {
       // Try to get the entry - if it doesn't throw a 404, it exists
-      String url = buildGetUrl(serviceId, key, false);
+      URI uri = buildGetUri(serviceId, key, false);
       var requestBuilder = restClient.get()
-          .uri(url)
+          .uri(uri)
           .accept(MediaType.APPLICATION_JSON);
       addAuthHeaders(requestBuilder);
       requestBuilder
@@ -472,17 +553,39 @@ public class KVApiImpl implements KVApi {
       requestBuilder.header("X-API-Key", sdkProperties.getApiKey().getKey());
       log.debug("Using API key for KV authentication");
     } else if (tokenProvider != null) {
-      // Fall back to JWT token
-      requestBuilder.header("Authorization", "Bearer " + tokenProvider.getAccessToken());
-      log.debug("Using JWT token for KV authentication");
+      try {
+        // Fall back to JWT token
+        String token = tokenProvider.getAccessToken();
+        requestBuilder.header("Authorization", "Bearer " + token);
+        log.debug("Using JWT token for KV authentication (token length: {})", token != null ? token.length() : 0);
+      } catch (Exception e) {
+        log.error("Failed to get access token for KV authentication", e);
+        throw new KVAuthenticationException("Failed to get access token: " + e.getMessage(), e);
+      }
+    } else {
+      log.warn("No authentication method configured for KV API - request may fail");
     }
     return requestBuilder;
   }
 
   /**
    * Builds URL for GET operation.
+   * <p>
+   * Uses UriComponentsBuilder to properly encode the path, ensuring that
+   * keys with special characters (like slashes, dots) are correctly handled.
+   * <p>
+   * The config-control-service uses pattern {@code /{*path}} which captures
+   * all path segments after {@code /kv/} into a single path variable.
+   * The key may contain slashes (e.g., "config/api.endpoint"), which need to be
+   * properly encoded in the URL but will be decoded by Spring when matching the pattern.
+   * </p>
+   * <p>
+   * Important: We use {@code buildAndExpand()} first to expand path variables,
+   * then encode the entire URI. This ensures that slashes in the key are properly
+   * encoded as %2F, which Spring will decode back to / when matching the pattern.
+   * </p>
    */
-  private String buildGetUrl(String serviceId, String key, boolean raw) {
+  private URI buildGetUri(String serviceId, String key, boolean raw) {
     String baseUrl = sdkProperties.getControlUrl();
     if (!StringUtils.hasText(baseUrl)) {
       throw new IllegalStateException("Control URL not configured. Set zcm.sdk.control.url");
@@ -491,15 +594,28 @@ public class KVApiImpl implements KVApi {
     // Normalize key: remove leading slash if present
     String normalizedKey = key.startsWith("/") ? key.substring(1) : key;
 
-    String url = baseUrl + "/api/application-services/" + serviceId + "/kv/" + normalizedKey;
+    // Build URI: expand path variables first, then encode
+    // This ensures that slashes in the key are properly encoded as %2F
+    UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(baseUrl)
+        .path("/api/application-services/{serviceId}/kv/{key}");
+
     if (raw) {
-      url += "?raw=true";
+      builder.queryParam("raw", "true");
     }
-    return url;
+
+    // Expand path variables first, then encode the entire URI
+    URI uri = builder.buildAndExpand(serviceId, normalizedKey)
+        .encode(StandardCharsets.UTF_8)
+        .toUri();
+    log.debug("Built KV GET URI: {} (from key: {})", uri, key);
+    return uri;
   }
 
   /**
    * Builds URL for LIST operation.
+   * <p>
+   * Uses UriComponentsBuilder to properly encode query parameters.
+   * </p>
    */
   private String buildListUrl(String serviceId, String prefix, boolean keysOnly) {
     String baseUrl = sdkProperties.getControlUrl();
@@ -507,25 +623,20 @@ public class KVApiImpl implements KVApi {
       throw new IllegalStateException("Control URL not configured. Set zcm.sdk.control.url");
     }
 
-    StringBuilder url = new StringBuilder(baseUrl)
-        .append("/api/application-services/")
-        .append(serviceId)
-        .append("/kv");
+    UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(baseUrl)
+        .path("/api/application-services/{serviceId}/kv")
+        .queryParam("recurse", "true");
 
-    List<String> params = new ArrayList<>();
     if (StringUtils.hasText(prefix)) {
-      params.add("prefix=" + prefix);
+      builder.queryParam("prefix", prefix);
     }
     if (keysOnly) {
-      params.add("keysOnly=true");
-    }
-    params.add("recurse=true");
-
-    if (!params.isEmpty()) {
-      url.append("?").append(String.join("&", params));
+      builder.queryParam("keysOnly", "true");
     }
 
-    return url.toString();
+    return builder.buildAndExpand(serviceId)
+        .encode(StandardCharsets.UTF_8)
+        .toUriString();
   }
 
   /**
@@ -558,21 +669,31 @@ public class KVApiImpl implements KVApi {
     }
   }
   
+  /**
+   * Builds URL for structured operations (list, view).
+   * <p>
+   * Uses UriComponentsBuilder to properly encode path and query parameters.
+   * The prefix is passed as a query parameter, not a path variable.
+   * </p>
+   */
   private String buildStructuredUrl(String serviceId, String prefix, String suffix) {
     String baseUrl = sdkProperties.getControlUrl();
     if (!StringUtils.hasText(baseUrl)) {
       throw new IllegalStateException("Control URL not configured. Set zcm.sdk.control.url");
     }
     String normalized = normalizePrefix(prefix);
-    StringBuilder sb = new StringBuilder(baseUrl)
-        .append("/api/application-services/")
-        .append(serviceId)
-        .append("/kv");
+    
+    UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(baseUrl)
+        .path("/api/application-services/{serviceId}/kv/{suffix}");
+    
+    // Prefix is a query parameter, not a path variable
     if (StringUtils.hasText(normalized)) {
-      sb.append("/").append(normalized);
+      builder.queryParam("prefix", normalized);
     }
-    sb.append("/").append(suffix);
-    return sb.toString();
+    
+    return builder.buildAndExpand(serviceId, suffix)
+        .encode(StandardCharsets.UTF_8)
+        .toUriString();
   }
 
   private String normalizePrefix(String prefix) {

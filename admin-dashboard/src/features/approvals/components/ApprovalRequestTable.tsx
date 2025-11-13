@@ -6,7 +6,7 @@ import {
 import { Visibility as ViewIcon } from "@mui/icons-material";
 import { Box, Chip, LinearProgress, Tooltip, Typography } from "@mui/material";
 import type { ApprovalRequestResponse } from "@lib/api/models";
-import { format } from "date-fns";
+import { formatTimestamp } from "@lib/utils/dateUtils";
 
 interface ApprovalRequestTableProps {
   readonly requests: ApprovalRequestResponse[];
@@ -124,12 +124,7 @@ export function ApprovalRequestTable({
       headerName: "Created",
       width: 160,
       renderCell: (params) => {
-        if (!params.value) return "-";
-        try {
-          return format(new Date(params.value), "MMM dd, yyyy HH:mm");
-        } catch {
-          return params.value;
-        }
+        return formatTimestamp(params.value, "MMM dd, yyyy HH:mm");
       },
     },
     {

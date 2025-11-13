@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData } from "@tanstack/react-query";
 import {
   Box,
   Button,
@@ -36,6 +37,7 @@ import { ApplicationServiceTable } from "../components/ApplicationServiceTable";
 import { ApplicationServiceForm } from "../components/ApplicationServiceForm";
 import { ClaimOwnershipDialog } from "../components/ClaimOwnershipDialog";
 import { useSearchWithToggle } from "@hooks/useSearchWithToggle";
+import { useDebouncedUrlSync } from "@hooks/useDebouncedUrlSync";
 import type {
   ApplicationServiceResponse,
   FindAllApplicationServicesParams,
@@ -99,28 +101,41 @@ export default function ApplicationServiceListPage() {
     },
   });
 
-  // Sync URL params when filters change
-  useEffect(() => {
-    const params = new URLSearchParams();
-    if (effectiveSearch) params.set("search", effectiveSearch);
-    if (lifecycleFilter) params.set("lifecycle", lifecycleFilter);
-    if (ownerTeamFilter && !showUnassignedOnly)
-      params.set("ownerTeamId", ownerTeamFilter);
-    if (environmentFilter) params.set("environment", environmentFilter);
-    if (showUnassignedOnly) params.set("unassignedOnly", "true");
-    if (page > 0) params.set("page", page.toString());
-    if (pageSize !== 20) params.set("size", pageSize.toString());
-    setSearchParams(params, { replace: true });
-  }, [
-    effectiveSearch,
-    lifecycleFilter,
-    ownerTeamFilter,
-    environmentFilter,
-    showUnassignedOnly,
-    page,
-    pageSize,
-    setSearchParams,
-  ]);
+  // Memoize search handlers to prevent unnecessary re-renders
+  const handleSearchChange = useCallback(
+    (value: string) => {
+      setSearch(value);
+    },
+    [setSearch]
+  );
+
+  const handleSearchSubmit = useCallback(() => {
+    handleManualSearch();
+    setPage(0);
+  }, [handleManualSearch]);
+
+  const handleRealtimeToggle = useCallback(
+    (enabled: boolean) => {
+      setRealtimeEnabled(enabled);
+      setPage(0);
+    },
+    [setRealtimeEnabled]
+  );
+
+  // Debounced URL sync to prevent blocking UI thread during typing
+  useDebouncedUrlSync({
+    values: {
+      search: effectiveSearch || undefined,
+      lifecycle: lifecycleFilter || undefined,
+      ownerTeamId: showUnassignedOnly ? undefined : ownerTeamFilter || undefined,
+      environment: environmentFilter || undefined,
+      unassignedOnly: showUnassignedOnly ? true : undefined,
+      page: page > 0 ? page : undefined,
+      size: pageSize !== 20 ? pageSize : undefined,
+    },
+    debounceDelay: 300, // Shorter delay for URL sync (search debounce is 800ms)
+    enabled: true,
+  });
 
   const { data, isLoading, error, refetch } = useFindAllApplicationServices(
     {
@@ -130,8 +145,12 @@ export default function ApplicationServiceListPage() {
       page,
       size: pageSize,
       environment: environmentFilter as FindAllApplicationServicesParams["environment"] | undefined,
-      unassignedOnly: showUnassignedOnly ? "true" : "false",
     },
+    {
+      query: {
+        placeholderData: keepPreviousData, // Prevents flickering during refetch
+      },
+    }
   );
 
   const deleteMutation = useDeleteApplicationService();
@@ -279,22 +298,12 @@ export default function ApplicationServiceListPage() {
             <Grid size={{ xs: 12, md: 4 }}>
               <SearchFieldWithToggle
                 value={search}
-                onChange={(value) => {
-                  setSearch(value);
-                  // Don't reset page on every keystroke - only when search triggers
-                }}
-                onSearch={() => {
-                  handleManualSearch();
-                  setPage(0); // Reset page when manual search is triggered
-                }}
+                onChange={handleSearchChange}
+                onSearch={handleSearchSubmit}
                 label="Search by Name"
                 placeholder="Search by service name"
                 realtimeEnabled={realtimeEnabled}
-                onRealtimeToggle={(enabled) => {
-                  setRealtimeEnabled(enabled);
-                  // Reset page when toggling modes
-                  setPage(0);
-                }}
+                onRealtimeToggle={handleRealtimeToggle}
                 loading={isLoading}
                 isDebouncing={isDebouncing}
                 resultCount={metadata?.totalElements}

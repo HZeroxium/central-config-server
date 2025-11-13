@@ -4,7 +4,7 @@ import {
   CheckCircle as CheckIcon,
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
-import { format } from "date-fns";
+import { formatTimestamp } from "@lib/utils/dateUtils";
 
 interface DriftIndicatorProps {
   hasDrift?: boolean;
@@ -44,8 +44,8 @@ export default function DriftIndicator({
   }
 
   const tooltipTitle = driftDetectedAt
-    ? `Drift detected at ${format(
-        new Date(driftDetectedAt),
+    ? `Drift detected at ${formatTimestamp(
+        driftDetectedAt,
         "MMM dd, yyyy HH:mm"
       )}. Click to view drift events.`
     : "Configuration drift detected. Click to view drift events.";

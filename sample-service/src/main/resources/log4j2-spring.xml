@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- sample-service/src/main/resources/log4j2-spring.xml -->
+<Configuration status="WARN" monitorInterval="30">
+  <Properties>
+    <Property name="LOG_PATTERN">%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n</Property>
+    <Property name="LOG_PATTERN_COLOR">%d{HH:mm:ss.SSS} [%t] %highlight{%-5level} %style{%logger{36}}{cyan} - %msg%n</Property>
+  </Properties>
+
+  <Appenders>
+    <!-- Console Appender with colored output for development -->
+    <Console name="Console" target="SYSTEM_OUT">
+      <PatternLayout pattern="${LOG_PATTERN_COLOR}"/>
+    </Console>
+
+    <!-- File Appender for persistent logging (optional, only if logs directory exists) -->
+    <RollingFile name="FileAppender" fileName="/app/logs/sample-service.log" filePattern="/app/logs/sample-service-%d{yyyy-MM-dd}-%i.log.gz" immediateFlush="true" append="true">
+      <PatternLayout pattern="${LOG_PATTERN}"/>
+      <Policies>
+        <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+        <SizeBasedTriggeringPolicy size="50MB"/>
+      </Policies>
+      <DefaultRolloverStrategy max="10" compressionLevel="9"/>
+    </RollingFile>
+  </Appenders>
+
+  <Loggers>
+    <!-- Application specific loggers - DEBUG for development -->
+    <Logger name="com.example.sample" level="DEBUG" additivity="false">
+      <AppenderRef ref="Console"/>
+      <AppenderRef ref="FileAppender"/>
+    </Logger>
+
+    <!-- ZCM SDK logging - DEBUG for troubleshooting -->
+    <Logger name="com.vng.zing.zcm" level="DEBUG" additivity="false">
+      <AppenderRef ref="Console"/>
+      <AppenderRef ref="FileAppender"/>
+    </Logger>
+
+    <!-- Spring Framework logging - INFO only -->
+    <Logger name="org.springframework" level="INFO" additivity="false">
+      <AppenderRef ref="Console"/>
+      <AppenderRef ref="FileAppender"/>
+    </Logger>
+
+    <!-- Spring Cloud logging - INFO only -->
+    <Logger name="org.springframework.cloud" level="INFO" additivity="false">
+      <AppenderRef ref="Console"/>
+      <AppenderRef ref="FileAppender"/>
+    </Logger>
+
+    <!-- Spring Cloud Config - INFO only -->
+    <Logger name="org.springframework.cloud.config" level="INFO" additivity="false">
+      <AppenderRef ref="Console"/>
+      <AppenderRef ref="FileAppender"/>
+    </Logger>
+
+    <!-- Consul - WARN only (reduce noise) -->
+    <Logger name="com.ecwid.consul" level="WARN" additivity="false">
+      <AppenderRef ref="Console"/>
+      <AppenderRef ref="FileAppender"/>
+    </Logger>
+
+    <!-- Apache HttpClient - WARN only (reduce connection pool noise) -->
+    <Logger name="org.apache.http" level="WARN" additivity="false">
+      <AppenderRef ref="Console"/>
+      <AppenderRef ref="FileAppender"/>
+    </Logger>
+    <Logger name="org.apache.hc" level="WARN" additivity="false">
+      <AppenderRef ref="Console"/>
+      <AppenderRef ref="FileAppender"/>
+    </Logger>
+    <Logger name="httpclient" level="WARN" additivity="false">
+      <AppenderRef ref="Console"/>
+      <AppenderRef ref="FileAppender"/>
+    </Logger>
+
+    <!-- Tomcat internal - WARN only (reduce connection noise) -->
+    <Logger name="org.apache.coyote" level="WARN" additivity="false">
+      <AppenderRef ref="Console"/>
+      <AppenderRef ref="FileAppender"/>
+    </Logger>
+    <Logger name="org.apache.tomcat" level="WARN" additivity="false">
+      <AppenderRef ref="Console"/>
+      <AppenderRef ref="FileAppender"/>
+    </Logger>
+    <Logger name="org.apache.catalina" level="WARN" additivity="false">
+      <AppenderRef ref="Console"/>
+      <AppenderRef ref="FileAppender"/>
+    </Logger>
+
+    <!-- Spring Web - INFO only (reduce HTTP processing noise) -->
+    <Logger name="org.springframework.web" level="INFO" additivity="false">
+      <AppenderRef ref="Console"/>
+      <AppenderRef ref="FileAppender"/>
+    </Logger>
+
+    <!-- Kafka - WARN only (reduce verbose consumer config dumps) -->
+    <Logger name="org.apache.kafka" level="WARN" additivity="false">
+      <AppenderRef ref="Console"/>
+      <AppenderRef ref="FileAppender"/>
+    </Logger>
+    <Logger name="org.springframework.kafka" level="INFO" additivity="false">
+      <AppenderRef ref="Console"/>
+      <AppenderRef ref="FileAppender"/>
+    </Logger>
+    <!-- Kafka consumer internals - WARN only -->
+    <Logger name="org.apache.kafka.clients.consumer" level="WARN" additivity="false">
+      <AppenderRef ref="Console"/>
+      <AppenderRef ref="FileAppender"/>
+    </Logger>
+    <Logger name="org.apache.kafka.common" level="WARN" additivity="false">
+      <AppenderRef ref="Console"/>
+      <AppenderRef ref="FileAppender"/>
+    </Logger>
+
+    <!-- OpenAPI/Swagger - INFO only -->
+    <Logger name="org.springdoc" level="INFO" additivity="false">
+      <AppenderRef ref="Console"/>
+      <AppenderRef ref="FileAppender"/>
+    </Logger>
+
+    <!-- Hibernate Validator - WARN only (reduce verbose validation logs) -->
+    <Logger name="org.hibernate.validator" level="WARN" additivity="false">
+      <AppenderRef ref="Console"/>
+      <AppenderRef ref="FileAppender"/>
+    </Logger>
+
+    <!-- Unleash - WARN only (reduce connection noise) -->
+    <Logger name="io.getunleash" level="WARN" additivity="false">
+      <AppenderRef ref="Console"/>
+      <AppenderRef ref="FileAppender"/>
+    </Logger>
+
+    <!-- JDK internal events - WARN only (reduce security certificate logs) -->
+    <Logger name="jdk.event" level="WARN" additivity="false">
+      <AppenderRef ref="Console"/>
+      <AppenderRef ref="FileAppender"/>
+    </Logger>
+
+    <!-- Netty/Reactor (WebFlux) - WARN only (reduce initialization noise) -->
+    <Logger name="io.netty" level="WARN" additivity="false">
+      <AppenderRef ref="Console"/>
+      <AppenderRef ref="FileAppender"/>
+    </Logger>
+    <Logger name="reactor" level="WARN" additivity="false">
+      <AppenderRef ref="Console"/>
+      <AppenderRef ref="FileAppender"/>
+    </Logger>
+
+    <!-- Root logger - INFO level -->
+    <Root level="INFO">
+      <AppenderRef ref="Console"/>
+      <AppenderRef ref="FileAppender"/>
+    </Root>
+  </Loggers>
+</Configuration>
+

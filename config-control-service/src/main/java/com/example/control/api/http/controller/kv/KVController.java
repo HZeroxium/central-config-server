@@ -11,6 +11,7 @@ import com.example.control.domain.model.kv.KVTransactionResponse;
 import com.example.control.domain.port.KVStorePort;
 import com.example.control.infrastructure.adapter.kv.PrefixPolicy;
 import com.example.control.infrastructure.config.security.UserContext;
+import com.example.control.infrastructure.config.security.UserContextExtractor;
 import com.example.control.application.service.kv.KVTypeCodec;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -135,7 +136,7 @@ public class KVController {
     })
     public ResponseEntity<?> get(
             @Parameter(description = "Application service ID", example = "sample-service") @PathVariable String serviceId,
-            @Parameter(description = "Key path (relative to service root)", example = "config/db.url") @PathVariable("path") String path,
+            @Parameter(description = "Key path (relative to service root)", example = "config/db.url") @PathVariable String path,
             @Parameter(description = "Return raw bytes instead of JSON") @RequestParam(defaultValue = "false") boolean raw,
             @Parameter(description = "Use consistent read") @RequestParam(defaultValue = "false") boolean consistent,
             @Parameter(description = "Use stale read") @RequestParam(defaultValue = "false") boolean stale,
@@ -144,7 +145,8 @@ public class KVController {
         String normalizedPath = normalizePath(path);
         log.debug("Getting KV entry for service: {}, path: {} (normalized: {}), raw: {}", serviceId, path, normalizedPath, raw);
 
-        UserContext userContext = UserContext.fromJwt(jwt);
+        // Extract UserContext from SecurityContext (handles both JWT and API key authentication)
+        UserContext userContext = UserContextExtractor.extract();
         KVStorePort.KVReadOptions options = KVStorePort.KVReadOptions.builder()
                 .raw(raw)
                 .consistent(consistent)
@@ -260,7 +262,8 @@ public class KVController {
             String normalizedPrefix = normalizePrefix(prefix);
             log.debug("Listing KV entries for service: {}, prefix: {} (normalized: {}), keysOnly: {}", serviceId, prefix, normalizedPrefix, keysOnly);
 
-            UserContext userContext = UserContext.fromJwt(jwt);
+            // Extract UserContext from SecurityContext (handles both JWT and API key authentication)
+        UserContext userContext = UserContextExtractor.extract();
             KVStorePort.KVListOptions options = KVStorePort.KVListOptions.builder()
                     .recurse(recurse)
                     .keysOnly(keysOnly)
@@ -338,7 +341,8 @@ public class KVController {
             String normalizedPrefix = normalizePrefix(prefix);
             log.debug("Getting KV list for service: {}, prefix: {} (normalized: {})", serviceId, prefix, normalizedPrefix);
             
-            UserContext userContext = UserContext.fromJwt(jwt);
+            // Extract UserContext from SecurityContext (handles both JWT and API key authentication)
+        UserContext userContext = UserContextExtractor.extract();
             KVStorePort.KVReadOptions options = KVStorePort.KVReadOptions.builder()
                     .consistent(consistent)
                     .stale(stale)
@@ -407,7 +411,8 @@ public class KVController {
             String normalizedPrefix = normalizePrefix(prefix);
             log.info("Putting KV list for service: {}, prefix: {} (normalized: {})", serviceId, prefix, normalizedPrefix);
             
-            UserContext userContext = UserContext.fromJwt(jwt);
+            // Extract UserContext from SecurityContext (handles both JWT and API key authentication)
+        UserContext userContext = UserContextExtractor.extract();
             KVListStructure structure = KVApiMapper.toListStructure(request);
             KVTransactionResponse response = kvService.putList(serviceId, normalizedPrefix, structure, KVApiMapper.toDeleteIds(request), userContext);
             KVDtos.TransactionResponse dto = KVApiMapper.toTransactionResponse(serviceId, response, prefixPolicy);
@@ -449,7 +454,7 @@ public class KVController {
     @PutMapping("/{*path}")
     public ResponseEntity<KVDtos.WriteResponse> put(
             @Parameter(description = "Application service ID", example = "sample-service") @PathVariable String serviceId,
-            @Parameter(description = "Key path (relative to service root)", example = "config/db.url") @PathVariable("path") String path,
+            @Parameter(description = "Key path (relative to service root)", example = "config/db.url") @PathVariable String path,
             @Parameter(description = "Put request with value and options") @Valid @RequestBody KVDtos.PutRequest request,
             @Parameter(description = "If-Match header for CAS (alternative to cas in body)") @RequestHeader(value = "If-Match", required = false) String ifMatch,
             @AuthenticationPrincipal Jwt jwt) {
@@ -457,7 +462,8 @@ public class KVController {
         String normalizedPath = normalizePath(path);
         log.info("Putting KV entry for service: {}, path: {} (normalized: {})", serviceId, path, normalizedPath);
 
-        UserContext userContext = UserContext.fromJwt(jwt);
+        // Extract UserContext from SecurityContext (handles both JWT and API key authentication)
+        UserContext userContext = UserContextExtractor.extract();
 
         // Support CAS via If-Match header
         Long cas = request.cas();
@@ -527,7 +533,7 @@ public class KVController {
     @DeleteMapping("/{*path}")
     public ResponseEntity<KVDtos.DeleteResponse> delete(
             @Parameter(description = "Application service ID", example = "sample-service") @PathVariable String serviceId,
-            @Parameter(description = "Key path (relative to service root)", example = "config/db.url") @PathVariable("path") String path,
+            @Parameter(description = "Key path (relative to service root)", example = "config/db.url") @PathVariable String path,
             @Parameter(description = "Recurse delete (delete all keys under prefix)") @RequestParam(defaultValue = "false") boolean recurse,
             @Parameter(description = "CAS modify index for conditional delete") @RequestParam(required = false) Long cas,
             @AuthenticationPrincipal Jwt jwt) {
@@ -535,7 +541,8 @@ public class KVController {
         String normalizedPath = normalizePath(path);
         log.info("Deleting KV entry for service: {}, path: {} (normalized: {}), recurse: {}", serviceId, path, normalizedPath, recurse);
 
-        UserContext userContext = UserContext.fromJwt(jwt);
+        // Extract UserContext from SecurityContext (handles both JWT and API key authentication)
+        UserContext userContext = UserContextExtractor.extract();
         KVStorePort.KVDeleteOptions deleteOptions = KVStorePort.KVDeleteOptions.builder()
                 .recurse(recurse)
                 .cas(cas)
@@ -625,7 +632,8 @@ public class KVController {
             @AuthenticationPrincipal Jwt jwt) {
 
         String normalizedPrefix = normalizePrefix(prefix);
-        UserContext userContext = UserContext.fromJwt(jwt);
+        // Extract UserContext from SecurityContext (handles both JWT and API key authentication)
+        UserContext userContext = UserContextExtractor.extract();
         KVStorePort.KVReadOptions options = KVStorePort.KVReadOptions.builder()
                 .consistent(consistent)
                 .stale(stale)

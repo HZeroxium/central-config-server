@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData } from "@tanstack/react-query";
 import {
   Box,
   Card,
@@ -90,10 +91,22 @@ export default function ServiceInstanceListPage() {
     handleSearch,
     handleReset: resetSearch,
     handleKeyPress,
-    isPending,
   } = useManualSearch({
     initialSearch: searchParams.get("search") || "",
   });
+
+  // Memoize search handlers to prevent unnecessary re-renders
+  const handleSearchChange = useCallback(
+    (value: string) => {
+      setSearch(value);
+    },
+    [setSearch]
+  );
+
+  const handleSearchSubmit = useCallback(() => {
+    handleSearch();
+    setPage(0);
+  }, [handleSearch]);
 
   // Sync URL params when filters change
   useEffect(() => {
@@ -147,6 +160,7 @@ export default function ServiceInstanceListPage() {
     {
       query: {
         staleTime: 30_000,
+        placeholderData: keepPreviousData, // Prevents flickering during refetch
         refetchInterval: 30000, // 30 seconds
         refetchIntervalInBackground: false,
       },
@@ -248,19 +262,12 @@ export default function ServiceInstanceListPage() {
             <Grid size={{ xs: 12, md: 4 }}>
               <ManualSearchField
                 value={search}
-                onChange={(value) => {
-                  setSearch(value);
-                  // Don't reset page on every keystroke - only when search triggers
-                }}
-                onSearch={() => {
-                  handleSearch();
-                  setPage(0); // Reset page when search is triggered
-                }}
+                onChange={handleSearchChange}
+                onSearch={handleSearchSubmit}
                 onKeyPress={handleKeyPress}
                 label="Service ID (Exact Match)"
                 placeholder="Enter exact service ID"
                 loading={isLoading}
-                isPending={isPending}
                 resultCount={metadata?.totalElements}
                 tooltipText="Enter exact service ID. This search requires an exact match."
                 helperText="Click search button or press Enter to search"

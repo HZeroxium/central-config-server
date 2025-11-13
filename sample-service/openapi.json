@@ -1,0 +1,1388 @@
+{
+    "openapi": "3.0.1",
+    "info": {
+      "title": "Sample Service API",
+      "description": "SDK diagnostics and sample endpoints",
+      "contact": {
+        "name": "Sample Team",
+        "email": "team@example.com"
+      },
+      "license": {
+        "name": "Apache 2.0",
+        "url": "https://www.apache.org/licenses/LICENSE-2.0"
+      },
+      "version": "1.0.0"
+    },
+    "servers": [
+      {
+        "url": "/",
+        "description": "dev server"
+      }
+    ],
+    "tags": [
+      {
+        "name": "Key-Value Store",
+        "description": "Key-Value store operations demo"
+      },
+      {
+        "name": "Feature Flags Controller",
+        "description": "Endpoints for checking and managing Unleash Feature Flags"
+      },
+      {
+        "name": "ZCM SDK Test Controller",
+        "description": "Endpoints for inspecting SDK configuration, discovery, and load balancing behavior."
+      }
+    ],
+    "paths": {
+      "/api/sdk/ping": {
+        "post": {
+          "tags": [
+            "ZCM SDK Test Controller"
+          ],
+          "summary": "Trigger SDK ping",
+          "description": "Manually triggers a ping to the control service to update heartbeat and configuration hash.",
+          "operationId": "triggerPing",
+          "responses": {
+            "200": {
+              "description": "OK",
+              "content": {
+                "*/*": {
+                  "schema": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/api/sdk/call-http-service": {
+        "post": {
+          "tags": [
+            "ZCM SDK Test Controller"
+          ],
+          "summary": "Call another HTTP service via SDK",
+          "description": "Perform a GET request to another service using the SDK's load-balanced RestClient.",
+          "operationId": "callHttpService",
+          "parameters": [
+            {
+              "name": "serviceName",
+              "in": "query",
+              "description": "Service name to call",
+              "required": true,
+              "schema": {
+                "type": "string"
+              },
+              "example": "sample-service"
+            },
+            {
+              "name": "endpoint",
+              "in": "query",
+              "description": "Endpoint path to call within the service",
+              "required": true,
+              "schema": {
+                "type": "string"
+              },
+              "example": "/api/sdk/snapshot"
+            }
+          ],
+          "responses": {
+            "400": {
+              "description": "Service call failed",
+              "content": {
+                "*/*": {
+                  "schema": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            },
+            "200": {
+              "description": "Call succeeded",
+              "content": {
+                "*/*": {
+                  "schema": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/test/hello": {
+        "get": {
+          "tags": [
+            "test-controller"
+          ],
+          "operationId": "hello",
+          "responses": {
+            "200": {
+              "description": "OK",
+              "content": {
+                "*/*": {
+                  "schema": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/api/sdk/test-session-affinity/{serviceName}/{sessionId}": {
+        "get": {
+          "tags": [
+            "ZCM SDK Test Controller"
+          ],
+          "summary": "Test session affinity",
+          "description": "Demonstrates session affinity by making multiple requests with the same session ID.",
+          "operationId": "testSessionAffinity",
+          "parameters": [
+            {
+              "name": "serviceName",
+              "in": "path",
+              "description": "Service name to test",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "name": "sessionId",
+              "in": "path",
+              "description": "Session ID for affinity testing",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "name": "count",
+              "in": "query",
+              "description": "Number of requests to make",
+              "required": false,
+              "schema": {
+                "type": "integer",
+                "format": "int32",
+                "default": 5
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "OK",
+              "content": {
+                "*/*": {
+                  "schema": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/api/sdk/snapshot": {
+        "get": {
+          "tags": [
+            "ZCM SDK Test Controller"
+          ],
+          "summary": "Get configuration snapshot",
+          "description": "Retrieve the full configuration snapshot and computed hash for diagnostic purposes.",
+          "operationId": "getSnapshot",
+          "responses": {
+            "200": {
+              "description": "Configuration snapshot retrieved successfully",
+              "content": {
+                "*/*": {
+                  "schema": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/api/sdk/policies": {
+        "get": {
+          "tags": [
+            "ZCM SDK Test Controller"
+          ],
+          "summary": "List available load balancing policies",
+          "description": "Retrieve all supported load balancing strategies and the currently active one.",
+          "operationId": "getAvailablePolicies",
+          "responses": {
+            "200": {
+              "description": "OK",
+              "content": {
+                "*/*": {
+                  "schema": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/api/sdk/info": {
+        "get": {
+          "tags": [
+            "ZCM SDK Test Controller"
+          ],
+          "summary": "Get SDK info",
+          "description": "Return general SDK metadata including config hash and load balancing strategy.",
+          "operationId": "getSdkInfo",
+          "responses": {
+            "200": {
+              "description": "OK",
+              "content": {
+                "*/*": {
+                  "schema": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/api/sdk/discovery/{serviceName}": {
+        "get": {
+          "tags": [
+            "ZCM SDK Test Controller"
+          ],
+          "summary": "Discover service instances",
+          "description": "Lists all available service instances for a given service name from the discovery provider.",
+          "operationId": "discoverService",
+          "parameters": [
+            {
+              "name": "serviceName",
+              "in": "path",
+              "description": "The name of the service to discover",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "OK",
+              "content": {
+                "*/*": {
+                  "schema": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/api/sdk/config/{key}": {
+        "get": {
+          "tags": [
+            "ZCM SDK Test Controller"
+          ],
+          "summary": "Get configuration value",
+          "description": "Retrieve a specific configuration key from the environment.",
+          "operationId": "getConfigValue",
+          "parameters": [
+            {
+              "name": "key",
+              "in": "path",
+              "description": "The configuration key to retrieve",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "OK",
+              "content": {
+                "*/*": {
+                  "schema": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/api/sdk/choose/{serviceName}": {
+        "get": {
+          "tags": [
+            "ZCM SDK Test Controller"
+          ],
+          "summary": "Choose service instance (default policy)",
+          "description": "Selects a service instance using the default load balancing policy (e.g., ROUND_ROBIN).",
+          "operationId": "chooseInstance",
+          "parameters": [
+            {
+              "name": "serviceName",
+              "in": "path",
+              "description": "Service name to choose from",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "OK",
+              "content": {
+                "*/*": {
+                  "schema": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/api/sdk/choose/{serviceName}/{policy}": {
+        "get": {
+          "tags": [
+            "ZCM SDK Test Controller"
+          ],
+          "summary": "Choose service instance (custom policy)",
+          "description": "Selects an instance based on a specific load balancer policy (ROUND_ROBIN, RANDOM, or WEIGHTED_RANDOM).",
+          "operationId": "chooseInstanceWithPolicy",
+          "parameters": [
+            {
+              "name": "serviceName",
+              "in": "path",
+              "description": "Target service name",
+              "required": true,
+              "schema": {
+                "type": "string"
+              },
+              "example": "sample-service"
+            },
+            {
+              "name": "policy",
+              "in": "path",
+              "description": "Load balancing policy",
+              "required": true,
+              "schema": {
+                "type": "string"
+              },
+              "example": "ROUND_ROBIN"
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "OK",
+              "content": {
+                "*/*": {
+                  "schema": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/api/sdk/choose-with-context/{serviceName}/{policy}": {
+        "get": {
+          "tags": [
+            "ZCM SDK Test Controller"
+          ],
+          "summary": "Choose instance with request context",
+          "description": "Selects a service instance using LbRequest for advanced load balancing scenarios like session affinity.",
+          "operationId": "chooseWithContext",
+          "parameters": [
+            {
+              "name": "serviceName",
+              "in": "path",
+              "description": "Service name to choose from",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "name": "policy",
+              "in": "path",
+              "description": "Load balancing policy",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "name": "requestId",
+              "in": "query",
+              "required": false,
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "name": "userId",
+              "in": "query",
+              "required": false,
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "name": "sessionId",
+              "in": "query",
+              "required": false,
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "name": "clientId",
+              "in": "query",
+              "required": false,
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "OK",
+              "content": {
+                "*/*": {
+                  "schema": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/api/kv/{serviceId}": {
+        "get": {
+          "tags": [
+            "Key-Value Store"
+          ],
+          "summary": "Get KV entries as map",
+          "description": "Get all KV entries under a prefix as a flat map",
+          "operationId": "getMap",
+          "parameters": [
+            {
+              "name": "serviceId",
+              "in": "path",
+              "description": "Service ID",
+              "required": true,
+              "schema": {
+                "type": "string"
+              },
+              "example": "sample-service"
+            },
+            {
+              "name": "prefix",
+              "in": "query",
+              "description": "Prefix to list",
+              "required": false,
+              "schema": {
+                "type": "string",
+                "default": ""
+              },
+              "example": "config/"
+            }
+          ],
+          "responses": {
+            "403": {
+              "description": "Access denied",
+              "content": {
+                "*/*": {
+                  "schema": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            },
+            "200": {
+              "description": "Successfully retrieved map",
+              "content": {
+                "*/*": {
+                  "schema": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            },
+            "401": {
+              "description": "Unauthorized",
+              "content": {
+                "*/*": {
+                  "schema": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/api/kv/{serviceId}/structured-list": {
+        "get": {
+          "tags": [
+            "Key-Value Store"
+          ],
+          "summary": "Get structured list",
+          "description": "Get a structured list stored under a prefix as a list of maps",
+          "operationId": "getStructuredList",
+          "parameters": [
+            {
+              "name": "serviceId",
+              "in": "path",
+              "description": "Service ID",
+              "required": true,
+              "schema": {
+                "type": "string"
+              },
+              "example": "sample-service"
+            },
+            {
+              "name": "prefix",
+              "in": "query",
+              "description": "Prefix",
+              "required": true,
+              "schema": {
+                "type": "string"
+              },
+              "example": "config/items"
+            }
+          ],
+          "responses": {
+            "403": {
+              "description": "Access denied",
+              "content": {
+                "*/*": {
+                  "schema": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "200": {
+              "description": "Successfully retrieved structured list",
+              "content": {
+                "*/*": {
+                  "schema": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "401": {
+              "description": "Unauthorized",
+              "content": {
+                "*/*": {
+                  "schema": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/api/kv/{serviceId}/string": {
+        "get": {
+          "tags": [
+            "Key-Value Store"
+          ],
+          "summary": "Get a KV entry as string",
+          "description": "Retrieve a KV entry value as UTF-8 string. Key may contain slashes (e.g., config/api.endpoint)",
+          "operationId": "getString",
+          "parameters": [
+            {
+              "name": "serviceId",
+              "in": "path",
+              "description": "Service ID",
+              "required": true,
+              "schema": {
+                "type": "string"
+              },
+              "example": "sample-service"
+            },
+            {
+              "name": "key",
+              "in": "query",
+              "description": "Key path",
+              "required": true,
+              "schema": {
+                "type": "string"
+              },
+              "example": "config/db.url"
+            }
+          ],
+          "responses": {
+            "403": {
+              "description": "Access denied",
+              "content": {
+                "*/*": {
+                  "schema": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "404": {
+              "description": "KV entry not found",
+              "content": {
+                "*/*": {
+                  "schema": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "200": {
+              "description": "KV entry found",
+              "content": {
+                "*/*": {
+                  "schema": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "401": {
+              "description": "Unauthorized",
+              "content": {
+                "*/*": {
+                  "schema": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/api/kv/{serviceId}/list": {
+        "get": {
+          "tags": [
+            "Key-Value Store"
+          ],
+          "summary": "Get a KV entry as list",
+          "description": "Retrieve a KV entry value as a list of strings (comma-separated or structured list)",
+          "operationId": "getList",
+          "parameters": [
+            {
+              "name": "serviceId",
+              "in": "path",
+              "description": "Service ID",
+              "required": true,
+              "schema": {
+                "type": "string"
+              },
+              "example": "sample-service"
+            },
+            {
+              "name": "key",
+              "in": "query",
+              "description": "Key path",
+              "required": true,
+              "schema": {
+                "type": "string"
+              },
+              "example": "config/hosts"
+            }
+          ],
+          "responses": {
+            "403": {
+              "description": "Access denied",
+              "content": {
+                "*/*": {
+                  "schema": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            },
+            "200": {
+              "description": "KV entry found",
+              "content": {
+                "*/*": {
+                  "schema": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            },
+            "401": {
+              "description": "Unauthorized",
+              "content": {
+                "*/*": {
+                  "schema": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/api/kv/{serviceId}/keys": {
+        "get": {
+          "tags": [
+            "Key-Value Store"
+          ],
+          "summary": "List KV keys",
+          "description": "List only key paths (not full entries) under a prefix for a service",
+          "operationId": "listKeys",
+          "parameters": [
+            {
+              "name": "serviceId",
+              "in": "path",
+              "description": "Service ID",
+              "required": true,
+              "schema": {
+                "type": "string"
+              },
+              "example": "sample-service"
+            },
+            {
+              "name": "prefix",
+              "in": "query",
+              "description": "Prefix to list",
+              "required": false,
+              "schema": {
+                "type": "string",
+                "default": ""
+              },
+              "example": "config/"
+            }
+          ],
+          "responses": {
+            "403": {
+              "description": "Access denied",
+              "content": {
+                "*/*": {
+                  "schema": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            },
+            "200": {
+              "description": "Successfully retrieved list",
+              "content": {
+                "*/*": {
+                  "schema": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            },
+            "401": {
+              "description": "Unauthorized",
+              "content": {
+                "*/*": {
+                  "schema": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/api/kv/{serviceId}/integer": {
+        "get": {
+          "tags": [
+            "Key-Value Store"
+          ],
+          "summary": "Get a KV entry as integer",
+          "description": "Retrieve a KV entry value as integer",
+          "operationId": "getInteger",
+          "parameters": [
+            {
+              "name": "serviceId",
+              "in": "path",
+              "description": "Service ID",
+              "required": true,
+              "schema": {
+                "type": "string"
+              },
+              "example": "sample-service"
+            },
+            {
+              "name": "key",
+              "in": "query",
+              "description": "Key path",
+              "required": true,
+              "schema": {
+                "type": "string"
+              },
+              "example": "config/server.port"
+            }
+          ],
+          "responses": {
+            "403": {
+              "description": "Access denied",
+              "content": {
+                "*/*": {
+                  "schema": {
+                    "type": "integer",
+                    "format": "int32"
+                  }
+                }
+              }
+            },
+            "404": {
+              "description": "KV entry not found",
+              "content": {
+                "*/*": {
+                  "schema": {
+                    "type": "integer",
+                    "format": "int32"
+                  }
+                }
+              }
+            },
+            "200": {
+              "description": "KV entry found",
+              "content": {
+                "*/*": {
+                  "schema": {
+                    "type": "integer",
+                    "format": "int32"
+                  }
+                }
+              }
+            },
+            "401": {
+              "description": "Unauthorized",
+              "content": {
+                "*/*": {
+                  "schema": {
+                    "type": "integer",
+                    "format": "int32"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/api/kv/{serviceId}/exists": {
+        "get": {
+          "tags": [
+            "Key-Value Store"
+          ],
+          "summary": "Check if KV entry exists",
+          "description": "Check if a KV entry exists",
+          "operationId": "exists",
+          "parameters": [
+            {
+              "name": "serviceId",
+              "in": "path",
+              "description": "Service ID",
+              "required": true,
+              "schema": {
+                "type": "string"
+              },
+              "example": "sample-service"
+            },
+            {
+              "name": "key",
+              "in": "query",
+              "description": "Key path",
+              "required": true,
+              "schema": {
+                "type": "string"
+              },
+              "example": "config/db.url"
+            }
+          ],
+          "responses": {
+            "403": {
+              "description": "Access denied",
+              "content": {
+                "*/*": {
+                  "schema": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            },
+            "200": {
+              "description": "Check completed",
+              "content": {
+                "*/*": {
+                  "schema": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            },
+            "401": {
+              "description": "Unauthorized",
+              "content": {
+                "*/*": {
+                  "schema": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/api/kv/{serviceId}/bytes": {
+        "get": {
+          "tags": [
+            "Key-Value Store"
+          ],
+          "summary": "Get a KV entry as raw bytes",
+          "description": "Retrieve a KV entry value as raw bytes",
+          "operationId": "getBytes",
+          "parameters": [
+            {
+              "name": "serviceId",
+              "in": "path",
+              "description": "Service ID",
+              "required": true,
+              "schema": {
+                "type": "string"
+              },
+              "example": "sample-service"
+            },
+            {
+              "name": "key",
+              "in": "query",
+              "description": "Key path",
+              "required": true,
+              "schema": {
+                "type": "string"
+              },
+              "example": "config/db.url"
+            }
+          ],
+          "responses": {
+            "403": {
+              "description": "Access denied",
+              "content": {
+                "*/*": {
+                  "schema": {
+                    "type": "string",
+                    "format": "byte"
+                  }
+                }
+              }
+            },
+            "404": {
+              "description": "KV entry not found",
+              "content": {
+                "*/*": {
+                  "schema": {
+                    "type": "string",
+                    "format": "byte"
+                  }
+                }
+              }
+            },
+            "200": {
+              "description": "KV entry found",
+              "content": {
+                "*/*": {
+                  "schema": {
+                    "type": "string",
+                    "format": "byte"
+                  }
+                }
+              }
+            },
+            "401": {
+              "description": "Unauthorized",
+              "content": {
+                "*/*": {
+                  "schema": {
+                    "type": "string",
+                    "format": "byte"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/api/kv/{serviceId}/boolean": {
+        "get": {
+          "tags": [
+            "Key-Value Store"
+          ],
+          "summary": "Get a KV entry as boolean",
+          "description": "Retrieve a KV entry value as boolean",
+          "operationId": "getBoolean",
+          "parameters": [
+            {
+              "name": "serviceId",
+              "in": "path",
+              "description": "Service ID",
+              "required": true,
+              "schema": {
+                "type": "string"
+              },
+              "example": "sample-service"
+            },
+            {
+              "name": "key",
+              "in": "query",
+              "description": "Key path",
+              "required": true,
+              "schema": {
+                "type": "string"
+              },
+              "example": "config/feature.enabled"
+            }
+          ],
+          "responses": {
+            "403": {
+              "description": "Access denied",
+              "content": {
+                "*/*": {
+                  "schema": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            },
+            "404": {
+              "description": "KV entry not found",
+              "content": {
+                "*/*": {
+                  "schema": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            },
+            "200": {
+              "description": "KV entry found",
+              "content": {
+                "*/*": {
+                  "schema": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            },
+            "401": {
+              "description": "Unauthorized",
+              "content": {
+                "*/*": {
+                  "schema": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/api/hello/{name}": {
+        "get": {
+          "tags": [
+            "config-controller"
+          ],
+          "operationId": "hello_1",
+          "parameters": [
+            {
+              "name": "name",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "OK",
+              "content": {
+                "*/*": {
+                  "schema": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/api/health": {
+        "get": {
+          "tags": [
+            "config-controller"
+          ],
+          "operationId": "health",
+          "responses": {
+            "200": {
+              "description": "OK",
+              "content": {
+                "*/*": {
+                  "schema": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/api/features": {
+        "get": {
+          "tags": [
+            "Feature Flags Controller"
+          ],
+          "summary": "List all feature flags",
+          "description": "Lists all available feature flags (placeholder - may return empty)",
+          "operationId": "getAllFlags",
+          "responses": {
+            "200": {
+              "description": "Flags list retrieved successfully",
+              "content": {
+                "*/*": {
+                  "schema": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/api/features/{flagName}": {
+        "get": {
+          "tags": [
+            "Feature Flags Controller"
+          ],
+          "summary": "Check if feature flag is enabled",
+          "description": "Checks if a feature flag is enabled using context from the current request (userId, sessionId, remoteAddress, etc.)",
+          "operationId": "checkFlag",
+          "parameters": [
+            {
+              "name": "flagName",
+              "in": "path",
+              "description": "The name of the feature flag",
+              "required": true,
+              "schema": {
+                "type": "string"
+              },
+              "example": "checkout.one-click"
+            },
+            {
+              "name": "fallback",
+              "in": "query",
+              "description": "Fallback value if flag is not found",
+              "required": false,
+              "schema": {
+                "type": "boolean",
+                "default": false
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Flag status retrieved successfully",
+              "content": {
+                "*/*": {
+                  "schema": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/api/features/{flagName}/variant": {
+        "get": {
+          "tags": [
+            "Feature Flags Controller"
+          ],
+          "summary": "Get feature flag variant",
+          "description": "Gets the variant for a feature flag using context from the current request",
+          "operationId": "getVariant",
+          "parameters": [
+            {
+              "name": "flagName",
+              "in": "path",
+              "description": "The name of the feature flag",
+              "required": true,
+              "schema": {
+                "type": "string"
+              },
+              "example": "checkout.button-color"
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Variant retrieved successfully",
+              "content": {
+                "*/*": {
+                  "schema": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/api/config": {
+        "get": {
+          "tags": [
+            "config-controller"
+          ],
+          "operationId": "getCurrentConfig",
+          "responses": {
+            "200": {
+              "description": "OK",
+              "content": {
+                "*/*": {
+                  "schema": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/api/config/features": {
+        "get": {
+          "tags": [
+            "config-controller"
+          ],
+          "operationId": "getFeatures",
+          "responses": {
+            "200": {
+              "description": "OK",
+              "content": {
+                "*/*": {
+                  "schema": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "components": {
+  
+    }
+  }

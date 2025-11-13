@@ -12,7 +12,7 @@ import type { ServiceInstanceResponse } from "@lib/api/models";
 import { useAuth } from "@features/auth/context";
 import InstanceStatusChip from "./InstanceStatusChip";
 import DriftIndicator from "./DriftIndicator";
-import { format } from "date-fns";
+import { formatTimestamp } from "@lib/utils/dateUtils";
 
 interface ServiceInstanceTableProps {
   instances: ServiceInstanceResponse[];
@@ -128,12 +128,7 @@ export function ServiceInstanceTable({
       headerName: "Last Seen",
       width: 160,
       renderCell: (params) => {
-        if (!params.value) return "-";
-        try {
-          return format(new Date(params.value), "MMM dd, yyyy HH:mm");
-        } catch {
-          return params.value;
-        }
+        return formatTimestamp(params.value, "MMM dd, yyyy HH:mm");
       },
     },
     {

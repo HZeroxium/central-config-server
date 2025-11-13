@@ -1,11 +1,14 @@
 package com.example.control.infrastructure.config.cache;
 
 import com.example.control.infrastructure.cache.*;
+import com.example.control.infrastructure.cache.jackson.ByteArrayBase64Deserializer;
+import com.example.control.infrastructure.cache.jackson.ByteArrayBase64Serializer;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import lombok.extern.slf4j.Slf4j;
@@ -304,24 +307,44 @@ public class CacheManagerFactory {
         // Configure JSON serialization (values)
         ObjectMapper mapper = new ObjectMapper();
         mapper.registerModule(new JavaTimeModule()); // java.time support
-        
 
         // Ignore unknown properties when deserializing from cache
         // This is essential for cache compatibility when domain models evolve
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         
+        // Don't fail on missing type id - let ResilientRedisCache handle it gracefully
+        mapper.configure(DeserializationFeature.FAIL_ON_INVALID_SUBTYPE, false);
+        
         mapper.setConfig(mapper.getDeserializationConfig()
                 .without(MapperFeature.USE_GETTERS_AS_SETTERS));
+        
+        // Register custom byte[] serialization module
+        SimpleModule byteArrayModule = new SimpleModule("ByteArrayModule");
+        byteArrayModule.addSerializer(byte[].class, new ByteArrayBase64Serializer());
+        byteArrayModule.addDeserializer(byte[].class, new ByteArrayBase64Deserializer());
+        mapper.registerModule(byteArrayModule);
                 
+        // Refine polymorphic type validator to exclude byte[] arrays
+        // byte[] arrays are now handled by custom serializers and don't need type info
         BasicPolymorphicTypeValidator ptv = BasicPolymorphicTypeValidator.builder()
                 .allowIfSubType("com.example.")
                 .allowIfSubType("org.springframework.data.domain.")
                 .allowIfBaseType(java.util.Collection.class)
                 .allowIfBaseType(java.util.Map.class)
                 .allowIfBaseType(java.util.Optional.class)
-                // Currently 
-                .allowIfBaseType(java.lang.Object.class)
-                // .allowIfSubType("java.util.*")
+                // Explicitly allow common Java collection concrete types
+                // These are needed because Jackson validates subtypes against Object (root type),
+                // not just against the base type (Collection/Map)
+                .allowIfSubType("java.util.ArrayList")
+                .allowIfSubType("java.util.LinkedList")
+                .allowIfSubType("java.util.HashMap")
+                .allowIfSubType("java.util.LinkedHashMap")
+                .allowIfSubType("java.util.HashSet")
+                .allowIfSubType("java.util.LinkedHashSet")
+                .allowIfSubType("java.util.TreeMap")
+                .allowIfSubType("java.util.TreeSet")
+                // Exclude byte[] from default typing - handled by custom serializers
+                // .allowIfBaseType(java.lang.Object.class) // Removed to be more restrictive
                 .build();
         mapper.activateDefaultTyping(ptv, ObjectMapper.DefaultTyping.NON_FINAL, JsonTypeInfo.As.PROPERTY);
 
@@ -387,7 +410,10 @@ public class CacheManagerFactory {
             builder.transactionAware();
         }
 
-        return builder.build();
+        RedisCacheManager redisCacheManager = builder.build();
+        
+        // Wrap with ResilientRedisCacheManager to handle deserialization errors gracefully
+        return new ResilientRedisCacheManager(redisCacheManager);
     }
 
     /**
