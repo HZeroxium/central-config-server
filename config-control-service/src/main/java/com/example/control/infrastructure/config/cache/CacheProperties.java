@@ -236,6 +236,7 @@ public class CacheProperties {
         caches.put("approval-requests", createApprovalRequestsConfig());
         caches.put("approval-decisions", createApprovalDecisionsConfig());
         caches.put("service-shares", createServiceSharesConfig());
+        caches.put("kv-entries", createKvEntriesConfig());
     }
 
     /**
@@ -396,6 +397,20 @@ public class CacheProperties {
         CacheConfig config = new CacheConfig();
         config.setTtl(Duration.ofMinutes(10));
         config.setMaximumSize(2_000L);
+        return config;
+    }
+
+    /**
+     * Build default config for the {@code kv-entries} cache.
+     * <ul>
+     * <li>TTL: 5 minutes — balances freshness and performance for KV operations.</li>
+     * <li>Maximum size: 10,000 — supports large KV stores with many entries.</li>
+     * </ul>
+     */
+    private CacheConfig createKvEntriesConfig() {
+        CacheConfig config = new CacheConfig();
+        config.setTtl(Duration.ofMinutes(5));
+        config.setMaximumSize(10_000L);
         return config;
     }
 

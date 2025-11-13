@@ -17,10 +17,12 @@ import com.example.control.domain.model.kv.KVType;
 import com.example.control.domain.port.KVStorePort;
 import com.example.control.domain.valueobject.id.ApplicationServiceId;
 import com.example.control.infrastructure.adapter.kv.PrefixPolicy;
+import com.example.control.infrastructure.cache.KVCacheEvictionService;
 import com.example.control.infrastructure.config.security.DomainPermissionEvaluator;
 import com.example.control.infrastructure.config.security.UserContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -50,6 +52,7 @@ public class KVService {
     private final KVTypeCodec kvTypeCodec;
     private final KVTypeDetector kvTypeDetector;
     private final KVTransactionService kvTransactionService;
+    private final KVCacheEvictionService cacheEvictionService;
 
     private static final String MANIFEST_KEY = ".manifest";
     private static final String ITEMS_PREFIX = "items";
@@ -77,7 +80,15 @@ public class KVService {
 
     /**
      * Get a logical list represented via manifest + items subtree.
+     * <p>
+     * Cached for stale reads only. Consistent reads bypass cache to ensure freshness.
+     * </p>
      */
+    @Cacheable(
+            value = "kv-entries",
+            key = "T(com.example.control.infrastructure.cache.KVCacheKeyGenerator).generateListStructureKey(#serviceId, #prefix)",
+            condition = "!#options.consistent"
+    )
     public Optional<KVListStructure> getList(String serviceId,
                                              String prefix,
                                              KVStorePort.KVReadOptions options,
@@ -259,7 +270,16 @@ public class KVService {
         }
 
         KVTransactionRequest request = new KVTransactionRequest(serviceId, operations);
-        return kvTransactionService.execute(request);
+        KVTransactionResponse response = kvTransactionService.execute(request);
+
+        // Evict cache for the prefix and all parent prefixes after successful transaction
+        // (Transaction service already evicts individual keys, but we also need to evict
+        // list structure and view caches for the prefix)
+        if (response.success()) {
+            cacheEvictionService.evictPrefix(serviceId, prefix);
+        }
+
+        return response;
     }
 
     /**
@@ -436,6 +456,17 @@ public class KVService {
         return deletions;
     }
 
+    /**
+     * View prefix as structured document (JSON, YAML, or Properties).
+     * <p>
+     * Cached for stale reads only. Consistent reads bypass cache to ensure freshness.
+     * </p>
+     */
+    @Cacheable(
+            value = "kv-entries",
+            key = "T(com.example.control.infrastructure.cache.KVCacheKeyGenerator).generateViewKey(#serviceId, #prefix, #format.name())",
+            condition = "!#options.consistent"
+    )
     @Transactional(readOnly = true)
     public Optional<byte[]> view(String serviceId,
                                  String prefix,

@@ -18,8 +18,10 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
 
 /**
  * Implementation of KVApi using RestClient to call config-control-service KV endpoints.
@@ -33,7 +35,7 @@ public class KVApiImpl implements KVApi {
   private final SdkProperties sdkProperties;
 
   @Override
-  public Optional<KVEntry> get(String serviceId, String key) {
+  public String getString(String serviceId, String key) {
     try {
       String url = buildGetUrl(serviceId, key, false);
       var requestBuilder = restClient.get()
@@ -53,15 +55,19 @@ public class KVApiImpl implements KVApi {
           })
           .body(KVResponseDtos.EntryResponse.class);
 
-      return Optional.ofNullable(response).map(this::toKVEntry);
+      if (response == null) {
+        return null;
+      }
+
+      KVEntry entry = toKVEntry(response);
+      return entry.getValueAsString();
     } catch (KVAuthenticationException | KVAccessDeniedException | KVServerException e) {
       throw e;
     } catch (HttpClientErrorException e) {
       if (e.getStatusCode().value() == 404) {
         log.debug("KV entry not found for service: {}, key: {}", serviceId, key);
-        return Optional.empty();
+        return null;
       }
-      // Other 4xx errors should have been handled by onStatus, but catch here as fallback
       throw new KVClientException("KV client error: " + e.getMessage(), e);
     } catch (HttpServerErrorException e) {
       log.error("KV server error for service: {}, key: {}", serviceId, key, e);
@@ -73,7 +79,70 @@ public class KVApiImpl implements KVApi {
   }
 
   @Override
-  public Optional<byte[]> getRaw(String serviceId, String key) {
+  public Integer getInteger(String serviceId, String key) {
+    String value = getString(serviceId, key);
+    if (value == null || value.isBlank()) {
+      return null;
+    }
+
+    try {
+      return Integer.parseInt(value.trim());
+    } catch (NumberFormatException e) {
+      log.warn("Failed to parse integer value for service: {}, key: {}, value: {}", serviceId, key, value, e);
+      return null;
+    }
+  }
+
+  @Override
+  public Long getLong(String serviceId, String key) {
+    String value = getString(serviceId, key);
+    if (value == null || value.isBlank()) {
+      return null;
+    }
+
+    try {
+      return Long.parseLong(value.trim());
+    } catch (NumberFormatException e) {
+      log.warn("Failed to parse long value for service: {}, key: {}, value: {}", serviceId, key, value, e);
+      return null;
+    }
+  }
+
+  @Override
+  public Boolean getBoolean(String serviceId, String key) {
+    String value = getString(serviceId, key);
+    if (value == null || value.isBlank()) {
+      return null;
+    }
+
+    String trimmed = value.trim().toLowerCase();
+    if ("true".equals(trimmed) || "1".equals(trimmed) || "yes".equals(trimmed)) {
+      return true;
+    } else if ("false".equals(trimmed) || "0".equals(trimmed) || "no".equals(trimmed)) {
+      return false;
+    } else {
+      log.warn("Failed to parse boolean value for service: {}, key: {}, value: {}", serviceId, key, value);
+      return null;
+    }
+  }
+
+  @Override
+  public Double getDouble(String serviceId, String key) {
+    String value = getString(serviceId, key);
+    if (value == null || value.isBlank()) {
+      return null;
+    }
+
+    try {
+      return Double.parseDouble(value.trim());
+    } catch (NumberFormatException e) {
+      log.warn("Failed to parse double value for service: {}, key: {}, value: {}", serviceId, key, value, e);
+      return null;
+    }
+  }
+
+  @Override
+  public byte[] getBytes(String serviceId, String key) {
     try {
       String url = buildGetUrl(serviceId, key, true);
       var requestBuilder = restClient.get()
@@ -93,13 +162,13 @@ public class KVApiImpl implements KVApi {
           })
           .body(byte[].class);
 
-      return Optional.ofNullable(response);
+      return response;
     } catch (KVAuthenticationException | KVAccessDeniedException | KVServerException e) {
       throw e;
     } catch (HttpClientErrorException e) {
       if (e.getStatusCode().value() == 404) {
         log.debug("KV entry not found for service: {}, key: {}", serviceId, key);
-        return Optional.empty();
+        return null;
       }
       throw new KVClientException("KV client error: " + e.getMessage(), e);
     } catch (HttpServerErrorException e) {
@@ -112,42 +181,100 @@ public class KVApiImpl implements KVApi {
   }
 
   @Override
-  public Optional<String> getString(String serviceId, String key) {
-    Optional<KVEntry> entry = get(serviceId, key);
-    return entry.map(KVEntry::getValueAsString);
+  public List<String> getList(String serviceId, String key) {
+    // First try to get as comma-separated string
+    String value = getString(serviceId, key);
+    if (value != null && !value.isBlank()) {
+      try {
+        // Parse comma-separated string with whitespace trimming
+        List<String> elements = new ArrayList<>();
+        String[] parts = value.split(",");
+        for (String part : parts) {
+          String trimmed = part.trim();
+          if (!trimmed.isEmpty()) {
+            elements.add(trimmed);
+          }
+        }
+        return elements;
+      } catch (Exception e) {
+        log.warn("Failed to parse comma-separated list for service: {}, key: {}", serviceId, key, e);
+      }
+    }
+
+    // If that fails, try as structured list
+    try {
+      List<Map<String, Object>> structuredList = getStructuredList(serviceId, key);
+      if (!structuredList.isEmpty()) {
+        // Convert structured list to list of strings by extracting values
+        List<String> result = new ArrayList<>();
+        for (Map<String, Object> item : structuredList) {
+          // Try to convert item to string representation
+          if (item.size() == 1 && item.values().iterator().next() instanceof String) {
+            result.add((String) item.values().iterator().next());
+          } else {
+            // If item has multiple fields, convert to JSON-like string
+            result.add(item.toString());
+          }
+        }
+        return result;
+      }
+    } catch (Exception e) {
+      log.debug("Not a structured list for service: {}, key: {}", serviceId, key);
+    }
+
+    return new ArrayList<>();
   }
 
   @Override
-  public Optional<List<String>> getLeafList(String serviceId, String key) {
-    Optional<String> valueOpt = getString(serviceId, key);
-    if (valueOpt.isEmpty()) {
-      return Optional.empty();
-    }
-
-    String value = valueOpt.get();
-    if (value == null || value.isEmpty()) {
-      return Optional.of(new ArrayList<>());
-    }
-
+  public List<Map<String, Object>> getStructuredList(String serviceId, String prefix) {
     try {
-      // Parse comma-separated string with whitespace trimming
-      List<String> elements = new ArrayList<>();
-      String[] parts = value.split(",");
-      for (String part : parts) {
-        String trimmed = part.trim();
-        if (!trimmed.isEmpty()) {
-          elements.add(trimmed);
+      String url = buildStructuredUrl(serviceId, prefix, "list");
+      var requestBuilder = restClient.get()
+          .uri(url)
+          .accept(MediaType.APPLICATION_JSON);
+      addAuthHeaders(requestBuilder);
+      KVResponseDtos.ListResponseV2 response = requestBuilder
+          .retrieve()
+          .onStatus(status -> status.value() == 404, (req, res) -> {
+            // Handle 404 gracefully - don't throw
+          })
+          .onStatus(HttpStatusCode::is4xxClientError, (req, res) -> handleClientError(res.getStatusCode(), req.getURI().toString()))
+          .onStatus(HttpStatusCode::is5xxServerError, (req, res) -> {
+            throw new KVServerException("KV server error: " + res.getStatusCode());
+          })
+          .body(KVResponseDtos.ListResponseV2.class);
+
+      if (response == null || response.items() == null) {
+        return new ArrayList<>();
+      }
+
+      // Extract items.data and return as List<Map<String, Object>>
+      // Ignore manifest as per requirements
+      List<Map<String, Object>> result = new ArrayList<>();
+      for (KVResponseDtos.ListResponseV2.ListItem item : response.items()) {
+        if (item.data() != null) {
+          result.add(new LinkedHashMap<>(item.data()));
+        } else {
+          result.add(new LinkedHashMap<>());
         }
       }
-      return Optional.of(elements);
+      return result;
+    } catch (KVAuthenticationException | KVAccessDeniedException | KVServerException e) {
+      throw e;
+    } catch (HttpClientErrorException e) {
+      if (e.getStatusCode().value() == 404) {
+        log.debug("KV structured list not found for service: {}, prefix: {}", serviceId, prefix);
+        return new ArrayList<>();
+      }
+      throw new KVClientException("KV client error: " + e.getMessage(), e);
     } catch (Exception e) {
-      log.warn("Failed to parse LEAF_LIST value for service: {}, key: {}, returning empty list", serviceId, key, e);
-      return Optional.of(new ArrayList<>());
+      log.error("Error getting structured list for service: {}, prefix: {}", serviceId, prefix, e);
+      throw new KVClientException("Failed to get structured list: " + e.getMessage(), e);
     }
   }
 
   @Override
-  public List<KVEntry> list(String serviceId, String prefix) {
+  public Map<String, Object> getMap(String serviceId, String prefix) {
     try {
       String url = buildListUrl(serviceId, prefix, false);
       var requestBuilder = restClient.get()
@@ -168,26 +295,41 @@ public class KVApiImpl implements KVApi {
           .body(KVResponseDtos.ListResponse.class);
 
       if (response == null || response.items() == null) {
-        return new ArrayList<>();
+        return new HashMap<>();
       }
 
-      return response.items().stream()
-          .map(this::toKVEntry)
-          .toList();
+      // Convert list of entries to flat map
+      Map<String, Object> map = new LinkedHashMap<>();
+      for (KVResponseDtos.EntryResponse entry : response.items()) {
+        KVEntry kvEntry = toKVEntry(entry);
+        String path = kvEntry.path();
+        // Remove prefix from path if present
+        String key = path;
+        if (StringUtils.hasText(prefix) && path.startsWith(prefix)) {
+          key = path.substring(prefix.length());
+          // Remove leading slash if present
+          if (key.startsWith("/")) {
+            key = key.substring(1);
+          }
+        }
+        map.put(key, kvEntry.getValueAsString());
+      }
+
+      return map;
     } catch (KVAuthenticationException | KVAccessDeniedException | KVServerException e) {
       throw e;
     } catch (HttpClientErrorException e) {
       if (e.getStatusCode().value() == 404) {
         log.debug("KV entries not found for service: {}, prefix: {}", serviceId, prefix);
-        return new ArrayList<>();
+        return new HashMap<>();
       }
       throw new KVClientException("KV client error: " + e.getMessage(), e);
     } catch (HttpServerErrorException e) {
       log.error("KV server error for service: {}, prefix: {}", serviceId, prefix, e);
       throw new KVServerException("KV server error: " + e.getStatusCode(), e);
     } catch (Exception e) {
-      log.error("Error listing KV entries for service: {}, prefix: {}", serviceId, prefix, e);
-      throw new KVClientException("Failed to list KV entries: " + e.getMessage(), e);
+      log.error("Error getting KV map for service: {}, prefix: {}", serviceId, prefix, e);
+      throw new KVClientException("Failed to get KV map: " + e.getMessage(), e);
     }
   }
 
@@ -216,7 +358,7 @@ public class KVApiImpl implements KVApi {
         return new ArrayList<>();
       }
 
-      return response.keys();
+      return new ArrayList<>(response.keys());
     } catch (KVAuthenticationException | KVAccessDeniedException | KVServerException e) {
       throw e;
     } catch (HttpClientErrorException e) {
@@ -235,113 +377,7 @@ public class KVApiImpl implements KVApi {
   }
 
   @Override
-  public Optional<KVListResult> getList(String serviceId, String prefix) {
-    try {
-      String url = buildStructuredUrl(serviceId, prefix, "list");
-      var requestBuilder = restClient.get()
-          .uri(url)
-          .accept(MediaType.APPLICATION_JSON);
-      addAuthHeaders(requestBuilder);
-      KVResponseDtos.ListResponseV2 response = requestBuilder
-          .retrieve()
-          .onStatus(status -> status.value() == 404, (req, res) -> {
-          })
-          .onStatus(HttpStatusCode::is4xxClientError, (req, res) -> handleClientError(res.getStatusCode(), req.getURI().toString()))
-          .onStatus(HttpStatusCode::is5xxServerError, (req, res) -> {
-            throw new KVServerException("KV server error: " + res.getStatusCode());
-          })
-          .body(KVResponseDtos.ListResponseV2.class);
-      if (response == null) {
-        return Optional.empty();
-      }
-      KVListManifest manifest = response.manifest() == null
-          ? KVListManifest.empty()
-          : new KVListManifest(response.manifest().order(), response.manifest().version(), response.manifest().etag(), response.manifest().metadata());
-      List<KVListResult.KVListItem> items = response.items() == null ? List.of()
-          : response.items().stream()
-              .map(item -> new KVListResult.KVListItem(item.id(), item.data()))
-              .toList();
-      return Optional.of(new KVListResult(items, manifest, response.type()));
-    } catch (KVAuthenticationException | KVAccessDeniedException | KVServerException e) {
-      throw e;
-    } catch (HttpClientErrorException e) {
-      if (e.getStatusCode().value() == 404) {
-        log.debug("KV list not found for service: {}, prefix: {}", serviceId, prefix);
-        return Optional.empty();
-      }
-      throw new KVClientException("KV client error: " + e.getMessage(), e);
-    } catch (Exception e) {
-      log.error("Error getting KV list for service: {}, prefix: {}", serviceId, prefix, e);
-      throw new KVClientException("Failed to get KV list: " + e.getMessage(), e);
-    }
-  }
-
-  @Override
-  public KVTransactionResult putList(String serviceId, String prefix, KVListWriteRequest request) {
-    try {
-      String url = buildStructuredUrl(serviceId, prefix, "list");
-      KVResponseDtos.ListManifest manifestDto = new KVResponseDtos.ListManifest(
-          request.manifest().order(),
-          request.manifest().version(),
-          request.manifest().etag(),
-          request.manifest().metadata()
-      );
-      List<KVResponseDtos.ListResponseV2.ListItem> dtoItems = request.items().stream()
-          .map(item -> new KVResponseDtos.ListResponseV2.ListItem(item.id(), item.data()))
-          .toList();
-      KVRequestDtos.ListWriteRequest payload = new KVRequestDtos.ListWriteRequest(dtoItems, manifestDto, request.deletes());
-
-      var requestBuilder = restClient.put()
-          .uri(url)
-          .contentType(MediaType.APPLICATION_JSON)
-          .accept(MediaType.APPLICATION_JSON);
-      addAuthHeaders(requestBuilder);
-      KVResponseDtos.TransactionResponse response = requestBuilder
-          .body(payload)
-          .retrieve()
-          .onStatus(HttpStatusCode::is4xxClientError, (req, res) -> handleClientError(res.getStatusCode(), req.getURI().toString()))
-          .onStatus(HttpStatusCode::is5xxServerError, (req, res) -> {
-            throw new KVServerException("KV server error: " + res.getStatusCode());
-          })
-          .body(KVResponseDtos.TransactionResponse.class);
-      return toTransactionResult(response);
-    } catch (Exception e) {
-      throw translateException(e, "put KV list", serviceId, prefix);
-    }
-  }
-
-  @Override
-  public KVTransactionResult executeTransaction(String serviceId, List<KVTransactionOperationRequest> operations) {
-    try {
-      String url = sdkProperties.getControlUrl()
-          + "/api/application-services/" + serviceId + "/kv/txn";
-      List<KVRequestDtos.TransactionRequest.TransactionOperation> ops = operations.stream()
-          .map(op -> new KVRequestDtos.TransactionRequest.TransactionOperation(
-              op.op(), op.path(), op.value(), op.encoding(), op.flags(), op.cas()
-          )).toList();
-      KVRequestDtos.TransactionRequest payload = new KVRequestDtos.TransactionRequest(ops);
-
-      var requestBuilder = restClient.post()
-          .uri(url)
-          .contentType(MediaType.APPLICATION_JSON)
-          .accept(MediaType.APPLICATION_JSON);
-      addAuthHeaders(requestBuilder);
-      KVResponseDtos.TransactionResponse response = requestBuilder
-          .body(payload)
-          .retrieve()
-          .onStatus(HttpStatusCode::is4xxClientError, (req, res) -> handleClientError(res.getStatusCode(), req.getURI().toString()))
-          .onStatus(HttpStatusCode::is5xxServerError, (req, res) -> {
-            throw new KVServerException("KV server error: " + res.getStatusCode());
-          })
-          .body(KVResponseDtos.TransactionResponse.class);
-      return toTransactionResult(response);
-    } catch (Exception e) {
-      throw translateException(e, "execute KV transaction", serviceId, null);
-    }
-  }
-
-  @Override
-  public Optional<String> view(String serviceId, String prefix, KVStructuredFormat format) {
+  public String view(String serviceId, String prefix, KVStructuredFormat format) {
     try {
       String url = buildStructuredUrl(serviceId, prefix, "view") + "?format=" + format.name().toLowerCase();
       var requestBuilder = restClient.get()
@@ -351,24 +387,70 @@ public class KVApiImpl implements KVApi {
       String response = requestBuilder
           .retrieve()
           .onStatus(status -> status.value() == 404, (req, res) -> {
+            // Handle 404 gracefully - don't throw
           })
           .onStatus(HttpStatusCode::is4xxClientError, (req, res) -> handleClientError(res.getStatusCode(), req.getURI().toString()))
           .onStatus(HttpStatusCode::is5xxServerError, (req, res) -> {
             throw new KVServerException("KV server error: " + res.getStatusCode());
           })
           .body(String.class);
-      return Optional.ofNullable(response);
+      return response;
     } catch (KVAuthenticationException | KVAccessDeniedException | KVServerException e) {
       throw e;
     } catch (HttpClientErrorException e) {
       if (e.getStatusCode().value() == 404) {
         log.debug("KV view not found for service: {}, prefix: {}", serviceId, prefix);
-        return Optional.empty();
+        return null;
       }
       throw new KVClientException("KV client error: " + e.getMessage(), e);
     } catch (Exception e) {
       log.error("Error viewing KV prefix for service: {}, prefix: {}", serviceId, prefix, e);
       throw new KVClientException("Failed to view KV prefix: " + e.getMessage(), e);
+    }
+  }
+
+  @Override
+  public boolean exists(String serviceId, String key) {
+    try {
+      // Try to get the entry - if it doesn't throw a 404, it exists
+      String url = buildGetUrl(serviceId, key, false);
+      var requestBuilder = restClient.get()
+          .uri(url)
+          .accept(MediaType.APPLICATION_JSON);
+      addAuthHeaders(requestBuilder);
+      requestBuilder
+          .retrieve()
+          .onStatus(HttpStatusCode::is4xxClientError, (req, res) -> {
+            // Don't throw for 404 - we'll catch it and return false
+            if (res.getStatusCode().value() != 404) {
+              handleClientError(res.getStatusCode(), req.getURI().toString());
+            }
+          })
+          .onStatus(HttpStatusCode::is5xxServerError, (req, res) -> {
+            throw new KVServerException("KV server error: " + res.getStatusCode());
+          })
+          .body(KVResponseDtos.EntryResponse.class);
+
+      // If we get here, the key exists
+      return true;
+    } catch (KVAuthenticationException | KVAccessDeniedException | KVServerException e) {
+      throw e;
+    } catch (HttpClientErrorException e) {
+      if (e.getStatusCode().value() == 404) {
+        return false;
+      }
+      // Other 4xx errors should have been handled by onStatus, but re-throw if not
+      throw new KVClientException("KV client error: " + e.getMessage(), e);
+    } catch (Exception e) {
+      // Check if the underlying exception is a 404
+      Throwable cause = e.getCause();
+      if (cause instanceof HttpClientErrorException httpError) {
+        if (httpError.getStatusCode().value() == 404) {
+          return false;
+        }
+      }
+      log.error("Error checking if KV entry exists for service: {}, key: {}", serviceId, key, e);
+      throw new KVClientException("Failed to check if KV entry exists: " + e.getMessage(), e);
     }
   }
 
@@ -499,37 +581,4 @@ public class KVApiImpl implements KVApi {
     }
     return prefix.startsWith("/") ? prefix.substring(1) : prefix;
   }
-
-  private KVTransactionResult toTransactionResult(KVResponseDtos.TransactionResponse response) {
-    if (response == null) {
-      return new KVTransactionResult(
-          false,
-          List.of(),
-          "Transaction response was empty"
-      );
-    }
-    List<KVTransactionResult.OperationResult> ops = response.results() == null ? List.of()
-        : response.results().stream()
-            .map(result -> new KVTransactionResult.OperationResult(
-                result.path(),
-                result.success(),
-                result.modifyIndex(),
-                result.message()))
-            .toList();
-    return new KVTransactionResult(response.success(), ops, response.error());
-  }
-
-  private RuntimeException translateException(Exception e, String action, String serviceId, String prefix) {
-    if (e instanceof KVClientException
-        || e instanceof KVServerException
-        || e instanceof KVAuthenticationException
-        || e instanceof KVAccessDeniedException) {
-      return (RuntimeException) e;
-    }
-    String msg = String.format("Failed to %s for service %s prefix %s: %s",
-        action, serviceId, prefix, e.getMessage());
-    log.error(msg, e);
-    return new KVClientException(msg, e);
-  }
 }
-

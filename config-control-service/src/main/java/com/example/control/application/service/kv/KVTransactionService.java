@@ -3,6 +3,7 @@ package com.example.control.application.service.kv;
 import com.example.control.domain.model.kv.KVTransactionOperation;
 import com.example.control.domain.model.kv.KVTransactionRequest;
 import com.example.control.domain.model.kv.KVTransactionResponse;
+import com.example.control.infrastructure.cache.KVCacheEvictionService;
 import com.example.control.infrastructure.consulclient.client.TxnClient;
 import com.example.control.infrastructure.consulclient.core.ConsulResponse;
 import com.example.control.infrastructure.consulclient.model.TxnOp;
@@ -31,6 +32,7 @@ public class KVTransactionService {
     private static final int CONSUL_TXN_LIMIT = 64;
 
     private final TxnClient txnClient;
+    private final KVCacheEvictionService cacheEvictionService;
 
     public KVTransactionResponse execute(KVTransactionRequest request) {
         List<KVTransactionOperation> operations = request.operations();
@@ -85,7 +87,12 @@ public class KVTransactionService {
             }
 
             List<KVTransactionResponse.OperationResult> results = buildSuccessResults(batch, txnResult);
-            return new KVTransactionResponse(true, results, "");
+            KVTransactionResponse txnResponse = new KVTransactionResponse(true, results, "");
+
+            // Evict cache for all affected keys after successful transaction
+            evictCacheForTransaction(batch);
+
+            return txnResponse;
         } catch (Exception ex) {
             log.error("Consul transaction execution failed: {}", ex.getMessage(), ex);
             return failureForBatch(batch, ex.getMessage());
@@ -168,6 +175,33 @@ public class KVTransactionService {
             return "";
         }
         return Base64.getEncoder().encodeToString(value);
+    }
+
+    /**
+     * Evict cache for all keys affected by the transaction.
+     *
+     * @param operations the transaction operations
+     */
+    private void evictCacheForTransaction(List<KVTransactionOperation> operations) {
+        if (operations == null || operations.isEmpty()) {
+            return;
+        }
+
+        try {
+            // Extract all absolute keys from operations
+            List<String> absoluteKeys = operations.stream()
+                    .map(KVTransactionOperation::key)
+                    .filter(java.util.Objects::nonNull)
+                    .distinct()
+                    .toList();
+
+            if (!absoluteKeys.isEmpty()) {
+                cacheEvictionService.evictKeysFromAbsolute(absoluteKeys);
+                log.debug("Evicted cache for {} keys affected by transaction", absoluteKeys.size());
+            }
+        } catch (Exception e) {
+            log.warn("Failed to evict cache for transaction operations", e);
+        }
     }
 }
 

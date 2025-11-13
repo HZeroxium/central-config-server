@@ -109,6 +109,10 @@ app:
         ttl: 10m
         maximum-size: 2000
         allow-null-values: false
+      kv-entries:
+        ttl: 5m
+        maximum-size: 10000
+        allow-null-values: false
 
 # Data Seeding Configuration
 seeding:

@@ -43,8 +43,7 @@ public record ApplicationServiceCriteria(
         String environment,
         List<String> userTeamIds,
         List<String> sharedServiceIds,
-        Boolean includeOrphaned,
-        boolean unassignedOnly) {
+        Boolean includeOrphaned) {
 
     /**
      * Creates criteria with no filtering (admin query).
