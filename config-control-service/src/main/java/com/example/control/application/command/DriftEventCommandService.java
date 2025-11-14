@@ -3,14 +3,18 @@ package com.example.control.application.command;
 import com.example.control.domain.valueobject.id.DriftEventId;
 import com.example.control.domain.model.DriftEvent;
 import com.example.control.domain.port.repository.DriftEventRepositoryPort;
+import com.mongodb.bulk.BulkWriteResult;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -42,6 +46,7 @@ import java.util.UUID;
 public class DriftEventCommandService {
 
     private final DriftEventRepositoryPort repository;
+    private final CacheManager cacheManager;
 
     /**
      * Saves a drift event (create or update).
@@ -118,5 +123,56 @@ public class DriftEventCommandService {
         long count = repository.bulkUpdateTeamIdByServiceId(serviceId, newTeamId);
         log.info("Updated {} drift events for service: {}", count, serviceId);
         return count;
+    }
+
+    /**
+     * Bulk save drift events.
+     * <p>
+     * Efficiently saves multiple drift events in a single MongoDB bulk operation.
+     * Used for batch heartbeat processing to reduce write overhead.
+     * <p>
+     * Evicts cache entries for specific event IDs instead of clearing entire cache.
+     *
+     * @param events list of drift events to save
+     * @return bulk write result with counts of inserted/updated documents
+     */
+    public BulkWriteResult bulkSave(List<DriftEvent> events) {
+        if (events == null || events.isEmpty()) {
+            log.debug("Empty events list, skipping bulk save");
+            return null;
+        }
+
+        log.info("Bulk saving {} drift events", events.size());
+
+        // Generate IDs for events that don't have one
+        for (DriftEvent event : events) {
+            if (event.getId() == null) {
+                event.setId(DriftEventId.of(UUID.randomUUID().toString()));
+            }
+        }
+
+        BulkWriteResult result = repository.bulkSave(events);
+
+        // Programmatically evict cache entries for specific event IDs
+        Cache cache = cacheManager.getCache("drift-events");
+        if (cache != null) {
+            int evictedCount = 0;
+            for (DriftEvent event : events) {
+                if (event.getId() != null) {
+                    try {
+                        cache.evict(event.getId());
+                        evictedCount++;
+                    } catch (Exception e) {
+                        log.warn("Failed to evict cache for drift event: {}", event.getId(), e);
+                    }
+                }
+            }
+            log.debug("Evicted {} cache entries for drift events", evictedCount);
+        }
+
+        log.info("Bulk save completed: {} inserted, {} modified",
+                result != null ? result.getInsertedCount() : 0,
+                result != null ? result.getModifiedCount() : 0);
+        return result;
     }
 }

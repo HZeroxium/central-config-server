@@ -37,7 +37,7 @@ public class IamUserDocument {
      * Document identifier: Keycloak user ID (sub claim).
      */
     @Id
-    @Field("userId")
+    // @Field("userId")
     private String userId;
 
     /**

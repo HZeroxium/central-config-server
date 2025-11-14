@@ -343,6 +343,7 @@ public class CacheManagerFactory {
                 .allowIfSubType("java.util.LinkedHashSet")
                 .allowIfSubType("java.util.TreeMap")
                 .allowIfSubType("java.util.TreeSet")
+                .allowIfSubType("java.util.Collections$")
                 // Exclude byte[] from default typing - handled by custom serializers
                 // .allowIfBaseType(java.lang.Object.class) // Removed to be more restrictive
                 .build();

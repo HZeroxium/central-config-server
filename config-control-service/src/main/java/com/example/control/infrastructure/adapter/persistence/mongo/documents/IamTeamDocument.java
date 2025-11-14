@@ -36,7 +36,7 @@ public class IamTeamDocument {
      * Document identifier: Keycloak group name (team ID).
      */
     @Id
-    @Field("teamId")
+    // @Field("teamId")
     private String teamId;
 
     /**

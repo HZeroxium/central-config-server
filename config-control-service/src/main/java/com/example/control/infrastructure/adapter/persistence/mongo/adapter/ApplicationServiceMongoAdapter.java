@@ -6,17 +6,21 @@ import com.example.control.domain.valueobject.id.ApplicationServiceId;
 import com.example.control.domain.port.repository.ApplicationServiceRepositoryPort;
 import com.example.control.infrastructure.adapter.persistence.mongo.repository.ApplicationServiceMongoRepository;
 import com.example.control.infrastructure.adapter.persistence.mongo.documents.ApplicationServiceDocument;
+import com.mongodb.bulk.BulkWriteResult;
 import lombok.extern.slf4j.Slf4j;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.springframework.data.mongodb.core.BulkOperations;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Component;
 
 /**
@@ -160,5 +164,45 @@ public class ApplicationServiceMongoAdapter
 
         log.debug("Found {} application services out of {} requested", services.size(), displayNames.size());
         return services;
+    }
+
+    @Override
+    public BulkWriteResult bulkSave(List<ApplicationService> services) {
+        if (services == null || services.isEmpty()) {
+            log.debug("Empty services list, skipping bulk save");
+            return null; // Return null for empty list (caller should handle)
+        }
+
+        log.debug("Bulk saving {} application services", services.size());
+
+        BulkOperations bulkOps = mongoTemplate.bulkOps(
+                BulkOperations.BulkMode.UNORDERED,
+                ApplicationServiceDocument.class);
+
+        Instant now = Instant.now();
+        for (ApplicationService service : services) {
+            ApplicationServiceDocument doc = toDocument(service);
+            Query query = Query.query(Criteria.where("_id").is(service.getId().id()));
+            Update update = new Update()
+                    .set("displayName", doc.getDisplayName())
+                    .set("ownerTeamId", doc.getOwnerTeamId())
+                    .set("environments", doc.getEnvironments())
+                    .set("tags", doc.getTags())
+                    .set("repoUrl", doc.getRepoUrl())
+                    .set("lifecycle", doc.getLifecycle())
+                    .set("updatedAt", now)
+                    .set("createdBy", doc.getCreatedBy())
+                    .set("updatedBy", doc.getUpdatedBy())
+                    .set("attributes", doc.getAttributes())
+                    .setOnInsert("createdAt", doc.getCreatedAt() != null ? doc.getCreatedAt() : now);
+
+            bulkOps.upsert(query, update);
+        }
+
+        BulkWriteResult result = bulkOps.execute();
+        log.debug("Bulk save completed: {} inserted, {} modified, {} matched",
+                result.getInsertedCount(), result.getModifiedCount(), result.getMatchedCount());
+
+        return result;
     }
 }

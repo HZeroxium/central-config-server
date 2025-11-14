@@ -231,4 +231,20 @@ public class DriftEventService {
         return commandService.bulkUpdateTeamIdByServiceId(serviceId, newTeamId);
     }
 
+    /**
+     * Bulk save drift events.
+     * <p>
+     * Efficiently saves multiple drift events in a single MongoDB bulk operation.
+     * Used for batch heartbeat processing to reduce write overhead.
+     * <p>
+     * No permission checking - this is used internally by heartbeat processing.
+     *
+     * @param events list of drift events to save
+     * @return bulk write result with counts of inserted/updated documents
+     */
+    public com.mongodb.bulk.BulkWriteResult bulkSave(List<DriftEvent> events) {
+        log.debug("Bulk saving {} drift events (no permission check)", events.size());
+        return commandService.bulkSave(events);
+    }
+
 }

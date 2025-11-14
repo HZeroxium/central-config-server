@@ -7,6 +7,31 @@ config-server:
     max-attempts: 3
     backoff-delay: 1000
 
+# Config Proxy settings
+config:
+  proxy:
+    # Enable mock mode to avoid GitHub rate limits during testing/load testing
+    # When enabled, services not in whitelist-services will receive mock config hashes
+    mock-mode-enabled: ${CONFIG_PROXY_MOCK_MODE_ENABLED:true}
+    
+    # Mock strategy: DETERMINISTIC (stable), RANDOM (varies), STATIC (fixed)
+    # - DETERMINISTIC: Same hash for same service:env (stable for testing)
+    # - RANDOM: Different hash each time (test drift detection)
+    # - STATIC: Fixed hash value (test steady state)
+    mock-strategy: ${CONFIG_PROXY_MOCK_STRATEGY:DETERMINISTIC}
+    
+    # Services that always fetch real config from Config Server (whitelist)
+    # These services will bypass mock mode even when mock-mode-enabled=true
+    whitelist-services:
+      - sample-service
+      # Add other critical services here
+    
+    # Static hash value (used when mock-strategy=STATIC)
+    static-mock-hash: ${CONFIG_PROXY_STATIC_MOCK_HASH:mock-hash-static-12345}
+    
+    # Log when mock hash is returned (for observability)
+    log-mock-usage: ${CONFIG_PROXY_LOG_MOCK_USAGE:true}
+
 # Consul client configuration
 consul:
   url: ${CONSUL_URL:http://consul:8500}

@@ -2,6 +2,7 @@ package com.example.control.infrastructure.external.configserver;
 
 import com.example.control.api.http.exception.exceptions.ExternalServiceException;
 import com.example.control.api.http.exception.exceptions.ServiceNotFoundException;
+import com.example.control.infrastructure.config.misc.ConfigProxyProperties;
 import com.example.control.infrastructure.config.misc.ConfigServerProperties;
 import com.example.control.domain.valueobject.configsnapshot.ConfigSnapshot;
 import com.example.control.domain.valueobject.configsnapshot.ConfigSnapshotBuilder;
@@ -25,6 +26,10 @@ import java.util.Map;
 /**
  * Service that proxies requests to Config Server and provides config-related
  * operations.
+ * <p>
+ * Supports mock mode to avoid GitHub rate limits during testing and load testing.
+ * When mock mode is enabled, services not in the whitelist will receive mock
+ * config hashes instead of fetching from Config Server.
  */
 @Slf4j
 @Service
@@ -33,17 +38,25 @@ public class ConfigProxyService {
 
     private final DiscoveryClient discoveryClient;
     private final ConfigServerProperties configServerProperties;
+    private final ConfigProxyProperties configProxyProperties;
     private final ObjectMapper objectMapper;
     private final RestClient restClient = RestClient.create();
     private final ConfigSnapshotBuilder snapshotBuilder = new ConfigSnapshotBuilder();
 
     /**
+     * Prefix for mock hash generation to distinguish from real hashes.
+     */
+    private static final String MOCK_PREFIX = "mock-";
+
+    /**
      * Get effective configuration hash for a service in an environment.
-     * Fetches config from Config Server and computes SHA-256 hash.
+     * <p>
+     * If mock mode is enabled and service is not whitelisted, returns a mock hash.
+     * Otherwise, fetches config from Config Server and computes SHA-256 hash.
      *
      * @param serviceName service name
      * @param profile     environment profile (e.g., dev, prod)
-     * @return SHA-256 hash of effective configuration
+     * @return SHA-256 hash of effective configuration (or mock hash)
      */
     @Cacheable(value = "config-hashes", key = "#serviceName + ':' + #profile")
     @NewSpan("config.get_effective_hash")
@@ -54,6 +67,67 @@ public class ConfigProxyService {
             throw new IllegalArgumentException("Service name cannot be null or empty");
         }
 
+        // Check if mock mode is enabled and service is not whitelisted
+        if (configProxyProperties.isMockModeEnabled() &&
+                !configProxyProperties.isWhitelisted(serviceName)) {
+            return getMockConfigHash(serviceName, profile);
+        }
+
+        // Fetch real config from Config Server
+        return fetchRealConfigHash(serviceName, profile);
+    }
+
+    /**
+     * Generates a mock config hash based on configured strategy.
+     *
+     * @param serviceName service name
+     * @param profile     environment profile
+     * @return mock config hash
+     */
+    private String getMockConfigHash(String serviceName, String profile) {
+        String mockHash;
+
+        switch (configProxyProperties.getMockStrategy()) {
+            case DETERMINISTIC:
+                // Generate stable hash from serviceName + profile
+                String input = serviceName + ":" + (profile != null ? profile : "default");
+                mockHash = ConfigHashCalculator.hash(MOCK_PREFIX + input);
+                break;
+
+            case RANDOM:
+                // Generate random hash each time (includes timestamp)
+                String randomInput = serviceName + ":" +
+                        (profile != null ? profile : "default") + ":" + System.currentTimeMillis();
+                mockHash = ConfigHashCalculator.hash(MOCK_PREFIX + randomInput);
+                break;
+
+            case STATIC:
+                // Return fixed hash
+                mockHash = configProxyProperties.getStaticMockHash();
+                break;
+
+            default:
+                // Fallback to deterministic
+                String fallbackInput = serviceName + ":" + (profile != null ? profile : "default");
+                mockHash = ConfigHashCalculator.hash(MOCK_PREFIX + fallbackInput);
+        }
+
+        if (configProxyProperties.isLogMockUsage()) {
+            log.debug("Returning mock config hash for {}:{} -> {} (strategy: {})",
+                    serviceName, profile, mockHash, configProxyProperties.getMockStrategy());
+        }
+
+        return mockHash;
+    }
+
+    /**
+     * Fetches real config hash from Config Server.
+     *
+     * @param serviceName service name
+     * @param profile     environment profile
+     * @return SHA-256 hash of effective configuration
+     */
+    private String fetchRealConfigHash(String serviceName, String profile) {
         try {
             log.debug("Fetching effective config from Config Server for {}:{}", serviceName, profile);
 

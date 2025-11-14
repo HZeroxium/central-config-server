@@ -88,7 +88,7 @@
     </Logger>
 
     <!-- Kafka logging -->
-    <Logger name="org.apache.kafka" level="INFO" additivity="false">
+    <Logger name="org.apache.kafka" level="WARN" additivity="false">
       <AppenderRef ref="Console"/>
       <AppenderRef ref="FileAppender"/>
     </Logger>

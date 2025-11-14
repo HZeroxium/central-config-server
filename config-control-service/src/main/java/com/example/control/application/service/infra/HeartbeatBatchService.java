@@ -15,6 +15,8 @@ import com.example.control.domain.valueobject.id.ServiceInstanceId;
 import com.example.control.infrastructure.external.configserver.ConfigProxyService;
 import com.example.control.infrastructure.observability.MetricsNames;
 import com.example.control.infrastructure.observability.heartbeat.HeartbeatMetrics;
+import com.mongodb.bulk.BulkWriteResult;
+
 import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -98,7 +100,8 @@ public class HeartbeatBatchService {
                 .map(HeartbeatPayload::getServiceName)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
-        Map<String, ApplicationService> appServicesMap = loadApplicationServicesBatch(serviceNames);
+        Set<ApplicationService> appServicesToSave = new HashSet<>();
+        Map<String, ApplicationService> appServicesMap = loadApplicationServicesBatch(serviceNames, appServicesToSave);
 
         // 3. Batch load config hashes (group by service:env for cache efficiency)
         Map<String, String> configHashesMap = loadConfigHashesBatch(payloads);
@@ -111,7 +114,7 @@ public class HeartbeatBatchService {
         for (HeartbeatPayload payload : payloads) {
             try {
                 ServiceInstance instance = processHeartbeatInMemory(
-                        payload, instancesMap, appServicesMap, configHashesMap, now);
+                        payload, instancesMap, appServicesMap, configHashesMap, now, appServicesToSave);
                 instancesToSave.add(instance);
 
                 // Collect drift events and refresh triggers
@@ -128,34 +131,80 @@ public class HeartbeatBatchService {
             }
         }
 
-        // 5. Bulk upsert ServiceInstances
+        // 5. Bulk save ApplicationServices (orphaned services and environment merges)
+        if (!appServicesToSave.isEmpty()) {
+            List<ApplicationService> servicesList = new ArrayList<>(appServicesToSave);
+            BulkWriteResult result = applicationServiceCommandService.bulkSave(servicesList);
+            if (result != null) {
+                log.debug("Bulk saved {} application services: {} inserted, {} modified",
+                        servicesList.size(), result.getInsertedCount(), result.getModifiedCount());
+                // Update appServicesMap with saved services for consistency
+                for (ApplicationService service : servicesList) {
+                    appServicesMap.put(service.getDisplayName(), service);
+                }
+            }
+        }
+
+        // 6. Bulk upsert ServiceInstances
         if (!instancesToSave.isEmpty()) {
-            com.mongodb.bulk.BulkWriteResult result = serviceInstanceCommandService.bulkUpsert(instancesToSave);
+            BulkWriteResult result = serviceInstanceCommandService.bulkUpsert(instancesToSave);
             if (result != null) {
                 heartbeatMetrics.recordMongodbWrites(result.getInsertedCount() + result.getModifiedCount());
             }
         }
 
-        // 6. Save drift events in batch
+        // 7. Save drift events in batch
         if (!driftEventsToSave.isEmpty()) {
-            for (DriftEvent event : driftEventsToSave) {
-                driftEventService.save(event);
-            }
+            driftEventService.bulkSave(driftEventsToSave);
             heartbeatMetrics.recordDriftDetected();
         }
 
-        // 7. Trigger refresh for drifted instances (async/batched if possible)
-        for (String destination : servicesToRefresh) {
-            try {
-                configProxyService.triggerBusRefresh(destination);
-                log.debug("Triggered refresh for drifted instance: {}", destination);
-            } catch (Exception e) {
-                log.error("Failed to trigger refresh for {}", destination, e);
-            }
+        // 8. Trigger refresh for drifted instances (batched by service)
+        if (!servicesToRefresh.isEmpty()) {
+            triggerBatchBusRefresh(servicesToRefresh);
         }
 
-        log.debug("Batch processing completed: {} instances processed, {} drift events created",
-                instancesToSave.size(), driftEventsToSave.size());
+        log.debug("Batch processing completed: {} instances processed, {} drift events created, {} app services saved",
+                instancesToSave.size(), driftEventsToSave.size(), appServicesToSave.size());
+    }
+
+    /**
+     * Triggers batch bus refresh grouped by service name.
+     * <p>
+     * Groups refresh destinations by service name and triggers one refresh per service
+     * to reduce HTTP calls to Config Server.
+     *
+     * @param destinations set of destination strings in format "serviceName:instanceId"
+     */
+    private void triggerBatchBusRefresh(Set<String> destinations) {
+        if (destinations.isEmpty()) {
+            return;
+        }
+
+        // Extract unique service names from destinations
+        Set<String> uniqueServiceNames = destinations.stream()
+                .map(dest -> {
+                    int colonIndex = dest.indexOf(':');
+                    return colonIndex > 0 ? dest.substring(0, colonIndex) : dest;
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        log.debug("Triggering batch bus refresh for {} unique services (from {} destinations)",
+                uniqueServiceNames.size(), destinations.size());
+
+        // Trigger one refresh per unique service
+        // Note: Config Server's /busrefresh endpoint broadcasts to all instances
+        // If destination-specific refresh is needed, we can enhance this later
+        for (String serviceName : uniqueServiceNames) {
+            try {
+                // Use service name as destination (Config Server may support service:** pattern)
+                configProxyService.triggerBusRefresh(serviceName);
+                log.debug("Triggered refresh for service: {}", serviceName);
+            } catch (Exception e) {
+                log.error("Failed to trigger refresh for service: {}", serviceName, e);
+            }
+        }
     }
 
     /**
@@ -179,8 +228,14 @@ public class HeartbeatBatchService {
      * Batch loads ApplicationServices by display names.
      * <p>
      * Creates orphaned services for missing ones to maintain consistency.
+     * Orphaned services are collected and will be bulk saved later.
+     *
+     * @param serviceNames set of service display names to load
+     * @param appServicesToSave set to collect ApplicationServices that need to be saved
+     * @return map of display name to ApplicationService
      */
-    private Map<String, ApplicationService> loadApplicationServicesBatch(Set<String> serviceNames) {
+    private Map<String, ApplicationService> loadApplicationServicesBatch(
+            Set<String> serviceNames, Set<ApplicationService> appServicesToSave) {
         if (serviceNames.isEmpty()) {
             return new HashMap<>();
         }
@@ -188,10 +243,11 @@ public class HeartbeatBatchService {
         Map<String, ApplicationService> appServicesMap = applicationServiceQueryService
                 .findByDisplayNamesMap(serviceNames);
 
-        // Create orphaned services for missing ones
+        // Create orphaned services for missing ones (collect for bulk save)
         Set<String> missingServices = new HashSet<>(serviceNames);
         missingServices.removeAll(appServicesMap.keySet());
 
+        Instant now = Instant.now();
         for (String displayName : missingServices) {
             try {
                 ApplicationService orphanedService = ApplicationService.builder()
@@ -200,13 +256,14 @@ public class HeartbeatBatchService {
                         .ownerTeamId(null) // Orphaned
                         .environments(List.of("dev", "staging", "prod"))
                         .lifecycle(ApplicationService.ServiceLifecycle.ACTIVE)
-                        .createdAt(Instant.now())
+                        .createdAt(now)
                         .createdBy("system")
                         .build();
 
-                ApplicationService saved = applicationServiceCommandService.save(orphanedService);
-                appServicesMap.put(displayName, saved);
-                log.debug("Created orphaned ApplicationService: {} for displayName: {}", saved.getId(), displayName);
+                // Add to map for immediate use and to save set for bulk save
+                appServicesMap.put(displayName, orphanedService);
+                appServicesToSave.add(orphanedService);
+                log.debug("Prepared orphaned ApplicationService: {} for displayName: {}", orphanedService.getId(), displayName);
             } catch (Exception e) {
                 log.error("Failed to create orphaned ApplicationService for displayName: {}", displayName, e);
             }
@@ -252,13 +309,22 @@ public class HeartbeatBatchService {
      * <p>
      * Replicates the logic from HeartbeatService.processHeartbeat() but operates
      * on in-memory objects without database writes.
+     *
+     * @param payload heartbeat payload
+     * @param instancesMap map of instance ID to ServiceInstance
+     * @param appServicesMap map of service name to ApplicationService
+     * @param configHashesMap map of service:env to config hash
+     * @param now current timestamp
+     * @param appServicesToSave set to collect ApplicationServices that need to be saved
+     * @return processed ServiceInstance
      */
     private ServiceInstance processHeartbeatInMemory(
             HeartbeatPayload payload,
             Map<String, ServiceInstance> instancesMap,
             Map<String, ApplicationService> appServicesMap,
             Map<String, String> configHashesMap,
-            Instant now) {
+            Instant now,
+            Set<ApplicationService> appServicesToSave) {
 
         String id = payload.getServiceName() + ":" + payload.getInstanceId();
         ServiceInstanceId instanceId = ServiceInstanceId.of(payload.getInstanceId());
@@ -289,7 +355,8 @@ public class HeartbeatBatchService {
                     List<String> merged = mergeEnvironments(currentEnvironments, payload.getEnvironment());
                     appService.setEnvironments(merged);
                     appService.setUpdatedAt(now);
-                    // Note: We don't save here to avoid individual writes - could batch this too
+                    // Mark for bulk save (environment merge)
+                    appServicesToSave.add(appService);
                 }
             }
         }

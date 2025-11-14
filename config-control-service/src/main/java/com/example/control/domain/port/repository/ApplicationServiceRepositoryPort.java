@@ -4,6 +4,7 @@ import com.example.control.domain.model.ApplicationService;
 import com.example.control.domain.criteria.ApplicationServiceCriteria;
 import com.example.control.domain.port.RepositoryPort;
 import com.example.control.domain.valueobject.id.ApplicationServiceId;
+import com.mongodb.bulk.BulkWriteResult;
 
 import java.util.List;
 import java.util.Optional;
@@ -44,4 +45,15 @@ public interface ApplicationServiceRepositoryPort
      * @return list of application services matching the display names
      */
     List<ApplicationService> findByDisplayNames(Set<String> displayNames);
+
+    /**
+     * Bulk save application services.
+     * <p>
+     * Efficiently saves multiple application services in a single MongoDB bulk operation.
+     * Used for batch heartbeat processing to reduce write overhead.
+     *
+     * @param services list of application services to save
+     * @return bulk write result with counts of inserted/updated documents
+     */
+    BulkWriteResult bulkSave(List<ApplicationService> services);
 }

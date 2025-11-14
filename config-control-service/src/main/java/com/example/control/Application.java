@@ -1,5 +1,6 @@
 package com.example.control;
 
+import com.example.control.infrastructure.config.misc.ConfigProxyProperties;
 import com.example.control.infrastructure.config.misc.ConfigServerProperties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -19,7 +20,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableScheduling
 @ConfigurationPropertiesScan
 @EnableMongoRepositories(basePackages = "com.example.control.infrastructure.adapter.persistence.mongo.repository")
-@EnableConfigurationProperties({ ConfigServerProperties.class })
+@EnableConfigurationProperties({ ConfigServerProperties.class, ConfigProxyProperties.class })
 public class Application {
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);

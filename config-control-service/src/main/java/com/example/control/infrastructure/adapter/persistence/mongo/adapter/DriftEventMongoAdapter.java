@@ -5,9 +5,11 @@ import com.example.control.domain.criteria.DriftEventCriteria;
 import com.example.control.domain.valueobject.id.DriftEventId;
 import com.example.control.domain.port.repository.DriftEventRepositoryPort;
 import com.example.control.infrastructure.adapter.persistence.mongo.repository.DriftEventMongoRepository;
+import com.mongodb.bulk.BulkWriteResult;
 import com.mongodb.client.result.UpdateResult;
 import com.example.control.infrastructure.adapter.persistence.mongo.documents.DriftEventDocument;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.mongodb.core.BulkOperations;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -15,6 +17,9 @@ import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * MongoDB adapter for {@link DriftEventRepositoryPort}.
@@ -127,5 +132,72 @@ public class DriftEventMongoAdapter
     @Override
     protected Class<DriftEventDocument> getDocumentClass() {
         return DriftEventDocument.class;
+    }
+
+    @Override
+    public BulkWriteResult bulkSave(List<DriftEvent> events) {
+        if (events == null || events.isEmpty()) {
+            log.debug("Empty events list, skipping bulk save");
+            return null; // Return null for empty list (caller should handle)
+        }
+
+        log.debug("Bulk saving {} drift events", events.size());
+
+        // Deduplicate events by ID to avoid conflicts in bulk write
+        Map<String, DriftEvent> uniqueEvents = new LinkedHashMap<>();
+        for (DriftEvent event : events) {
+            // Generate ID if null (new event)
+            if (event.getId() == null) {
+                event.setId(DriftEventId.of(java.util.UUID.randomUUID().toString()));
+            }
+            // Keep the last occurrence if duplicates exist
+            uniqueEvents.put(event.getId().id(), event);
+        }
+
+        if (uniqueEvents.isEmpty()) {
+            log.debug("No unique events after deduplication, skipping bulk save");
+            return null;
+        }
+
+        if (uniqueEvents.size() < events.size()) {
+            log.warn("Deduplicated {} drift events to {} unique events", 
+                    events.size(), uniqueEvents.size());
+        }
+
+        BulkOperations bulkOps = mongoTemplate.bulkOps(
+                BulkOperations.BulkMode.UNORDERED,
+                DriftEventDocument.class);
+
+        Instant now = Instant.now();
+        for (DriftEvent event : uniqueEvents.values()) {
+            DriftEventDocument doc = toDocument(event);
+            Query query = Query.query(Criteria.where("_id").is(event.getId().id()));
+            Update update = new Update()
+                    .set("serviceName", doc.getServiceName())
+                    .set("instanceId", doc.getInstanceId())
+                    .set("serviceId", doc.getServiceId())
+                    .set("teamId", doc.getTeamId())
+                    .set("environment", doc.getEnvironment())
+                    .set("expectedHash", doc.getExpectedHash())
+                    .set("appliedHash", doc.getAppliedHash())
+                    .set("severity", doc.getSeverity())
+                    .set("status", doc.getStatus())
+                    // Removed: .set("detectedAt", doc.getDetectedAt()) - causes conflict with setOnInsert
+                    // detectedAt should be immutable after creation, only set on insert
+                    .set("resolvedAt", doc.getResolvedAt())
+                    .set("detectedBy", doc.getDetectedBy())
+                    .set("resolvedBy", doc.getResolvedBy())
+                    .set("notes", doc.getNotes())
+                    // Only set detectedAt on insert (immutable field)
+                    .setOnInsert("detectedAt", doc.getDetectedAt() != null ? doc.getDetectedAt() : now);
+
+            bulkOps.upsert(query, update);
+        }
+
+        BulkWriteResult result = bulkOps.execute();
+        log.debug("Bulk save completed: {} inserted, {} modified, {} matched",
+                result.getInsertedCount(), result.getModifiedCount(), result.getMatchedCount());
+
+        return result;
     }
 }

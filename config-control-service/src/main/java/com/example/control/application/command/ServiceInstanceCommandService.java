@@ -7,6 +7,8 @@ import com.mongodb.bulk.BulkWriteResult;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,6 +46,7 @@ import java.util.UUID;
 public class ServiceInstanceCommandService {
 
     private final ServiceInstanceRepositoryPort repository;
+    private final CacheManager cacheManager;
 
     /**
      * Saves a service instance (create or update).
@@ -108,12 +111,11 @@ public class ServiceInstanceCommandService {
      * Efficiently upserts multiple service instances in a single MongoDB bulk operation.
      * Used for batch heartbeat processing to reduce write overhead.
      * <p>
-     * Evicts cache entries for all affected instances.
+     * Evicts cache entries for specific instance IDs instead of clearing entire cache.
      *
      * @param instances list of service instances to upsert
      * @return bulk write result with counts of inserted/updated documents
      */
-    @CacheEvict(value = "service-instances", allEntries = true)
     public BulkWriteResult bulkUpsert(List<ServiceInstance> instances) {
         if (instances == null || instances.isEmpty()) {
             log.debug("Empty instances list, skipping bulk upsert");
@@ -122,6 +124,24 @@ public class ServiceInstanceCommandService {
 
         log.info("Bulk upserting {} service instances", instances.size());
         BulkWriteResult result = repository.bulkUpsert(instances);
+
+        // Programmatically evict cache entries for specific instance IDs
+        Cache cache = cacheManager.getCache("service-instances");
+        if (cache != null) {
+            int evictedCount = 0;
+            for (ServiceInstance instance : instances) {
+                if (instance.getId() != null) {
+                    try {
+                        cache.evict(instance.getId());
+                        evictedCount++;
+                    } catch (Exception e) {
+                        log.warn("Failed to evict cache for service instance: {}", instance.getId(), e);
+                    }
+                }
+            }
+            log.debug("Evicted {} cache entries for service instances", evictedCount);
+        }
+
         log.info("Bulk upsert completed: {} inserted, {} modified",
                 result != null ? result.getInsertedCount() : 0,
                 result != null ? result.getModifiedCount() : 0);

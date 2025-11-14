@@ -39,11 +39,30 @@ public class HeartbeatKafkaErrorHandler implements CommonErrorHandler {
         this.dlqTopic = dlqTopic;
     }
 
-    public void handleBatch(
+    /**
+     * Handles errors for batch listeners.
+     * <p>
+     * This method is called when a batch listener throws an exception.
+     * Implements retry logic with exponential backoff and DLQ routing.
+     *
+     * @param thrownException the exception that was thrown
+     * @param records the list of records that failed (can be null for non-batch listeners)
+     * @param consumer the Kafka consumer
+     * @param container the message listener container
+     */
+    @Override
+    public void handleRemaining(
             Exception thrownException,
             List<ConsumerRecord<?, ?>> records,
             Consumer<?, ?> consumer,
             MessageListenerContainer container) {
+
+        if (records == null || records.isEmpty()) {
+            // Non-batch listener or empty batch
+            log.error("Error in heartbeat consumer (non-batch)", thrownException);
+            handleOtherException(thrownException, consumer, container, false);
+            return;
+        }
 
         log.error("Error processing heartbeat batch of {} records", records.size(), thrownException);
 
@@ -58,6 +77,7 @@ public class HeartbeatKafkaErrorHandler implements CommonErrorHandler {
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 log.error("Interrupted during retry backoff");
+                return;
             }
 
             // Re-throw to trigger retry
@@ -96,7 +116,7 @@ public class HeartbeatKafkaErrorHandler implements CommonErrorHandler {
 
     @Override
     public void handleOtherException(Exception thrownException, Consumer<?, ?> consumer, MessageListenerContainer container, boolean batchListener) {
-        log.error("Unexpected error in heartbeat consumer", thrownException);
+        log.error("Unexpected error in heartbeat consumer (batchListener={})", batchListener, thrownException);
     }
 }
 

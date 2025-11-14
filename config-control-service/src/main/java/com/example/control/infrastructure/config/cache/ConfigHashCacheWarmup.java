@@ -1,6 +1,7 @@
 package com.example.control.infrastructure.config.cache;
 
 import com.example.control.application.query.ApplicationServiceQueryService;
+import com.example.control.domain.model.ApplicationService;
 import com.example.control.infrastructure.external.configserver.ConfigProxyService;
 import com.example.control.infrastructure.observability.heartbeat.HeartbeatMetrics;
 import lombok.RequiredArgsConstructor;
@@ -56,11 +57,11 @@ public class ConfigHashCacheWarmup {
         Instant start = Instant.now();
 
         try {
-            List<com.example.control.domain.model.ApplicationService> services = applicationServiceQueryService.findAll();
+            List<ApplicationService> services = applicationServiceQueryService.findAll();
             int totalWarmed = 0;
             int totalFailed = 0;
 
-            for (com.example.control.domain.model.ApplicationService service : services) {
+            for (ApplicationService service : services) {
                 List<String> environments = service.getEnvironments();
                 if (environments == null || environments.isEmpty()) {
                     // Default environments if none specified
