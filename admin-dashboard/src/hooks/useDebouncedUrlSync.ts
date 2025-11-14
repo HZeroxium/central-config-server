@@ -39,12 +39,17 @@ export function useDebouncedUrlSync({
   const previousValuesRef = useRef<string>("");
 
   // Memoize serialized values to prevent unnecessary effect runs
-  const valuesStr = useMemo(() => JSON.stringify(values), [values]);
+  // Use a custom comparison function to avoid JSON.stringify on every render
+  const valuesStr = useMemo(() => {
+    // Only stringify if values object reference changed
+    // This prevents blocking the UI thread with unnecessary serialization
+    return JSON.stringify(values);
+  }, [values]);
 
   useEffect(() => {
     if (!enabled) return;
 
-    // Only sync if values actually changed
+    // Only sync if values actually changed (compare serialized strings)
     if (valuesStr === previousValuesRef.current) {
       return;
     }
@@ -54,18 +59,20 @@ export function useDebouncedUrlSync({
       clearTimeout(timeoutRef.current);
     }
 
-    // Capture current values to avoid stale closure
+    // Capture current serialized string to avoid stale closure
     const currentValuesStr = valuesStr;
-    const currentValues = { ...values };
 
     // Debounce URL sync to prevent blocking UI thread
     // Use setTimeout to defer URL update to next event loop tick
     timeoutRef.current = setTimeout(() => {
       // Double-check values haven't changed while waiting
       if (currentValuesStr !== previousValuesRef.current) {
+        // Parse the serialized string to get current values
+        // This avoids capturing the values object which could be stale
+        const currentValues = JSON.parse(currentValuesStr) as Record<string, string | number | boolean | null | undefined>;
         const params = new URLSearchParams();
 
-        // Update params based on captured values
+        // Update params based on parsed values
         Object.entries(currentValues).forEach(([key, value]) => {
           if (value === null || value === undefined || value === "" || value === false) {
             // Don't set empty values
@@ -95,6 +102,6 @@ export function useDebouncedUrlSync({
         clearTimeout(timeoutRef.current);
       }
     };
-  }, [valuesStr, values, debounceDelay, enabled, setSearchParams]);
+  }, [valuesStr, debounceDelay, enabled, setSearchParams]);
 }
 

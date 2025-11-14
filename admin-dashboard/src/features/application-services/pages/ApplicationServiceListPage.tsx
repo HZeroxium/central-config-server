@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { keepPreviousData } from "@tanstack/react-query";
@@ -122,9 +122,10 @@ export default function ApplicationServiceListPage() {
     [setRealtimeEnabled]
   );
 
-  // Debounced URL sync to prevent blocking UI thread during typing
-  useDebouncedUrlSync({
-    values: {
+  // Memoize values object to prevent unnecessary useDebouncedUrlSync triggers
+  // This prevents the hook from running on every render when values haven't changed
+  const urlSyncValues = useMemo(
+    () => ({
       search: effectiveSearch || undefined,
       lifecycle: lifecycleFilter || undefined,
       ownerTeamId: showUnassignedOnly ? undefined : ownerTeamFilter || undefined,
@@ -132,7 +133,21 @@ export default function ApplicationServiceListPage() {
       unassignedOnly: showUnassignedOnly ? true : undefined,
       page: page > 0 ? page : undefined,
       size: pageSize !== 20 ? pageSize : undefined,
-    },
+    }),
+    [
+      effectiveSearch,
+      lifecycleFilter,
+      showUnassignedOnly,
+      ownerTeamFilter,
+      environmentFilter,
+      page,
+      pageSize,
+    ]
+  );
+
+  // Debounced URL sync to prevent blocking UI thread during typing
+  useDebouncedUrlSync({
+    values: urlSyncValues,
     debounceDelay: 300, // Shorter delay for URL sync (search debounce is 800ms)
     enabled: true,
   });

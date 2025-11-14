@@ -98,10 +98,16 @@ export function useSearchWithToggle(
     realtimeEnabled ? debounceDelay : 0
   );
 
-  // Track debouncing state for visual feedback
+  // Consolidated effect: Track debouncing state for visual feedback
+  // This combines the previous two effects to reduce re-renders
   useEffect(() => {
     if (!realtimeEnabled) {
       setIsDebouncing(false);
+      // Clear any pending timeout when real-time is disabled
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+        debounceTimeoutRef.current = null;
+      }
       return;
     }
 
@@ -119,24 +125,24 @@ export function useSearchWithToggle(
       debounceTimeoutRef.current = setTimeout(() => {
         setIsDebouncing(false);
         onDebounceComplete?.();
+        previousSearchRef.current = searchState;
       }, debounceDelay);
-
-      previousSearchRef.current = searchState;
+    } else if (debouncedSearch === searchState && searchState !== "") {
+      // If debounced value matches current state and we have a value, debouncing is complete
+      setIsDebouncing(false);
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+        debounceTimeoutRef.current = null;
+      }
     }
 
     return () => {
       if (debounceTimeoutRef.current) {
         clearTimeout(debounceTimeoutRef.current);
+        debounceTimeoutRef.current = null;
       }
     };
-  }, [searchState, realtimeEnabled, debounceDelay, onDebounceStart, onDebounceComplete]);
-
-  // When debounced value changes, mark debouncing as complete
-  useEffect(() => {
-    if (realtimeEnabled && debouncedSearch === searchState && searchState !== "") {
-      setIsDebouncing(false);
-    }
-  }, [debouncedSearch, searchState, realtimeEnabled]);
+  }, [searchState, debouncedSearch, realtimeEnabled, debounceDelay, onDebounceStart, onDebounceComplete]);
 
   // Update localStorage when real-time toggle changes
   useEffect(() => {

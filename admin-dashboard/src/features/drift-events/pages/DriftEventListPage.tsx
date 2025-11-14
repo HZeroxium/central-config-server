@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { keepPreviousData } from "@tanstack/react-query";
@@ -124,9 +124,9 @@ export default function DriftEventListPage() {
     [setRealtimeEnabled]
   );
 
-  // Debounced URL sync to prevent blocking UI thread during typing
-  useDebouncedUrlSync({
-    values: {
+  // Memoize values object to prevent unnecessary useDebouncedUrlSync triggers
+  const urlSyncValues = useMemo(
+    () => ({
       search: effectiveSearch || undefined,
       status: statusFilter || undefined,
       severity: severityFilter || undefined,
@@ -139,7 +139,22 @@ export default function DriftEventListPage() {
         : undefined,
       page: page > 0 ? page : undefined,
       size: pageSize !== 20 ? pageSize : undefined,
-    },
+    }),
+    [
+      effectiveSearch,
+      statusFilter,
+      severityFilter,
+      unresolvedOnly,
+      detectedAtFrom,
+      detectedAtTo,
+      page,
+      pageSize,
+    ]
+  );
+
+  // Debounced URL sync to prevent blocking UI thread during typing
+  useDebouncedUrlSync({
+    values: urlSyncValues,
     debounceDelay: 300,
     enabled: true,
   });
