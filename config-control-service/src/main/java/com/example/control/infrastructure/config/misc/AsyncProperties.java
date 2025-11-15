@@ -82,6 +82,14 @@ public class AsyncProperties {
   private PoolProps defaultPool = new PoolProps();
 
   /**
+   * Config hash fetch executor pool configuration.
+   * Used for parallel fetching of configuration hashes from Config Server
+   * during heartbeat batch processing (I/O bound, controlled concurrency).
+   */
+  @NotNull(message = "Config hash fetch pool configuration is required")
+  private PoolProps configHashFetch = new PoolProps();
+
+  /**
    * Thread pool configuration properties.
    */
   @Data
@@ -186,6 +194,15 @@ public class AsyncProperties {
   }
 
   /**
+   * Get keep alive duration for config hash fetch executor.
+   *
+   * @return Duration
+   */
+  public Duration getConfigHashFetchKeepAlive() {
+    return configHashFetch.getKeepAlive();
+  }
+
+  /**
    * Get shutdown wait timeout duration.
    *
    * @return Duration
@@ -221,5 +238,25 @@ public class AsyncProperties {
    */
   public void setDefault(PoolProps defaultPool) {
     this.defaultPool = defaultPool;
+  }
+
+  /**
+   * Getter for config hash fetch pool configuration.
+   * Spring Boot maps YAML key "config-hash-fetch" to this getter via relaxed binding.
+   *
+   * @return the config hash fetch pool configuration
+   */
+  public PoolProps getConfigHashFetch() {
+    return this.configHashFetch;
+  }
+
+  /**
+   * Setter for config hash fetch pool configuration.
+   * Spring Boot maps YAML key "config-hash-fetch" to this setter via relaxed binding.
+   *
+   * @param configHashFetch the config hash fetch pool configuration
+   */
+  public void setConfigHashFetch(PoolProps configHashFetch) {
+    this.configHashFetch = configHashFetch;
   }
 }

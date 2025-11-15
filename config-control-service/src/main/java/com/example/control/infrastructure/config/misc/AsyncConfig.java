@@ -26,7 +26,7 @@ import java.util.concurrent.ThreadPoolExecutor;
  * Configuration for async execution with separate thread pools per workload
  * type.
  * <p>
- * Provides three thread pool executors:
+ * Provides four thread pool executors:
  * <ul>
  * <li><b>notificationExecutor</b>: For email notifications (I/O bound, moderate
  * throughput). Uses virtual threads by default for better scalability.</li>
@@ -34,6 +34,9 @@ import java.util.concurrent.ThreadPoolExecutor;
  * Uses platform threads.</li>
  * <li><b>defaultExecutor</b> / <b>taskExecutor</b>: Fallback for other async
  * operations. Uses platform threads.</li>
+ * <li><b>configHashFetchExecutor</b>: For parallel fetching of configuration
+ * hashes from Config Server during heartbeat batch processing (I/O bound,
+ * controlled concurrency). Uses platform threads.</li>
  * </ul>
  * </p>
  * <p>
@@ -364,6 +367,60 @@ public class AsyncConfig implements AsyncConfigurer {
 
     log.info(
         "Configured default executor: core={}, max={}, queue={}, keepAlive={}s, forceShutdown={}",
+        props.getCorePoolSize(),
+        props.getMaxPoolSize(),
+        props.getQueueCapacity(),
+        props.getKeepAlive().getSeconds(),
+        asyncProperties.isForceShutdown());
+
+    return wrappedExecutor;
+  }
+
+  /**
+   * Config hash fetch executor for parallel configuration hash fetching.
+   * <p>
+   * Dedicated thread pool for I/O-bound operations that fetch configuration
+   * hashes from Config Server during heartbeat batch processing. Uses platform
+   * threads with controlled concurrency to prevent overwhelming the Config Server.
+   * Uses CallerRunsPolicy to throttle when queue is full.
+   * Wrapped with DelegatingSecurityContextAsyncTaskExecutor for SecurityContext
+   * propagation.
+   * </p>
+   *
+   * @param builder the task executor builder
+   * @return configured config hash fetch executor with SecurityContext propagation
+   */
+  @Bean(name = "configHashFetchExecutor")
+  public AsyncTaskExecutor configHashFetchExecutor(ThreadPoolTaskExecutorBuilder builder) {
+    AsyncProperties.PoolProps props = asyncProperties.getConfigHashFetch();
+
+    ThreadPoolTaskExecutor executor = builder
+        .corePoolSize(props.getCorePoolSize())
+        .maxPoolSize(props.getMaxPoolSize())
+        .queueCapacity(props.getQueueCapacity())
+        .keepAlive(asyncProperties.getConfigHashFetchKeepAlive())
+        .threadNamePrefix(props.getThreadNamePrefix())
+        .taskDecorator(taskDecorator)
+        .awaitTermination(true)
+        .awaitTerminationPeriod(asyncProperties.getShutdownWaitTimeout())
+        .build();
+
+    executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
+
+    // Apply consistent shutdown logic
+    if (asyncProperties.isForceShutdown()) {
+      executor.setWaitForTasksToCompleteOnShutdown(false);
+      executor.setAwaitTerminationSeconds(
+          (int) asyncProperties.getShutdownWaitTimeout().getSeconds());
+    }
+
+    executor.initialize();
+
+    // Wrap with SecurityContext propagation
+    AsyncTaskExecutor wrappedExecutor = new DelegatingSecurityContextAsyncTaskExecutor(executor);
+
+    log.info(
+        "Configured config hash fetch executor: core={}, max={}, queue={}, keepAlive={}s, forceShutdown={}",
         props.getCorePoolSize(),
         props.getMaxPoolSize(),
         props.getQueueCapacity(),

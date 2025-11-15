@@ -27,6 +27,13 @@ app:
       keep-alive: 60s # Duration format
       thread-name-prefix: async-default-
       use-virtual-threads: false # Keep platform threads for general-purpose tasks
+    config-hash-fetch:
+      core-pool-size: 10
+      max-pool-size: 20
+      queue-capacity: 100
+      keep-alive: 60s # Duration format
+      thread-name-prefix: async-config-hash-fetch-
+      use-virtual-threads: false # Keep platform threads for I/O-bound but controlled concurrency
     shutdown:
       await-timeout: 30s # Duration format
       force-shutdown: false
@@ -40,6 +47,8 @@ app:
     default-version: 1
     cache-name-prefix: "{spring.application.name:config-control-service}::"
     enable-fallback: true
+    eviction:
+      batch-threshold: 50
     error-handling:
       enable-retry: true
       max-attempts: 3
@@ -74,7 +83,7 @@ app:
         maximum-size: 5000
         allow-null-values: false
       config-hashes:
-        ttl: 10m
+        ttl: 30m
         maximum-size: 10000
         allow-null-values: false
       consul-services:

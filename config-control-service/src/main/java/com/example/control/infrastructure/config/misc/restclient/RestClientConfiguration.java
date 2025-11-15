@@ -3,10 +3,17 @@ package com.example.control.infrastructure.config.misc.restclient;
 import com.example.control.infrastructure.config.misc.DeadlinePropagationClientRequestFilter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.hc.client5.http.config.RequestConfig;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
+import org.apache.hc.core5.http.io.SocketConfig;
+import org.apache.hc.core5.util.Timeout;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.ClientHttpRequestFactory;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 
 import java.time.Duration;
@@ -153,23 +160,57 @@ public class RestClientConfiguration {
     }
 
     /**
-     * Create ClientHttpRequestFactory with timeout configuration.
+     * Create ClientHttpRequestFactory with timeout configuration and connection pooling.
+     * <p>
+     * Uses Apache HttpClient with connection pooling for better performance and resource reuse.
+     * Connection pool configuration:
+     * <ul>
+     *   <li>Max total connections: 200</li>
+     *   <li>Max connections per route: 50</li>
+     *   <li>Connection time-to-live: 30 seconds</li>
+     * </ul>
      *
      * @param connectTimeout Connection timeout
      * @param readTimeout    Read timeout
      * @param writeTimeout   Write timeout
-     * @return Configured ClientHttpRequestFactory
+     * @return Configured ClientHttpRequestFactory with connection pooling
      */
     private ClientHttpRequestFactory createRequestFactory(
             Duration connectTimeout,
             Duration readTimeout,
             Duration writeTimeout) {
 
-        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(connectTimeout);
-        factory.setReadTimeout(readTimeout);
-        // Note: SimpleClientHttpRequestFactory doesn't support writeTimeout,
-        // but it's included for future compatibility
+        // Create connection pool manager
+        PoolingHttpClientConnectionManager connectionManager = PoolingHttpClientConnectionManagerBuilder.create()
+                .setMaxConnTotal(200) // Maximum total connections
+                .setMaxConnPerRoute(50) // Maximum connections per route (host:port)
+                .setDefaultSocketConfig(SocketConfig.custom()
+                        .setSoTimeout(Timeout.of(readTimeout))
+                        .build())
+                .build();
+
+        // Create request config with timeouts
+        RequestConfig requestConfig = RequestConfig.custom()
+                .setConnectTimeout(Timeout.of(connectTimeout))
+                .setResponseTimeout(Timeout.of(readTimeout))
+                .setConnectionRequestTimeout(Timeout.of(connectTimeout))
+                .build();
+
+        // Create HttpClient with connection pooling
+        CloseableHttpClient httpClient = HttpClients.custom()
+                .setConnectionManager(connectionManager)
+                .setDefaultRequestConfig(requestConfig)
+                .evictIdleConnections(Timeout.ofSeconds(30)) // Evict idle connections after 30s
+                .evictExpiredConnections() // Evict expired connections
+                .build();
+
+        // Create request factory with pooled HttpClient
+        // HttpComponentsClientHttpRequestFactory uses timeouts from RequestConfig
+        // No need to set timeouts again on factory - they're already configured in RequestConfig
+        HttpComponentsClientHttpRequestFactory factory = new HttpComponentsClientHttpRequestFactory(httpClient);
+
+        log.debug("Created HttpComponentsClientHttpRequestFactory with connection pooling: maxTotal=200, maxPerRoute=50");
+
         return factory;
     }
 }

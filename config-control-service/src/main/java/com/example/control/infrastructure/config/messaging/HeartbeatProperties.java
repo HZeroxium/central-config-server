@@ -58,6 +58,40 @@ public class HeartbeatProperties {
              */
             @Positive
             private int maxRetries = 3;
+
+            /**
+             * Maximum number of records to poll in a single batch.
+             * <p>
+             * Increased from default 100 to 200 for better throughput.
+             * Can be tuned based on message size and processing time.
+             */
+            @Positive
+            private int maxPollRecords = 200;
+
+            /**
+             * Maximum wait time for fetch.min.bytes to accumulate (milliseconds).
+             * <p>
+             * Increased from default 500ms to 1000ms to allow larger batches.
+             */
+            @Positive
+            private int fetchMaxWaitMs = 1000;
+
+            /**
+             * Minimum bytes to accumulate before returning data (bytes).
+             * <p>
+             * Increased from default 1024 to 8192 for better batching.
+             */
+            @Positive
+            private int fetchMinBytes = 8192;
+
+            /**
+             * Maximum poll interval in milliseconds.
+             * <p>
+             * Prevents consumer rebalancing when processing takes longer.
+             * Should be set to max processing time + buffer.
+             */
+            @Positive
+            private int maxPollIntervalMs = 300000; // 5 minutes
         }
     }
 }

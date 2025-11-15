@@ -3,6 +3,7 @@ package com.example.control.application.command;
 import com.example.control.domain.valueobject.id.ServiceInstanceId;
 import com.example.control.domain.model.ServiceInstance;
 import com.example.control.domain.port.repository.ServiceInstanceRepositoryPort;
+import com.example.control.infrastructure.config.cache.CacheProperties;
 import com.mongodb.bulk.BulkWriteResult;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -47,6 +48,7 @@ public class ServiceInstanceCommandService {
 
     private final ServiceInstanceRepositoryPort repository;
     private final CacheManager cacheManager;
+    private final CacheProperties cacheProperties;
 
     /**
      * Saves a service instance (create or update).
@@ -125,21 +127,37 @@ public class ServiceInstanceCommandService {
         log.info("Bulk upserting {} service instances", instances.size());
         BulkWriteResult result = repository.bulkUpsert(instances);
 
-        // Programmatically evict cache entries for specific instance IDs
+        // Optimized batch cache eviction: use clear() for large batches, individual eviction for small ones
         Cache cache = cacheManager.getCache("service-instances");
-        if (cache != null) {
-            int evictedCount = 0;
-            for (ServiceInstance instance : instances) {
-                if (instance.getId() != null) {
-                    try {
-                        cache.evict(instance.getId());
-                        evictedCount++;
-                    } catch (Exception e) {
-                        log.warn("Failed to evict cache for service instance: {}", instance.getId(), e);
+        if (cache != null && !instances.isEmpty()) {
+            int batchThreshold = cacheProperties.getEviction().getBatchThreshold();
+            int batchSize = instances.size();
+
+            if (batchSize > batchThreshold) {
+                // Large batch: clear entire cache for better performance
+                try {
+                    cache.clear();
+                    log.debug("Cleared entire service-instances cache (batch size {} > threshold {})", 
+                            batchSize, batchThreshold);
+                } catch (Exception e) {
+                    log.warn("Failed to clear cache for service instances", e);
+                }
+            } else {
+                // Small batch: evict individual entries
+                int evictedCount = 0;
+                for (ServiceInstance instance : instances) {
+                    if (instance.getId() != null) {
+                        try {
+                            cache.evict(instance.getId());
+                            evictedCount++;
+                        } catch (Exception e) {
+                            log.warn("Failed to evict cache for service instance: {}", instance.getId(), e);
+                        }
                     }
                 }
+                log.debug("Batch evicted {} cache entries for service instances (batch size {} <= threshold {})", 
+                        evictedCount, batchSize, batchThreshold);
             }
-            log.debug("Evicted {} cache entries for service instances", evictedCount);
         }
 
         log.info("Bulk upsert completed: {} inserted, {} modified",

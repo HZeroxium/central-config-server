@@ -58,9 +58,13 @@ public class HeartbeatKafkaListenerConfig {
         configProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
         configProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         configProps.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false); // Manual commit
-        configProps.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 100);
-        configProps.put(ConsumerConfig.FETCH_MIN_BYTES_CONFIG, 1024);
-        configProps.put(ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG, 500);
+        
+        // Batch processing tuning (configurable via HeartbeatProperties)
+        HeartbeatProperties.Kafka.Consumer consumerConfig = heartbeatProperties.getKafka().getConsumer();
+        configProps.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, consumerConfig.getMaxPollRecords());
+        configProps.put(ConsumerConfig.FETCH_MIN_BYTES_CONFIG, consumerConfig.getFetchMinBytes());
+        configProps.put(ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG, consumerConfig.getFetchMaxWaitMs());
+        configProps.put(ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG, consumerConfig.getMaxPollIntervalMs());
 
         // Error handling deserializers
         configProps.put(ErrorHandlingDeserializer.KEY_DESERIALIZER_CLASS, StringDeserializer.class);

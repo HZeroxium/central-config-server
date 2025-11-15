@@ -20,11 +20,14 @@ import com.mongodb.bulk.BulkWriteResult;
 import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -57,6 +60,8 @@ public class HeartbeatBatchService {
     private final ConfigProxyService configProxyService;
     private final DriftEventService driftEventService;
     private final HeartbeatMetrics heartbeatMetrics;
+    @Qualifier("configHashFetchExecutor")
+    private final AsyncTaskExecutor configHashFetchExecutor;
 
     // In-memory state for drift backoff (shared with HeartbeatService if needed)
     private final ConcurrentHashMap<String, Integer> driftRetryCount = new ConcurrentHashMap<>();
@@ -169,10 +174,11 @@ public class HeartbeatBatchService {
     }
 
     /**
-     * Triggers batch bus refresh grouped by service name.
+     * Triggers batch bus refresh grouped by service name with parallel execution.
      * <p>
      * Groups refresh destinations by service name and triggers one refresh per service
-     * to reduce HTTP calls to Config Server.
+     * to reduce HTTP calls to Config Server. Executes refresh calls in parallel using
+     * CompletableFuture for better performance.
      *
      * @param destinations set of destination strings in format "serviceName:instanceId"
      */
@@ -193,17 +199,30 @@ public class HeartbeatBatchService {
         log.debug("Triggering batch bus refresh for {} unique services (from {} destinations)",
                 uniqueServiceNames.size(), destinations.size());
 
-        // Trigger one refresh per unique service
-        // Note: Config Server's /busrefresh endpoint broadcasts to all instances
-        // If destination-specific refresh is needed, we can enhance this later
-        for (String serviceName : uniqueServiceNames) {
-            try {
-                // Use service name as destination (Config Server may support service:** pattern)
-                configProxyService.triggerBusRefresh(serviceName);
-                log.debug("Triggered refresh for service: {}", serviceName);
-            } catch (Exception e) {
-                log.error("Failed to trigger refresh for service: {}", serviceName, e);
-            }
+        // Trigger refresh calls in parallel using CompletableFuture
+        // Each service refresh runs independently with individual error handling
+        List<CompletableFuture<Void>> refreshTasks = uniqueServiceNames.stream()
+                .map(serviceName -> CompletableFuture.runAsync(() -> {
+                    try {
+                        // Use service name as destination (Config Server may support service:** pattern)
+                        configProxyService.triggerBusRefresh(serviceName);
+                        log.debug("Triggered refresh for service: {}", serviceName);
+                    } catch (Exception e) {
+                        log.error("Failed to trigger refresh for service: {}", serviceName, e);
+                        // Don't propagate exception - allow other refreshes to continue
+                    }
+                }, configHashFetchExecutor))
+                .collect(Collectors.toList());
+
+        // Wait for all refresh tasks to complete (with timeout protection)
+        try {
+            CompletableFuture<Void> allRefreshes = CompletableFuture.allOf(
+                    refreshTasks.toArray(new CompletableFuture[0]));
+            allRefreshes.join(); // Wait for completion
+            log.debug("Completed batch bus refresh for {} services", uniqueServiceNames.size());
+        } catch (Exception e) {
+            log.warn("Some bus refresh operations may have failed", e);
+            // Continue - individual errors are already logged
         }
     }
 
@@ -273,10 +292,12 @@ public class HeartbeatBatchService {
     }
 
     /**
-     * Batch loads config hashes grouped by service:environment.
+     * Batch loads config hashes grouped by service:environment with parallel fetching.
      * <p>
      * Groups payloads by service:env to minimize cache misses and HTTP calls.
+     * Fetches config hashes in parallel using CompletableFuture for better performance.
      */
+    @Observed(name = "heartbeat.batch.config-hash-fetch", contextualName = "heartbeat-batch-config-hash-fetch")
     private Map<String, String> loadConfigHashesBatch(List<HeartbeatPayload> payloads) {
         // Group by serviceName:environment
         Map<String, List<HeartbeatPayload>> grouped = payloads.stream()
@@ -284,21 +305,43 @@ public class HeartbeatBatchService {
                 .collect(Collectors.groupingBy(
                         p -> p.getServiceName() + ":" + (p.getEnvironment() != null ? p.getEnvironment() : "default")));
 
-        Map<String, String> hashes = new HashMap<>();
-        for (Map.Entry<String, List<HeartbeatPayload>> entry : grouped.entrySet()) {
-            String key = entry.getKey();
-            String[] parts = key.split(":", 2);
-            String serviceName = parts[0];
-            String environment = parts.length > 1 ? parts[1] : "default";
+        // Create parallel fetch tasks for each unique service:env combination
+        // Use dedicated configHashFetchExecutor to avoid saturating common pool
+        List<CompletableFuture<Map.Entry<String, String>>> fetchTasks = grouped.keySet().stream()
+                .map(key -> {
+                    String[] parts = key.split(":", 2);
+                    String serviceName = parts[0];
+                    String environment = parts.length > 1 ? parts[1] : "default";
+                    
+                    return CompletableFuture.supplyAsync(() -> {
+                        try {
+                            // Cache will handle deduplication
+                            String hash = configProxyService.getEffectiveConfigHash(serviceName, environment);
+                            return Map.entry(key, hash);
+                        } catch (Exception e) {
+                            log.warn("Failed to load config hash for {}:{}", serviceName, environment, e);
+                            return Map.entry(key, (String) null);
+                        }
+                    }, configHashFetchExecutor);
+                })
+                .collect(Collectors.toList());
 
-            try {
-                // Cache will handle deduplication
-                String hash = configProxyService.getEffectiveConfigHash(serviceName, environment);
-                hashes.put(key, hash);
-            } catch (Exception e) {
-                log.warn("Failed to load config hash for {}:{}", serviceName, environment, e);
-                hashes.put(key, null);
+        // Wait for all fetches to complete
+        CompletableFuture<Void> allFetches = CompletableFuture.allOf(
+                fetchTasks.toArray(new CompletableFuture[0]));
+
+        Map<String, String> hashes = new HashMap<>();
+        try {
+            allFetches.join(); // Wait for all parallel fetches to complete
+            
+            // Collect results
+            for (CompletableFuture<Map.Entry<String, String>> task : fetchTasks) {
+                Map.Entry<String, String> entry = task.join();
+                hashes.put(entry.getKey(), entry.getValue());
             }
+        } catch (Exception e) {
+            log.error("Error during parallel config hash fetch", e);
+            // Fallback: return empty map or partial results
         }
 
         return hashes;

@@ -212,10 +212,17 @@ public class CacheProperties {
     private Map<String, CacheConfig> caches = new HashMap<>();
     private String cacheNamePrefix = "config-control-service::";
 
-    /**
-     * Compression configuration for cache values.
-     */
-    private CompressionConfig compression = new CompressionConfig();
+  /**
+   * Compression configuration for cache values.
+   */
+  private CompressionConfig compression = new CompressionConfig();
+
+  /**
+   * Cache eviction configuration for batch operations.
+   * <p>
+   * Controls when to use batch clear vs individual eviction during bulk operations.
+   */
+  private EvictionConfig eviction = new EvictionConfig();
 
     /**
      * Initializes default per-cache configurations tailored for the
@@ -268,20 +275,20 @@ public class CacheProperties {
         return config;
     }
 
-    /**
-     * Build default config for the {@code config-hashes} cache.
-     * <ul>
-     * <li>TTL: 10 minutes — configuration digests do not change rapidly under
-     * normal conditions.</li>
-     * <li>Maximum size: 1,000 — per-service hash footprint.</li>
-     * </ul>
-     */
-    private CacheConfig createConfigHashesConfig() {
-        CacheConfig config = new CacheConfig();
-        config.setTtl(Duration.ofMinutes(10));
-        config.setMaximumSize(1_000L);
-        return config;
-    }
+  /**
+   * Build default config for the {@code config-hashes} cache.
+   * <ul>
+   * <li>TTL: 30 minutes — configuration digests do not change rapidly under
+   * normal conditions. Increased from 10 minutes to reduce Config Server calls.</li>
+   * <li>Maximum size: 1,000 — per-service hash footprint.</li>
+   * </ul>
+   */
+  private CacheConfig createConfigHashesConfig() {
+    CacheConfig config = new CacheConfig();
+    config.setTtl(Duration.ofMinutes(30));
+    config.setMaximumSize(1_000L);
+    return config;
+  }
 
     /**
      * Build default config for the {@code consul-services} cache.
@@ -718,5 +725,26 @@ public class CacheProperties {
          * LZ4 compression (faster, lower compression ratio).
          */
         LZ4
+    }
+
+    /**
+     * Cache eviction configuration for batch operations.
+     * <p>
+     * Controls when to use batch clear vs individual eviction during bulk operations.
+     * When batch size exceeds threshold, entire cache is cleared for better performance.
+     */
+    @Data
+    public static class EvictionConfig {
+        /**
+         * Batch size threshold for using cache.clear() instead of individual eviction.
+         * <p>
+         * When bulk operation affects more entries than this threshold, the entire
+         * cache is cleared instead of evicting entries one by one. This reduces
+         * overhead for large batches.
+         * <p>
+         * Default: 50 entries
+         */
+        @Min(1)
+        private int batchThreshold = 50;
     }
 }
