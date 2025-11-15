@@ -16,9 +16,9 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import jakarta.validation.Valid;
+import com.example.control.infrastructure.config.messaging.HeartbeatProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -46,9 +46,7 @@ public class HeartbeatController {
   private final HeartbeatService heartbeatService;
   private final HeartbeatIngestionService heartbeatIngestionService;
   private final HeartbeatMetrics heartbeatMetrics;
-
-  @Value("${app.heartbeat.async.enabled:true}")
-  private boolean asyncEnabled;
+  private final HeartbeatProperties heartbeatProperties;
 
   /**
    * Processes a heartbeat payload sent from a service instance.
@@ -97,7 +95,7 @@ public class HeartbeatController {
       @Parameter(description = "Heartbeat payload with service instance information and config hash", schema = @Schema(implementation = HeartbeatPayload.class)) @Valid @RequestBody HeartbeatPayload payload) {
     log.debug("Received heartbeat from {}:{}", payload.getServiceName(), payload.getInstanceId());
 
-    if (asyncEnabled) {
+    if (heartbeatProperties.isAsyncEnabled()) {
       // Async mode: enqueue to Kafka and return immediately
       heartbeatIngestionService.enqueue(payload);
       heartbeatMetrics.recordReceived();

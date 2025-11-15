@@ -1,33 +1,10 @@
 services:
-  # postgres:
-  #   image: postgres:18.0-alpine
-  #   container_name: kc-postgres
-  #   environment:
-  #     POSTGRES_USER: keycloak
-  #     POSTGRES_PASSWORD: keycloak
-  #     POSTGRES_DB: keycloak
-  #   volumes:
-  #     - postgres_data:/var/lib/postgresql/data
-  #   ports:
-  #     - "5432:5432"
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "pg_isready -U keycloak -d keycloak"]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 5
-  #   restart: unless-stopped
-  #   networks:
-  #     - infra-network
-
   keycloak:
     image: hzeroxium/keycloak-custom:26.4.0
-    container_name: keycloak
+    container_name: huyng5-keycloak
     build:
       context: ./config-control-service/keycloak
       dockerfile: Dockerfile.keycloak
-    # depends_on:
-    #   postgres:
-    #     condition: service_healthy
     environment:
       # Bootstrap admin (bắt buộc khi chạy container)
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
@@ -40,17 +17,27 @@ services:
       KC_DB_PASSWORD: keycloak
 
       # Hostname configuration
+      # For edge proxy mode, Keycloak will use X-Forwarded-Host from nginx
+      # Internal hostname for container networking
       KC_HOSTNAME: keycloak
       KC_HOSTNAME_STRICT: "false"
       KC_HOSTNAME_STRICT_HTTPS: "false"
 
-      # Tối ưu/giám sát
+      # Observability
       KC_HEALTH_ENABLED: "true"
       KC_METRICS_ENABLED: "true"
-      KC_PROXY: "passthrough"
+      
+      # Proxy mode: edge for nginx reverse proxy in front
+      # This allows Keycloak to work properly with nginx proxy
+      # Keycloak will trust X-Forwarded-* headers from nginx
+      KC_PROXY: "edge"
+      KC_PROXY_HEADERS: "xforwarded"
+      # Frontend URL for redirects and cookies
+      KC_FRONTEND_URL: http://localhost:3000
 
       # Optional but explicit (if supported by your Keycloak version)
       KC_HOSTNAME_URL: http://keycloak:8080
+      KC_HTTP_RELATIVE_PATH: /
 
     command:
       - start-dev
@@ -78,7 +65,7 @@ services:
     build:
       context: ./config-control-service/keycloak
       dockerfile: Dockerfile
-    container_name: keycloak-init
+    container_name: huyng5-keycloak-init
     depends_on:
       - keycloak
     networks:
@@ -93,17 +80,113 @@ services:
   # Mailpit for email testing (dev)
   mailpit:
     image: axllent/mailpit:v1.27
-    container_name: mailpit
+    container_name: huyng5-mailpit
     ports:
       - "8025:8025" # Web UI
       - "1025:1025" # SMTP
     networks:
       - infra-network
-    restart: unless-stopped
+    volumes:
+      - mailpit_data:/data
+    restart: unless-stopped 
+
+  # Prometheus Agent - Local Metrics Collector
+  # prometheus-agent:
+  #   image: prom/prometheus:v3.5.0
+  #   container_name: prometheus-agent-local
+  #   command:
+  #     - "--config.file=/etc/prometheus/prometheus-agent.yml"
+  #     - "--storage.agent.path=/prometheus"
+  #     - "--storage.agent.retention.min-time=2h"
+  #     - "--storage.agent.retention.max-time=6h"
+  #     # Enable agent mode (no local storage, only forward)
+  #     - "--agent"
+  #     # Web UI for debugging (optional)
+  #     - "--web.listen-address=0.0.0.0:9091"
+  #     - "--web.enable-lifecycle"
+  #     - "--web.enable-admin-api"
+  #   ports:
+  #     - "9091:9091"  # Agent UI (for debugging)
+  #   volumes:
+  #     - ./config/prometheus/prometheus-agent.yml:/etc/prometheus/prometheus-agent.yml:ro
+  #     - prometheus_agent_data:/prometheus
+  #   networks:
+  #     - infra-network
+  #   healthcheck:
+  #     test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9091/-/healthy"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #     start_period: 30s
+  #   restart: unless-stopped
+
+  # Unleash Server - Feature Flags Management
+  # unleash-init:
+  #   image: postgres:18.0-alpine
+  #   container_name: unleash-init
+  #   command: >
+  #     sh -c "
+  #       until PGPASSWORD=keycloak psql -h 10.40.30.161 -p 25432 -U keycloak -d postgres -c \"SELECT 1\" >/dev/null 2>&1; do
+  #         echo 'Postgres is unavailable - sleeping'
+  #         sleep 2
+  #       done
+  #       echo 'Postgres is up - creating unleash database'
+  #       PGPASSWORD=keycloak psql -h 10.40.30.161 -p 25432 -U keycloak -d postgres -c \"CREATE DATABASE unleash;\" || echo 'Database already exists or creation failed'
+  #       echo 'Unleash database initialization complete'
+  #     "
+  #   networks:
+  #     - infra-network
+  #   restart: "no"
+
+  # unleash:
+  #   image: unleashorg/unleash-server:latest
+  #   container_name: unleash
+  #   # depends_on:
+  #   #   unleash-init:
+  #   #     condition: service_completed_successfully
+  #   ports:
+  #     - "4242:4242"  # HTTP (UI + API)
+  #   environment:
+  #     # Database (Postgres external at 10.40.30.161:25432)
+  #     DATABASE_URL: postgres://keycloak:keycloak@10.40.30.161:25432/unleash
+  #     DATABASE_SSL: "false"
+  #     DATABASE_USERNAME: keycloak
+  #     DATABASE_PASSWORD: keycloak
+  #     DATABASE_SCHEMA: public
+      
+  #     # Server configuration
+  #     UNLEASH_URL: http://unleash:4242
+  #     UNLEASH_HOST: unleash
+  #     UNLEASH_PORT: 4242
+      
+  #     # Bootstrap admin (dev only)
+  #     UNLEASH_BOOTSTRAP_ADMIN_USERNAME: admin
+  #     UNLEASH_BOOTSTRAP_ADMIN_PASSWORD: unleash4all
+      
+  #     # Database initialization
+  #     DATABASE_MIGRATION: "true"
+      
+  #     # Logging
+  #     LOG_LEVEL: info
+  #   networks:
+  #     - infra-network
+  #   healthcheck:
+  #     test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4242/api/health"]
+  #     interval: 15s
+  #     timeout: 5s
+  #     retries: 10
+  #     start_period: 60s
+  #   restart: unless-stopped
 
 volumes:
   keycloak_data:
-
+    name: infra_keycloak_data
+  prometheus_agent_data:
+    name: infra_prometheus_agent_data
+  mailpit_data:
+    name: infra_mailpit_data
+  unleash_data:
+    name: infra_unleash_data
 networks:
   infra-network:
     external: true

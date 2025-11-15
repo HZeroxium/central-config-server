@@ -1,11 +1,11 @@
 package com.example.control.application.service.infra;
 
 import com.example.control.domain.model.HeartbeatPayload;
+import com.example.control.infrastructure.config.messaging.HeartbeatProperties;
 import com.example.control.infrastructure.observability.heartbeat.HeartbeatMetrics;
 import com.example.control.infrastructure.resilience.messaging.ResilientKafkaProducer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Service;
@@ -31,17 +31,17 @@ public class HeartbeatIngestionService {
     private final ResilientKafkaProducer resilientKafkaProducer;
     private final HeartbeatMetrics heartbeatMetrics;
     private final KafkaTemplate<String, HeartbeatPayload> heartbeatKafkaTemplate;
-    private final String heartbeatTopic;
+    private final HeartbeatProperties heartbeatProperties;
 
     public HeartbeatIngestionService(
             ResilientKafkaProducer resilientKafkaProducer,
             HeartbeatMetrics heartbeatMetrics,
             @Qualifier("heartbeatKafkaTemplate") KafkaTemplate<String, HeartbeatPayload> heartbeatKafkaTemplate,
-            @Value("${app.heartbeat.kafka.topic:heartbeat-queue}") String heartbeatTopic) {
+            HeartbeatProperties heartbeatProperties) {
         this.resilientKafkaProducer = resilientKafkaProducer;
         this.heartbeatMetrics = heartbeatMetrics;
         this.heartbeatKafkaTemplate = heartbeatKafkaTemplate;
-        this.heartbeatTopic = heartbeatTopic;
+        this.heartbeatProperties = heartbeatProperties;
     }
 
     /**
@@ -66,7 +66,7 @@ public class HeartbeatIngestionService {
 
             // Send to Kafka with resilience protection
             CompletableFuture<SendResult<String, HeartbeatPayload>> future =
-                    resilientKafkaProducer.send(heartbeatKafkaTemplate, heartbeatTopic, partitionKey, payload);
+                    resilientKafkaProducer.send(heartbeatKafkaTemplate, heartbeatProperties.getKafka().getTopic(), partitionKey, payload);
 
             // Record metrics
             heartbeatMetrics.recordReceived();
@@ -74,7 +74,7 @@ public class HeartbeatIngestionService {
             heartbeatMetrics.recordIngestionTime(ingestionTime);
 
             log.debug("Enqueued heartbeat for {}:{} to topic {}", payload.getServiceName(),
-                    payload.getInstanceId(), heartbeatTopic);
+                    payload.getInstanceId(), heartbeatProperties.getKafka().getTopic());
 
             // Optionally handle send result asynchronously
             future.whenComplete((result, ex) -> {

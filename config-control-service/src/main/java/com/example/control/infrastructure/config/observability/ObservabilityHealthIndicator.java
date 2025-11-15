@@ -1,8 +1,8 @@
 package com.example.control.infrastructure.config.observability;
 
+import com.example.control.infrastructure.config.observability.ObservabilityProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -31,10 +31,7 @@ import java.util.Map;
 public class ObservabilityHealthIndicator implements HealthIndicator {
 
     private final RestClient restClient;
-    @Value("${management.otlp.tracing.endpoint:http://alloy:4318/v1/traces}")
-    private String otlpTracingEndpoint;
-    @Value("${management.otlp.metrics.url:http://alloy:4318/v1/metrics}")
-    private String otlpMetricsUrl;
+    private final ObservabilityProperties observabilityProperties;
 
     @Override
     public Health health() {
@@ -182,8 +179,8 @@ public class ObservabilityHealthIndicator implements HealthIndicator {
     private Health checkOtlpEndpoints() {
         try {
             // Check if OTLP endpoints are configured and accessible
-            String tracingEndpoint = otlpTracingEndpoint;
-            String metricsEndpoint = otlpMetricsUrl;
+            String tracingEndpoint = observabilityProperties.getOtlp().getTracingEndpoint();
+            String metricsEndpoint = observabilityProperties.getOtlp().getMetricsUrl();
 
             // Basic connectivity check to Alloy OTLP endpoints
             String alloyUrl = "http://alloy:4318/v1/traces";
@@ -200,8 +197,8 @@ public class ObservabilityHealthIndicator implements HealthIndicator {
         } catch (Exception e) {
             log.warn("OTLP endpoints health check failed", e);
             return Health.down()
-                    .withDetail("tracing_endpoint", otlpTracingEndpoint)
-                    .withDetail("metrics_endpoint", otlpMetricsUrl)
+                    .withDetail("tracing_endpoint", observabilityProperties.getOtlp().getTracingEndpoint())
+                    .withDetail("metrics_endpoint", observabilityProperties.getOtlp().getMetricsUrl())
                     .withDetail("error", e.getMessage())
                     .build();
         }

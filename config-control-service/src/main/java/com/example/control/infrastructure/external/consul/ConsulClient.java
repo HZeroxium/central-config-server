@@ -8,8 +8,8 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.extern.slf4j.Slf4j;
 
+import com.example.control.infrastructure.config.misc.ConsulProperties;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -38,18 +38,17 @@ public class ConsulClient {
 
     private final ResilienceDecoratorsFactory resilienceFactory;
     private final RestClient restClient;
-
-    @Value("${consul.url:http://localhost:8500}")
-    private String consulUrl;
-
+    private final ConsulProperties consulProperties;
     private final ConsulFallback consulFallback;
 
     public ConsulClient(
             ResilienceDecoratorsFactory resilienceFactory,
             @Qualifier("consulRestClient") RestClient restClient,
+            ConsulProperties consulProperties,
             ConsulFallback consulFallback) {
         this.resilienceFactory = resilienceFactory;
         this.restClient = restClient;
+        this.consulProperties = consulProperties;
         this.consulFallback = consulFallback;
     }
 
@@ -59,7 +58,7 @@ public class ConsulClient {
     @Cacheable(value = "consul-services", key = "'catalog'")
     public String getServices() {
         return executeReadWithResilience(
-                consulUrl + "/v1/catalog/services",
+                consulProperties.getUrl() + "/v1/catalog/services",
                 "{}",
                 "getServices");
     }
@@ -70,7 +69,7 @@ public class ConsulClient {
     @Cacheable(value = "consul-services", key = "#serviceName")
     public String getService(String serviceName) {
         return executeReadWithResilience(
-                consulUrl + "/v1/catalog/service/" + serviceName,
+                consulProperties.getUrl() + "/v1/catalog/service/" + serviceName,
                 "[]",
                 "getService:" + serviceName);
     }
@@ -80,7 +79,7 @@ public class ConsulClient {
      */
     public String getServiceInstances(String serviceName) {
         return executeReadWithResilience(
-                consulUrl + "/v1/health/service/" + serviceName,
+                consulProperties.getUrl() + "/v1/health/service/" + serviceName,
                 "[]",
                 "getServiceInstances:" + serviceName);
     }
@@ -90,7 +89,7 @@ public class ConsulClient {
      */
     public String getHealthyServiceInstances(String serviceName) {
         return executeReadWithResilience(
-                consulUrl + "/v1/health/service/" + serviceName + "?passing",
+                consulProperties.getUrl() + "/v1/health/service/" + serviceName + "?passing",
                 "[]",
                 "getHealthyServiceInstances:" + serviceName);
     }
@@ -101,7 +100,7 @@ public class ConsulClient {
     @Cacheable(value = "consul-health", key = "#serviceName")
     public String getServiceHealth(String serviceName) {
         return executeReadWithResilience(
-                consulUrl + "/v1/health/checks/" + serviceName,
+                consulProperties.getUrl() + "/v1/health/checks/" + serviceName,
                 "[]",
                 "getServiceHealth:" + serviceName);
     }
@@ -110,7 +109,7 @@ public class ConsulClient {
      * Get all nodes in the cluster
      */
     public String getNodes() {
-        String url = consulUrl + "/v1/catalog/nodes";
+        String url = consulProperties.getUrl() + "/v1/catalog/nodes";
         log.debug("Getting nodes from: {}", url);
         try {
             return restClient.get()
@@ -128,7 +127,7 @@ public class ConsulClient {
      * Get value from KV store
      */
     public String getKVValue(String key, boolean recurse) {
-        String url = consulUrl + "/v1/kv/" + key;
+        String url = consulProperties.getUrl() + "/v1/kv/" + key;
         if (recurse) {
             url += "?recurse";
         }
@@ -149,7 +148,7 @@ public class ConsulClient {
      * Set value in KV store
      */
     public boolean setKVValue(String key, String value) {
-        String url = consulUrl + "/v1/kv/" + key;
+        String url = consulProperties.getUrl() + "/v1/kv/" + key;
         log.debug("Setting KV value at: {}", url);
         try {
             restClient.put()
@@ -169,7 +168,7 @@ public class ConsulClient {
      * Delete value from KV store
      */
     public boolean deleteKVValue(String key) {
-        String url = consulUrl + "/v1/kv/" + key;
+        String url = consulProperties.getUrl() + "/v1/kv/" + key;
         log.debug("Deleting KV value at: {}", url);
         try {
             restClient.delete()
@@ -187,7 +186,7 @@ public class ConsulClient {
      * Get services registered on local agent
      */
     public String getAgentServices() {
-        String url = consulUrl + "/v1/agent/services";
+        String url = consulProperties.getUrl() + "/v1/agent/services";
         log.debug("Getting agent services from: {}", url);
         try {
             return restClient.get()
@@ -205,7 +204,7 @@ public class ConsulClient {
      * Get health checks on local agent
      */
     public String getAgentChecks() {
-        String url = consulUrl + "/v1/agent/checks";
+        String url = consulProperties.getUrl() + "/v1/agent/checks";
         log.debug("Getting agent checks from: {}", url);
         try {
             return restClient.get()
@@ -223,7 +222,7 @@ public class ConsulClient {
      * Get cluster members from local agent
      */
     public String getAgentMembers() {
-        String url = consulUrl + "/v1/agent/members";
+        String url = consulProperties.getUrl() + "/v1/agent/members";
         log.debug("Getting agent members from: {}", url);
         try {
             return restClient.get()
@@ -241,7 +240,7 @@ public class ConsulClient {
      * Register a service with the local agent
      */
     public boolean registerService(String serviceJson) {
-        String url = consulUrl + "/v1/agent/service/register";
+        String url = consulProperties.getUrl() + "/v1/agent/service/register";
         log.debug("Registering service at: {}", url);
         try {
             restClient.put()
@@ -261,7 +260,7 @@ public class ConsulClient {
      * Deregister a service from the local agent
      */
     public boolean deregisterService(String serviceId) {
-        String url = consulUrl + "/v1/agent/service/deregister/" + serviceId;
+        String url = consulProperties.getUrl() + "/v1/agent/service/deregister/" + serviceId;
         log.debug("Deregistering service at: {}", url);
         try {
             restClient.put()
@@ -279,7 +278,7 @@ public class ConsulClient {
      * Mark a TTL check as passing
      */
     public boolean passCheck(String checkId) {
-        String url = consulUrl + "/v1/agent/check/pass/" + checkId;
+        String url = consulProperties.getUrl() + "/v1/agent/check/pass/" + checkId;
         log.debug("Passing check at: {}", url);
         try {
             restClient.put()
@@ -297,7 +296,7 @@ public class ConsulClient {
      * Mark a TTL check as failing
      */
     public boolean failCheck(String checkId) {
-        String url = consulUrl + "/v1/agent/check/fail/" + checkId;
+        String url = consulProperties.getUrl() + "/v1/agent/check/fail/" + checkId;
         log.debug("Failing check at: {}", url);
         try {
             restClient.put()
@@ -315,7 +314,7 @@ public class ConsulClient {
      * Get health state (passing, warning, critical)
      */
     public String getHealthState(String state) {
-        String url = consulUrl + "/v1/health/state/" + state;
+        String url = consulProperties.getUrl() + "/v1/health/state/" + state;
         log.debug("Getting health state from: {}", url);
         try {
             return restClient.get()
@@ -335,7 +334,7 @@ public class ConsulClient {
      * Get KV value as JsonNode for easier parsing.
      */
     public Optional<JsonNode> kvGetJson(String key) {
-        String url = consulUrl + "/v1/kv/" + key;
+        String url = consulProperties.getUrl() + "/v1/kv/" + key;
         log.debug("Getting KV value from: {}", url);
         try {
             String response = restClient.get()
@@ -361,7 +360,7 @@ public class ConsulClient {
      * List KV values with prefix as JsonNode array.
      */
     public List<JsonNode> kvListJson(String prefix) {
-        String url = consulUrl + "/v1/kv/" + prefix + "?recurse";
+        String url = consulProperties.getUrl() + "/v1/kv/" + prefix + "?recurse";
         log.debug("Listing KV values from: {}", url);
         try {
             String response = restClient.get()
@@ -392,7 +391,7 @@ public class ConsulClient {
      * Put KV value with CAS support.
      */
     public boolean kvPut(String key, byte[] value, Long cas) {
-        String url = consulUrl + "/v1/kv/" + key;
+        String url = consulProperties.getUrl() + "/v1/kv/" + key;
         if (cas != null) {
             url += "?cas=" + cas;
         }
@@ -416,7 +415,7 @@ public class ConsulClient {
      * Delete KV value with CAS support.
      */
     public boolean kvDelete(String key, Long cas) {
-        String url = consulUrl + "/v1/kv/" + key;
+        String url = consulProperties.getUrl() + "/v1/kv/" + key;
         if (cas != null) {
             url += "?cas=" + cas;
         }
@@ -437,7 +436,7 @@ public class ConsulClient {
      * Create a Consul session.
      */
     public String createSession(Duration ttl, boolean deleteOnInvalidate) {
-        String url = consulUrl + "/v1/session/create";
+        String url = consulProperties.getUrl() + "/v1/session/create";
         log.debug("Creating session at: {}", url);
         try {
             String behavior = deleteOnInvalidate ? "delete" : "release";
@@ -466,7 +465,7 @@ public class ConsulClient {
      * Destroy a Consul session.
      */
     public boolean destroySession(String sessionId) {
-        String url = consulUrl + "/v1/session/destroy/" + sessionId;
+        String url = consulProperties.getUrl() + "/v1/session/destroy/" + sessionId;
         log.debug("Destroying session at: {}", url);
         try {
             restClient.put()
@@ -484,7 +483,7 @@ public class ConsulClient {
      * Put KV value with session (for locks).
      */
     public boolean putWithAcquire(String key, byte[] value, String sessionId) {
-        String url = consulUrl + "/v1/kv/" + key + "?acquire=" + sessionId;
+        String url = consulProperties.getUrl() + "/v1/kv/" + key + "?acquire=" + sessionId;
         log.debug("Putting KV value with acquire at: {}", url);
         try {
             String base64Value = Base64.getEncoder().encodeToString(value);
@@ -506,7 +505,7 @@ public class ConsulClient {
      * Put KV value with session (for ephemeral keys).
      */
     public boolean putWithSession(String key, byte[] value, String sessionId) {
-        String url = consulUrl + "/v1/kv/" + key + "?acquire=" + sessionId;
+        String url = consulProperties.getUrl() + "/v1/kv/" + key + "?acquire=" + sessionId;
         log.debug("Putting KV value with session at: {}", url);
         try {
             String base64Value = Base64.getEncoder().encodeToString(value);
@@ -528,7 +527,7 @@ public class ConsulClient {
      * Blocking query for watching changes.
      */
     public WatchResult kvListBlockingWithIndex(String prefix, long lastIndex) {
-        String url = consulUrl + "/v1/kv/" + prefix + "?recurse&wait=30s&index=" + lastIndex;
+        String url = consulProperties.getUrl() + "/v1/kv/" + prefix + "?recurse&wait=30s&index=" + lastIndex;
         log.debug("Blocking KV query from: {}", url);
         try {
             String response = restClient.get()
@@ -557,7 +556,7 @@ public class ConsulClient {
      * Execute a transaction using Consul's /v1/txn endpoint.
      */
     public TxnResult kvTxn(List<TxnOperation> operations) {
-        String url = consulUrl + "/v1/txn";
+        String url = consulProperties.getUrl() + "/v1/txn";
         log.debug("Executing Consul transaction with {} operations", operations.size());
 
         try {

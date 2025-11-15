@@ -1,12 +1,13 @@
 package com.example.control.infrastructure.config.messaging;
 
 import com.example.control.domain.model.HeartbeatPayload;
+import com.example.control.infrastructure.config.messaging.HeartbeatProperties;
 import com.example.control.infrastructure.observability.heartbeat.HeartbeatMetrics;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -29,32 +30,16 @@ import java.util.Map;
  */
 @Slf4j
 @Configuration
+@RequiredArgsConstructor
 public class HeartbeatKafkaListenerConfig {
 
     @Value("${spring.kafka.bootstrap-servers}")
     private String bootstrapServers;
 
-    @Value("${app.heartbeat.kafka.consumer.concurrency:10}")
-    private int concurrency;
-
-    @Value("${app.heartbeat.kafka.consumer.max-retries:3}")
-    private int maxRetries;
-
-    @Value("${app.heartbeat.kafka.dlq.topic:heartbeat-queue-dlq}")
-    private String dlqTopic;
-
+    private final HeartbeatProperties heartbeatProperties;
     private final ObjectMapper objectMapper;
     private final HeartbeatMetrics heartbeatMetrics;
     private final KafkaTemplate<String, HeartbeatPayload> dlqKafkaTemplate;
-
-    public HeartbeatKafkaListenerConfig(
-            ObjectMapper objectMapper,
-            HeartbeatMetrics heartbeatMetrics,
-            @Qualifier("heartbeatKafkaTemplate") KafkaTemplate<String, HeartbeatPayload> dlqKafkaTemplate) {
-        this.objectMapper = objectMapper;
-        this.heartbeatMetrics = heartbeatMetrics;
-        this.dlqKafkaTemplate = dlqKafkaTemplate;
-    }
 
     /**
      * Consumer factory for heartbeat messages.
@@ -107,15 +92,17 @@ public class HeartbeatKafkaListenerConfig {
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(heartbeatConsumerFactory());
         factory.setBatchListener(true); // Enable batch mode
-        factory.setConcurrency(concurrency);
+        factory.setConcurrency(heartbeatProperties.getKafka().getConsumer().getConcurrency());
         factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL_IMMEDIATE);
 
         // Configure error handler for DLQ routing
         HeartbeatKafkaErrorHandler errorHandler = new HeartbeatKafkaErrorHandler(
-                maxRetries, heartbeatMetrics, dlqKafkaTemplate, dlqTopic);
+                heartbeatProperties.getKafka().getConsumer().getMaxRetries(),
+                heartbeatMetrics, dlqKafkaTemplate, heartbeatProperties.getKafka().getDlqTopic());
         factory.setCommonErrorHandler(errorHandler);
 
-        log.info("Created heartbeat Kafka listener container factory with batch mode, concurrency={}", concurrency);
+        log.info("Created heartbeat Kafka listener container factory with batch mode, concurrency={}",
+                heartbeatProperties.getKafka().getConsumer().getConcurrency());
         return factory;
     }
 }

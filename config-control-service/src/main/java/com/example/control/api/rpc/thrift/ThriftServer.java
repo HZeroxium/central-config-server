@@ -1,12 +1,12 @@
 package com.example.control.api.rpc.thrift;
 
+import com.example.control.infrastructure.config.misc.RpcServerProperties;
 import com.example.control.thrift.ConfigControlService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.thrift.server.TServer;
 import org.apache.thrift.server.TThreadPoolServer;
 import org.apache.thrift.transport.TServerSocket;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
@@ -20,9 +20,7 @@ import javax.annotation.PreDestroy;
 public class ThriftServer {
 
     private final ThriftHeartbeatHandler handler;
-
-    @Value("${thrift.server.port:9090}")
-    private int port;
+    private final RpcServerProperties rpcServerProperties;
 
     private TServer server;
 
@@ -37,6 +35,7 @@ public class ThriftServer {
     @EventListener(ApplicationReadyEvent.class)
     public void start() {
         try {
+            int port = rpcServerProperties.getThriftPort();
             TServerSocket serverTransport = new TServerSocket(port);
             ConfigControlService.Processor<ThriftHeartbeatHandler> processor = new ConfigControlService.Processor<>(
                     handler);

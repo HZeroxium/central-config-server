@@ -5,7 +5,6 @@ import com.example.control.infrastructure.observability.heartbeat.HeartbeatMetri
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.listener.CommonErrorHandler;
 import org.springframework.kafka.listener.MessageListenerContainer;
@@ -32,7 +31,7 @@ public class HeartbeatKafkaErrorHandler implements CommonErrorHandler {
             int maxRetries,
             HeartbeatMetrics heartbeatMetrics,
             KafkaTemplate<String, HeartbeatPayload> dlqKafkaTemplate,
-            @Value("${app.heartbeat.kafka.dlq.topic:heartbeat-queue-dlq}") String dlqTopic) {
+            String dlqTopic) {
         this.maxRetries = maxRetries;
         this.heartbeatMetrics = heartbeatMetrics;
         this.dlqKafkaTemplate = dlqKafkaTemplate;

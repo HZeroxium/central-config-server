@@ -1,8 +1,9 @@
 package com.example.control.infrastructure.config.observability;
 
+import com.example.control.infrastructure.config.observability.ObservabilityProperties;
 import io.micrometer.tracing.exporter.SpanExportingPredicate;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -27,10 +28,10 @@ import org.springframework.context.annotation.Configuration;
  */
 @Slf4j
 @Configuration
+@RequiredArgsConstructor
 public class ObservabilityConfig {
 
-    @Value("${app.environment:development}")
-    private String environment;
+    private final ObservabilityProperties observabilityProperties;
 
     /**
      * Configures span exporting predicate for better trace sampling control.
@@ -40,7 +41,8 @@ public class ObservabilityConfig {
     public SpanExportingPredicate spanExportingPredicate() {
         return span -> {
             // Export all spans in development, filter in production
-            if ("development".equals(environment) || "test".equals(environment)) {
+            String env = observabilityProperties.getEnvironment();
+            if ("development".equals(env) || "test".equals(env)) {
                 return true;
             }
 

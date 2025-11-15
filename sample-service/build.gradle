@@ -26,14 +26,37 @@ repositories {
 
 dependencies {
     // ZCM SDK Starter (handles Config Server, Discovery, LB)
-    implementation 'com.vng.zing:zcm-spring-sdk-starter:0.1.0'
+    implementation('com.vng.zing:zcm-spring-sdk-starter:0.1.0') {
+        exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
+        exclude group: 'ch.qos.logback', module: 'logback-classic'
+        exclude group: 'ch.qos.logback', module: 'logback-core'
+        exclude group: 'org.apache.logging.log4j', module: 'log4j-to-slf4j'
+    }
     
     implementation platform(libs.spring.boot.bom)
     implementation platform(libs.spring.cloud.bom)
 
-    implementation libs.spring.boot.starter.web
-    implementation libs.spring.boot.starter.actuator
+    // Exclude default logback and use Log4j2
+    implementation(libs.spring.boot.starter.web) {
+        exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
+    }
+    implementation(libs.spring.boot.starter.actuator) {
+        exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
+    }
     implementation libs.spring.boot.starter.validation
+    
+    // Log4j2 for better logging control
+    implementation('org.springframework.boot:spring-boot-starter-log4j2') {
+        exclude group: 'org.apache.logging.log4j', module: 'log4j-to-slf4j'
+    }
+    
+    // Exclude logback and log4j-to-slf4j from all dependencies to avoid conflicts
+    configurations.all {
+        exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
+        exclude group: 'ch.qos.logback', module: 'logback-classic'
+        exclude group: 'ch.qos.logback', module: 'logback-core'
+        exclude group: 'org.apache.logging.log4j', module: 'log4j-to-slf4j'
+    }
 
     // OpenAPI/Swagger UI for diagnostics
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0'
@@ -72,5 +95,42 @@ dependencyManagement {
 
 tasks.withType(Test).configureEach {
     useJUnitPlatform()
+}
+
+// ======================================================================
+// Custom tasks for running different applications
+// ======================================================================
+
+/**
+ * Main application task - runs SampleServiceApplication
+ * Usage: ./gradlew bootRun
+ */
+bootRun {
+    group = 'application'
+    description = 'Runs the main sample service application'
+    // Main class will be auto-detected as SampleServiceApplication
+    // (first @SpringBootApplication found in main source set)
+}
+
+/**
+ * SDK Test application task - runs SdkTestApplication
+ * Usage: ./gradlew bootRunSdkTest
+ *        ./gradlew bootRunSdkTest --args='--spring.profiles.active=test'
+ */
+task bootRunSdkTest(type: org.springframework.boot.gradle.tasks.run.BootRun) {
+    group = 'application'
+    description = 'Runs the ZCM SDK test application (no web server, test profile)'
+    
+    // Explicitly set main class
+    mainClass.set('com.example.sample.test.SdkTestApplication')
+    
+    // Use main source set classpath
+    classpath = sourceSets.main.runtimeClasspath
+    
+    // Default args - can be overridden when running
+    args = ['--spring.profiles.active=test']
+    
+    // Ensure classes are compiled before running
+    dependsOn 'classes'
 }
 

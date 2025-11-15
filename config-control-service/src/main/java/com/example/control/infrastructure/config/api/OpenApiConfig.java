@@ -10,8 +10,8 @@ import io.swagger.v3.oas.models.security.OAuthFlows;
 import io.swagger.v3.oas.models.security.Scopes;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
+import com.example.control.infrastructure.config.api.OpenApiProperties;
 import io.swagger.v3.oas.models.servers.Server;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -23,17 +23,11 @@ import java.util.List;
 @Configuration
 public class OpenApiConfig {
 
-    @Value("${server.port:8889}")
-    private int serverPort;
+    private final OpenApiProperties openApiProperties;
 
-    @Value("${app.name:config-control-service}")
-    private String appName;
-
-    @Value("${app.version:1.0.0}")
-    private String appVersion;
-
-    @Value("${app.environment:development}")
-    private String environment;
+    public OpenApiConfig(OpenApiProperties openApiProperties) {
+        this.openApiProperties = openApiProperties;
+    }
 
     /**
      * Configure OpenAPI specification with service metadata.
@@ -61,7 +55,7 @@ public class OpenApiConfig {
                                 - Redis for caching
                                 - Kafka for event broadcasting
                                 """)
-                        .version(appVersion)
+                        .version(openApiProperties.getVersion())
                         .contact(new Contact()
                                 .name("Platform Team")
                                 .email("platform@example.com"))
@@ -71,7 +65,7 @@ public class OpenApiConfig {
                 .servers(List.of(
                         new Server()
                                 .url("/")
-                                .description(environment + " server")))
+                                .description(openApiProperties.getEnvironment() + " server")))
                 .components(new Components()
                         .addSecuritySchemes("oauth2_auth_code", new SecurityScheme()
                                 .type(SecurityScheme.Type.OAUTH2)

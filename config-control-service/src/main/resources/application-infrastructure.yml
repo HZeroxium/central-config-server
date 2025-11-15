@@ -6,6 +6,12 @@ config-server:
   retry:
     max-attempts: 3
     backoff-delay: 1000
+  service-discovery:
+    enabled: ${CONFIG_SERVER_SERVICE_DISCOVERY_ENABLED:true}
+    service-name: ${CONFIG_SERVER_SERVICE_NAME:config-server}
+    fallback-to-url: ${CONFIG_SERVER_FALLBACK_TO_URL:true}
+  loadbalancer:
+    strategy: ${CONFIG_SERVER_LOADBALANCER_STRATEGY:round-robin} # round-robin, random, health-based
 
 # Config Proxy settings
 config:
@@ -67,15 +73,11 @@ rest-client:
       read-timeout: 10s
       write-timeout: 10s
 
-# Thrift Server Configuration
-thrift:
+# RPC Server Configuration (Thrift and gRPC)
+rpc:
   server:
-    port: ${THRIFT_PORT:9090}
-
-# gRPC Server Configuration
-grpc:
-  server:
-    port: ${GRPC_PORT:9091}
+    thrift-port: ${THRIFT_PORT:9090}
+    grpc-port: ${GRPC_PORT:9091}
 
 # KV Store Configuration
 kv:
@@ -98,4 +100,35 @@ service-instance:
     stale-threshold-minutes: 10
     cleanup-threshold-days: 30
     schedule-cron: "0 */5 * * * *" # Every 5 minutes
+
+# Heartbeat Configuration
+app:
+  heartbeat:
+    async:
+      enabled: ${HEARTBEAT_ASYNC_ENABLED:true}
+    kafka:
+      topic: ${HEARTBEAT_KAFKA_TOPIC:heartbeat-queue}
+      consumer:
+        concurrency: ${HEARTBEAT_KAFKA_CONSUMER_CONCURRENCY:10}
+        max-retries: ${HEARTBEAT_KAFKA_CONSUMER_MAX_RETRIES:3}
+      dlq:
+        topic: ${HEARTBEAT_KAFKA_DLQ_TOPIC:heartbeat-queue-dlq}
+  observability:
+    environment: ${APP_ENVIRONMENT:development}
+    otlp:
+      tracing:
+        endpoint: ${MANAGEMENT_OTLP_TRACING_ENDPOINT:http://alloy:4318/v1/traces}
+      metrics:
+        url: ${MANAGEMENT_OTLP_METRICS_EXPORT_URL:http://alloy:4318/v1/metrics}
+  name: ${APP_NAME:config-control-service}
+  version: ${APP_VERSION:1.0.0}
+  environment: ${APP_ENVIRONMENT:development}
+
+# Spring Cloud LoadBalancer Configuration
+spring:
+  cloud:
+    loadbalancer:
+      config:
+        config-server:
+          strategy: ${CONFIG_SERVER_LOADBALANCER_STRATEGY:round-robin}
 

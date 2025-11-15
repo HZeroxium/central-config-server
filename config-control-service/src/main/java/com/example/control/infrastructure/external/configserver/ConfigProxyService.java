@@ -11,8 +11,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.tracing.annotation.NewSpan;
 import io.micrometer.tracing.annotation.SpanTag;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cloud.client.ServiceInstance;
 import org.springframework.cloud.client.discovery.DiscoveryClient;
@@ -30,18 +30,36 @@ import java.util.Map;
  * Supports mock mode to avoid GitHub rate limits during testing and load testing.
  * When mock mode is enabled, services not in the whitelist will receive mock
  * config hashes instead of fetching from Config Server.
+ * <p>
+ * Uses service discovery via Consul with fallback to direct URL.
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class ConfigProxyService {
 
     private final DiscoveryClient discoveryClient;
     private final ConfigServerProperties configServerProperties;
     private final ConfigProxyProperties configProxyProperties;
     private final ObjectMapper objectMapper;
-    private final RestClient restClient = RestClient.create();
-    private final ConfigSnapshotBuilder snapshotBuilder = new ConfigSnapshotBuilder();
+    private final RestClient loadBalancedRestClient;
+    private final RestClient directRestClient;
+    private final ConfigSnapshotBuilder snapshotBuilder;
+
+    public ConfigProxyService(
+            DiscoveryClient discoveryClient,
+            ConfigServerProperties configServerProperties,
+            ConfigProxyProperties configProxyProperties,
+            ObjectMapper objectMapper,
+            @Qualifier("loadBalancedConfigServerRestClient") RestClient loadBalancedRestClient,
+            @Qualifier("configServerRestClient") RestClient directRestClient) {
+        this.discoveryClient = discoveryClient;
+        this.configServerProperties = configServerProperties;
+        this.configProxyProperties = configProxyProperties;
+        this.objectMapper = objectMapper;
+        this.loadBalancedRestClient = loadBalancedRestClient;
+        this.directRestClient = directRestClient;
+        this.snapshotBuilder = new ConfigSnapshotBuilder();
+    }
 
     /**
      * Prefix for mock hash generation to distinguish from real hashes.
@@ -122,6 +140,10 @@ public class ConfigProxyService {
 
     /**
      * Fetches real config hash from Config Server.
+     * <p>
+     * Uses service discovery if enabled and instances are available,
+     * otherwise falls back to direct URL.
+     * </p>
      *
      * @param serviceName service name
      * @param profile     environment profile
@@ -131,15 +153,9 @@ public class ConfigProxyService {
         try {
             log.debug("Fetching effective config from Config Server for {}:{}", serviceName, profile);
 
-            // Call Config Server: GET /serviceName/profile
-            String configUrl = normalizeUrl(configServerProperties.getUrl()) + "/" + serviceName + "/" +
+            String path = "/" + serviceName + "/" +
                     (profile != null && !profile.trim().isEmpty() ? profile : "default");
-
-            String configJson = restClient.get()
-                    .uri(configUrl)
-                    .accept(MediaType.APPLICATION_JSON)
-                    .retrieve()
-                    .body(String.class);
+            String configJson = callConfigServer(path);
 
             if (configJson == null || configJson.trim().isEmpty()) {
                 log.warn("Empty config response from Config Server for {}:{}", serviceName, profile);
@@ -157,6 +173,56 @@ public class ConfigProxyService {
             log.error("Failed to compute effective config hash for {}:{}", serviceName, profile, e);
             throw new ExternalServiceException("config-server",
                     "Failed to compute effective config hash: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Call Config Server with service discovery fallback to direct URL.
+     *
+     * @param path request path
+     * @return response body
+     */
+    private String callConfigServer(String path) {
+        // Try service discovery first if enabled
+        if (configServerProperties.getServiceDiscovery().isEnabled()) {
+            try {
+                List<ServiceInstance> instances = discoveryClient.getInstances(
+                        configServerProperties.getServiceDiscovery().getServiceName());
+
+                if (instances != null && !instances.isEmpty()) {
+                    // Use load-balanced RestClient with service name
+                    String serviceUrl = "http://" + configServerProperties.getServiceDiscovery().getServiceName() + path;
+                    log.debug("ConfigServer call via service discovery: {} ({} instances available)",
+                            serviceUrl, instances.size());
+
+                    return loadBalancedRestClient.get()
+                            .uri(serviceUrl)
+                            .accept(MediaType.APPLICATION_JSON)
+                            .retrieve()
+                            .body(String.class);
+                } else {
+                    log.debug("No instances found for service: {}. Falling back to direct URL.",
+                            configServerProperties.getServiceDiscovery().getServiceName());
+                }
+            } catch (Exception e) {
+                log.warn("Service discovery failed for config-server, falling back to direct URL: {}",
+                        e.getMessage());
+            }
+        }
+
+        // Fallback to direct URL
+        if (configServerProperties.getServiceDiscovery().isFallbackToUrl()) {
+            String url = normalizeUrl(configServerProperties.getUrl()) + path;
+            log.debug("ConfigServer call via direct URL: {}", url);
+
+            return directRestClient.get()
+                    .uri(url)
+                    .accept(MediaType.APPLICATION_JSON)
+                    .retrieve()
+                    .body(String.class);
+        } else {
+            throw new ExternalServiceException("config-server",
+                    "Service discovery failed and fallback to URL is disabled", null);
         }
     }
 
@@ -229,6 +295,9 @@ public class ConfigProxyService {
     /**
      * Trigger config refresh via Config Server's /busrefresh endpoint.
      * This uses Spring Cloud Bus to broadcast refresh events.
+     * <p>
+     * Uses service discovery if enabled, otherwise falls back to direct URL.
+     * </p>
      *
      * @param destination optional destination pattern (service:instance or
      *                    service:** for all)
@@ -238,22 +307,52 @@ public class ConfigProxyService {
         try {
             log.info("Triggering bus refresh via Config Server for destination: {}", destination);
 
-            String base = normalizeUrl(configServerProperties.getUrl()) + "/actuator/busrefresh";
-            // String busRefreshUrl = (destination != null && !destination.trim().isEmpty())
-            // ? base + "/" + destination
-            // : base;
-
-            String busRefreshUrl = base;
-
+            String path = "/actuator/busrefresh";
             String response;
-            response = restClient.post()
-                    .uri(busRefreshUrl)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .retrieve()
-                    .body(String.class);
 
-            log.info("Bus refresh triggered successfully for destination: {}", destination);
-            return response;
+            // Try service discovery first if enabled
+            if (configServerProperties.getServiceDiscovery().isEnabled()) {
+                try {
+                    List<ServiceInstance> instances = discoveryClient.getInstances(
+                            configServerProperties.getServiceDiscovery().getServiceName());
+
+                    if (instances != null && !instances.isEmpty()) {
+                        String serviceUrl = "http://" + configServerProperties.getServiceDiscovery().getServiceName() + path;
+                        log.debug("Bus refresh via service discovery: {} ({} instances available)",
+                                serviceUrl, instances.size());
+
+                        response = loadBalancedRestClient.post()
+                                .uri(serviceUrl)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .retrieve()
+                                .body(String.class);
+
+                        log.info("Bus refresh triggered successfully via service discovery for destination: {}", destination);
+                        return response;
+                    }
+                } catch (Exception e) {
+                    log.warn("Service discovery failed for bus refresh, falling back to direct URL: {}",
+                            e.getMessage());
+                }
+            }
+
+            // Fallback to direct URL
+            if (configServerProperties.getServiceDiscovery().isFallbackToUrl()) {
+                String url = normalizeUrl(configServerProperties.getUrl()) + path;
+                log.debug("Bus refresh via direct URL: {}", url);
+
+                response = directRestClient.post()
+                        .uri(url)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .retrieve()
+                        .body(String.class);
+
+                log.info("Bus refresh triggered successfully via direct URL for destination: {}", destination);
+                return response;
+            } else {
+                throw new ExternalServiceException("config-server",
+                        "Service discovery failed and fallback to URL is disabled", null);
+            }
 
         } catch (Exception e) {
             log.error("Failed to trigger bus refresh for destination: {}", destination, e);
