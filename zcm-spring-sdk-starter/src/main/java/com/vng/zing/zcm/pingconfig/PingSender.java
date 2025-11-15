@@ -83,7 +83,9 @@ public class PingSender {
     }
 
     String endpoint = resolveEndpoint();
-    if (!StringUtils.hasText(endpoint)) {
+    // For Kafka, endpoint can be empty (not needed)
+    if (pingStrategy.getProtocol() != com.vng.zing.zcm.pingconfig.strategy.PingProtocol.KAFKA 
+        && !StringUtils.hasText(endpoint)) {
       log.warn("ZCM ping endpoint not resolved, skipping");
       return;
     }
@@ -93,8 +95,12 @@ public class PingSender {
     try {
       log.info("ZCM ping sending payload: {}", payload);
       pingStrategy.sendHeartbeat(endpoint, payload);
-      log.info("ZCM ping sent successfully using {} to {}",
-          pingStrategy.getName(), endpoint);
+      if (pingStrategy.getProtocol() == com.vng.zing.zcm.pingconfig.strategy.PingProtocol.KAFKA) {
+        log.info("ZCM ping sent successfully using {}", pingStrategy.getName());
+      } else {
+        log.info("ZCM ping sent successfully using {} to {}",
+            pingStrategy.getName(), endpoint);
+      }
     } catch (Exception e) {
       log.error("ZCM ping failed using {}: {}",
           pingStrategy.getName(), e.getMessage());
@@ -105,10 +111,18 @@ public class PingSender {
   /**
    * Resolves the endpoint for sending heartbeat using service discovery or direct
    * URL.
+   * <p>
+   * For Kafka protocol, returns empty string (endpoint not needed).
    * 
-   * @return resolved endpoint or null if no endpoint can be determined
+   * @return resolved endpoint, empty string for Kafka, or null if no endpoint can be determined
    */
   private String resolveEndpoint() {
+    // Kafka protocol doesn't need endpoint (uses topic instead)
+    if (pingStrategy.getProtocol() == com.vng.zing.zcm.pingconfig.strategy.PingProtocol.KAFKA) {
+      log.debug("Kafka protocol selected, endpoint not needed");
+      return "";
+    }
+
     // Try service discovery first
     String serviceDiscoveryName = props.getPing().getServiceDiscoveryName();
     if (StringUtils.hasText(serviceDiscoveryName)) {
@@ -139,7 +153,7 @@ public class PingSender {
    * Builds the appropriate endpoint format based on the ping protocol.
    * 
    * @param instance the service instance from discovery
-   * @return formatted endpoint for the protocol
+   * @return formatted endpoint for the protocol, or empty string for Kafka
    */
   private String buildEndpoint(ServiceInstance instance) {
     return switch (pingStrategy.getProtocol()) {
@@ -154,6 +168,7 @@ public class PingSender {
         int port = grpcPort != null ? Integer.parseInt(grpcPort) : 9091;
         yield instance.getHost() + ":" + port;
       }
+      case KAFKA -> ""; // Kafka doesn't need endpoint (uses topic instead)
     };
   }
 

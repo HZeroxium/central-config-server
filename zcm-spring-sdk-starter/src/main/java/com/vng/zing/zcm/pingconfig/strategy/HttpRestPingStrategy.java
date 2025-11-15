@@ -2,7 +2,6 @@ package com.vng.zing.zcm.pingconfig.strategy;
 
 import com.vng.zing.zcm.config.SdkProperties;
 import com.vng.zing.zcm.pingconfig.HeartbeatPayload;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.util.StringUtils;
@@ -62,10 +61,13 @@ public class HttpRestPingStrategy implements PingStrategy {
       log.debug("Including API key in heartbeat request");
     }
 
-    requestBuilder
+    var responseEntity = requestBuilder
         .body(body)
         .retrieve()
-        .toBodilessEntity();
+        .toEntity(String.class);
+
+    log.debug("Heartbeat response status: {}, body: {}",
+            responseEntity.getStatusCode(), responseEntity.getBody());
 
     log.debug("HTTP ping sent to {}", endpoint);
   }

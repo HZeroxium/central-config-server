@@ -42,6 +42,18 @@ dependencies {
   // Spring Kafka (client utils)
   implementation("org.springframework.kafka:spring-kafka")
 
+  // Micrometer for metrics (optional - only used if MeterRegistry is available)
+  implementation("io.micrometer:micrometer-core")
+  implementation("io.micrometer:micrometer-observation")
+
+  // Resilience4j for circuit breaker and resilience patterns
+  implementation("io.github.resilience4j:resilience4j-spring-boot3:2.2.0")
+  implementation("io.github.resilience4j:resilience4j-circuitbreaker:2.2.0")
+
+  // Caching support
+  implementation("org.springframework.boot:spring-boot-starter-cache:3.3.13")
+  implementation("com.github.ben-manes.caffeine:caffeine:3.1.8")
+
   // Unleash Feature Flags
   implementation("io.getunleash:unleash-client-java:9.0.0")
 

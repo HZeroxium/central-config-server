@@ -22,6 +22,11 @@ import com.vng.zing.zcm.pingconfig.strategy.PingProtocol;
 import com.vng.zing.zcm.pingconfig.strategy.HttpRestPingStrategy;
 import com.vng.zing.zcm.pingconfig.strategy.ThriftRpcPingStrategy;
 import com.vng.zing.zcm.pingconfig.strategy.GrpcPingStrategy;
+import com.vng.zing.zcm.pingconfig.strategy.KafkaPingStrategy;
+import com.vng.zing.zcm.pingconfig.strategy.KafkaConfigCache;
+import com.vng.zing.zcm.pingconfig.metrics.PingMetrics;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.kafka.core.KafkaTemplate;
 import io.getunleash.DefaultUnleash;
 import io.getunleash.Unleash;
 import io.getunleash.util.UnleashConfig;
@@ -49,6 +54,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.web.client.RestClient;
 
@@ -80,6 +86,10 @@ import org.springframework.web.client.RestClient;
 @EnableConfigurationProperties(SdkProperties.class)
 @EnableScheduling
 @LoadBalancerClients
+@org.springframework.context.annotation.Import({
+    com.vng.zing.zcm.pingconfig.cache.ConfigHashCacheConfig.class,
+    com.vng.zing.zcm.pingconfig.strategy.KafkaPingCircuitBreakerConfig.class
+})
 @RequiredArgsConstructor
 @Slf4j
 public class SdkAutoConfiguration {
@@ -130,13 +140,36 @@ public class SdkAutoConfiguration {
   }
 
   /**
+   * Creates a {@link KafkaConfigCache} bean for caching Kafka configuration.
+   * <p>
+   * This cache is only created when Kafka protocol is enabled.
+   *
+   * @param restClientBuilder RestClient builder for HTTP requests to config-control-service
+   * @param environment       Spring environment for env var overrides
+   * @return KafkaConfigCache instance
+   */
+  @Bean
+  @ConditionalOnMissingBean
+  @ConditionalOnProperty(prefix = "zcm.sdk.ping", name = "protocol", havingValue = "KAFKA", matchIfMissing = false)
+  public KafkaConfigCache kafkaConfigCache(RestClient.Builder restClientBuilder, Environment environment) {
+    log.info("Creating KafkaConfigCache for ping operations");
+    return new KafkaConfigCache(restClientBuilder.build(), props, environment);
+  }
+
+  /**
    * Creates a {@link PingStrategy} based on the configured protocol.
    *
+   * @param pingKafkaTemplate Kafka template for Kafka protocol (optional, only for KAFKA)
+   * @param kafkaConfigCache  Kafka config cache (optional, only for KAFKA)
+   * @param pingMetrics       Ping metrics component (optional)
    * @return the appropriate ping strategy implementation
    */
   @Bean
   @ConditionalOnMissingBean
-  public PingStrategy pingStrategy() {
+  public PingStrategy pingStrategy(
+      @Autowired(required = false) @Qualifier("pingKafkaTemplate") KafkaTemplate<String, com.vng.zing.zcm.pingconfig.HeartbeatPayload> pingKafkaTemplate,
+      @Autowired(required = false) KafkaConfigCache kafkaConfigCache,
+      @Autowired(required = false) PingMetrics pingMetrics) {
     String protocol = props.getPing().getProtocol();
     PingProtocol pingProtocol = PingProtocol.fromString(protocol);
     
@@ -144,6 +177,14 @@ public class SdkAutoConfiguration {
       case HTTP -> new HttpRestPingStrategy(props);
       case THRIFT -> new ThriftRpcPingStrategy();
       case GRPC -> new GrpcPingStrategy();
+      case KAFKA -> {
+        if (pingKafkaTemplate == null || kafkaConfigCache == null) {
+          log.warn("Kafka protocol selected but KafkaTemplate or KafkaConfigCache not available. "
+              + "Ensure KafkaPingProducerConfig is configured.");
+          yield new HttpRestPingStrategy(props); // Fallback to HTTP
+        }
+        yield new KafkaPingStrategy(pingKafkaTemplate, kafkaConfigCache);
+      }
     };
   }
 

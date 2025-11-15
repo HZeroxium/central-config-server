@@ -15,7 +15,10 @@ public enum PingProtocol {
   THRIFT("thrift"),
   
   /** gRPC protocol */
-  GRPC("grpc");
+  GRPC("grpc"),
+  
+  /** Apache Kafka messaging protocol */
+  KAFKA("kafka");
   
   private final String value;
   
@@ -45,8 +48,9 @@ public enum PingProtocol {
       return HTTP;
     }
     
+    String normalized = value.toLowerCase();
     for (PingProtocol protocol : values()) {
-      if (protocol.value.equalsIgnoreCase(value)) {
+      if (protocol.value.equalsIgnoreCase(normalized)) {
         return protocol;
       }
     }

@@ -136,11 +136,134 @@ public class SdkProperties {
     /** Delay between ping executions in milliseconds. */
     private String fixedDelay = "30000";
 
-    /** Protocol to use for ping communication (HTTP, THRIFT, GRPC). */
+    /** Protocol to use for ping communication (HTTP, THRIFT, GRPC, KAFKA). */
     private String protocol = "HTTP";
 
     /** Service discovery name for finding config-control-service instances. */
     private String serviceDiscoveryName = "config-control-service";
+
+    /** Kafka configuration for ping communication (used when protocol is KAFKA). */
+    private Kafka kafka = new Kafka();
+
+    /** Config hash caching configuration. */
+    private HashCache hashCache = new HashCache();
+
+    /** Circuit breaker configuration for Kafka ping operations. */
+    private CircuitBreaker circuitBreaker = new CircuitBreaker();
+
+    /**
+     * Kafka configuration for ping operations.
+     * <p>
+     * These properties are used as fallback when config-control-service is unavailable
+     * or when explicit configuration is required. The SDK will attempt to fetch
+     * Kafka configuration from config-control-service first.
+     */
+    @Data
+    public static class Kafka {
+
+      /**
+       * Kafka bootstrap servers (comma-separated list).
+       * <p>
+       * Can be overridden via environment variable {@code ZCM_SDK_PING_KAFKA_BOOTSTRAP_SERVERS}.
+       * If not set, SDK will fetch from config-control-service.
+       */
+      private String bootstrapServers;
+
+      /**
+       * Kafka topic for heartbeat messages.
+       * <p>
+       * Defaults to "heartbeat-queue" if not specified.
+       * Can be overridden via environment variable {@code ZCM_SDK_PING_KAFKA_TOPIC}.
+       * If not set, SDK will fetch from config-control-service.
+       */
+      private String topic = "heartbeat-queue";
+
+      /**
+       * Config refresh interval in milliseconds.
+       * <p>
+       * How often to refresh Kafka configuration from config-control-service.
+       * Defaults to 5 minutes (300000ms).
+       * Can be overridden via environment variable {@code ZCM_SDK_PING_KAFKA_CONFIG_REFRESH_INTERVAL}.
+       */
+      private long configRefreshInterval = 300000L; // 5 minutes
+    }
+
+    /**
+     * Configuration for config hash caching.
+     */
+    @Data
+    public static class HashCache {
+
+      /**
+       * Whether config hash caching is enabled.
+       * <p>
+       * When enabled, config hash is cached and only recalculated when cache expires
+       * or when refresh events are received.
+       */
+      private boolean enabled = true;
+
+      /**
+       * Cache TTL in milliseconds.
+       * <p>
+       * Defaults to 60 seconds (60000ms), which is ping interval (30s) + 30s buffer.
+       * This ensures cache hits during normal ping cycles while reducing calculation frequency.
+       * Can be overridden via environment variable {@code ZCM_SDK_PING_HASH_CACHE_TTL}.
+       */
+      private long ttl = 60000L; // 60 seconds (ping interval 30s + 30s buffer)
+
+      /**
+       * Maximum cache size (number of entries).
+       * <p>
+       * Defaults to 1000 entries. Each unique combination of application + profile + label
+       * creates one cache entry.
+       */
+      private int maxSize = 1000;
+    }
+
+    /**
+     * Circuit breaker configuration for Kafka ping operations.
+     */
+    @Data
+    public static class CircuitBreaker {
+
+      /**
+       * Whether circuit breaker is enabled for Kafka ping operations.
+       * <p>
+       * When enabled, circuit breaker will fail-fast when Kafka is down,
+       * preventing retry storms and reducing scheduler blocking.
+       */
+      private boolean enabled = true;
+
+      /**
+       * Failure rate threshold percentage.
+       * <p>
+       * Circuit opens when failure rate exceeds this threshold.
+       * Default: 50%
+       */
+      private int failureRateThreshold = 50;
+
+      /**
+       * Wait duration in open state (milliseconds).
+       * <p>
+       * How long circuit stays open before transitioning to half-open.
+       * Default: 30000ms (30 seconds)
+       */
+      private long waitDurationInOpenState = 30000L;
+
+      /**
+       * Number of permitted calls in half-open state.
+       * <p>
+       * Default: 3
+       */
+      private int permittedNumberOfCallsInHalfOpenState = 3;
+
+      /**
+       * Sliding window size for failure rate calculation.
+       * <p>
+       * Default: 10
+       */
+      private int slidingWindowSize = 10;
+    }
   }
 
   /**
