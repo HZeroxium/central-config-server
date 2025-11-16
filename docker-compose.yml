@@ -11,10 +11,12 @@ services:
     image: hzeroxium/config-server:latest
     container_name: config-server
     ports:
-      - "8888:8888"
+      - "28888:8888"
     env_file:
       - ./config/env/env.infra-remote
     environment:
+      - SPRING_PROFILES_ACTIVE=native
+      - SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS=file:/config-repo
       - CONFIG_GIT_URI=https://github.com/HZeroxium/ztf-spring-cloud-config-server.git
       - CONFIG_GIT_LABEL=master
       - SPRING_CLOUD_CONSUL_DISCOVERY_HEARTBEAT_ENABLED=true
@@ -22,6 +24,8 @@ services:
       - KAFKA_BROKERS=${KAFKA_BROKERS}
       - CONSUL_HOST=${CONSUL_HOST}
       - CONSUL_PORT=${CONSUL_PORT}
+    volumes:
+      - ./ztf-spring-cloud-config-server:/config-repo:ro
     networks:
       - infra-network
     healthcheck:
@@ -61,6 +65,10 @@ services:
       - MANAGEMENT_OTLP_TRACING_ENDPOINT=${ALLOY_OTLP_HTTP}/v1/traces
       - MANAGEMENT_OTLP_METRICS_EXPORT_ENABLED=true
       - MANAGEMENT_OTLP_METRICS_EXPORT_URL=${ALLOY_OTLP_HTTP}/v1/metrics
+      # Virtual Threads
+      # - SPRING_THREADS_VIRTUAL_ENABLED=false
+      # - SPRING_MAIN_KEEP_ALIVE=false
+      # - SERVER_TOMCAT_THREADS_MAX=10
     networks:
       - infra-network
     healthcheck:
@@ -80,9 +88,9 @@ services:
     image: hzeroxium/config-control-service:latest
     container_name: config-control-service
     ports:
-      - "8081:8080"    # HTTP
-      - "9090:9090"    # Thrift
-      - "9091:9091"    # gRPC
+      - "28081:8080"    # HTTP
+      # - "9090:9090"    # Thrift
+      # - "9092:9091"    # gRPC
     env_file:
       - ./config/env/env.infra-remote
     environment:
@@ -96,18 +104,32 @@ services:
       - THRIFT_PORT=9090
       - GRPC_PORT=9091
       - LOGGING_LEVEL_ROOT=INFO
+      - MANAGEMENT_HEALTH_MAIL_ENABLED=false
       # Observability
-      - MANAGEMENT_OTLP_TRACING_ENDPOINT=${ALLOY_OTLP_HTTP}/v1/traces
-      - MANAGEMENT_OTLP_METRICS_EXPORT_ENABLED=true
-      - MANAGEMENT_OTLP_METRICS_EXPORT_URL=${ALLOY_OTLP_HTTP}/v1/metrics
+      # - MANAGEMENT_OTLP_TRACING_ENDPOINT=${ALLOY_OTLP_HTTP}/v1/traces
+      # - MANAGEMENT_OTLP_METRICS_EXPORT_ENABLED=true
+      # - MANAGEMENT_OTLP_METRICS_EXPORT_URL=${ALLOY_OTLP_HTTP}/v1/metrics
       # Keycloak configuration
-      - KEYCLOAK_ISSUER_URI=http://keycloak:8080/realms/config-control
+      # - KEYCLOAK_ISSUER_URI=http://keycloak:8080/realms/config-control
+      - KEYCLOAK_ISSUER_URI=http://10.40.30.161:28080/realms/config-control
+      # KEYCLOAK_PUBLIC_URL for Swagger UI OAuth2 (browser-accessible URL)
+      # This should match where users access the service from browser
+      - KEYCLOAK_PUBLIC_URL=http://10.40.30.161:28080
+      - KEYCLOAK_REALM=config-control
       - KEYCLOAK_AUDIENCE=config-control-service
-      - KEYCLOAK_ADMIN_URL=http://keycloak:8080
+      - KEYCLOAK_ADMIN_URL=http://10.40.30.161:28080
       - KEYCLOAK_CLIENT_ID=config-control-service
       - KEYCLOAK_CLIENT_SECRET=config-control-service-secret
+      - KEYCLOAK_PARENT_GROUP_ID=3b7eccae-859a-437e-81af-0ab909c8d67a
+      # Swagger UI OAuth2 redirect URL (must be accessible from browser)
+      # - SWAGGER_OAUTH2_REDIRECT_URL=http://10.40.30.161:28081/swagger-ui/oauth2-redirect.html
+      - SWAGGER_OAUTH2_REDIRECT_URL=http://localhost:28081/swagger-ui/oauth2-redirect.html
       # Seeding
       - SEEDING_ENABLED=true
+      - SPRING_MAIL_HOST=10.40.30.161
+      - SPRING_MAIL_PORT=1025
+      # Heartbeat
+      - HEARTBEAT_ASYNC_ENABLED=true
     networks:
       - infra-network
     healthcheck:
@@ -117,7 +139,40 @@ services:
       retries: 3
       start_period: 60s
     restart: unless-stopped
-    
+
+  # Admin Dashboard
+  admin-dashboard:
+    build:
+      context: .
+      dockerfile: ./admin-dashboard/Dockerfile
+      args:
+        # Build-time environment variables (Vite bakes these into the bundle)
+        # Note: Build args can use environment variables from shell or .env file
+        # For local: export KEYCLOAK_PUBLIC_URL=http://localhost:28080 before building
+        # For production: export KEYCLOAK_PUBLIC_URL=http://10.40.30.161:28080 before building
+        # Or create .env file in project root with KEYCLOAK_PUBLIC_URL=<value>
+        # - VITE_API_BASE_URL=/api  # Use relative path, nginx will proxy to backend
+        - VITE_KEYCLOAK_URL=${KEYCLOAK_PUBLIC_URL:-http://localhost:28080}  # Browser-accessible URL (use - for default, not :)
+        - VITE_KEYCLOAK_REALM=config-control
+        - VITE_KEYCLOAK_CLIENT_ID=admin-dashboard
+    image: hzeroxium/admin-dashboard:latest
+    container_name: admin-dashboard
+    env_file:
+      # Load environment variables for reference (build args need shell/env vars)
+      # For local: use env.infra-local
+      # For production: use env.infra-remote
+      - ./config/env/env.infra-remote
+    ports:
+      - "3000:80"
+    networks:
+      - infra-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
 
 networks:
   infra-network:

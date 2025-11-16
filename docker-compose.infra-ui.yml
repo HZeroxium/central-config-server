@@ -1,0 +1,137 @@
+# docker-compose.infra-ui.yml
+# Infrastructure UI services for thrift-demo project
+# Port range: 20081-20084 (UI allocation)
+# Network: infra-network (bridge)
+
+services:
+  mongo-express:
+    image: mongo-express:latest
+    container_name: huyng5-mongo-express
+    ports:
+      - "20081:8081"
+    environment:
+      ME_CONFIG_MONGODB_URL: mongodb://mongodb:27017/config_control
+      ME_CONFIG_MONGODB_ENABLE_ADMIN: "true"
+      ME_CONFIG_BASICAUTH_USERNAME: admin
+      ME_CONFIG_BASICAUTH_PASSWORD: admin123
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - infra-network
+    restart: unless-stopped
+
+  redis-insight:
+    image: redis/redisinsight:latest
+    container_name: huyng5-redis-insight
+    ports:
+      - "20001:5540"
+    volumes:
+      - redisinsight_data:/data
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - infra-network
+    restart: unless-stopped
+
+  kafbat-ui:
+    image: ghcr.io/kafbat/kafka-ui:main
+    container_name: huyng5-kafbat-ui
+    ports:
+      - "20084:8080"
+    environment:
+      - DYNAMIC_CONFIG_ENABLED=true
+      - KAFKA_CLUSTERS_0_NAME=infra-kafka
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9092
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - infra-network
+    restart: unless-stopped
+
+  # Grafana - Visualization
+  grafana:
+    image: grafana/grafana:main-ubuntu
+    container_name: huyng5-grafana
+    ports:
+      - "23000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
+      - GF_FEATURE_TOGGLES_ENABLE=traceqlEditor,correlations
+      # - GF_PLUGINS_PREINSTALL=grafana-piechart-panel
+      - HTTP_PROXY=http://10.40.30.21:81
+      - HTTPS_PROXY=http://10.40.30.21:81
+      - NO_PROXY=localhost,127.0.0.1,grafana,prometheus,loki,tempo,mimir,grafana-image-renderer
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./config/grafana/grafana.ini:/etc/grafana/grafana.ini:ro
+      - ./config/grafana/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+      - ./config/grafana/provisioning/dashboards/dashboard_providers.yml:/etc/grafana/provisioning/dashboards/dashboard_providers.yml:ro
+      - ./config/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      prometheus:
+        condition: service_started
+    networks:
+      - infra-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  pgadmin:
+    image: dpage/pgadmin4:9.8
+    container_name: huyng5-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: "True"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    ports:
+      - "25050:80"
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    networks:
+      - infra-network
+
+# ============================================================================
+# Volumes
+# ============================================================================
+
+volumes:
+  mongodb_data:
+    name: infra_mongodb_data
+  redis_data:
+    name: infra_redis_data
+  redisinsight_data:
+    name: infra_redisinsight_data
+  kafka_data:
+    name: infra_kafka_data
+  consul_data:
+    name: infra_consul_data
+  minio_data:
+    name: infra_minio_data
+  loki_data:
+    name: infra_loki_data
+  grafana_data:
+    name: infra_grafana_data
+  pgadmin_data:
+    name: infra_pgadmin_data
+# ============================================================================
+# Networks
+# ============================================================================
+
+networks:
+  infra-network:
+    name: infra-network
+    driver: bridge
+    external: true
+

@@ -29,6 +29,14 @@ spring:
         tags:
           - config-control
           - management
+        fail-fast: false  # Don't fail startup if Consul is unavailable
+        deregister: true  # Deregister on shutdown
+        # Auto re-register on heartbeat failure
+        heartbeat:
+          enabled: true
+          ttl: 10s
+          # Re-register if check fails
+          reregister-service-on-failure: true
 
 # Keycloak Admin client configuration (for optional IAM sync)
 keycloak:
@@ -48,7 +56,7 @@ springdoc:
     oauth:
       client-id: admin-dashboard
       use-pkce-with-authorization-code-grant: true
-    oauth2-redirect-url: http://localhost:8081/swagger-ui/oauth2-redirect.html
+    oauth2-redirect-url: ${SWAGGER_OAUTH2_REDIRECT_URL:http://localhost:28081/swagger-ui/oauth2-redirect.html}
 
 # API Key configuration for SDK client authentication
 security:

@@ -12,6 +12,7 @@ import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import com.example.control.infrastructure.config.api.OpenApiProperties;
 import io.swagger.v3.oas.models.servers.Server;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -24,9 +25,42 @@ import java.util.List;
 public class OpenApiConfig {
 
     private final OpenApiProperties openApiProperties;
+    
+    /**
+     * Keycloak public URL for OAuth2 authorization (browser-accessible).
+     * Defaults to internal Docker hostname for local development.
+     * For remote deployment, use KEYCLOAK_PUBLIC_URL or extract from KEYCLOAK_ISSUER_URI.
+     */
+    @Value("${KEYCLOAK_PUBLIC_URL:${KEYCLOAK_ISSUER_URI:http://keycloak:8080}}")
+    private String keycloakPublicUrl;
+    
+    /**
+     * Keycloak realm name (defaults to config-control).
+     */
+    @Value("${KEYCLOAK_REALM:config-control}")
+    private String keycloakRealm;
 
     public OpenApiConfig(OpenApiProperties openApiProperties) {
         this.openApiProperties = openApiProperties;
+    }
+
+    /**
+     * Extracts base URL from Keycloak issuer URI if KEYCLOAK_PUBLIC_URL is not set.
+     * Example: http://10.40.30.161:28080/realms/config-control -> http://10.40.30.161:28080
+     */
+    private String getKeycloakBaseUrl() {
+        // If KEYCLOAK_PUBLIC_URL is explicitly set, use it
+        if (keycloakPublicUrl != null && !keycloakPublicUrl.contains("/realms/")) {
+            return keycloakPublicUrl;
+        }
+        
+        // If it contains /realms/, extract base URL
+        if (keycloakPublicUrl != null && keycloakPublicUrl.contains("/realms/")) {
+            return keycloakPublicUrl.substring(0, keycloakPublicUrl.indexOf("/realms/"));
+        }
+        
+        // Fallback to internal Docker hostname
+        return "http://keycloak:8080";
     }
 
     /**
@@ -36,6 +70,12 @@ public class OpenApiConfig {
      */
     @Bean
     public OpenAPI configControlServiceOpenAPI() {
+        String keycloakBaseUrl = getKeycloakBaseUrl();
+        String authorizationUrl = String.format("%s/realms/%s/protocol/openid-connect/auth", 
+                keycloakBaseUrl, keycloakRealm);
+        String tokenUrl = String.format("%s/realms/%s/protocol/openid-connect/token", 
+                keycloakBaseUrl, keycloakRealm);
+        
         return new OpenAPI()
                 .info(new Info()
                         .title("Config Control Service API")
@@ -71,8 +111,8 @@ public class OpenApiConfig {
                                 .type(SecurityScheme.Type.OAUTH2)
                                 .flows(new OAuthFlows()
                                         .authorizationCode(new OAuthFlow()
-                                                .authorizationUrl("http://keycloak:8080/realms/config-control/protocol/openid-connect/auth")
-                                                .tokenUrl("http://keycloak:8080/realms/config-control/protocol/openid-connect/token")
+                                                .authorizationUrl(authorizationUrl)
+                                                .tokenUrl(tokenUrl)
                                                 .scopes(new Scopes()
                                                         .addString("openid", "OpenID")
                                                         .addString("profile", "Profile")
@@ -81,7 +121,7 @@ public class OpenApiConfig {
                                 .type(SecurityScheme.Type.OAUTH2)
                                 .flows(new OAuthFlows()
                                         .password(new OAuthFlow()
-                                                .tokenUrl("http://keycloak:8080/realms/config-control/protocol/openid-connect/token")
+                                                .tokenUrl(tokenUrl)
                                                 .scopes(new Scopes()
                                                         .addString("openid", "OpenID")
                                                         .addString("profile", "Profile")

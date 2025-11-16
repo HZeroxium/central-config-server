@@ -109,11 +109,11 @@ app:
     kafka:
       topic: ${HEARTBEAT_KAFKA_TOPIC:heartbeat-queue}
       consumer:
-        concurrency: ${HEARTBEAT_KAFKA_CONSUMER_CONCURRENCY:15}
+        concurrency: ${HEARTBEAT_CONSUMER_CONCURRENCY:5}
         max-retries: ${HEARTBEAT_KAFKA_CONSUMER_MAX_RETRIES:3}
-        max-poll-records: ${HEARTBEAT_KAFKA_CONSUMER_MAX_POLL_RECORDS:500}
+        max-poll-records: ${HEARTBEAT_KAFKA_CONSUMER_MAX_POLL_RECORDS:50}
         fetch-max-wait-ms: ${HEARTBEAT_KAFKA_CONSUMER_FETCH_MAX_WAIT_MS:2000}
-        fetch-min-bytes: ${HEARTBEAT_KAFKA_CONSUMER_FETCH_MIN_BYTES:16384}
+        fetch-min-bytes: ${HEARTBEAT_KAFKA_CONSUMER_FETCH_MIN_BYTES:8192}
         max-poll-interval-ms: ${HEARTBEAT_KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS:300000}
       dlq:
         topic: ${HEARTBEAT_KAFKA_DLQ_TOPIC:heartbeat-queue-dlq}
