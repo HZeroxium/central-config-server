@@ -62,6 +62,12 @@ public class SeederConfigProperties {
     private boolean cleanBeforeSeed = true;
 
     /**
+     * Whether to generate config files during seeding.
+     * Default: true (generates config files for all seeded services).
+     */
+    private boolean generateConfigFiles = true;
+
+    /**
      * Data generation configuration.
      */
     @NotNull(message = "Data configuration is required")

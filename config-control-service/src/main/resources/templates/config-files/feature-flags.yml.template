@@ -1,0 +1,20 @@
+# ${displayName} - Feature flags configuration
+# Generated config file for service: ${serviceId}
+
+feature:
+  dark-mode: ${darkMode}
+  new-endpoint-v2: ${newEndpointV2}
+  use-cache-v1: ${useCacheV1}
+  experimental-feature: false
+  beta-features:
+    enabled: false
+    allowed-users: []
+
+# A/B Testing configuration
+ab-testing:
+  enabled: true
+  variants:
+    control: 50
+    variant-a: 25
+    variant-b: 25
+

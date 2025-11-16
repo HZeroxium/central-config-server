@@ -111,6 +111,7 @@ public class SeederApplicationRunner implements ApplicationRunner {
         log.info("    - {} approval requests", result.seedResult.approvalRequestsSeeded);
         log.info("    - {} approval decisions", result.seedResult.approvalDecisionsSeeded);
         log.info("    - {} KV entries", result.seedResult.kvEntriesSeeded);
+        log.info("    - {} config files", result.seedResult.configFilesGenerated);
         log.info("  Total: Deleted {}, Seeded {}",
                 result.cleanResult.getTotalDeleted(),
                 result.seedResult.getTotalSeeded());
@@ -128,6 +129,7 @@ public class SeederApplicationRunner implements ApplicationRunner {
         log.info("  - {} approval requests", result.approvalRequestsSeeded);
         log.info("  - {} approval decisions", result.approvalDecisionsSeeded);
         log.info("  - {} KV entries", result.kvEntriesSeeded);
+        log.info("  - {} config files", result.configFilesGenerated);
         log.info("  Total: Seeded {}", result.getTotalSeeded());
     }
 }

@@ -1,0 +1,45 @@
+# ${displayName} - Base configuration
+# Generated config file for service: ${serviceId}
+
+spring:
+  application:
+    name: ${serviceId}
+  jackson:
+    serialization:
+      WRITE_DATES_AS_TIMESTAMPS: false
+  main:
+    banner-mode: "off"
+  threads:
+    virtual:
+      enabled: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health,info,env,prometheus"
+
+logging:
+  level:
+    root: INFO
+    com.example.${serviceId}: ${logLevel}
+
+# Service-specific configuration
+service:
+  id: ${serviceId}
+  version: ${version}
+  framework: ${framework}
+  language: ${language}
+  build-tool: ${buildTool}
+  prop2: "service-default-prop2 from ${serviceId}/application.yml"
+  propOnlyInService: "only-in-service-default from ${serviceId}/application.yml"
+
+# Business configuration
+business:
+  max-retries: ${maxRetries}
+  cache-ttl-seconds: ${cacheTtl}
+  rate-limit-per-minute: ${rateLimit}
+
+shared:
+  defaultMsg: "shared-default-from-service from ${serviceId}/application.yml"
+

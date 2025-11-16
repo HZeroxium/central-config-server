@@ -48,3 +48,17 @@ logging:
     org.springframework.cloud: WARN
     org.springframework.security: DEBUG
   config: classpath:log4j2-spring.xml
+
+# Config File Generator Configuration
+config-file-generator:
+  enabled: true
+  base-path: ${CONFIG_REPO_PATH:./ztf-spring-cloud-config-server}
+  skip-existing: true  # Don't overwrite existing files
+  generate-feature-flags: true
+  generate-banner: false
+  deterministic-seed: 42  # Seed for deterministic generation
+  templates:
+    application-yml: classpath:templates/config-files/application.yml.template
+    application-env-yml: classpath:templates/config-files/application-env.yml.template
+    feature-flags-yml: classpath:templates/config-files/feature-flags.yml.template
+    banner-txt: classpath:templates/config-files/banner.txt.template

@@ -5,7 +5,9 @@ import com.example.control.domain.port.repository.*;
 import com.example.control.infrastructure.config.security.UserContext;
 import com.example.control.domain.model.*;
 import com.example.control.infrastructure.seeding.config.SeederConfigProperties;
+import com.example.control.infrastructure.configfile.ConfigFileGeneratorService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -60,6 +62,9 @@ public class DataSeederService {
     private final KVSeederService kvSeederService;
     private final SeederConfigProperties config;
     private final KeycloakUserResolver keycloakUserResolver;
+    
+    @Autowired(required = false)
+    private ConfigFileGeneratorService configFileGeneratorService;
 
     /**
      * Cleans all non-IAM data from the database.
@@ -245,6 +250,26 @@ public class DataSeederService {
                 result.kvEntriesSeeded = 0;
             }
 
+            // 8. Config Files
+            if (config.isGenerateConfigFiles() && configFileGeneratorService != null) {
+                try {
+                    log.info("Generating config files for {} services...", data.services.size());
+                    ConfigFileGeneratorService.AggregateGenerationResult configResult =
+                            configFileGeneratorService.generateForServices(data.services);
+                    result.configFilesGenerated = configResult.totalFilesGenerated;
+                    log.info("Generated {} config files", result.configFilesGenerated);
+                } catch (Exception e) {
+                    log.error("Failed to generate config files during seeding", e);
+                    result.configFilesGenerated = 0;
+                    // Don't fail seeding if config file generation fails
+                }
+            } else {
+                if (config.isGenerateConfigFiles() && configFileGeneratorService == null) {
+                    log.warn("Config file generation is enabled but ConfigFileGeneratorService is not available");
+                }
+                result.configFilesGenerated = 0;
+            }
+
             log.info("Seed operation complete. Total seeded: {}", result.getTotalSeeded());
 
             return result;
@@ -361,6 +386,7 @@ public class DataSeederService {
         public int approvalRequestsSeeded;
         public int approvalDecisionsSeeded;
         public int kvEntriesSeeded;
+        public int configFilesGenerated;
 
         public int getTotalSeeded() {
             return servicesSeeded + instancesSeeded + driftEventsSeeded +

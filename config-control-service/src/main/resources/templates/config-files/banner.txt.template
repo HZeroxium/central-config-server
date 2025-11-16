@@ -1,0 +1,8 @@
+${serviceId} :: ${displayName}
+=============================================
+Config Server Demo - ${environment}
+Version: ${version}
+Environment: ${environment}
+Service ID: ${serviceId}
+Config Hash: ${configHash}
+

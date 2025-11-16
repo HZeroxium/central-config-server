@@ -1,0 +1,30 @@
+# ${displayName} - ${environment} environment configuration
+# Generated config file for service: ${serviceId}, environment: ${environment}
+
+# Environment-specific overrides
+greeting:
+  message: "Hello from ConfigRepo (${environment})"
+  delay-ms: ${envDelay}
+  timeout-ms: ${envTimeout}
+  enabled: true
+
+feature:
+  dark-mode: ${darkMode}
+  new-endpoint-v2: ${newEndpointV2}
+  use-cache-v1: ${useCacheV1}
+
+# Environment-specific business settings
+business:
+  max-retries: ${maxRetries}
+  cache-ttl-seconds: ${cacheTtl}
+  rate-limit-per-minute: ${rateLimit}
+
+# Environment-specific logging
+logging:
+  level:
+    com.example.${serviceId}: ${logLevel}
+    root: ${logLevel}
+
+service:
+  prop2: "service-${environment}-prop2 from ${serviceId}/application-${environment}.yml"
+
