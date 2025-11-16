@@ -1,11 +1,11 @@
 .vscode/
-docs/
+# docs/
 .gradle/
 build/
 logs/
 .env
 scripts/
-# test/
+test/
 spring-boot-admin-server/*
 user-rest-spring-service/*
 user-thrift-server-service/*
