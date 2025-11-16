@@ -59,6 +59,7 @@ public class DataSeederService {
     private final ApprovalDecisionRepositoryPort approvalDecisionRepository;
     private final KVSeederService kvSeederService;
     private final SeederConfigProperties config;
+    private final KeycloakUserResolver keycloakUserResolver;
 
     /**
      * Cleans all non-IAM data from the database.
@@ -162,6 +163,20 @@ public class DataSeederService {
         Authentication previousAuth = setupMockSecurityContext();
 
         try {
+            // Load users from Keycloak and resolve admin user ID
+            log.info("Loading users from Keycloak for seeding...");
+            keycloakUserResolver.loadUsers();
+            
+            String adminUsername = config.getAdmin().getUsername();
+            String adminUserId = keycloakUserResolver.resolveAdminUserId(adminUsername);
+            List<String> userPool = keycloakUserResolver.getAllUserIds();
+            
+            log.info("Resolved admin user ID: {} (username: {}), user pool size: {}", 
+                    adminUserId, adminUsername, userPool.size());
+            
+            // Initialize MockDataGenerator with admin user ID and user pool
+            mockDataGenerator.initialize(adminUserId, userPool);
+            
             // Generate all mock data
             MockDataGenerator.GeneratedData data = mockDataGenerator.generateAll();
 

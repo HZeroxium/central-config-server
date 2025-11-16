@@ -264,18 +264,38 @@ public class ApplicationServiceFactory {
 
     /**
      * Generates update timestamp between creation and now.
+     * <p>
+     * Ensures updatedAt >= createdAt for data realism.
+     * </p>
      *
      * @param createdAt creation timestamp
-     * @return update instant
+     * @return update instant (always >= createdAt)
      */
     private Instant generateUpdatedAt(Instant createdAt) {
-        long daysSinceCreation = ChronoUnit.DAYS.between(createdAt, Instant.now());
-        if (daysSinceCreation <= 0) {
+        Instant now = Instant.now();
+        if (createdAt.isAfter(now)) {
+            // If createdAt is in the future (shouldn't happen), set updatedAt to createdAt
             return createdAt;
         }
 
-        long updateDaysAgo = faker.number().numberBetween(0, daysSinceCreation);
-        return Instant.now().minus(updateDaysAgo, ChronoUnit.DAYS);
+        long daysSinceCreation = ChronoUnit.DAYS.between(createdAt, now);
+        if (daysSinceCreation <= 0) {
+            // Same day or same instant - updatedAt should be >= createdAt
+            // Add 0-23 hours to ensure updatedAt >= createdAt
+            long hoursToAdd = faker.number().numberBetween(0, 24);
+            return createdAt.plus(hoursToAdd, ChronoUnit.HOURS);
+        }
+
+        // updatedAt is between createdAt and now
+        long updateDaysAgo = faker.number().numberBetween(0, (int) daysSinceCreation);
+        Instant updatedAt = now.minus(updateDaysAgo, ChronoUnit.DAYS);
+        
+        // Ensure updatedAt >= createdAt (should always be true, but double-check)
+        if (updatedAt.isBefore(createdAt)) {
+            return createdAt;
+        }
+        
+        return updatedAt;
     }
 
     /**

@@ -38,12 +38,13 @@ import java.util.*;
 @RequiredArgsConstructor
 public class ApprovalRequestFactory {
 
-    /**
-     * Mock requester user IDs.
-     */
-    private static final List<String> REQUESTER_USERS = List.of(
-            "user1", "user2", "user3", "john.doe", "jane.smith", "team-lead");
     private final Faker faker;
+    
+    /**
+     * Pool of user IDs for random assignment.
+     * Set by MockDataGenerator before generation.
+     */
+    private List<String> userPool = List.of();
 
     /**
      * Generates an {@link ApprovalRequest} for assigning an orphan service to a
@@ -190,12 +191,26 @@ public class ApprovalRequestFactory {
     }
 
     /**
-     * Selects a requester user ID.
+     * Sets the user ID pool for random assignment.
+     *
+     * @param userPool list of user IDs
+     */
+    public void setUserPool(List<String> userPool) {
+        this.userPool = userPool != null ? new ArrayList<>(userPool) : List.of();
+    }
+
+    /**
+     * Selects a requester user ID from the pool.
      *
      * @return requester user ID
+     * @throws IllegalStateException if user pool is empty
      */
     private String selectRequester() {
-        return REQUESTER_USERS.get(faker.random().nextInt(REQUESTER_USERS.size()));
+        if (userPool.isEmpty()) {
+            throw new IllegalStateException(
+                    "User pool is empty. Call setUserPool() before generating approval requests.");
+        }
+        return userPool.get(faker.random().nextInt(userPool.size()));
     }
 
     /**
@@ -306,21 +321,36 @@ public class ApprovalRequestFactory {
 
     /**
      * Generates update timestamp based on status.
-     * PENDING: Same as creation
+     * <p>
+     * Ensures updatedAt >= createdAt for data realism.
+     * </p>
+     * <p>
+     * PENDING: Same as creation (or slightly after)
      * APPROVED/REJECTED: 1 hour to 3 days after creation
+     * </p>
      *
      * @param createdAt creation timestamp
      * @param status    approval status
-     * @return update instant
+     * @return update instant (always >= createdAt)
      */
     private Instant generateUpdatedAt(Instant createdAt, ApprovalRequest.ApprovalStatus status) {
         if (status == ApprovalRequest.ApprovalStatus.PENDING) {
-            return createdAt;
+            // PENDING requests can be updated at creation time or slightly after
+            // Add 0-1 hour to ensure updatedAt >= createdAt
+            long minutesToAdd = faker.number().numberBetween(0, 60);
+            return createdAt.plus(minutesToAdd, ChronoUnit.MINUTES);
         }
 
         // Approved/rejected 1 hour to 3 days after creation
         long hoursToDecision = faker.number().numberBetween(1, 72);
-        return createdAt.plus(hoursToDecision, ChronoUnit.HOURS);
+        Instant updatedAt = createdAt.plus(hoursToDecision, ChronoUnit.HOURS);
+        
+        // Ensure updatedAt >= createdAt (should always be true, but double-check)
+        if (updatedAt.isBefore(createdAt)) {
+            return createdAt;
+        }
+        
+        return updatedAt;
     }
 
     /**

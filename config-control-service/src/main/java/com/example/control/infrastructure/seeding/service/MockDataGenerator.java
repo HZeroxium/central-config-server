@@ -49,13 +49,54 @@ public class MockDataGenerator {
     private final ApprovalDecisionFactory approvalDecisionFactory;
     private final KVEntryFactory kvEntryFactory;
     private final KVListFactory kvListFactory;
+    private final KeycloakUserResolver keycloakUserResolver;
+    private final TestKVServiceGenerator testKVServiceGenerator;
+
+    /**
+     * Admin user ID resolved from Keycloak.
+     */
+    private String adminUserId;
+
+    /**
+     * Pool of user IDs for random assignment.
+     */
+    private List<String> userPool = List.of();
+
+    /**
+     * Initializes the generator with admin user ID and user pool.
+     * <p>
+     * Must be called before generateAll() to ensure proper user ID resolution.
+     * </p>
+     *
+     * @param adminUserId admin user ID from Keycloak
+     * @param userPool    pool of user IDs for random assignment
+     */
+    public void initialize(String adminUserId, List<String> userPool) {
+        this.adminUserId = adminUserId;
+        this.userPool = userPool != null ? new ArrayList<>(userPool) : List.of();
+        
+        // Set user pools in factories
+        approvalRequestFactory.setUserPool(this.userPool);
+        serviceShareFactory.setUserPool(this.userPool);
+        
+        log.info("MockDataGenerator initialized with adminUserId: {}, userPool size: {}", 
+                adminUserId, this.userPool.size());
+    }
 
     /**
      * Generates complete mock dataset according to configuration.
+     * <p>
+     * Requires initialize() to be called first with admin user ID and user pool.
+     * </p>
      *
      * @return generated data container
+     * @throws IllegalStateException if not initialized
      */
     public GeneratedData generateAll() {
+        if (adminUserId == null || adminUserId.isBlank()) {
+            throw new IllegalStateException(
+                    "MockDataGenerator not initialized. Call initialize() before generateAll().");
+        }
         log.info("Starting mock data generation with configuration: teams={}, services={}/{}/{}, instances={}-{}",
                 config.getData().getTeams().getCount(),
                 config.getData().getServices().getTeam1Count(),
@@ -66,7 +107,7 @@ public class MockDataGenerator {
 
         GeneratedData data = new GeneratedData();
 
-        // Phase 1: Generate Application Services
+        // Phase 1: Generate Application Services (including test-kv-service)
         data.services = generateApplicationServices();
         log.info("Generated {} application services", data.services.size());
 
@@ -90,7 +131,7 @@ public class MockDataGenerator {
         data.approvalDecisions = generateApprovalDecisions(data.approvalRequests);
         log.info("Generated {} approval decisions", data.approvalDecisions.size());
 
-        // Phase 7: Generate KV Entries
+        // Phase 7: Generate KV Entries (including test-kv-service primitives)
         data.kvData = generateKVEntries(data.services);
         int totalKVEntries = data.kvData.getTotalEntryCount();
         log.info("Generated {} KV entries across {} services", totalKVEntries, data.services.size());
@@ -102,6 +143,9 @@ public class MockDataGenerator {
 
     /**
      * Generates application services according to configuration.
+     * <p>
+     * Includes test-kv-service as an orphan service for KVApi testing.
+     * </p>
      *
      * @return list of generated services
      */
@@ -113,7 +157,7 @@ public class MockDataGenerator {
         String team1Id = config.getTeamId(0);
         for (int i = 0; i < config.getData().getServices().getTeam1Count(); i++) {
             ApplicationService service = applicationServiceFactory.generate(
-                    serviceIndex++, team1Id, "admin");
+                    serviceIndex++, team1Id, adminUserId);
             services.add(service);
         }
 
@@ -121,16 +165,21 @@ public class MockDataGenerator {
         String team2Id = config.getTeamId(1);
         for (int i = 0; i < config.getData().getServices().getTeam2Count(); i++) {
             ApplicationService service = applicationServiceFactory.generate(
-                    serviceIndex++, team2Id, "admin");
+                    serviceIndex++, team2Id, adminUserId);
             services.add(service);
         }
 
         // Generate orphan services (no owner)
         for (int i = 0; i < config.getData().getServices().getOrphanCount(); i++) {
             ApplicationService service = applicationServiceFactory.generate(
-                    serviceIndex++, null, "admin");
+                    serviceIndex++, null, adminUserId);
             services.add(service);
         }
+
+        // Generate test-kv-service (orphan service for KVApi testing)
+        ApplicationService testService = testKVServiceGenerator.generateTestService(adminUserId);
+        services.add(testService);
+        log.info("Generated test-kv-service for KVApi testing");
 
         return services;
     }
@@ -247,8 +296,12 @@ public class MockDataGenerator {
                     ? ServiceShareFactory.ShareType.VIEW
                     : ServiceShareFactory.ShareType.EDIT;
 
+            // Use random user ID from pool for grantedBy
+            String grantedBy = userPool.isEmpty() ? adminUserId : 
+                    userPool.get((int) (Math.random() * userPool.size()));
+            
             ServiceShare share = serviceShareFactory.generate(
-                    service, targetTeamId, ownerTeamId, shareType);
+                    service, targetTeamId, grantedBy, shareType);
             shares.add(share);
         }
 
@@ -287,23 +340,29 @@ public class MockDataGenerator {
         log.debug("Generating approval requests: pending={}, approved={}, rejected={}",
                 pendingCount, approvedCount, rejectedCount);
 
-        // Define test users
-        String[] users = { "user1", "user2", "user3", "user4", "user5" };
+        // Use real user IDs from pool
+        if (userPool.isEmpty()) {
+            log.warn("User pool is empty, cannot generate approval requests");
+            return requests;
+        }
+
         String team1Id = config.getTeamId(0);
         String team2Id = config.getTeamId(1);
 
         // Scenario 1: PENDING requests - multiple users competing for same services
-        // Service 0: user1 (team1) and user3 (team2) both pending
-        if (orphanServices.size() > 0 && pendingCount >= 2) {
+        // Service 0: two different users (team1 and team2) both pending
+        if (orphanServices.size() > 0 && pendingCount >= 2 && userPool.size() >= 2) {
             ApplicationService service0 = orphanServices.get(0);
 
-            // User1 requests for team1 (PENDING)
+            // First user requests for team1 (PENDING)
+            String userId1 = userPool.get(0);
             requests.add(approvalRequestFactory.generateForUser(
-                    service0, team1Id, users[0], ApprovalRequest.ApprovalStatus.PENDING));
+                    service0, team1Id, userId1, ApprovalRequest.ApprovalStatus.PENDING));
 
-            // User3 requests for team2 (PENDING) - competition
+            // Second user requests for team2 (PENDING) - competition
+            String userId2 = userPool.size() > 1 ? userPool.get(1) : userPool.get(0);
             requests.add(approvalRequestFactory.generateForUser(
-                    service0, team2Id, users[2], ApprovalRequest.ApprovalStatus.PENDING));
+                    service0, team2Id, userId2, ApprovalRequest.ApprovalStatus.PENDING));
 
             pendingCount -= 2;
         }
@@ -312,7 +371,7 @@ public class MockDataGenerator {
         int serviceIdx = 1;
         for (int i = 0; i < pendingCount && serviceIdx < orphanServices.size(); i++) {
             ApplicationService service = orphanServices.get(serviceIdx);
-            String userId = users[i % users.length];
+            String userId = userPool.get(i % userPool.size());
             String targetTeamId = (i % 2 == 0) ? team1Id : team2Id;
 
             requests.add(approvalRequestFactory.generateForUser(
@@ -324,15 +383,16 @@ public class MockDataGenerator {
         // Include multi-gate approvals (with LINE_MANAGER)
         for (int i = 0; i < approvedCount && serviceIdx < orphanServices.size(); i++) {
             ApplicationService service = orphanServices.get(serviceIdx);
-            String userId = users[i % users.length];
+            String userId = userPool.get(i % userPool.size());
             String targetTeamId = (i % 2 == 0) ? team1Id : team2Id;
 
             // Every other approved request has LINE_MANAGER gate
-            if (i % 2 == 0) {
-                // With LINE_MANAGER gate (user2 reports to user1)
-                String managerId = "user1";
+            if (i % 2 == 0 && userPool.size() > 1) {
+                // With LINE_MANAGER gate (use second user as manager)
+                String managerId = userPool.get(1);
+                String requesterId = userPool.get(0);
                 requests.add(approvalRequestFactory.generateWithManager(
-                        service, targetTeamId, users[1], managerId, ApprovalRequest.ApprovalStatus.APPROVED));
+                        service, targetTeamId, requesterId, managerId, ApprovalRequest.ApprovalStatus.APPROVED));
             } else {
                 // SYS_ADMIN only
                 requests.add(approvalRequestFactory.generateForUser(
@@ -344,7 +404,7 @@ public class MockDataGenerator {
         // Scenario 3: REJECTED requests - simulate rejections
         for (int i = 0; i < rejectedCount && serviceIdx < orphanServices.size(); i++) {
             ApplicationService service = orphanServices.get(serviceIdx);
-            String userId = users[i % users.length];
+            String userId = userPool.get(i % userPool.size());
             String targetTeamId = (i % 2 == 0) ? team1Id : team2Id;
 
             requests.add(approvalRequestFactory.generateForUser(
@@ -371,8 +431,6 @@ public class MockDataGenerator {
     private List<ApprovalDecision> generateApprovalDecisions(List<ApprovalRequest> approvalRequests) {
         List<ApprovalDecision> decisions = new ArrayList<>();
 
-        String adminUserId = config.getAdmin().getUserId();
-
         for (ApprovalRequest request : approvalRequests) {
             // Only generate decisions for approved/rejected requests
             if (request.getStatus() != ApprovalRequest.ApprovalStatus.PENDING) {
@@ -396,7 +454,10 @@ public class MockDataGenerator {
     }
 
     /**
-     * Generates KV entries for all services.
+     * Generates KV entries for approximately 10% of services (random selection).
+     * <p>
+     * Always includes test-kv-service if it exists in the services list.
+     * </p>
      *
      * @param services list of services
      * @return KVData container with structured entries
@@ -409,10 +470,51 @@ public class MockDataGenerator {
             return kvData;
         }
 
+        // Separate test-kv-service from other services
+        List<ApplicationService> regularServices = new ArrayList<>();
+        ApplicationService testKvService = null;
+        String testServiceId = "test-kv-service";
+
         for (ApplicationService service : services) {
+            if (testServiceId.equals(service.getId().id())) {
+                testKvService = service;
+            } else {
+                regularServices.add(service);
+            }
+        }
+
+        // Select ~10% of regular services (random selection)
+        int targetCount = regularServices.isEmpty() ? 0 : (int) Math.ceil(regularServices.size() * 0.1);
+        List<ApplicationService> selectedServices = new ArrayList<>(regularServices);
+        Collections.shuffle(selectedServices);
+        selectedServices = new ArrayList<>(selectedServices.subList(0, Math.min(targetCount, selectedServices.size())));
+
+        // Always include test-kv-service if it exists
+        if (testKvService != null) {
+            selectedServices.add(testKvService);
+            log.info("Selected {} regular services (10%) plus test-kv-service for KV seeding (total: {})", 
+                    targetCount, selectedServices.size());
+        } else {
+            log.info("Selected {} services (10%) for KV seeding", selectedServices.size());
+        }
+
+        // Generate KV entries for selected services
+        for (ApplicationService service : selectedServices) {
             String serviceId = service.getId().id();
             generateKVEntriesForService(serviceId, kvData);
         }
+
+        // Generate test-kv-service primitive test entries (always)
+        List<KVEntry> testEntries = testKVServiceGenerator.generatePrimitiveTestEntries();
+        for (KVEntry entry : testEntries) {
+            // Check if entry is LEAF_LIST (flags=3) and add to appropriate container
+            if (entry.flags() == 3L) {
+                kvData.leafListEntries.computeIfAbsent(testServiceId, k -> new ArrayList<>()).add(entry);
+            } else {
+                kvData.leafEntries.computeIfAbsent(testServiceId, k -> new ArrayList<>()).add(entry);
+            }
+        }
+        log.info("Generated {} primitive test KV entries for test-kv-service", testEntries.size());
 
         return kvData;
     }
@@ -475,7 +577,7 @@ public class MockDataGenerator {
     }
 
     /**
-     * Generates entries for a category with proper distribution.
+     * Generates entries for a category with proper distribution (LEAF/LIST/LEAF_LIST).
      *
      * @param serviceId service ID
      * @param category  category name (config, secrets, feature-flags)
@@ -490,11 +592,12 @@ public class MockDataGenerator {
             return;
         }
 
-        // Calculate distribution
+        // Calculate three-way distribution
         int leafCount = (int) Math.round(count * categoryConfig.getLeafPercentage() / 100.0);
-        int listCount = count - leafCount; // Remaining for lists
+        int listCount = (int) Math.round(count * categoryConfig.getListPercentage() / 100.0);
+        int leafListCount = count - leafCount - listCount; // Remaining for LEAF_LIST
 
-        // Generate leaf entries
+        // Generate LEAF entries
         for (int i = 0; i < leafCount; i++) {
             KVEntry entry;
             if ("config".equals(category)) {
@@ -510,7 +613,7 @@ public class MockDataGenerator {
             kvData.leafEntries.computeIfAbsent(serviceId, k -> new ArrayList<>()).add(entry);
         }
 
-        // Generate list entries
+        // Generate LIST entries
         for (int i = 0; i < listCount; i++) {
             int itemCount = 3 + (int) (Math.random() * 8); // 3-10 items
             String prefix;
@@ -528,6 +631,22 @@ public class MockDataGenerator {
             String relativePrefix = category + "/" + prefix;
             kvData.listEntries.computeIfAbsent(serviceId, k -> new ArrayList<>())
                     .add(new KVListData(relativePrefix, listStructure));
+        }
+
+        // Generate LEAF_LIST entries
+        for (int i = 0; i < leafListCount; i++) {
+            KVEntry entry;
+            if ("config".equals(category)) {
+                String key = kvEntryFactory.generateConfigKey() + "-list";
+                entry = kvEntryFactory.generateConfigLeafList(serviceId, key);
+            } else if ("secrets".equals(category)) {
+                String key = kvEntryFactory.generateSecretKey() + "-list";
+                entry = kvEntryFactory.generateSecretLeafList(serviceId, key);
+            } else {
+                String key = kvEntryFactory.generateFeatureFlagKey() + "-list";
+                entry = kvEntryFactory.generateFeatureFlagLeafList(serviceId, key);
+            }
+            kvData.leafListEntries.computeIfAbsent(serviceId, k -> new ArrayList<>()).add(entry);
         }
     }
 
@@ -565,9 +684,15 @@ public class MockDataGenerator {
         public Map<String, List<KVListData>> listEntries = new HashMap<>();
 
         /**
+         * LEAF_LIST entries by service ID.
+         */
+        public Map<String, List<KVEntry>> leafListEntries = new HashMap<>();
+
+        /**
          * Calculate total entry count across all types.
          * <p>
          * For lists, counts items + manifest.
+         * For LEAF_LIST, counts as single entries.
          * </p>
          *
          * @return total entry count
@@ -581,7 +706,10 @@ public class MockDataGenerator {
                     .mapToInt(kvListData -> kvListData.listStructure().items().size() + 1) // items + manifest
                     .sum();
             
-            return leafCount + listCount;
+            // Count LEAF_LIST entries
+            int leafListCount = leafListEntries.values().stream().mapToInt(List::size).sum();
+            
+            return leafCount + listCount + leafListCount;
         }
     }
 

@@ -126,23 +126,42 @@ public class ApprovalDecisionFactory {
 
     /**
      * Generates decision timestamp between request creation and update.
+     * <p>
+     * Ensures decidedAt is between createdAt and updatedAt for data realism.
+     * </p>
      *
      * @param createdAt request creation timestamp
      * @param updatedAt request update timestamp
-     * @return decision instant
+     * @return decision instant (between createdAt and updatedAt)
      */
     private Instant generateDecidedAt(Instant createdAt, Instant updatedAt) {
+        // Ensure updatedAt >= createdAt
+        if (updatedAt.isBefore(createdAt)) {
+            // If updatedAt < createdAt (shouldn't happen), use createdAt
+            return createdAt.plus(faker.number().numberBetween(1, 60), ChronoUnit.MINUTES);
+        }
+
         // Decision timestamp should be between creation and update
         long secondsBetween = ChronoUnit.SECONDS.between(createdAt, updatedAt);
 
         if (secondsBetween <= 0) {
-            // If same time, add a small offset
+            // If same time, add a small offset (1-60 minutes)
             return createdAt.plus(faker.number().numberBetween(1, 60), ChronoUnit.MINUTES);
         }
 
         // Random time between creation and update
-        long randomSeconds = faker.number().numberBetween(0, secondsBetween);
-        return createdAt.plus(randomSeconds, ChronoUnit.SECONDS);
+        long randomSeconds = faker.number().numberBetween(0, (int) secondsBetween);
+        Instant decidedAt = createdAt.plus(randomSeconds, ChronoUnit.SECONDS);
+        
+        // Ensure decidedAt is between createdAt and updatedAt
+        if (decidedAt.isBefore(createdAt)) {
+            return createdAt.plus(1, ChronoUnit.MINUTES);
+        }
+        if (decidedAt.isAfter(updatedAt)) {
+            return updatedAt.minus(1, ChronoUnit.MINUTES);
+        }
+        
+        return decidedAt;
     }
 
     /**

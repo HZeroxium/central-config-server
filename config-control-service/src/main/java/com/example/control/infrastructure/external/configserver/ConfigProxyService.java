@@ -190,8 +190,10 @@ public class ConfigProxyService {
                         configServerProperties.getServiceDiscovery().getServiceName());
 
                 if (instances != null && !instances.isEmpty()) {
-                    // Use load-balanced RestClient with service name
-                    String serviceUrl = "http://" + configServerProperties.getServiceDiscovery().getServiceName() + path;
+                    // Use actual ServiceInstance URI instead of service name
+                    // This ensures we use the correct host and port
+                    ServiceInstance instance = instances.get(0); // Use first instance, or implement round-robin
+                    String serviceUrl = instance.getUri() + path;
                     log.debug("ConfigServer call via service discovery: {} ({} instances available)",
                             serviceUrl, instances.size());
 
@@ -317,7 +319,10 @@ public class ConfigProxyService {
                             configServerProperties.getServiceDiscovery().getServiceName());
 
                     if (instances != null && !instances.isEmpty()) {
-                        String serviceUrl = "http://" + configServerProperties.getServiceDiscovery().getServiceName() + path;
+                        // Use actual ServiceInstance URI instead of service name
+                        // This ensures we use the correct host and port (e.g., http://config-server:8888)
+                        ServiceInstance instance = instances.get(0); // Use first instance, or implement round-robin
+                        String serviceUrl = instance.getUri() + path;
                         log.debug("Bus refresh via service discovery: {} ({} instances available)",
                                 serviceUrl, instances.size());
 

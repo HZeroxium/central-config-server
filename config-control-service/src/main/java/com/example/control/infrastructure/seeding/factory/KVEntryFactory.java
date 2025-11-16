@@ -105,6 +105,54 @@ public class KVEntryFactory {
     }
 
     /**
+     * Generates a LEAF_LIST KV entry for config category.
+     * <p>
+     * Creates a comma-separated list of values suitable for LEAF_LIST type.
+     * </p>
+     *
+     * @param serviceId service ID
+     * @param key       relative key path (e.g., "allowed-ips")
+     * @return KV entry with LEAF_LIST type (flags=3)
+     */
+    public KVEntry generateConfigLeafList(String serviceId, String key) {
+        List<String> values = generateConfigLeafListValues(key);
+        String value = String.join(",", values);
+        return createLeafListEntry(serviceId, "config", key, value);
+    }
+
+    /**
+     * Generates a LEAF_LIST KV entry for secrets category.
+     * <p>
+     * Creates a comma-separated list of secret values suitable for LEAF_LIST type.
+     * </p>
+     *
+     * @param serviceId service ID
+     * @param key       relative key path (e.g., "api-keys")
+     * @return KV entry with LEAF_LIST type (flags=3)
+     */
+    public KVEntry generateSecretLeafList(String serviceId, String key) {
+        List<String> values = generateSecretLeafListValues(key);
+        String value = String.join(",", values);
+        return createLeafListEntry(serviceId, "secrets", key, value);
+    }
+
+    /**
+     * Generates a LEAF_LIST KV entry for feature flags category.
+     * <p>
+     * Creates a comma-separated list of flag values suitable for LEAF_LIST type.
+     * </p>
+     *
+     * @param serviceId service ID
+     * @param key       relative key path (e.g., "enabled-features")
+     * @return KV entry with LEAF_LIST type (flags=3)
+     */
+    public KVEntry generateFeatureFlagLeafList(String serviceId, String key) {
+        List<String> values = generateFeatureFlagLeafListValues(key);
+        String value = String.join(",", values);
+        return createLeafListEntry(serviceId, "feature-flags", key, value);
+    }
+
+    /**
      * Generates a random config key.
      *
      * @return config key
@@ -233,6 +281,107 @@ public class KVEntryFactory {
     }
 
     /**
+     * Generates primitive test values for KVApi testing.
+     */
+    public String generateStringValue() {
+        return faker.lorem().word();
+    }
+
+    public String generateIntegerValue() {
+        return String.valueOf(faker.number().numberBetween(-1000, 10000));
+    }
+
+    public String generateLongValue() {
+        return String.valueOf(faker.number().numberBetween(-1000000L, 10000000L));
+    }
+
+    public String generateBooleanValue() {
+        return String.valueOf(faker.random().nextBoolean());
+    }
+
+    public String generateDoubleValue() {
+        return String.valueOf(faker.number().randomDouble(2, -1000, 10000));
+    }
+
+    public String generateListValue() {
+        // Comma-separated list
+        List<String> items = faker.collection(() -> faker.lorem().word())
+                .len(3, 8)
+                .generate();
+        return String.join(",", items);
+    }
+
+    public String generateMapValue() {
+        // Simple JSON-like structure as string
+        return String.format("{\"key1\":\"%s\",\"key2\":%d,\"key3\":%s}",
+                faker.lorem().word(),
+                faker.number().numberBetween(1, 100),
+                faker.random().nextBoolean());
+    }
+
+    /**
+     * Generates config leaf-list values.
+     */
+    private List<String> generateConfigLeafListValues(String key) {
+        int count = 3 + faker.random().nextInt(6); // 3-8 items
+        List<String> values = new java.util.ArrayList<>();
+
+        if (key.contains("allowed-ips") || key.contains("whitelist")) {
+            for (int i = 0; i < count; i++) {
+                values.add(faker.internet().ipV4Address());
+            }
+        } else if (key.contains("domains") || key.contains("hosts")) {
+            for (int i = 0; i < count; i++) {
+                values.add(faker.internet().domainName());
+            }
+        } else if (key.contains("ports")) {
+            for (int i = 0; i < count; i++) {
+                values.add(String.valueOf(faker.number().numberBetween(1024, 65535)));
+            }
+        } else {
+            // Generic config values
+            for (int i = 0; i < count; i++) {
+                values.add(faker.lorem().word());
+            }
+        }
+
+        return values;
+    }
+
+    /**
+     * Generates secret leaf-list values.
+     */
+    private List<String> generateSecretLeafListValues(String key) {
+        int count = 2 + faker.random().nextInt(5); // 2-6 items
+        List<String> values = new java.util.ArrayList<>();
+
+        for (int i = 0; i < count; i++) {
+            values.add(faker.internet().uuid().replace("-", "") +
+                    faker.internet().uuid().replace("-", ""));
+        }
+
+        return values;
+    }
+
+    /**
+     * Generates feature flag leaf-list values.
+     */
+    private List<String> generateFeatureFlagLeafListValues(String key) {
+        int count = 3 + faker.random().nextInt(6); // 3-8 items
+        List<String> values = new java.util.ArrayList<>();
+
+        for (int i = 0; i < count; i++) {
+            if (faker.random().nextBoolean()) {
+                values.add(String.valueOf(faker.random().nextBoolean()));
+            } else {
+                values.add(faker.options().option("A", "B", "control", "treatment"));
+            }
+        }
+
+        return values;
+    }
+
+    /**
      * Creates a leaf KV entry.
      *
      * @param serviceId service ID
@@ -253,6 +402,32 @@ public class KVEntryFactory {
                 .modifyIndex(0)
                 .createIndex(0)
                 .flags(KVType.LEAF.getFlagValue())
+                .lockIndex(0)
+                .session(null)
+                .build();
+    }
+
+    /**
+     * Creates a LEAF_LIST KV entry.
+     *
+     * @param serviceId service ID
+     * @param category category (config, secrets, feature-flags)
+     * @param key      relative key
+     * @param value    value as comma-separated string
+     * @return KV entry with LEAF_LIST type (flags=3)
+     */
+    private KVEntry createLeafListEntry(String serviceId, String category, String key, String value) {
+        String absoluteKey = String.format("apps/%s/kv/%s/%s", serviceId, category, key);
+        byte[] valueBytes = value.getBytes(StandardCharsets.UTF_8);
+
+        log.debug("Generated LEAF_LIST KV entry: {} = {}", absoluteKey, value);
+
+        return KVEntry.builder()
+                .key(absoluteKey)
+                .value(valueBytes)
+                .modifyIndex(0)
+                .createIndex(0)
+                .flags(KVType.LEAF_LIST.getFlagValue())
                 .lockIndex(0)
                 .session(null)
                 .build();

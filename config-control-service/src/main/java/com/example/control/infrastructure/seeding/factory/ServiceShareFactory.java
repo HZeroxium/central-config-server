@@ -125,12 +125,32 @@ public class ServiceShareFactory {
     }
 
     /**
-     * Generates a mock user ID.
+     * Pool of user IDs for random assignment.
+     * Set by MockDataGenerator before generation.
+     */
+    private List<String> userPool = List.of();
+
+    /**
+     * Sets the user ID pool for random assignment.
+     *
+     * @param userPool list of user IDs
+     */
+    public void setUserPool(List<String> userPool) {
+        this.userPool = userPool != null ? new ArrayList<>(userPool) : List.of();
+    }
+
+    /**
+     * Generates a random user ID from the pool.
      *
      * @return user ID
+     * @throws IllegalStateException if user pool is empty
      */
     private String generateUserId() {
-        return faker.options().option("user1", "user2", "user3", "john.doe", "jane.smith");
+        if (userPool.isEmpty()) {
+            throw new IllegalStateException(
+                    "User pool is empty. Call setUserPool() before generating service shares.");
+        }
+        return userPool.get(faker.random().nextInt(userPool.size()));
     }
 
     /**

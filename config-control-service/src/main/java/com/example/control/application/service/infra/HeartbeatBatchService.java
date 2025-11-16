@@ -68,6 +68,30 @@ public class HeartbeatBatchService {
     private final ConcurrentHashMap<String, Integer> driftBackoffPow = new ConcurrentHashMap<>();
 
     /**
+     * Tracks drift state transitions during batch processing.
+     * Used to determine when to create drift events and when to resolve them.
+     */
+    private enum DriftTransition {
+        NEWLY_DETECTED,    // Case A: drift newly detected (create event)
+        RESOLVED,          // Case B: drift resolved (resolve events)
+        STEADY_NORMAL,     // Case C: normal state (may need to resolve orphaned events)
+        PERSISTENT,        // Case D: persistent drift (no event, may refresh)
+        NONE               // No state change
+    }
+
+    /**
+     * Result of processing a single heartbeat in memory.
+     * Contains the processed instance and the drift transition state.
+     */
+    private record ProcessHeartbeatResult(
+            ServiceInstance instance,
+            DriftTransition transition,
+            boolean needsRefresh,  // For Case D: refresh when threshold reached
+            String serviceName,    // Service name from payload (needed for resolveForInstance)
+            String instanceId      // Instance ID from payload (needed for resolveForInstance)
+    ) {}
+
+    /**
      * Processes a batch of heartbeat payloads.
      * <p>
      * Implements the same business logic as HeartbeatService.processHeartbeat()
@@ -115,20 +139,34 @@ public class HeartbeatBatchService {
         List<ServiceInstance> instancesToSave = new ArrayList<>();
         List<DriftEvent> driftEventsToSave = new ArrayList<>();
         Set<String> servicesToRefresh = new HashSet<>();
+        List<ProcessHeartbeatResult> resolutionNeeded = new ArrayList<>(); // For Case B & C
 
         for (HeartbeatPayload payload : payloads) {
             try {
-                ServiceInstance instance = processHeartbeatInMemory(
+                ProcessHeartbeatResult result = processHeartbeatInMemory(
                         payload, instancesMap, appServicesMap, configHashesMap, now, appServicesToSave);
-                instancesToSave.add(instance);
+                instancesToSave.add(result.instance());
 
-                // Collect drift events and refresh triggers
-                if (Boolean.TRUE.equals(instance.getHasDrift()) && instance.getDriftDetectedAt() != null) {
-                    // New drift detected - create event
-                    DriftEvent event = createDriftEvent(payload, instance);
+                // Handle drift transitions
+                if (result.transition() == DriftTransition.NEWLY_DETECTED) {
+                    // Case A: New drift detected - create event
+                    DriftEvent event = createDriftEvent(payload, result.instance());
                     driftEventsToSave.add(event);
                     servicesToRefresh.add(payload.getServiceName() + ":" + payload.getInstanceId());
+                    log.debug("New drift detected for {}:{}", payload.getServiceName(), payload.getInstanceId());
+                } else if (result.transition() == DriftTransition.RESOLVED) {
+                    // Case B: Drift resolved - collect for batch resolution
+                    resolutionNeeded.add(result);
+                    log.debug("Drift resolved for {}:{}", payload.getServiceName(), payload.getInstanceId());
+                } else if (result.transition() == DriftTransition.STEADY_NORMAL) {
+                    // Case C: Normal steady state - may need to resolve orphaned events
+                    resolutionNeeded.add(result);
+                } else if (result.transition() == DriftTransition.PERSISTENT && result.needsRefresh()) {
+                    // Case D: Persistent drift - refresh when threshold reached
+                    servicesToRefresh.add(payload.getServiceName() + ":" + payload.getInstanceId());
+                    log.debug("Persistent drift refresh triggered for {}:{}", payload.getServiceName(), payload.getInstanceId());
                 }
+                // NONE transition: no action needed
             } catch (Exception e) {
                 log.error("Failed to process heartbeat for {}:{}", payload.getServiceName(),
                         payload.getInstanceId(), e);
@@ -158,13 +196,32 @@ public class HeartbeatBatchService {
             }
         }
 
-        // 7. Save drift events in batch
+        // 7. Save drift events in batch (only for newly detected drift)
         if (!driftEventsToSave.isEmpty()) {
             driftEventService.bulkSave(driftEventsToSave);
             heartbeatMetrics.recordDriftDetected();
         }
 
-        // 8. Trigger refresh for drifted instances (batched by service)
+        // 8. Batch resolve drift events for instances that recovered (Case B & C)
+        if (!resolutionNeeded.isEmpty()) {
+            for (ProcessHeartbeatResult result : resolutionNeeded) {
+                try {
+                    String serviceName = result.serviceName();
+                    String instanceId = result.instanceId();
+                    if (serviceName != null && instanceId != null) {
+                        driftEventService.resolveForInstance(serviceName, instanceId, "heartbeat-batch-service");
+                        log.debug("Resolved drift events for {}:{}", serviceName, instanceId);
+                    }
+                } catch (Exception e) {
+                    log.error("Failed to resolve drift events for instance: {}:{}", 
+                            result.serviceName(), result.instanceId(), e);
+                    // Continue with other resolutions
+                }
+            }
+            log.debug("Resolved drift events for {} instances", resolutionNeeded.size());
+        }
+
+        // 9. Trigger refresh for drifted instances (batched by service)
         if (!servicesToRefresh.isEmpty()) {
             triggerBatchBusRefresh(servicesToRefresh);
         }
@@ -351,7 +408,8 @@ public class HeartbeatBatchService {
      * Processes a single heartbeat in memory.
      * <p>
      * Replicates the logic from HeartbeatService.processHeartbeat() but operates
-     * on in-memory objects without database writes.
+     * on in-memory objects without database writes. Tracks drift transition state
+     * to determine when to create/resolve drift events.
      *
      * @param payload heartbeat payload
      * @param instancesMap map of instance ID to ServiceInstance
@@ -359,9 +417,9 @@ public class HeartbeatBatchService {
      * @param configHashesMap map of service:env to config hash
      * @param now current timestamp
      * @param appServicesToSave set to collect ApplicationServices that need to be saved
-     * @return processed ServiceInstance
+     * @return ProcessHeartbeatResult containing processed instance and drift transition state
      */
-    private ServiceInstance processHeartbeatInMemory(
+    private ProcessHeartbeatResult processHeartbeatInMemory(
             HeartbeatPayload payload,
             Map<String, ServiceInstance> instancesMap,
             Map<String, ApplicationService> appServicesMap,
@@ -380,6 +438,8 @@ public class HeartbeatBatchService {
                         .status(ServiceInstance.InstanceStatus.HEALTHY)
                         .build());
 
+        // Store previous drift state BEFORE processing to detect transitions
+        Boolean previousHasDrift = instance.getHasDrift();
         boolean isFirstHeartbeat = instance.getCreatedAt() == null;
         if (isFirstHeartbeat) {
             instance.setCreatedAt(now);
@@ -420,18 +480,22 @@ public class HeartbeatBatchService {
         String expectedHash = configHashesMap.get(hashKey);
 
         // Drift detection
+        DriftTransition transition = DriftTransition.NONE;
+        boolean needsRefresh = false;
+
         if (expectedHash == null || payload.getConfigHash() == null) {
             instance.setStatus(ServiceInstance.InstanceStatus.UNKNOWN);
             instance.setHasDrift(false);
             driftRetryCount.remove(id);
             driftBackoffPow.remove(id);
-            return instance;
+            return new ProcessHeartbeatResult(instance, DriftTransition.NONE, false, 
+                    payload.getServiceName(), payload.getInstanceId());
         }
 
         boolean hasDrift = !expectedHash.equals(payload.getConfigHash());
 
         // Handle drift cases (same logic as HeartbeatService)
-        if (hasDrift && !Boolean.TRUE.equals(instance.getHasDrift())) {
+        if (hasDrift && !Boolean.TRUE.equals(previousHasDrift)) {
             // Case A: New drift detected
             instance.setHasDrift(true);
             instance.setDriftDetectedAt(now);
@@ -440,35 +504,43 @@ public class HeartbeatBatchService {
             instance.setStatus(ServiceInstance.InstanceStatus.DRIFT);
             driftRetryCount.put(id, 1);
             driftBackoffPow.put(id, 0);
-        } else if (!hasDrift && Boolean.TRUE.equals(instance.getHasDrift())) {
-            // Case B: Drift resolved
+            transition = DriftTransition.NEWLY_DETECTED;
+            needsRefresh = true; // Always refresh on new detection
+        } else if (!hasDrift && Boolean.TRUE.equals(previousHasDrift)) {
+            // Case B: Drift resolved - config hash now matches expected
             instance.setHasDrift(false);
             instance.setDriftDetectedAt(null);
             instance.setStatus(ServiceInstance.InstanceStatus.HEALTHY);
             instance.setExpectedHash(expectedHash);
             driftRetryCount.remove(id);
             driftBackoffPow.remove(id);
-        } else if (!hasDrift && !Boolean.TRUE.equals(instance.getHasDrift())) {
-            // Case C: Normal steady state
+            transition = DriftTransition.RESOLVED;
+        } else if (!hasDrift && !Boolean.TRUE.equals(previousHasDrift)) {
+            // Case C: Normal steady-state heartbeat - ensure any orphaned events are resolved
             if (instance.getStatus() != ServiceInstance.InstanceStatus.HEALTHY) {
                 instance.setStatus(ServiceInstance.InstanceStatus.HEALTHY);
             }
             instance.setExpectedHash(expectedHash);
             driftRetryCount.remove(id);
             driftBackoffPow.remove(id);
-        } else if (hasDrift && Boolean.TRUE.equals(instance.getHasDrift())) {
-            // Case D: Persistent drift
+            transition = DriftTransition.STEADY_NORMAL;
+        } else if (hasDrift && Boolean.TRUE.equals(previousHasDrift)) {
+            // Case D: Persistent drift — apply exponential backoff strategy
             int count = driftRetryCount.merge(id, 1, Integer::sum);
-            int pow = driftBackoffPow.compute(id, (k, v) -> v == null ? 0 : Math.min(v, 4));
-            int threshold = 1 << pow;
+            int pow = driftBackoffPow.compute(id, (k, v) -> v == null ? 0 : Math.min(v, 4)); // limit to 16 cycles
+            int threshold = 1 << pow; // 1, 2, 4, 8, 16
             if (count >= threshold) {
+                log.debug("Persistent drift for {} after {} heartbeats (threshold {}). Re-triggering refresh.",
+                        id, count, threshold);
                 driftRetryCount.put(id, 0);
                 driftBackoffPow.put(id, Math.min(pow + 1, 4));
-                // Refresh will be triggered after batch processing
+                needsRefresh = true; // Only refresh when threshold reached
             }
+            transition = DriftTransition.PERSISTENT;
         }
 
-        return instance;
+        return new ProcessHeartbeatResult(instance, transition, needsRefresh, 
+                payload.getServiceName(), payload.getInstanceId());
     }
 
     /**

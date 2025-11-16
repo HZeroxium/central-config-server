@@ -123,6 +123,14 @@ public class KVSeederService {
             totalSeeded += seeded;
         }
 
+        // Seed LEAF_LIST entries using KVService.put() with flags=3
+        for (Map.Entry<String, List<KVEntry>> entry : kvData.leafListEntries.entrySet()) {
+            String serviceId = entry.getKey();
+            List<KVEntry> entries = entry.getValue();
+            int seeded = seedKVLeafListEntries(serviceId, entries, userContext);
+            totalSeeded += seeded;
+        }
+
         // Seed list entries using KVService.putList()
         for (Map.Entry<String, List<MockDataGenerator.KVListData>> entry : kvData.listEntries.entrySet()) {
             String serviceId = entry.getKey();
@@ -181,6 +189,56 @@ public class KVSeederService {
         }
 
         log.debug("Seeded {} leaf entries for service: {} ({} failed)", seeded, serviceId, failed);
+        return seeded;
+    }
+
+    /**
+     * Seeds LEAF_LIST KV entries using KVService.put() with flags=3.
+     *
+     * @param serviceId service ID
+     * @param entries   list of LEAF_LIST KV entries
+     * @param userContext user context for permission checks
+     * @return number of entries seeded
+     */
+    private int seedKVLeafListEntries(String serviceId, List<KVEntry> entries, UserContext userContext) {
+        if (entries.isEmpty()) {
+            return 0;
+        }
+
+        log.debug("Seeding {} LEAF_LIST entries for service: {}", entries.size(), serviceId);
+        int seeded = 0;
+        int failed = 0;
+
+        for (KVEntry entry : entries) {
+            try {
+                // Extract relative path from absolute key
+                String relativePath = prefixPolicy.extractRelativePath(serviceId, entry.key());
+                if (relativePath == null) {
+                    log.warn("Could not extract relative path from absolute key: {}", entry.key());
+                    failed++;
+                    continue;
+                }
+
+                // Ensure flags=3 for LEAF_LIST
+                KVStorePort.KVWriteOptions writeOptions = KVStorePort.KVWriteOptions.builder()
+                        .flags(3L) // LEAF_LIST flag
+                        .build();
+
+                KVStorePort.KVWriteResult result = kvService.put(serviceId, relativePath, entry.value(), writeOptions, userContext);
+
+                if (result.success()) {
+                    seeded++;
+                } else {
+                    failed++;
+                    log.warn("Failed to seed LEAF_LIST KV entry: {}", entry.key());
+                }
+            } catch (Exception e) {
+                failed++;
+                log.error("Error seeding LEAF_LIST KV entry: {}", entry.key(), e);
+            }
+        }
+
+        log.debug("Seeded {} LEAF_LIST entries for service: {} ({} failed)", seeded, serviceId, failed);
         return seeded;
     }
 

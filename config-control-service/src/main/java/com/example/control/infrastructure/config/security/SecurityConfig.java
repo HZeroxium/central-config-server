@@ -131,7 +131,8 @@ public class SecurityConfig {
         var httpBuilder = http
                 .securityMatcher("/api/**")
                 .csrf(AbstractHttpConfigurer::disable)
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                // CORS is now handled by gateway-service
+                // .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
         
         // Add API key authentication filter before JWT authentication (if enabled)
@@ -276,25 +277,16 @@ public class SecurityConfig {
 
     /**
      * Global CORS configuration for browser clients.
-     *
      * <p>
-     * <strong>Development defaults</strong>:
-     * <ul>
-     * <li>{@code allowedOriginPatterns("*")} enables all origins for
-     * convenience.</li>
-     * <li>{@code allowCredentials(true)} allows cookies/credentials across
-     * origins.</li>
-     * </ul>
-     * <strong>Note</strong>: The CORS specification disallows {@code "*"} when
-     * credentials are used.
-     * Spring's {@code allowedOriginPatterns} can echo the request origin to satisfy
-     * this case,
-     * but production deployments should restrict origins explicitly.
+     * <strong>DEPRECATED</strong>: CORS is now handled by gateway-service.
+     * This method is kept for reference but is no longer used.
      * </p>
      *
      * @return a {@link CorsConfigurationSource} registered for all paths
+     * @deprecated CORS is now handled by gateway-service
      */
-    @Bean
+    @Deprecated
+    // @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         // configuration.setAllowedOriginPatterns(List.of("http://localhost:3000",

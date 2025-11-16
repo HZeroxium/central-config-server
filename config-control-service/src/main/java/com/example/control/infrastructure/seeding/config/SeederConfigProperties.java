@@ -171,19 +171,19 @@ public class SeederConfigProperties {
          * Number of services owned by team1.
          */
         @Min(value = 0, message = "Team1 count must be non-negative")
-        private int team1Count = 3;
+        private int team1Count = 5;
 
         /**
          * Number of services owned by team2.
          */
         @Min(value = 0, message = "Team2 count must be non-negative")
-        private int team2Count = 3;
+        private int team2Count = 5;
 
         /**
          * Number of orphan services (no owner team).
          */
         @Min(value = 0, message = "Orphan count must be non-negative")
-        private int orphanCount = 2;
+        private int orphanCount = 90;
     }
 
     /**
@@ -264,11 +264,12 @@ public class SeederConfigProperties {
     @Data
     public static class AdminConfig {
         /**
-         * Admin user ID for approval operations.
+         * Admin username for approval operations.
+         * Will be resolved to user ID via Keycloak at seeding time.
          * Must correspond to a valid Keycloak user with SYS_ADMIN role.
          */
-        @NotNull(message = "Admin user ID is required")
-        private String userId = "admin";
+        @NotNull(message = "Admin username is required")
+        private String username = "admin";
     }
 
     /**
@@ -334,13 +335,19 @@ public class SeederConfigProperties {
          * Percentage of leaf entries (0-100).
          */
         @Min(value = 0, message = "Leaf percentage must be non-negative")
-        private int leafPercentage = 60;
+        private int leafPercentage = 20;
 
         /**
          * Percentage of list entries (0-100).
          */
         @Min(value = 0, message = "List percentage must be non-negative")
-        private int listPercentage = 40;
+        private int listPercentage = 50;
+
+        /**
+         * Percentage of leaf-list entries (0-100).
+         */
+        @Min(value = 0, message = "Leaf-list percentage must be non-negative")
+        private int leafListPercentage = 30;
     }
 
     /**
@@ -352,19 +359,19 @@ public class SeederConfigProperties {
          * Config category configuration.
          */
         @NotNull(message = "Config category configuration is required")
-        private CategoryConfig config = new CategoryConfig(true, 2, 6, 70, 30);
+        private CategoryConfig config = new CategoryConfig(true, 2, 6, 20, 50, 30);
 
         /**
          * Secrets category configuration.
          */
         @NotNull(message = "Secrets category configuration is required")
-        private CategoryConfig secrets = new CategoryConfig(true, 1, 3, 80, 20);
+        private CategoryConfig secrets = new CategoryConfig(true, 1, 3, 20, 50, 30);
 
         /**
          * Feature flags category configuration.
          */
         @NotNull(message = "Feature flags category configuration is required")
-        private CategoryConfig featureFlags = new CategoryConfig(true, 1, 4, 50, 50);
+        private CategoryConfig featureFlags = new CategoryConfig(true, 1, 4, 20, 50, 30);
     }
 
     /**
@@ -401,17 +408,24 @@ public class SeederConfigProperties {
         @Min(value = 0, message = "List percentage must be non-negative")
         private int listPercentage;
 
+        /**
+         * Percentage of leaf-list entries for this category (0-100).
+         */
+        @Min(value = 0, message = "Leaf-list percentage must be non-negative")
+        private int leafListPercentage;
+
         public CategoryConfig() {
             // Default constructor for Spring
         }
 
         public CategoryConfig(boolean enabled, int minEntries, int maxEntries,
-                             int leafPercentage, int listPercentage) {
+                             int leafPercentage, int listPercentage, int leafListPercentage) {
             this.enabled = enabled;
             this.minEntries = minEntries;
             this.maxEntries = maxEntries;
             this.leafPercentage = leafPercentage;
             this.listPercentage = listPercentage;
+            this.leafListPercentage = leafListPercentage;
         }
     }
 }

@@ -114,44 +114,44 @@ public class ServiceInstanceCleanupService {
    * <p>
    * Runs periodically based on configured schedule.
    */
-  @Scheduled(cron = "${service-instance.cleanup.schedule-cron:0 */5 * * * *}")
-  @Transactional
-  public void cleanupOldStaleInstances() {
-    if (!properties.isEnabled()) {
-      log.debug("Cleanup is disabled, skipping stale instance cleanup");
-      return;
-    }
+  // @Scheduled(cron = "${service-instance.cleanup.schedule-cron:0 */5 * * * *}")
+  // @Transactional
+  // public void cleanupOldStaleInstances() {
+  //   if (!properties.isEnabled()) {
+  //     log.debug("Cleanup is disabled, skipping stale instance cleanup");
+  //     return;
+  //   }
 
-    initMetrics();
+  //   initMetrics();
 
-    Instant threshold = Instant.now().minusSeconds(properties.getCleanupThresholdDays() * 24L * 60L * 60L);
-    log.debug("Cleaning up instances with status STALE and lastSeenAt < {}", threshold);
+  //   Instant threshold = Instant.now().minusSeconds(properties.getCleanupThresholdDays() * 24L * 60L * 60L);
+  //   log.debug("Cleaning up instances with status STALE and lastSeenAt < {}", threshold);
 
-    ServiceInstanceCriteria criteria = ServiceInstanceCriteria.staleInstances(threshold);
-    List<ServiceInstance> staleInstances = queryService
-        .findAll(criteria, org.springframework.data.domain.Pageable.unpaged())
-        .getContent()
-        .stream()
-        .filter(instance -> instance.getStatus() == ServiceInstance.InstanceStatus.STALE)
-        .toList();
+  //   ServiceInstanceCriteria criteria = ServiceInstanceCriteria.staleInstances(threshold);
+  //   List<ServiceInstance> staleInstances = queryService
+  //       .findAll(criteria, org.springframework.data.domain.Pageable.unpaged())
+  //       .getContent()
+  //       .stream()
+  //       .filter(instance -> instance.getStatus() == ServiceInstance.InstanceStatus.STALE)
+  //       .toList();
 
-    if (staleInstances.isEmpty()) {
-      log.debug("No stale instances to cleanup");
-      return;
-    }
+  //   if (staleInstances.isEmpty()) {
+  //     log.debug("No stale instances to cleanup");
+  //     return;
+  //   }
 
-    int deleted = 0;
-    for (ServiceInstance instance : staleInstances) {
-      try {
-        commandService.deleteById(instance.getId());
-        deleted++;
-        staleInstancesDeletedCounter.increment();
-        log.debug("Deleted stale instance {} (lastSeenAt: {})", instance.getId(), instance.getLastSeenAt());
-      } catch (Exception e) {
-        log.error("Failed to delete stale instance {}", instance.getId(), e);
-      }
-    }
+  //   int deleted = 0;
+  //   for (ServiceInstance instance : staleInstances) {
+  //     try {
+  //       commandService.deleteById(instance.getId());
+  //       deleted++;
+  //       staleInstancesDeletedCounter.increment();
+  //       log.debug("Deleted stale instance {} (lastSeenAt: {})", instance.getId(), instance.getLastSeenAt());
+  //     } catch (Exception e) {
+  //       log.error("Failed to delete stale instance {}", instance.getId(), e);
+  //     }
+  //   }
 
-    log.info("Deleted {} stale instances", deleted);
-  }
+  //   log.info("Deleted {} stale instances", deleted);
+  // }
 }
