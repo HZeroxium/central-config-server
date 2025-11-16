@@ -88,7 +88,8 @@ import org.springframework.web.client.RestClient;
 @LoadBalancerClients
 @org.springframework.context.annotation.Import({
     com.vng.zing.zcm.pingconfig.cache.ConfigHashCacheConfig.class,
-    com.vng.zing.zcm.pingconfig.strategy.KafkaPingCircuitBreakerConfig.class
+    com.vng.zing.zcm.pingconfig.strategy.KafkaPingCircuitBreakerConfig.class,
+    com.vng.zing.zcm.pingconfig.strategy.KafkaPingProducerConfig.class
 })
 @RequiredArgsConstructor
 @Slf4j
@@ -140,20 +141,51 @@ public class SdkAutoConfiguration {
   }
 
   /**
+   * Creates a dedicated non-load-balanced RestClient.Builder for Kafka ping operations.
+   * <p>
+   * This builder is only created when Kafka protocol is enabled and KV is disabled.
+   * When KV is enabled, {@code kvRestClientBuilder} is used instead.
+   *
+   * @return a non-load-balanced RestClient.Builder
+   */
+  @Bean(name = "kafkaPingRestClientBuilder")
+  @ConditionalOnMissingBean(name = "kafkaPingRestClientBuilder")
+  @ConditionalOnProperty(prefix = "zcm.sdk.ping", name = "protocol", havingValue = "KAFKA", matchIfMissing = false)
+  public RestClient.Builder kafkaPingRestClientBuilder() {
+    log.info("Creating dedicated RestClient.Builder for Kafka ping operations");
+    return RestClient.builder();
+  }
+
+  /**
    * Creates a {@link KafkaConfigCache} bean for caching Kafka configuration.
    * <p>
    * This cache is only created when Kafka protocol is enabled.
+   * <p>
+   * It prefers {@code kvRestClientBuilder} if available (when KV is enabled),
+   * otherwise uses the dedicated {@code kafkaPingRestClientBuilder}.
    *
-   * @param restClientBuilder RestClient builder for HTTP requests to config-control-service
-   * @param environment       Spring environment for env var overrides
+   * @param kvRestClientBuilder RestClient builder from KV configuration (optional, preferred)
+   * @param kafkaPingRestClientBuilder RestClient builder for Kafka ping (fallback)
+   * @param environment Spring environment for env var overrides
    * @return KafkaConfigCache instance
    */
   @Bean
   @ConditionalOnMissingBean
   @ConditionalOnProperty(prefix = "zcm.sdk.ping", name = "protocol", havingValue = "KAFKA", matchIfMissing = false)
-  public KafkaConfigCache kafkaConfigCache(RestClient.Builder restClientBuilder, Environment environment) {
+  public KafkaConfigCache kafkaConfigCache(
+      @Autowired(required = false) @Qualifier("kvRestClientBuilder") RestClient.Builder kvRestClientBuilder,
+      @Autowired(required = false) @Qualifier("kafkaPingRestClientBuilder") RestClient.Builder kafkaPingRestClientBuilder,
+      Environment environment) {
     log.info("Creating KafkaConfigCache for ping operations");
-    return new KafkaConfigCache(restClientBuilder.build(), props, environment);
+    
+    // Prefer kvRestClientBuilder if available (non-load-balanced), otherwise use dedicated builder
+    RestClient.Builder builder = kvRestClientBuilder != null 
+        ? kvRestClientBuilder 
+        : (kafkaPingRestClientBuilder != null 
+            ? kafkaPingRestClientBuilder 
+            : RestClient.builder()); // Final fallback
+    
+    return new KafkaConfigCache(builder.build(), props, environment);
   }
 
   /**

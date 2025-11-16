@@ -67,5 +67,20 @@ public class ConfigHashCacheConfig {
 
         return cacheManager;
     }
+
+    /**
+     * Creates a custom key generator for config hash cache.
+     * <p>
+     * This key generator uses the ConfigHashCalculator's environment context
+     * to generate cache keys based on application name, profile, and label.
+     *
+     * @return ConfigHashCacheKeyGenerator instance
+     */
+    @Bean(name = "configHashCacheKeyGenerator")
+    @ConditionalOnMissingBean(name = "configHashCacheKeyGenerator")
+    public ConfigHashCacheKeyGenerator configHashCacheKeyGenerator() {
+        log.debug("Creating ConfigHashCacheKeyGenerator bean");
+        return new ConfigHashCacheKeyGenerator();
+    }
 }
 

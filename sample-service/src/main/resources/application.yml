@@ -18,6 +18,13 @@ zcm:
     ping:
       enabled: true # Enable ping to config-control-service
       fixed-delay: 30000 # 30 seconds
+      protocol: ${ZCM_SDK_PING_PROTOCOL:HTTP} # Protocol: HTTP, THRIFT, GRPC, or KAFKA
+      # Kafka configuration (used when protocol is KAFKA)
+      kafka:
+        # Optional: If not set, SDK will fetch from config-control-service
+        bootstrap-servers: ${ZCM_SDK_PING_KAFKA_BOOTSTRAP_SERVERS:${KAFKA_BROKERS:localhost:9092}}
+        topic: ${ZCM_SDK_PING_KAFKA_TOPIC:heartbeat-queue}
+        config-refresh-interval: 300000 # 5 minutes (how often to refresh Kafka config from control service)
     discovery:
       consul:
         host: consul

@@ -2,7 +2,6 @@ package com.vng.zing.zcm.pingconfig.cache;
 
 import com.vng.zing.zcm.pingconfig.ConfigHashCalculator;
 import org.springframework.cache.interceptor.KeyGenerator;
-import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Method;
 
@@ -12,8 +11,10 @@ import java.lang.reflect.Method;
  * Generates cache keys based on the ConfigHashCalculator's environment context
  * (application name, profile, label) to ensure unique cache entries per
  * configuration context.
+ * <p>
+ * This class is registered as a bean in {@link ConfigHashCacheConfig}
+ * to ensure it's available when cache configuration is enabled.
  */
-@Component("configHashCacheKeyGenerator")
 public class ConfigHashCacheKeyGenerator implements KeyGenerator {
 
     @Override
