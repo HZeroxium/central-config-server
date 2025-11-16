@@ -804,7 +804,7 @@ export default function ApplicationServiceDetailPage() {
         PaperProps={{
           sx: {
             width: { xs: "100%", sm: 600 },
-            zIndex: (theme) => theme.zIndex.drawer + 2, // Higher than header
+            zIndex: (theme) => theme.zIndex.appBar + 1, // Higher than header
             mt: { xs: 0, sm: "64px" }, // Offset for header height
           },
         }}
@@ -825,7 +825,7 @@ export default function ApplicationServiceDetailPage() {
         PaperProps={{
           sx: {
             width: { xs: "100%", sm: 600 },
-            zIndex: (theme) => theme.zIndex.drawer + 2, // Higher than header
+            zIndex: (theme) => theme.zIndex.appBar + 1, // Higher than header
             mt: { xs: 0, sm: "64px" }, // Offset for header height
           },
         }}

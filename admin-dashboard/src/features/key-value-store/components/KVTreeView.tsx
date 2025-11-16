@@ -24,7 +24,6 @@ import {
   List as ListIcon,
   ArrowUpward as ArrowUpwardIcon,
 } from "@mui/icons-material";
-import { Button, Breadcrumbs, Link } from "@mui/material";
 import type { KVTree, KVTreeNode } from "../types";
 import { isListPrefix, isFolderPrefix } from "../types";
 
@@ -256,50 +255,6 @@ export function KVTreeView({
 
   return (
     <Box>
-      {/* Breadcrumb-style parent navigation */}
-      {parentPath !== null && (
-        <Box sx={{ px: 2, py: 1, borderBottom: 1, borderColor: "divider" }}>
-          <Breadcrumbs separator="›" aria-label="breadcrumb">
-            <Link
-              component="button"
-              variant="body2"
-              onClick={handleParentClick}
-              sx={{
-                cursor: "pointer",
-                textDecoration: "none",
-                "&:hover": { textDecoration: "underline" },
-              }}
-            >
-              {parentPath === "" ? "Root" : parentPath}
-            </Link>
-            <Typography variant="body2" color="text.primary">
-              {currentPrefix.split("/").pop() || "Current"}
-            </Typography>
-          </Breadcrumbs>
-        </Box>
-      )}
-
-      {/* Parent entry button */}
-      {parentPath !== null && (
-        <Box sx={{ px: 2, py: 1 }}>
-          <Button
-            fullWidth
-            startIcon={<ArrowUpwardIcon />}
-            onClick={handleParentClick}
-            variant="outlined"
-            size="small"
-            sx={{
-              justifyContent: "flex-start",
-              textTransform: "none",
-              fontStyle: "italic",
-            }}
-            aria-label="Navigate to parent folder"
-          >
-            .. (Parent: {parentPath === "" ? "Root" : parentPath})
-          </Button>
-        </Box>
-      )}
-
       <List component="nav" dense sx={{ py: 1 }}>
         {/* Parent entry at top of tree */}
         {parentPath !== null && (

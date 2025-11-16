@@ -96,7 +96,7 @@ export function Header({ isVisible, drawerWidth, isMobile }: HeaderProps) {
           borderBottom: 1,
           borderColor: "divider",
           backdropFilter: "blur(6px)",
-          zIndex: (theme) => theme.zIndex.drawer + 1,
+          zIndex: (theme) => theme.zIndex.appBar,
           transition: "margin 0.3s, width 0.3s, transform 0.3s ease-in-out",
           width: {
             sm: `calc(100% - ${drawerWidth}px)`,
@@ -110,71 +110,87 @@ export function Header({ isVisible, drawerWidth, isMobile }: HeaderProps) {
         <Toolbar
           sx={{
             justifyContent: "space-between",
-            flexDirection: "column",
-            alignItems: "stretch",
+            flexDirection: "row",
+            alignItems: "center",
+            flexWrap: "wrap",
             py: 1,
+            gap: 1,
+            minHeight: { xs: 56, sm: 64 },
           }}
         >
-          {/* Top row: Title, Search, Actions */}
+          {/* Left side: Title + Breadcrumb */}
           <Box
             sx={{
               display: "flex",
               alignItems: "center",
-              justifyContent: "space-between",
-              width: "100%",
+              flexWrap: "wrap",
+              gap: 1.5,
+              flex: 1,
+              minWidth: 0, // Allow shrinking
             }}
           >
             <Typography
               variant="h6"
               color="primary"
-              sx={{ fontWeight: 700 }}
+              sx={{ 
+                fontWeight: 700,
+                flexShrink: 0,
+                whiteSpace: "nowrap",
+              }}
               component="h1"
             >
               Config Control Dashboard
             </Typography>
 
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              {/* Search bar */}
-              {/* <TextField
-                ref={searchInputRef}
-                placeholder="Search... (Ctrl+K)"
-                size="small"
-                onClick={handleSearchClick}
-                onFocus={handleSearchFocus}
-                sx={{
-                  width: isMobile ? 150 : 250,
-                  "& .MuiOutlinedInput-root": {
-                    backgroundColor: "background.paper",
-                  },
-                }}
-                slotProps={{
-                  input: {
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon fontSize="small" />
-                      </InputAdornment>
-                    ),
-                  },
-                }}
-                aria-label="Search commands and navigate"
-              /> */}
-
-              {/* Theme toggle */}
-              <IconButton
-                onClick={toggleMode}
-                aria-label={`Switch to ${mode === "dark" ? "light" : "dark"} mode`}
-                sx={{ mr: 1 }}
-              >
-                {mode === "dark" ? <LightModeIcon /> : <DarkModeIcon />}
-              </IconButton>
-
-              {/* User menu */}
-              <UserMenu />
+            {/* Breadcrumb inline after title */}
+            <Box
+              sx={{
+                display: { xs: "none", sm: "flex" },
+                flex: 1,
+                minWidth: 0,
+                "& .MuiBreadcrumbs-root": {
+                  mb: 0,
+                },
+                "& .MuiBreadcrumbs-ol": {
+                  flexWrap: "wrap",
+                },
+              }}
+            >
+              <Breadcrumbs enableDynamicLabels />
             </Box>
           </Box>
 
-          {/* Bottom row: Breadcrumbs */}
-          <Box sx={{ width: "100%", mt: 0.5 }}>
+          {/* Right side: Actions */}
+          <Box 
+            sx={{ 
+              display: "flex", 
+              alignItems: "center", 
+              gap: 1,
+              flexShrink: 0,
+            }}
+          >
+            {/* Theme toggle */}
+            <IconButton
+              onClick={toggleMode}
+              aria-label={`Switch to ${mode === "dark" ? "light" : "dark"} mode`}
+            >
+              {mode === "dark" ? <LightModeIcon /> : <DarkModeIcon />}
+            </IconButton>
+
+            {/* User menu */}
+            <UserMenu />
+          </Box>
+
+          {/* Breadcrumb on second row for small screens */}
+          <Box
+            sx={{
+              display: { xs: "flex", sm: "none" },
+              width: "100%",
+              "& .MuiBreadcrumbs-root": {
+                mb: 0,
+              },
+            }}
+          >
             <Breadcrumbs enableDynamicLabels />
           </Box>
         </Toolbar>

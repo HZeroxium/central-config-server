@@ -33,7 +33,6 @@ import {
   KVDetailPanel,
   KVEntryEditor,
   KVSearchBar,
-  KVBreadcrumb,
   KVFlatListView,
   KVListEditor,
   KVLeafListEditor,
@@ -44,7 +43,7 @@ import {
   normalizePath,
   encodePath,
   decodePath,
-  getParentPath,
+  // getParentPath,
   isListPrefix,
   isFolderPrefix,
 } from "../types";
@@ -225,10 +224,10 @@ export default function KVStorePage({
   };
 
   // Navigate back (go to parent folder)
-  const handleBack = () => {
-    const parentPrefix = getParentPath(currentPrefix);
-    handlePrefixNavigate(parentPrefix);
-  };
+  // const handleBack = () => {
+  //   const parentPrefix = getParentPath(currentPrefix);
+  //   handlePrefixNavigate(parentPrefix);
+  // };
 
   // Handle create
   const handleCreate = async (path: string, data: KVPutRequest) => {
@@ -494,16 +493,6 @@ export default function KVStorePage({
                       </Menu>
                     </>
                   )}
-                </Box>
-
-                {/* Breadcrumb */}
-                <Box sx={{ mb: 2 }}>
-                  <KVBreadcrumb
-                    prefix={currentPrefix}
-                    onNavigate={handlePrefixNavigate}
-                    onBack={handleBack}
-                    showBackButton={!!currentPrefix}
-                  />
                 </Box>
 
                 {/* View mode toggle */}

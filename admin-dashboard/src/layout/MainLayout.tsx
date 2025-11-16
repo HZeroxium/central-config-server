@@ -131,7 +131,7 @@ export default function MainLayout() {
             sm: `${drawerWidth}px`,
           },
           transition: "margin 0.3s, width 0.3s",
-          pt: { xs: 10, sm: 12 }, // Account for header height with breadcrumbs
+          pt: { xs: 8, sm: 9 }, // Account for single-row header height (~64px)
         }}
       >
         <Toolbar /> {/* Spacer for fixed header */}
