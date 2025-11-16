@@ -1,0 +1,55 @@
+# Management/Actuator Configuration for Observability
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health,info,env,refresh,busrefresh,prometheus,metrics"
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+    prometheus:
+      enabled: true
+    metrics:
+      enabled: true
+  metrics:
+    tags:
+      service: config-server
+      service.version: ${app.version:1.0.0}
+      environment: ${ENVIRONMENT:development}
+    distribution:
+      # Histogram configuration for SLO/SLI tracking
+      # WARNING: Histograms increase series count significantly
+      # Only enable for critical business metrics
+      percentiles-histogram:
+        http.server.requests: true # Critical: API latency SLO
+        config_server.config.fetch.time: true # Critical: Config fetch latency SLO
+        config_server.git.operation.time: true # Critical: Git operation latency SLO
+      percentiles:
+        http.server.requests: 0.5, 0.9, 0.95, 0.99
+        config_server.config.fetch.time: 0.5, 0.9, 0.95, 0.99
+        config_server.git.operation.time: 0.5, 0.9, 0.95, 0.99
+      slo:
+        http.server.requests: 50ms, 100ms, 200ms, 500ms, 1s, 2s, 5s
+        config_server.config.fetch.time: 10ms, 50ms, 100ms, 200ms, 500ms, 1s
+        config_server.git.operation.time: 100ms, 500ms, 1s, 2s, 5s
+      exemplars:
+        enabled: true # For tracing correlation (future)
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+        step: 15s
+
+# Application Info Endpoint
+info:
+  app:
+    name: ${spring.application.name}
+    version: ${app.version:1.0.0}
+    description: Spring Cloud Config Server
+  git:
+    branch: ${git.branch:unknown}
+    commit:
+      id: ${git.commit.id.abbrev:unknown}
+

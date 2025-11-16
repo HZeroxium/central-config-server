@@ -3,22 +3,27 @@ set -euo pipefail
 
 ### CONFIG ###
 SSH_USER="root"                     # <--- change me
-HOST="10.40.30.233"                 # <--- change me
+HOST="10.40.30.161"                 # <--- change me
 REMOTE_DIR="/root/huyng5_fresher/ztf-projects/demo-project"
 
 # Only these paths (relative to current dir) will be synced.
 # You can add/remove lines.
 INCLUDE_LIST=(
+  "docker-compose.infra.yml"
+  "docker-compose.infra-ui.yml"
   "docker-compose.yml"
-  "docker-compose.min.yml"
+  "docker-compose.kc.yml"
   "config"
+  "test"
+  "ztf-spring-cloud-config-server"
+  ".env"
 #   "docker_images"  # keep if you also want to move the tar files/folder structure
 )
 
 # SSH/rsync robustness
 RSYNC_SSH_OPTS="-o ServerAliveInterval=30 -o ServerAliveCountMax=6"
 # --delete to mirror removals; remove it if you don't want deletions on remote.
-RSYNC_OPTS="-avz -r --delete --partial --inplace --progress"
+RSYNC_OPTS="-avz -r --partial --inplace --progress"
 
 MAX_RETRY=3
 RETRY_DELAY=10

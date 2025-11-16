@@ -21,12 +21,25 @@ repositories {
     mavenCentral()
 }
 
+configurations {
+    all {
+        exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
+        exclude group: 'ch.qos.logback', module: 'logback-classic'
+    }
+}
+
 dependencies {
     implementation platform(libs.spring.boot.bom)
     implementation platform(libs.spring.cloud.bom)
 
     implementation libs.spring.boot.starter
     implementation libs.spring.boot.starter.actuator
+
+    // Log4j2 for logging (replaces Logback)
+    implementation libs.spring.boot.starter.log4j2
+
+    // Prometheus metrics export
+    implementation libs.micrometer.registry.prometheus
 
     implementation 'org.springframework.cloud:spring-cloud-config-server'
     

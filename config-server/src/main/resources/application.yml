@@ -6,6 +6,9 @@ server:
 spring:
   application:
     name: config-server
+  config:
+    import:
+      - "classpath:application-observability.yml"
   cloud:
     config:
       server:
@@ -14,12 +17,28 @@ spring:
           uri: ${CONFIG_GIT_URI:https://github.com/HZeroxium/ztf-spring-cloud-config-server.git}
           # Use master branch as default
           default-label: ${CONFIG_GIT_LABEL:master}
-          clone-on-start: false
+          # Enable clone-on-start for faster first request
+          clone-on-start: true
+          # Timeout for Git operations (seconds)
           timeout: 10
           # Split config by application directory (standard de-facto)
           search-paths: "{application}"
           # Disable force-pull to avoid read-only error
           force-pull: false
+          # Future extensions (commented for reference):
+          # - Multiple Git repositories (composite backend):
+          #   repos:
+          #     app1:
+          #       uri: ${APP1_GIT_URI}
+          #       default-label: ${APP1_GIT_LABEL:master}
+          #     app2:
+          #       uri: ${APP2_GIT_URI}
+          #       default-label: ${APP2_GIT_LABEL:master}
+          # - SSH key authentication for private repos:
+          #   private-key: ${GIT_PRIVATE_KEY}
+          #   passphrase: ${GIT_PASSPHRASE}
+          # - Git refresh rate tuning:
+          #   refresh-rate: 30s
         # Enable Config Server Monitor for GitHub webhooks
         monitor:
           github:
@@ -58,16 +77,19 @@ management:
   endpoints:
     web:
       exposure:
-        include: "health,info,env,refresh,busrefresh"
+        include: "health,info,env,refresh,busrefresh,prometheus,metrics"
       base-path: /actuator
   endpoint:
     health:
       show-details: always
+      show-components: always
   security:
     enabled: false
 
 logging:
+  config: classpath:log4j2-spring.xml
   level:
     root: INFO
+    com.example.configserver: DEBUG
     org.springframework.cloud.config: DEBUG
     org.springframework.cloud.bus: DEBUG

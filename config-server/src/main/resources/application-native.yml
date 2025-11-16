@@ -65,16 +65,19 @@ management:
   endpoints:
     web:
       exposure:
-        include: "health,info,env,refresh,busrefresh"
+        include: "health,info,env,refresh,busrefresh,prometheus,metrics"
       base-path: /actuator
   endpoint:
     health:
       show-details: always
+      show-components: always
   security:
     enabled: false
 
 logging:
+  config: classpath:log4j2-spring.xml
   level:
     root: INFO
+    com.example.configserver: DEBUG
     org.springframework.cloud.config: DEBUG
     org.springframework.cloud.bus: DEBUG
