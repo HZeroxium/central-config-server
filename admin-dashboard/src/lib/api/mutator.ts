@@ -3,10 +3,11 @@ import axios, { type AxiosRequestConfig, type AxiosResponse } from "axios";
 import { keycloak } from "@lib/keycloak/keycloakConfig";
 
 // Use environment variable for API base URL
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:8081";
+// Empty string means use relative paths (for nginx proxy)
+// Docker service names (like config-control-service:8080) cannot be resolved by browser
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 
-console.log("API Base URL:", API_BASE_URL);
+console.log("API Base URL:", API_BASE_URL || "(relative - using nginx proxy)");
 
 const axiosInstance = axios.create({
   baseURL: API_BASE_URL,

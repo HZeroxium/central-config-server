@@ -20,8 +20,9 @@ export default defineConfig({
   
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: [
-    ['html'],
+    ['html', { outputFolder: 'playwright-report' }],
     ['list'],
+    ['json', { outputFile: 'playwright-report/results.json' }],
   ],
   
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
@@ -32,30 +33,38 @@ export default defineConfig({
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
     
-    /* Screenshot on failure */
+    /* Screenshot on failure and for each page visited */
     screenshot: 'only-on-failure',
     
     /* Video on failure */
     video: 'retain-on-failure',
+    
+    /* Viewport size */
+    viewport: { width: 1920, height: 1080 },
+    
+    /* Action timeout */
+    actionTimeout: 15000,
+    
+    /* Navigation timeout */
+    navigationTimeout: 30000,
   },
 
-  /* Configure projects for major browsers */
+  /* Configure projects for role-based testing */
   projects: [
     {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      name: 'admin',
+      use: { 
+        ...devices['Desktop Chrome'],
+      },
+      testMatch: /.*\.spec\.ts$/,
     },
-
-    // Uncomment for multi-browser testing
-    // {
-    //   name: 'firefox',
-    //   use: { ...devices['Desktop Firefox'] },
-    // },
-
-    // {
-    //   name: 'webkit',
-    //   use: { ...devices['Desktop Safari'] },
-    // },
+    {
+      name: 'user',
+      use: { 
+        ...devices['Desktop Chrome'],
+      },
+      testMatch: /.*\.spec\.ts$/,
+    },
   ],
 
   /* Run your local dev server before starting the tests */

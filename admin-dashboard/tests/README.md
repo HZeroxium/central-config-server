@@ -1,22 +1,54 @@
 # E2E Tests with Playwright
 
-This directory contains end-to-end tests for the admin-dashboard application using Playwright.
+This directory contains comprehensive end-to-end tests for the admin-dashboard application using Playwright with role-based testing (admin and user roles).
 
 ## Structure
 
 ```
 tests/
-├── e2e/              # E2E test suites
-│   └── auth-flow.spec.ts
-├── pages/           # Page Object Model classes
+├── e2e/                    # E2E test suites
+│   ├── auth-flow.spec.ts
+│   ├── navigation-exploration.spec.ts
+│   ├── list-pages.spec.ts
+│   ├── detail-pages.spec.ts
+│   ├── interactions.spec.ts
+│   └── permissions.spec.ts
+├── pages/                  # Page Object Model classes
 │   ├── BasePage.ts
-│   ├── KeycloakLoginPage.ts
+│   ├── BaseListPage.ts
+│   ├── BaseDetailPage.ts
 │   ├── DashboardPage.ts
-│   └── NavigationPage.ts
-├── helpers/         # Test helpers
-│   └── navigation.ts
-└── fixtures/        # Test fixtures
-    └── auth.ts
+│   ├── KeycloakLoginPage.ts
+│   ├── NavigationPage.ts
+│   ├── ApplicationServiceListPage.ts
+│   ├── ApplicationServiceDetailPage.ts
+│   ├── ServiceInstanceListPage.ts
+│   ├── ServiceInstanceDetailPage.ts
+│   ├── ConfigListPage.ts
+│   ├── ConfigDetailPage.ts
+│   ├── DriftEventListPage.ts
+│   ├── ApprovalListPage.ts
+│   ├── ApprovalDetailPage.ts
+│   ├── ServiceShareListPage.ts
+│   ├── ServiceRegistryListPage.ts
+│   ├── IamUserListPage.ts
+│   ├── IamTeamListPage.ts
+│   ├── KVStoreListPage.ts
+│   └── ProfilePage.ts
+├── helpers/                # Test helpers
+│   ├── navigation.ts
+│   ├── components.ts
+│   └── permissions.ts
+├── fixtures/              # Test fixtures
+│   ├── auth.ts
+│   └── role-based.ts
+├── constants/             # Test constants
+│   ├── credentials.ts
+│   ├── routes.ts
+│   └── selectors.ts
+├── utils/                 # Test utilities
+│   └── test-helpers.ts
+└── README.md
 ```
 
 ## Page Object Pattern
@@ -50,8 +82,15 @@ npx playwright install
 ### Run Tests
 
 ```bash
-# Run all tests
+# Run all tests (both admin and user roles)
 npm run test:e2e
+
+# Run tests for specific role
+npx playwright test --project=admin
+npx playwright test --project=user
+
+# Run specific test file
+npx playwright test tests/e2e/navigation-exploration.spec.ts
 
 # Run tests in UI mode
 npm run test:e2e:ui
@@ -80,26 +119,109 @@ KEYCLOAK_URL=http://localhost:8080
 Tests are configured in `playwright.config.ts`:
 
 - **Base URL**: `http://localhost:3000` (configurable via `BASE_URL` env var)
+- **Projects**: Two projects configured (`admin` and `user`) for role-based testing
 - **Retries**: 2 retries on CI, 0 locally
 - **Workers**: 1 on CI, parallel locally
-- **Screenshots**: On failure only
-- **Video**: On failure only
-- **Trace**: On retry only
+- **Screenshots**: On failure (full page)
+- **Video**: On failure
+- **Trace**: On retry
+- **Viewport**: 1920x1080
+- **Timeouts**: 15s action, 30s navigation
+
+## Test Credentials
+
+Test credentials are defined in `tests/constants/credentials.ts`:
+
+- **Admin**: `admin` / `admin123`
+- **User**: `user1` / `user123`
+
+## Test Coverage
+
+The test suite covers:
+
+1. **Navigation & Exploration** (`navigation-exploration.spec.ts`)
+   - Navigation through all accessible pages for each role
+   - Sidebar navigation
+   - Unauthorized redirects
+
+2. **List Pages** (`list-pages.spec.ts`)
+   - All list pages with role-based access
+   - Data presence verification
+   - Search, filters, pagination
+
+3. **Detail Pages** (`detail-pages.spec.ts`)
+   - Navigation to detail pages from lists
+   - Tab interactions
+   - Back navigation
+
+4. **Interactions** (`interactions.spec.ts`)
+   - Search interactions
+   - Filter interactions
+   - Pagination
+   - Refresh buttons
+
+5. **Permissions** (`permissions.spec.ts`)
+   - Admin access to all pages
+   - User access restrictions
+   - Unauthorized redirects
+   - Permission-based UI visibility
 
 ## Writing Tests
 
-### Example Test
+### Role-Based Testing
+
+Tests automatically run for both admin and user roles using Playwright projects. Use `loginAsAdmin()` or `loginAsUser()` fixtures:
 
 ```typescript
 import { test, expect } from '@playwright/test';
-import { login, DEFAULT_CREDENTIALS } from '../fixtures/auth';
-import { DashboardPage } from '../pages/DashboardPage';
+import { loginAsAdmin, loginAsUser } from '../fixtures/auth';
+import { ApplicationServiceListPage } from '../pages/ApplicationServiceListPage';
 
-test('should load dashboard', async ({ page }) => {
-  const dashboardPage = await login(page, DEFAULT_CREDENTIALS);
-  await dashboardPage.goto('/dashboard');
-  await dashboardPage.waitForDataLoad();
-  expect(await dashboardPage.isLoaded()).toBe(true);
+test.describe('Admin Role', () => {
+  test.beforeEach(async ({ page }) => {
+    await loginAsAdmin(page);
+  });
+
+  test('should access all pages', async ({ page }) => {
+    const listPage = new ApplicationServiceListPage(page);
+    await listPage.goto();
+    await listPage.verifyListLoaded();
+  });
+});
+
+test.describe('User Role', () => {
+  test.beforeEach(async ({ page }) => {
+    await loginAsUser(page);
+  });
+
+  test('should access allowed pages only', async ({ page }) => {
+    // Test user access
+  });
+});
+```
+
+### Example Test with Page Objects
+
+```typescript
+import { test, expect } from '@playwright/test';
+import { loginAsAdmin } from '../fixtures/auth';
+import { ApplicationServiceListPage } from '../pages/ApplicationServiceListPage';
+
+test('should load and interact with list page', async ({ page }) => {
+  await loginAsAdmin(page);
+  
+  const listPage = new ApplicationServiceListPage(page);
+  await listPage.goto();
+  await listPage.verifyListLoaded();
+  await listPage.verifyTableHasData();
+  
+  // Test search
+  await listPage.interactWithSearch('test');
+  await listPage.waitForLoadingComplete();
+  
+  // Test filters
+  await listPage.filterByLifecycle('ACTIVE');
+  await listPage.waitForLoadingComplete();
 });
 ```
 

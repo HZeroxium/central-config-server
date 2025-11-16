@@ -52,9 +52,6 @@
       <module name="user-rest-spring-service" target="21" />
       <module name="user-rest-spring-service.main" target="21" />
       <module name="user-rest-spring-service.test" target="21" />
-      <module name="user-rpc-thrift-service" target="21" />
-      <module name="user-rpc-thrift-service.main" target="21" />
-      <module name="user-rpc-thrift-service.test" target="21" />
     </bytecodeTargetLevel>
   </component>
   <component name="JavacSettings">

@@ -76,7 +76,7 @@ export const ServiceSharesTab: React.FC<ServiceSharesTabProps> = ({
   });
 
   const canManageShares =
-    isSysAdmin || permissions?.actions?.["SERVICE_SHARE"]?.includes("MANAGE");
+    isSysAdmin || (serviceId && permissions?.ownedServiceIds?.includes(serviceId));
 
   const handleRevokeShare = (shareId: string) => {
     setSelectedShareId(shareId);

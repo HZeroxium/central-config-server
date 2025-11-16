@@ -1,0 +1,80 @@
+# config-server/application.yml
+
+server:
+  port: 8888
+
+spring:
+  application:
+    name: config-server
+#   profiles:
+#     # Enable native profile to use filesystem backend instead of Git
+#     active: native
+  cloud:
+    config:
+      server:
+        # Native filesystem backend configuration
+        native:
+          # Search locations for config files
+          # Supports multiple locations (comma-separated)
+          # Use file: prefix for absolute paths, or relative paths
+          # Default locations: [classpath:/, classpath:/config, file:./, file:./config]
+          search-locations: 
+            - file:/config-repo
+            - classpath:/config-repo
+          # Optional: Enable fail-fast (fail if config files not found)
+          fail-fast: false
+        # Disable Git backend (not needed for native mode)
+        # git:
+        #   uri: ${CONFIG_GIT_URI:https://github.com/HZeroxium/ztf-spring-cloud-config-server.git}
+        #   default-label: ${CONFIG_GIT_LABEL:master}
+        # Disable GitHub webhook monitor (not needed for native mode)
+        # monitor:
+        #   github:
+        #     enabled: false
+
+    # Consul Discovery configuration (unchanged)
+    consul:
+      host: ${CONSUL_HOST:localhost}
+      port: ${CONSUL_PORT:8500}
+      discovery:
+        enabled: true
+        register: true
+        deregister: true
+        prefer-ip-address: true
+        health-check-interval: 10s
+        health-check-timeout: 3s
+        health-check-critical-timeout: 30s
+        instance-id: ${spring.application.name}:${server.port}
+        tags:
+          - config-server
+          - spring-cloud-config
+        metadata:
+          version: 1.0.0
+          secure: false
+    
+    # Spring Cloud Bus configuration (unchanged)
+    bus:
+      destination: springCloudBus
+      enabled: true
+    stream:
+      kafka:
+        binder:
+          brokers: ${KAFKA_BROKERS:localhost:9092}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health,info,env,refresh,busrefresh"
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+  security:
+    enabled: false
+
+logging:
+  level:
+    root: INFO
+    org.springframework.cloud.config: DEBUG
+    org.springframework.cloud.bus: DEBUG
