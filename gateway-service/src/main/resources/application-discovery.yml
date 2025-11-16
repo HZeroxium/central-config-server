@@ -1,0 +1,27 @@
+# Service Discovery Configuration
+spring:
+  cloud:
+    consul:
+      enabled: true
+      host: ${CONSUL_HOST:consul}
+      port: ${CONSUL_PORT:8500}
+      discovery:
+        enabled: true
+        register: true
+        service-name: ${spring.application.name}
+        health-check-critical-timeout: 30s
+        prefer-ip-address: true
+        hostname: ${HOSTNAME:localhost}
+        instance-id: ${spring.application.name}-${server.port}-${random.value}
+        metadata:
+          version: "1.0.0"
+        tags:
+          - gateway
+          - api-gateway
+        fail-fast: false
+        deregister: true
+        heartbeat:
+          enabled: true
+          ttl: 10s
+          reregister-service-on-failure: true
+

@@ -11,6 +11,7 @@ include 'config-control-service'
 include 'config-control-service:keycloak-providers'
 include 'zcm-spring-sdk-starter'
 include 'sample-service'
+include 'gateway-service'
 
 // Configure project directories
 // project(':user-thrift-server-service').projectDir = file('user-thrift-server-service')
@@ -22,3 +23,4 @@ project(':config-control-service').projectDir = file('config-control-service')
 project(':config-control-service:keycloak-providers').projectDir = file('config-control-service/keycloak-providers')
 project(':zcm-spring-sdk-starter').projectDir = file('zcm-spring-sdk-starter')
 project(':sample-service').projectDir = file('sample-service')
+project(':gateway-service').projectDir = file('gateway-service')

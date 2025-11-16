@@ -61,6 +61,7 @@ services:
       - ZCM_SDK_DISCOVERY_CONSUL_REGISTER=true
       - ZCM_SDK_PING_ENABLED=true
       - ZCM_SDK_CONTROL_URL=${CONFIG_CONTROL_URL}
+      - ZCM_SDK_PING_PROTOCOL=HTTP
       # Observability
       - MANAGEMENT_OTLP_TRACING_ENDPOINT=${ALLOY_OTLP_HTTP}/v1/traces
       - MANAGEMENT_OTLP_METRICS_EXPORT_ENABLED=true
@@ -98,6 +99,7 @@ services:
       - CONSUL_URL=http://${CONSUL_HOST}:${CONSUL_PORT}
       - SPRING_CLOUD_CONSUL_DISCOVERY_HEARTBEAT_ENABLED=true
       - SPRING_CLOUD_CONSUL_DISCOVERY_HEARTBEAT_TTL=10s
+      - SPRING_CLOUD_CONSUL_DISCOVERY_INSTANCE_ID=config-control-service-1-$${random.value}
       - MONGODB_URI=mongodb://${MONGODB_HOST}:${MONGODB_PORT}/config_control
       - REDIS_URL=redis://${REDIS_HOST}:${REDIS_PORT}
       - KAFKA_BROKERS=${KAFKA_BROKERS}
@@ -129,7 +131,137 @@ services:
       - SPRING_MAIL_HOST=10.40.30.161
       - SPRING_MAIL_PORT=1025
       # Heartbeat
-      - HEARTBEAT_ASYNC_ENABLED=true
+      - APP_HEARTBEAT_ASYNC_ENABLED=false
+    networks:
+      - infra-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+
+  # Config Control Service - Instance 2
+  config-control-service-2:
+    build:
+      context: ./config-control-service
+      dockerfile: Dockerfile
+    image: hzeroxium/config-control-service:latest
+    container_name: config-control-service-2
+    # No external port mapping - accessed via gateway
+    env_file:
+      - ./config/env/env.infra-remote
+    environment:
+      - CONFIG_SERVER_URL=${CONFIG_SERVER_URL}
+      - CONSUL_URL=http://${CONSUL_HOST}:${CONSUL_PORT}
+      - SPRING_CLOUD_CONSUL_DISCOVERY_HEARTBEAT_ENABLED=true
+      - SPRING_CLOUD_CONSUL_DISCOVERY_HEARTBEAT_TTL=10s
+      - SPRING_CLOUD_CONSUL_DISCOVERY_INSTANCE_ID=config-control-service-2-$${random.value}
+      - MONGODB_URI=mongodb://${MONGODB_HOST}:${MONGODB_PORT}/config_control
+      - REDIS_URL=redis://${REDIS_HOST}:${REDIS_PORT}
+      - KAFKA_BROKERS=${KAFKA_BROKERS}
+      - THRIFT_PORT=9090
+      - GRPC_PORT=9091
+      - LOGGING_LEVEL_ROOT=INFO
+      - MANAGEMENT_HEALTH_MAIL_ENABLED=false
+      # Keycloak configuration
+      - KEYCLOAK_ISSUER_URI=http://10.40.30.161:28080/realms/config-control
+      - KEYCLOAK_PUBLIC_URL=http://10.40.30.161:28080
+      - KEYCLOAK_REALM=config-control
+      - KEYCLOAK_AUDIENCE=config-control-service
+      - KEYCLOAK_ADMIN_URL=http://10.40.30.161:28080
+      - KEYCLOAK_CLIENT_ID=config-control-service
+      - KEYCLOAK_CLIENT_SECRET=config-control-service-secret
+      - KEYCLOAK_PARENT_GROUP_ID=3b7eccae-859a-437e-81af-0ab909c8d67a
+      - SWAGGER_OAUTH2_REDIRECT_URL=http://localhost:28081/swagger-ui/oauth2-redirect.html
+      # Seeding (only first instance should seed)
+      - SEEDING_ENABLED=false
+      - SPRING_MAIL_HOST=10.40.30.161
+      - SPRING_MAIL_PORT=1025
+      # Heartbeat
+      - APP_HEARTBEAT_ASYNC_ENABLED=false
+    networks:
+      - infra-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+
+  # Config Control Service - Instance 3
+  config-control-service-3:
+    build:
+      context: ./config-control-service
+      dockerfile: Dockerfile
+    image: hzeroxium/config-control-service:latest
+    container_name: config-control-service-3
+    # No external port mapping - accessed via gateway
+    env_file:
+      - ./config/env/env.infra-remote
+    environment:
+      - CONFIG_SERVER_URL=${CONFIG_SERVER_URL}
+      - CONSUL_URL=http://${CONSUL_HOST}:${CONSUL_PORT}
+      - SPRING_CLOUD_CONSUL_DISCOVERY_HEARTBEAT_ENABLED=true
+      - SPRING_CLOUD_CONSUL_DISCOVERY_HEARTBEAT_TTL=10s
+      - SPRING_CLOUD_CONSUL_DISCOVERY_INSTANCE_ID=config-control-service-3-$${random.value}
+      - MONGODB_URI=mongodb://${MONGODB_HOST}:${MONGODB_PORT}/config_control
+      - REDIS_URL=redis://${REDIS_HOST}:${REDIS_PORT}
+      - KAFKA_BROKERS=${KAFKA_BROKERS}
+      - THRIFT_PORT=9090
+      - GRPC_PORT=9091
+      - LOGGING_LEVEL_ROOT=INFO
+      - MANAGEMENT_HEALTH_MAIL_ENABLED=false
+      # Keycloak configuration
+      - KEYCLOAK_ISSUER_URI=http://10.40.30.161:28080/realms/config-control
+      - KEYCLOAK_PUBLIC_URL=http://10.40.30.161:28080
+      - KEYCLOAK_REALM=config-control
+      - KEYCLOAK_AUDIENCE=config-control-service
+      - KEYCLOAK_ADMIN_URL=http://10.40.30.161:28080
+      - KEYCLOAK_CLIENT_ID=config-control-service
+      - KEYCLOAK_CLIENT_SECRET=config-control-service-secret
+      - KEYCLOAK_PARENT_GROUP_ID=3b7eccae-859a-437e-81af-0ab909c8d67a
+      - SWAGGER_OAUTH2_REDIRECT_URL=http://localhost:28081/swagger-ui/oauth2-redirect.html
+      # Seeding (only first instance should seed)
+      - SEEDING_ENABLED=false
+      - SPRING_MAIL_HOST=10.40.30.161
+      - SPRING_MAIL_PORT=1025
+      # Heartbeat
+      - APP_HEARTBEAT_ASYNC_ENABLED=false
+    networks:
+      - infra-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+
+  # Gateway Service
+  gateway-service:
+    build:
+      context: ./gateway-service
+      dockerfile: Dockerfile
+    image: hzeroxium/gateway-service:latest
+    container_name: gateway-service
+    ports:
+      - "28082:8080"
+    env_file:
+      - ./config/env/env.infra-remote
+    environment:
+      - CONSUL_URL=http://${CONSUL_HOST}:${CONSUL_PORT}
+      - SPRING_CLOUD_CONSUL_DISCOVERY_HEARTBEAT_ENABLED=true
+      - SPRING_CLOUD_CONSUL_DISCOVERY_HEARTBEAT_TTL=10s
+      - REDIS_URL=redis://${REDIS_HOST}:${REDIS_PORT}
+      - LOGGING_LEVEL_ROOT=INFO
+      # Observability - Tracing disabled (no OTLP endpoint available)
+      # - MANAGEMENT_OTLP_TRACING_ENDPOINT=${ALLOY_OTLP_HTTP}/v1/traces
+      # Metrics export disabled (use Prometheus instead)
+      # - MANAGEMENT_OTLP_METRICS_EXPORT_ENABLED=true
+      # - MANAGEMENT_OTLP_METRICS_EXPORT_URL=${ALLOY_OTLP_HTTP}/v1/metrics
     networks:
       - infra-network
     healthcheck:

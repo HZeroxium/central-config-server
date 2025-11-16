@@ -47,4 +47,5 @@ logs
 README.md
 .eslintcache
 .cache
+*.md
 

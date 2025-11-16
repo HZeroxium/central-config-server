@@ -14,9 +14,9 @@ services:
       ME_CONFIG_MONGODB_ENABLE_ADMIN: "true"
       ME_CONFIG_BASICAUTH_USERNAME: admin
       ME_CONFIG_BASICAUTH_PASSWORD: admin123
-    depends_on:
-      mongodb:
-        condition: service_healthy
+    # depends_on:
+    #   mongodb:
+    #     condition: service_healthy
     networks:
       - infra-network
     restart: unless-stopped
@@ -28,9 +28,9 @@ services:
       - "20001:5540"
     volumes:
       - redisinsight_data:/data
-    depends_on:
-      redis:
-        condition: service_healthy
+    # depends_on:
+    #   redis:
+    #     condition: service_healthy
     networks:
       - infra-network
     restart: unless-stopped
@@ -44,9 +44,9 @@ services:
       - DYNAMIC_CONFIG_ENABLED=true
       - KAFKA_CLUSTERS_0_NAME=infra-kafka
       - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9092
-    depends_on:
-      kafka:
-        condition: service_healthy
+    # depends_on:
+    #   kafka:
+    #     condition: service_healthy
     networks:
       - infra-network
     restart: unless-stopped
@@ -72,9 +72,9 @@ services:
       - ./config/grafana/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
       - ./config/grafana/provisioning/dashboards/dashboard_providers.yml:/etc/grafana/provisioning/dashboards/dashboard_providers.yml:ro
       - ./config/grafana/dashboards:/var/lib/grafana/dashboards:ro
-    depends_on:
-      prometheus:
-        condition: service_started
+    # depends_on:
+    #   prometheus:
+    #     condition: service_started
     networks:
       - infra-network
     healthcheck:
@@ -96,8 +96,8 @@ services:
       - pgadmin_data:/var/lib/pgadmin
     ports:
       - "25050:80"
-    depends_on:
-      - postgres
+    # depends_on:
+    #   - postgres
     restart: unless-stopped
     networks:
       - infra-network

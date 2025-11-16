@@ -1,0 +1,16 @@
+# Redis Configuration for Rate Limiting
+spring:
+  data:
+    redis:
+      # Redis connection URL (format: redis://host:port or redis://password@host:port)
+      url: ${REDIS_URL:redis://localhost:6379}
+      # Connection timeout
+      timeout: 5s
+      # Lettuce pool configuration
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: -1ms
+

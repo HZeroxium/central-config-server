@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN" monitorInterval="30">
+  <Properties>
+    <Property name="LOG_PATTERN">%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} [traceId=%X{traceId:-}, spanId=%X{spanId:-}, correlationId=%X{correlationId:-}] - %msg%n</Property>
+    <Property name="LOG_PATTERN_COLOR">%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %highlight{%-5level} %style{%logger{36}}{cyan} [%highlight{[traceId=%X{traceId:-}, spanId=%X{spanId:-}, correlationId=%X{correlationId:-}]}{faint}] - %msg%n</Property>
+    <Property name="LOG_PATTERN_JSON">{"timestamp":"%d{yyyy-MM-dd'T'HH:mm:ss.SSS'Z'}","level":"%level","logger":"%logger{36}","message":"%message","thread":"%thread","exception":"%ex{full}","service":"gateway-service"}</Property>
+  </Properties>
+
+  <Appenders>
+    <!-- Console Appender with colored output for development -->
+    <Console name="Console" target="SYSTEM_OUT">
+      <PatternLayout pattern="${LOG_PATTERN_COLOR}"/>
+    </Console>
+
+    <!-- Console Appender with JSON Layout (for production / structured logging) -->
+    <Console name="ConsoleJson" target="SYSTEM_OUT">
+      <JsonLayout complete="true" compact="false" eventEol="true" stacktraceAsString="true" includeStacktrace="true">
+        <KeyValuePair key="service" value="gateway-service"/>
+        <KeyValuePair key="environment" value="${env:ENVIRONMENT:-dev}"/>
+        <KeyValuePair key="container_id" value="${env:HOSTNAME:-unknown}"/>
+        <KeyValuePair key="log_type" value="application"/>
+      </JsonLayout>
+    </Console>
+
+    <!-- File Appender for persistent logging -->
+    <RollingFile name="FileAppender" fileName="/app/logs/gateway-service.log" filePattern="/app/logs/gateway-service-%d{yyyy-MM-dd}-%i.log.gz" immediateFlush="true" append="true">
+      <PatternLayout pattern="${LOG_PATTERN}"/>
+      <Policies>
+        <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+        <SizeBasedTriggeringPolicy size="100MB"/>
+      </Policies>
+      <DefaultRolloverStrategy max="30" compressionLevel="9"/>
+    </RollingFile>
+
+    <!-- Error File Appender -->
+    <RollingFile name="ErrorFileAppender" fileName="/app/logs/gateway-service-error.log" filePattern="/app/logs/gateway-service-error-%d{yyyy-MM-dd}-%i.log.gz" immediateFlush="true" append="true">
+      <PatternLayout pattern="${LOG_PATTERN}"/>
+      <ThresholdFilter level="ERROR" onMatch="ACCEPT" onMismatch="DENY"/>
+      <Policies>
+        <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+        <SizeBasedTriggeringPolicy size="50MB"/>
+      </Policies>
+      <DefaultRolloverStrategy max="30" compressionLevel="9"/>
+    </RollingFile>
+  </Appenders>
+
+  <Loggers>
+    <Logger name="com.example.gateway" level="DEBUG" additivity="false">
+      <AppenderRef ref="Console"/>
+      <AppenderRef ref="FileAppender"/>
+      <AppenderRef ref="ErrorFileAppender"/>
+    </Logger>
+    
+    <Logger name="org.springframework.cloud.gateway" level="DEBUG" additivity="false">
+      <AppenderRef ref="Console"/>
+      <AppenderRef ref="FileAppender"/>
+    </Logger>
+
+    <Root level="INFO">
+      <AppenderRef ref="Console"/>
+      <AppenderRef ref="FileAppender"/>
+      <AppenderRef ref="ErrorFileAppender"/>
+    </Root>
+  </Loggers>
+</Configuration>
+

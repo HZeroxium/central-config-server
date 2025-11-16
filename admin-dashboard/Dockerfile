@@ -22,7 +22,7 @@ RUN mkdir -p ../config-control-service/spec && \
 COPY admin-dashboard/ .
 
 # Build arguments for environment variables (Vite requires build-time vars)
-ARG VITE_API_BASE_URL=http://config-control-service:8080
+ARG VITE_API_BASE_URL=  # Empty string - use relative path for nginx proxy
 ARG VITE_KEYCLOAK_URL=http://keycloak:8080
 ARG VITE_KEYCLOAK_REALM=config-control
 ARG VITE_KEYCLOAK_CLIENT_ID=admin-dashboard

@@ -21,12 +21,11 @@ const LoadingComponent: React.FC = () => (
 const KeycloakProvider: React.FC<KeycloakProviderProps> = ({ children }) => {
   const initOptions = {
     onLoad: "login-required",
-    // Enable check login iframe for better session management
-    // This helps with "restart login" cookie issues
-    checkLoginIframe: true,
+    // Disable check login iframe for HTTP (requires secure context)
+    checkLoginIframe: window.location.protocol === "https:",
     checkLoginIframeInterval: 30,
-    // Use PKCE for security
-    pkceMethod: "S256",
+    // Disable PKCE for HTTP
+    pkceMethod: window.location.protocol === "https:" ? "S256" : undefined,
     // Enable logging for debugging
     enableLogging: true,
     // Timeout for initialization

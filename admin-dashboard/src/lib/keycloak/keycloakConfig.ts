@@ -11,7 +11,7 @@ const getKeycloakUrl = (): string => {
   // Fallback: use current origin (works for both localhost:3000 and IP:3000)
   // This ensures Keycloak URL matches the frontend URL
   if (typeof window !== "undefined") {
-    return `${window.location.protocol}//${window.location.hostname}:8080`;
+    return `${window.location.protocol}//${window.location.hostname}:28080`;
   }
   
   // Server-side fallback (shouldn't happen in browser)
@@ -37,6 +37,12 @@ const keycloakConfig = {
   flow: "standard",
   responseMode: "fragment",
   scope: "openid profile email extended_profile",
+  // Disable PKCE for HTTP (PKCE requires Web Crypto API which needs HTTPS)
+  // For production with HTTPS, enable PKCE for better security
+  pkceMethod: window.location.protocol === "https:" ? "S256" : undefined,
+  // Disable silent check iframe for HTTP (requires secure context)
+  checkLoginIframe: window.location.protocol === "https:",
+  checkLoginIframeInterval: 30,
   // Enable silent check sso for better session management
   enableLogging: true,
   // Add check login iframe URL if needed

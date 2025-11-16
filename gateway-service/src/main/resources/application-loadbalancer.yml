@@ -1,0 +1,10 @@
+# LoadBalancer Configuration
+spring:
+  cloud:
+    loadbalancer:
+      # Use Caffeine cache for LoadBalancer (recommended for production)
+      cache:
+        enabled: true
+        ttl: 35s
+        capacity: 256
+
