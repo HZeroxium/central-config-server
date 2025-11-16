@@ -106,5 +106,50 @@ export class NavigationHelper {
       return false;
     }
   }
+
+  /**
+   * Wait for data to load (tables, cards, etc.)
+   */
+  async waitForDataLoad(timeout = 15000): Promise<void> {
+    // Wait for loading indicators to disappear
+    await this.page.waitForSelector('[data-testid="loading"], .MuiCircularProgress-root', {
+      state: 'hidden',
+      timeout,
+    }).catch(() => {
+      // Loading might not exist, which is fine
+    });
+
+    // Wait for at least one data element to appear
+    await this.page.waitForSelector('table, .MuiDataGrid-root, .MuiCard-root', {
+      timeout,
+    }).catch(() => {
+      // Some pages might not have these elements
+    });
+  }
+
+  /**
+   * Navigate via sidebar
+   */
+  async navigateViaSidebar(route: string): Promise<void> {
+    const sidebarLink = this.page.locator(`nav a[href="${route}"], aside a[href="${route}"]`).first();
+    await sidebarLink.click();
+    await this.waitForPageReady();
+  }
+
+  /**
+   * Verify sidebar is visible
+   */
+  async verifySidebarVisible(): Promise<void> {
+    const sidebar = this.page.locator('nav, aside').first();
+    await expect(sidebar).toBeVisible({ timeout: 5000 });
+  }
+
+  /**
+   * Check if on unauthorized page
+   */
+  async isUnauthorizedPage(): Promise<boolean> {
+    const url = this.page.url();
+    return url.includes('/unauthorized');
+  }
 }
 

@@ -24,8 +24,8 @@ export class KeycloakLoginPage extends BasePage {
   async goto(): Promise<void> {
     // Keycloak login page is typically accessed via redirect
     // If direct access needed, use the Keycloak URL
-    const keycloakUrl = process.env.KEYCLOAK_URL || 'http://localhost:8080';
-    await this.page.goto(`${keycloakUrl}/realms/config-control/protocol/openid-connect/auth`);
+    const { KEYCLOAK_URL } = await import('../constants/config');
+    await this.page.goto(`${KEYCLOAK_URL}/realms/config-control/protocol/openid-connect/auth`);
     await this.waitForPageLoad();
   }
   

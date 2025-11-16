@@ -5,8 +5,7 @@ import { KeycloakLoginPage } from '../pages/KeycloakLoginPage';
 import { NavigationHelper } from '../helpers/navigation';
 import { login, DEFAULT_CREDENTIALS } from '../fixtures/auth';
 
-const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
-const KEYCLOAK_URL = process.env.KEYCLOAK_URL || 'http://localhost:8080';
+import { BASE_URL, KEYCLOAK_URL } from '../constants/config';
 
 /**
  * E2E tests for authentication flow

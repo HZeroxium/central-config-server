@@ -2,28 +2,25 @@ import { Page, expect } from '@playwright/test';
 import { KeycloakLoginPage } from '../pages/KeycloakLoginPage';
 import { DashboardPage } from '../pages/DashboardPage';
 import { NavigationHelper } from '../helpers/navigation';
+import { ADMIN_CREDENTIALS, USER_CREDENTIALS, type AuthCredentials } from '../constants/credentials';
+import { BASE_URL as DEFAULT_BASE_URL } from '../constants/config';
 
 /**
  * Authentication fixtures for Playwright tests
  */
 
-export interface AuthCredentials {
-  username: string;
-  password: string;
-}
-
-export const DEFAULT_CREDENTIALS: AuthCredentials = {
-  username: 'admin',
-  password: 'admin123',
-};
+export type { AuthCredentials };
+export { ADMIN_CREDENTIALS, USER_CREDENTIALS };
+export const DEFAULT_CREDENTIALS = ADMIN_CREDENTIALS;
 
 /**
- * Perform login flow
+ * Perform login flow with role support
  */
+
 export async function login(
   page: Page,
   credentials: AuthCredentials = DEFAULT_CREDENTIALS,
-  baseUrl: string = 'http://localhost:3000'
+  baseUrl: string = DEFAULT_BASE_URL
 ): Promise<DashboardPage> {
   const keycloakLoginPage = new KeycloakLoginPage(page);
   const navigationHelper = new NavigationHelper(page);
@@ -60,6 +57,26 @@ export async function login(
   await page.waitForTimeout(2000);
 
   return dashboardPage;
+}
+
+/**
+ * Login as admin
+ */
+export async function loginAsAdmin(
+  page: Page,
+  baseUrl: string = DEFAULT_BASE_URL
+): Promise<DashboardPage> {
+  return login(page, ADMIN_CREDENTIALS, baseUrl);
+}
+
+/**
+ * Login as user
+ */
+export async function loginAsUser(
+  page: Page,
+  baseUrl: string = DEFAULT_BASE_URL
+): Promise<DashboardPage> {
+  return login(page, USER_CREDENTIALS, baseUrl);
 }
 
 /**
