@@ -2,6 +2,7 @@ package com.example.control.api.http.controller.infra;
 
 import com.example.control.api.http.dto.infra.ConfigServerDto;
 import com.example.control.infrastructure.external.configserver.ConfigServerClient;
+import com.example.control.infrastructure.external.configserver.ConfigProxyService;
 import com.example.control.infrastructure.config.misc.ConfigServerProperties;
 import com.example.control.api.http.exception.ErrorResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -30,6 +31,7 @@ public class ConfigServerController {
         private final ConfigServerClient client;
         private final ConfigServerProperties props;
         private final ObjectMapper objectMapper;
+        private final ConfigProxyService configProxyService;
 
         @GetMapping("/environment/{application}/{profile}")
         @Operation(summary = "Get configuration environment", description = """
@@ -136,6 +138,29 @@ public class ConfigServerController {
                                 .build();
 
                 return ResponseEntity.ok(info);
+        }
+
+        @GetMapping("/hash/{serviceName}/{profile}")
+        @Operation(summary = "Get configuration hash details", description = """
+                        Retrieves detailed configuration hash information for debugging and comparison purposes.
+                        Includes hash, snapshot, canonical string, and metadata (key count, source names, excluded keys).
+                        This endpoint is public and does not require authentication for easier debugging.
+                        """, operationId = "getConfigHashDetails")
+        @ApiResponses(value = {
+                        @ApiResponse(responseCode = "200", description = "Configuration hash details retrieved successfully"),
+                        @ApiResponse(responseCode = "400", description = "Invalid service name or profile", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+                        @ApiResponse(responseCode = "404", description = "Configuration not found for the specified service/profile", content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+                        @ApiResponse(responseCode = "500", description = "Internal server error or Config Server unreachable", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+        })
+        public ResponseEntity<Map<String, Object>> getConfigHashDetails(
+                        @Parameter(description = "Name of the service", example = "sample-service") @PathVariable String serviceName,
+                        @Parameter(description = "Profile of the service (e.g., dev, prod)", example = "dev") @PathVariable String profile) {
+
+                log.debug("Getting config hash details for service: {}, profile: {}", serviceName, profile);
+
+                Map<String, Object> hashDetails = configProxyService.getConfigHashDetails(serviceName, profile);
+
+                return ResponseEntity.ok(hashDetails);
         }
 
         // Helper methods for JSON parsing

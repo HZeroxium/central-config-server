@@ -1,0 +1,178 @@
+# docker-compose.sample-service.yml
+# Demo visualization: 4 instances of sample-service (2 dev, 2 prod)
+# Ports: Dev (28083, 28084), Prod (28085, 28086)
+
+services:
+  # Development Instance 1
+  sample-service-dev-1:
+    build:
+      context: ./sample-service
+      dockerfile: Dockerfile
+    image: hzeroxium/sample-service:latest
+    container_name: sample-service-dev-1
+    ports:
+      - "28083:8080"
+    env_file:
+      - ./config/env/env.infra-remote
+    environment:
+      - CONFIG_SERVER_URL=${CONFIG_SERVER_URL}
+      - SPRING_CLOUD_CONSUL_DISCOVERY_DEREGISTER_CRITICAL_SERVICE_AFTER=30s
+      - SPRING_CLOUD_CONSUL_DISCOVERY_DEREGISTER=true
+      - KAFKA_BROKERS=${KAFKA_BROKERS}
+      - SPRING_PROFILES_ACTIVE=dev
+      - ZCM_SDK_SERVICE_NAME=sample-service
+      - ZCM_SDK_CONFIG_SERVER_URL=${CONFIG_SERVER_URL}
+      - ZCM_SDK_DISCOVERY_CONSUL_HOST=${CONSUL_HOST}
+      - ZCM_SDK_DISCOVERY_CONSUL_PORT=${CONSUL_PORT}
+      - ZCM_SDK_DISCOVERY_CONSUL_HEARTBEAT_ENABLED=true
+      - ZCM_SDK_DISCOVERY_CONSUL_REGISTER=true
+      - ZCM_SDK_PING_ENABLED=true
+      - ZCM_SDK_CONTROL_URL=${CONFIG_CONTROL_URL}
+      - ZCM_SDK_PING_PROTOCOL=HTTP
+      - ZCM_SDK_INSTANCE_ID=sample-service-dev-1
+      # Observability
+      - MANAGEMENT_OTLP_TRACING_ENDPOINT=${ALLOY_OTLP_HTTP}/v1/traces
+      - MANAGEMENT_OTLP_METRICS_EXPORT_ENABLED=true
+      - MANAGEMENT_OTLP_METRICS_EXPORT_URL=${ALLOY_OTLP_HTTP}/v1/metrics
+    networks:
+      - infra-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    stop_grace_period: 30s
+    restart: unless-stopped
+
+  # Development Instance 2
+  sample-service-dev-2:
+    build:
+      context: ./sample-service
+      dockerfile: Dockerfile
+    image: hzeroxium/sample-service:latest
+    container_name: sample-service-dev-2
+    ports:
+      - "28084:8080"
+    env_file:
+      - ./config/env/env.infra-remote
+    environment:
+      - CONFIG_SERVER_URL=${CONFIG_SERVER_URL}
+      - SPRING_CLOUD_CONSUL_DISCOVERY_DEREGISTER_CRITICAL_SERVICE_AFTER=30s
+      - SPRING_CLOUD_CONSUL_DISCOVERY_DEREGISTER=true
+      - KAFKA_BROKERS=${KAFKA_BROKERS}
+      - SPRING_PROFILES_ACTIVE=dev
+      - ZCM_SDK_SERVICE_NAME=sample-service
+      - ZCM_SDK_CONFIG_SERVER_URL=${CONFIG_SERVER_URL}
+      - ZCM_SDK_DISCOVERY_CONSUL_HOST=${CONSUL_HOST}
+      - ZCM_SDK_DISCOVERY_CONSUL_PORT=${CONSUL_PORT}
+      - ZCM_SDK_DISCOVERY_CONSUL_HEARTBEAT_ENABLED=true
+      - ZCM_SDK_DISCOVERY_CONSUL_REGISTER=true
+      - ZCM_SDK_PING_ENABLED=true
+      - ZCM_SDK_CONTROL_URL=${CONFIG_CONTROL_URL}
+      - ZCM_SDK_PING_PROTOCOL=HTTP
+      - ZCM_SDK_INSTANCE_ID=sample-service-dev-2
+      # Observability
+      - MANAGEMENT_OTLP_TRACING_ENDPOINT=${ALLOY_OTLP_HTTP}/v1/traces
+      - MANAGEMENT_OTLP_METRICS_EXPORT_ENABLED=true
+      - MANAGEMENT_OTLP_METRICS_EXPORT_URL=${ALLOY_OTLP_HTTP}/v1/metrics
+    networks:
+      - infra-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    stop_grace_period: 30s
+    restart: unless-stopped
+
+  # Production Instance 1
+  sample-service-prod-1:
+    build:
+      context: ./sample-service
+      dockerfile: Dockerfile
+    image: hzeroxium/sample-service:latest
+    container_name: sample-service-prod-1
+    ports:
+      - "28085:8080"
+    env_file:
+      - ./config/env/env.infra-remote
+    environment:
+      - CONFIG_SERVER_URL=${CONFIG_SERVER_URL}
+      - SPRING_CLOUD_CONSUL_DISCOVERY_DEREGISTER_CRITICAL_SERVICE_AFTER=30s
+      - SPRING_CLOUD_CONSUL_DISCOVERY_DEREGISTER=true
+      - KAFKA_BROKERS=${KAFKA_BROKERS}
+      - SPRING_PROFILES_ACTIVE=prod
+      - ZCM_SDK_SERVICE_NAME=sample-service
+      - ZCM_SDK_CONFIG_SERVER_URL=${CONFIG_SERVER_URL}
+      - ZCM_SDK_DISCOVERY_CONSUL_HOST=${CONSUL_HOST}
+      - ZCM_SDK_DISCOVERY_CONSUL_PORT=${CONSUL_PORT}
+      - ZCM_SDK_DISCOVERY_CONSUL_HEARTBEAT_ENABLED=true
+      - ZCM_SDK_DISCOVERY_CONSUL_REGISTER=true
+      - ZCM_SDK_PING_ENABLED=true
+      - ZCM_SDK_CONTROL_URL=${CONFIG_CONTROL_URL}
+      - ZCM_SDK_PING_PROTOCOL=HTTP
+      - ZCM_SDK_INSTANCE_ID=sample-service-prod-1
+      # Observability
+      - MANAGEMENT_OTLP_TRACING_ENDPOINT=${ALLOY_OTLP_HTTP}/v1/traces
+      - MANAGEMENT_OTLP_METRICS_EXPORT_ENABLED=true
+      - MANAGEMENT_OTLP_METRICS_EXPORT_URL=${ALLOY_OTLP_HTTP}/v1/metrics
+    networks:
+      - infra-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    stop_grace_period: 30s
+    restart: unless-stopped
+
+  # Production Instance 2
+  sample-service-prod-2:
+    build:
+      context: ./sample-service
+      dockerfile: Dockerfile
+    image: hzeroxium/sample-service:latest
+    container_name: sample-service-prod-2
+    ports:
+      - "28086:8080"
+    env_file:
+      - ./config/env/env.infra-remote
+    environment:
+      - CONFIG_SERVER_URL=${CONFIG_SERVER_URL}
+      - SPRING_CLOUD_CONSUL_DISCOVERY_DEREGISTER_CRITICAL_SERVICE_AFTER=30s
+      - SPRING_CLOUD_CONSUL_DISCOVERY_DEREGISTER=true
+      - KAFKA_BROKERS=${KAFKA_BROKERS}
+      - SPRING_PROFILES_ACTIVE=prod
+      - ZCM_SDK_SERVICE_NAME=sample-service
+      - ZCM_SDK_CONFIG_SERVER_URL=${CONFIG_SERVER_URL}
+      - ZCM_SDK_DISCOVERY_CONSUL_HOST=${CONSUL_HOST}
+      - ZCM_SDK_DISCOVERY_CONSUL_PORT=${CONSUL_PORT}
+      - ZCM_SDK_DISCOVERY_CONSUL_HEARTBEAT_ENABLED=true
+      - ZCM_SDK_DISCOVERY_CONSUL_REGISTER=true
+      - ZCM_SDK_PING_ENABLED=true
+      - ZCM_SDK_CONTROL_URL=${CONFIG_CONTROL_URL}
+      - ZCM_SDK_PING_PROTOCOL=HTTP
+      - ZCM_SDK_INSTANCE_ID=sample-service-prod-2
+      # Observability
+      - MANAGEMENT_OTLP_TRACING_ENDPOINT=${ALLOY_OTLP_HTTP}/v1/traces
+      - MANAGEMENT_OTLP_METRICS_EXPORT_ENABLED=true
+      - MANAGEMENT_OTLP_METRICS_EXPORT_URL=${ALLOY_OTLP_HTTP}/v1/metrics
+    networks:
+      - infra-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    stop_grace_period: 30s
+    restart: unless-stopped
+
+networks:
+  infra-network:
+    external: true
+    name: infra-network
+

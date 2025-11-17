@@ -59,10 +59,11 @@ public final class ConfigSnapshotBuilder {
      * @param name the source name
      * @return true if included; false otherwise
      */
-    private boolean includeSource(String name) {
+    public boolean includeSource(String name) {
         if (name == null) return false;
         String n = name.toLowerCase();
         if (n.startsWith("configserver:")) return true;
+        if (n.startsWith("file:/") && (n.contains("/config-repo/") || n.contains("\\config-repo\\"))) return true;
         if (n.startsWith("http://") || n.startsWith("https://")) return true;
         if (n.startsWith("classpath:")) return false;
         if (n.startsWith("applicationconfig:")) return false;
@@ -80,7 +81,7 @@ public final class ConfigSnapshotBuilder {
      * @param key the property key
      * @return true if excluded; false if eligible for hashing
      */
-    private boolean excludeKey(String key) {
+    public boolean excludeKey(String key) {
         if (key == null) return true;
         String k = key.toLowerCase();
         return k.contains("password") || k.contains("secret") || k.contains("token") || k.contains("credential")

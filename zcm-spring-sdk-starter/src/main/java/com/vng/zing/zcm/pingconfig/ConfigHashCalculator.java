@@ -2,6 +2,7 @@ package com.vng.zing.zcm.pingconfig;
 
 import com.vng.zing.zcm.configsnapshot.ConfigSnapshotBuilder;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.core.env.ConfigurableEnvironment;
 
@@ -20,8 +21,18 @@ import java.security.MessageDigest;
  * <p>
  * The hash is cached to avoid expensive recalculation on every ping.
  * Cache is invalidated when refresh events are received.
+ * <p>
+ * Supports mock mode for load testing: when enabled, generates deterministic
+ * mock hashes matching server-side strategy to avoid drift events.
  */
+@Slf4j
 public class ConfigHashCalculator {
+
+  /**
+   * Prefix for mock hash generation to distinguish from real hashes.
+   * Matches server-side mock prefix for consistency.
+   */
+  private static final String MOCK_PREFIX = "mock-";
 
   /** The Spring environment that holds the active configuration. */
   @Getter
@@ -46,6 +57,10 @@ public class ConfigHashCalculator {
    * The result is cached using Spring Cache with cache name "config-hash-cache".
    * Cache key is based on application name, profile, and label to ensure uniqueness.
    * Cache TTL is configured via {@code zcm.sdk.ping.hash-cache.ttl} (default: 30s).
+   * <p>
+   * If mock mode is enabled (via {@code zcm.sdk.ping.hash-mock.enabled}), generates
+   * a deterministic mock hash matching server-side strategy to avoid drift events
+   * during load testing.
    *
    * @return a lowercase hexadecimal representation of the configuration hash,
    *         or {@code "NA"} if an error occurs
@@ -56,6 +71,13 @@ public class ConfigHashCalculator {
       String application = environment.getProperty("spring.application.name", "unknown");
       String[] profiles = environment.getActiveProfiles();
       String profile = profiles.length > 0 ? profiles[0] : "default";
+
+      // Check if mock mode is enabled
+      boolean mockEnabled = environment.getProperty("zcm.sdk.ping.hash-mock.enabled", Boolean.class, false);
+      if (mockEnabled) {
+        return getMockConfigHash(application, profile);
+      }
+
       String label = environment.getProperty("spring.cloud.config.label");
       String version = environment.getProperty("config.client.version");
 
@@ -74,6 +96,74 @@ public class ConfigHashCalculator {
       return sb.toString();
     } catch (Exception e) {
       // Fail-safe fallback, ensuring no exception propagation
+      return "NA";
+    }
+  }
+
+  /**
+   * Generates a mock config hash based on configured strategy.
+   * <p>
+   * Matches server-side mock hash generation for consistency.
+   * Uses the same prefix and formula as ConfigProxyService.
+   *
+   * @param serviceName service name
+   * @param profile     environment profile
+   * @return mock config hash
+   */
+  private String getMockConfigHash(String serviceName, String profile) {
+    String strategy = environment.getProperty("zcm.sdk.ping.hash-mock.strategy", "DETERMINISTIC");
+    String mockHash;
+
+    switch (strategy.toUpperCase()) {
+      case "DETERMINISTIC":
+        // Generate stable hash from serviceName + profile (matches server-side)
+        String input = serviceName + ":" + (profile != null ? profile : "default");
+        mockHash = hash(MOCK_PREFIX + input);
+        break;
+
+      case "RANDOM":
+        // Generate random hash each time (includes timestamp)
+        String randomInput = serviceName + ":" +
+            (profile != null ? profile : "default") + ":" + System.currentTimeMillis();
+        mockHash = hash(MOCK_PREFIX + randomInput);
+        break;
+
+      case "STATIC":
+        // Return fixed hash value
+        mockHash = environment.getProperty("zcm.sdk.ping.hash-mock.static-hash", "mock-hash-static-12345");
+        break;
+
+      default:
+        // Fallback to deterministic
+        String fallbackInput = serviceName + ":" + (profile != null ? profile : "default");
+        mockHash = hash(MOCK_PREFIX + fallbackInput);
+    }
+
+    if (log.isDebugEnabled()) {
+      log.debug("Returning mock config hash for {}:{} -> {} (strategy: {})",
+          serviceName, profile, mockHash, strategy);
+    }
+
+    return mockHash;
+  }
+
+  /**
+   * Computes SHA-256 hash for a given input string.
+   * <p>
+   * Utility method matching server-side ConfigHashCalculator.hash() implementation.
+   *
+   * @param input input string to hash
+   * @return SHA-256 hash as lowercase hex string
+   */
+  private String hash(String input) {
+    try {
+      MessageDigest md = MessageDigest.getInstance("SHA-256");
+      byte[] digest = md.digest(input.getBytes(StandardCharsets.UTF_8));
+      StringBuilder sb = new StringBuilder(digest.length * 2);
+      for (byte b : digest) sb.append(String.format("%02x", b));
+      return sb.toString();
+    } catch (Exception e) {
+      log.warn("Failed to compute hash for mock config", e);
       return "NA";
     }
   }

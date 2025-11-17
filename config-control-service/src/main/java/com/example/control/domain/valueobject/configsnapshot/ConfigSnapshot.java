@@ -4,6 +4,11 @@ import java.util.Collections;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 /**
  * Represents a canonical, deterministic configuration snapshot for server-side hashing.
  * <p>
@@ -21,6 +26,9 @@ import java.util.TreeMap;
  * String hash = Sha256Hasher.hash(canonical);
  * }</pre>
  */
+@Getter
+@Setter
+@AllArgsConstructor
 public final class ConfigSnapshot {
 
     /**
@@ -47,27 +55,6 @@ public final class ConfigSnapshot {
      * Canonically sorted property key-value pairs for hash computation.
      */
     private final SortedMap<String, String> properties;
-
-    /**
-     * Constructs a new canonical configuration snapshot.
-     *
-     * @param application the application name
-     * @param profile     the active profile
-     * @param label       the configuration label (branch or tag)
-     * @param version     the version identifier
-     * @param properties  a sorted map of configuration key-value pairs
-     */
-    public ConfigSnapshot(String application,
-                          String profile,
-                          String label,
-                          String version,
-                          SortedMap<String, String> properties) {
-        this.application = application;
-        this.profile = profile;
-        this.label = label;
-        this.version = version;
-        this.properties = properties != null ? new TreeMap<>(properties) : new TreeMap<>();
-    }
 
     /**
      * Converts this configuration snapshot into a canonical string representation.

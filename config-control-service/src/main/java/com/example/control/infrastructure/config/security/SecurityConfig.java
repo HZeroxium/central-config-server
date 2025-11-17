@@ -143,6 +143,7 @@ public class SecurityConfig {
         httpBuilder
                 .authorizeHttpRequests(authz -> {
                     authz.requestMatchers("/api/heartbeat/**").permitAll();
+                    authz.requestMatchers("/api/config-server/hash/**").permitAll();
 
                     // Permit seeding endpoints in dev/local/seed-data profiles without
                     // authentication

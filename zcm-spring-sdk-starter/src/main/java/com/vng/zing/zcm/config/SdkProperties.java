@@ -148,6 +148,9 @@ public class SdkProperties {
     /** Config hash caching configuration. */
     private HashCache hashCache = new HashCache();
 
+    /** Config hash mock configuration for load testing. */
+    private HashMock hashMock = new HashMock();
+
     /** Circuit breaker configuration for Kafka ping operations. */
     private CircuitBreaker circuitBreaker = new CircuitBreaker();
 
@@ -263,6 +266,68 @@ public class SdkProperties {
        * Default: 10
        */
       private int slidingWindowSize = 10;
+    }
+
+    /**
+     * Configuration for mock config hash generation (for load testing).
+     * <p>
+     * When enabled, SDK generates deterministic mock hashes instead of computing
+     * real config hashes. This matches server-side mock strategy to avoid drift events.
+     */
+    @Data
+    public static class HashMock {
+
+      /**
+       * Whether mock hash mode is enabled.
+       * <p>
+       * When enabled, SDK generates mock hashes using the configured strategy.
+       * Useful for load testing to avoid config hash mismatches.
+       * Can be overridden via environment variable {@code ZCM_SDK_PING_HASH_MOCK_ENABLED}.
+       */
+      private boolean enabled = false;
+
+      /**
+       * Mock strategy: DETERMINISTIC, RANDOM, or STATIC.
+       * <ul>
+       * <li>DETERMINISTIC: Same hash for same service:env (stable for testing, matches server-side)</li>
+       * <li>RANDOM: Different hash each time (test drift detection)</li>
+       * <li>STATIC: Fixed hash value (test steady state)</li>
+       * </ul>
+       * <p>
+       * Can be overridden via environment variable {@code ZCM_SDK_PING_HASH_MOCK_STRATEGY}.
+       */
+      private MockStrategy strategy = MockStrategy.DETERMINISTIC;
+
+      /**
+       * Static hash value used when {@link #strategy} is STATIC.
+       * <p>
+       * Can be overridden via environment variable {@code ZCM_SDK_PING_HASH_MOCK_STATIC_HASH}.
+       */
+      private String staticHash = "mock-hash-static-12345";
+
+      /**
+       * Mock strategy enumeration.
+       */
+      public enum MockStrategy {
+        /**
+         * Generate stable hash from serviceName + profile.
+         * Same service:env combination always returns the same hash.
+         * Matches server-side DETERMINISTIC strategy.
+         */
+        DETERMINISTIC,
+
+        /**
+         * Generate random hash each time (includes timestamp).
+         * Useful for testing drift detection scenarios.
+         */
+        RANDOM,
+
+        /**
+         * Return fixed static hash value.
+         * Useful for testing steady state scenarios.
+         */
+        STATIC
+      }
     }
   }
 

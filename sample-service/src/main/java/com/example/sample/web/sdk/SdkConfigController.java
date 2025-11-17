@@ -115,5 +115,26 @@ public class SdkConfigController {
     ));
     return ResponseEntity.ok(result);
   }
+
+  /**
+   * Retrieves detailed configuration hash information for debugging and comparison purposes.
+   * <p>
+   * Includes hash, snapshot, canonical string, and metadata (key count, source names, excluded keys).
+   * This endpoint is public and does not require authentication for easier debugging.
+   *
+   * @return detailed hash information
+   */
+  @Operation(
+      summary = "Get configuration hash details",
+      description = "Retrieve detailed configuration hash information including hash, snapshot, canonical string, and metadata for debugging and comparison purposes")
+  @ApiResponse(responseCode = "200", description = "Configuration hash details retrieved successfully")
+  @GetMapping("/hash-details")
+  public ResponseEntity<Map<String, Object>> getHashDetails() {
+    Map<String, Object> hashDetails = client.config().hashDetails();
+    Map<String, Object> response = new LinkedHashMap<>();
+    response.put("status", "ok");
+    response.putAll(hashDetails);
+    return ResponseEntity.ok(response);
+  }
 }
 

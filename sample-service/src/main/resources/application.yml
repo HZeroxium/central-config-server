@@ -25,6 +25,11 @@ zcm:
         bootstrap-servers: ${ZCM_SDK_PING_KAFKA_BOOTSTRAP_SERVERS:${KAFKA_BROKERS:localhost:9092}}
         topic: ${ZCM_SDK_PING_KAFKA_TOPIC:heartbeat-queue}
         config-refresh-interval: 300000 # 5 minutes (how often to refresh Kafka config from control service)
+      # Mock config hash configuration (for load testing)
+      hash-mock:
+        enabled: ${ZCM_SDK_PING_HASH_MOCK_ENABLED:false} # Enable mock hash generation for load testing
+        strategy: ${ZCM_SDK_PING_HASH_MOCK_STRATEGY:DETERMINISTIC} # DETERMINISTIC, RANDOM, or STATIC
+        static-hash: ${ZCM_SDK_PING_HASH_MOCK_STATIC_HASH:mock-hash-static-12345} # Used when strategy is STATIC
     discovery:
       consul:
         host: consul

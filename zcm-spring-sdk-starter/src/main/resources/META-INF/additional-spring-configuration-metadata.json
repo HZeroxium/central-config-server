@@ -73,6 +73,24 @@
       "description": "Fixed delay (ms) for scheduled ping"
     },
     {
+      "name": "zcm.sdk.ping.hash-mock.enabled",
+      "type": "java.lang.Boolean",
+      "defaultValue": false,
+      "description": "Enable mock config hash generation for load testing. When enabled, SDK generates deterministic mock hashes matching server-side strategy to avoid drift events."
+    },
+    {
+      "name": "zcm.sdk.ping.hash-mock.strategy",
+      "type": "java.lang.String",
+      "defaultValue": "DETERMINISTIC",
+      "description": "Mock hash strategy: DETERMINISTIC (stable hash for same service:env), RANDOM (varies each time), STATIC (fixed hash value)"
+    },
+    {
+      "name": "zcm.sdk.ping.hash-mock.static-hash",
+      "type": "java.lang.String",
+      "defaultValue": "mock-hash-static-12345",
+      "description": "Static hash value used when strategy is STATIC"
+    },
+    {
       "name": "zcm.sdk.control.url",
       "type": "java.lang.String",
       "description": "ConfigControlService base URL (e.g., http://ctrl:8080)"

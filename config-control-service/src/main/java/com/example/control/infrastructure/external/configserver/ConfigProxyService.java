@@ -9,6 +9,7 @@ import com.example.control.domain.valueobject.configsnapshot.ConfigSnapshotBuild
 import com.example.control.domain.valueobject.configsnapshot.ConfigHashCalculator;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Iterator;
 import io.micrometer.tracing.annotation.NewSpan;
 import io.micrometer.tracing.annotation.SpanTag;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +21,9 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -225,6 +229,116 @@ public class ConfigProxyService {
         } else {
             throw new ExternalServiceException("config-server",
                     "Service discovery failed and fallback to URL is disabled", null);
+        }
+    }
+
+    /**
+     * Get detailed configuration hash information including snapshot, canonical string, and metadata.
+     * <p>
+     * This method provides comprehensive debugging information for configuration hash computation,
+     * including all components used in the hash calculation.
+     *
+     * @param serviceName service name
+     * @param profile     environment profile
+     * @return map containing hash, snapshot, canonical string, and metadata
+     */
+    @NewSpan("config.get_hash_details")
+    public Map<String, Object> getConfigHashDetails(
+            @SpanTag("service.name") String serviceName,
+            @SpanTag("profile") String profile) {
+        if (serviceName == null || serviceName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Service name cannot be null or empty");
+        }
+
+        try {
+            log.debug("Fetching config hash details from Config Server for {}:{}", serviceName, profile);
+
+            String path = "/" + serviceName + "/" +
+                    (profile != null && !profile.trim().isEmpty() ? profile : "default");
+            String configJson = callConfigServer(path);
+
+            if (configJson == null || configJson.trim().isEmpty()) {
+                log.warn("Empty config response from Config Server for {}:{}", serviceName, profile);
+                throw new ExternalServiceException("config-server",
+                        "Empty configuration response for " + serviceName + ":" + profile, null);
+            }
+
+            JsonNode configNode = objectMapper.readTree(configJson);
+            
+            // Build snapshot first - this will filter sources and keys correctly
+            ConfigSnapshot snapshot = snapshotBuilder.build(serviceName, profile, null, configNode);
+            
+            // Extract metadata from JSON after building snapshot
+            // We need to count all sources (including excluded ones) for metadata
+            List<String> sourceNames = new ArrayList<>();
+            int excludedKeyCount = 0;
+            int totalKeyCount = 0;
+
+            if (configNode.has("propertySources") && configNode.get("propertySources").isArray()) {
+                for (JsonNode ps : configNode.get("propertySources")) {
+                    String name = ps.hasNonNull("name") ? ps.get("name").asText() : null;
+                    // Use the same logic as ConfigSnapshotBuilder
+                    if (snapshotBuilder.includeSource(name)) {
+                        sourceNames.add(name);
+                        JsonNode source = ps.get("source");
+                        if (source != null && source.isObject()) {
+                            Iterator<String> it = source.fieldNames();
+                            while (it.hasNext()) {
+                                String key = it.next();
+                                totalKeyCount++;
+                                if (snapshotBuilder.excludeKey(key)) {
+                                    excludedKeyCount++;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            String canonicalString = snapshot.toCanonicalString();
+            String hash = ConfigHashCalculator.hash(canonicalString);
+
+            // Build response map
+            Map<String, Object> response = new LinkedHashMap<>();
+            response.put("serviceName", serviceName);
+            response.put("profile", profile != null ? profile : "default");
+
+            // Hash
+            response.put("hash", hash);
+
+            // Snapshot
+            Map<String, Object> snapshotMap = new LinkedHashMap<>();
+            snapshotMap.put("application", snapshot.getApplication());
+            snapshotMap.put("profile", snapshot.getProfile());
+            snapshotMap.put("label", snapshot.getLabel());
+            snapshotMap.put("version", snapshot.getVersion());
+            snapshotMap.put("properties", snapshot.getProperties());
+            snapshotMap.put("propertyCount", snapshot.getProperties().size());
+            response.put("snapshot", snapshotMap);
+
+            // Canonical string
+            response.put("canonicalString", canonicalString);
+
+            // Metadata
+            Map<String, Object> metadata = new LinkedHashMap<>();
+            metadata.put("keyCount", snapshot.getProperties().size());
+            metadata.put("excludedKeyCount", excludedKeyCount);
+            metadata.put("totalKeyCount", totalKeyCount);
+            metadata.put("sourceNames", sourceNames);
+            metadata.put("computedAt", Instant.now().toString());
+            response.put("metadata", metadata);
+
+            log.debug("Computed config hash details for {}:{} hash={} keys={}", 
+                    serviceName, profile, hash, snapshot.getProperties().size());
+            
+            return response;
+
+        } catch (ExternalServiceException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Failed to get config hash details for {}:{}", serviceName, profile, e);
+            throw new ExternalServiceException("config-server",
+                    "Failed to get config hash details: " + e.getMessage(), e);
         }
     }
 

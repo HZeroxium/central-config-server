@@ -1,7 +1,6 @@
 package com.example.control.infrastructure.configfile;
 
 import com.example.control.domain.model.ApplicationService;
-import com.example.control.infrastructure.configfile.deterministic.DeterministicValueGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -30,7 +29,6 @@ public class ConfigFileGeneratorService {
     private final ConfigFileGeneratorProperties properties;
     private final ConfigFileTemplateEngine templateEngine;
     private final ConfigFileWriter fileWriter;
-    private final DeterministicValueGenerator valueGenerator;
 
     /**
      * Generates config files for a single ApplicationService.

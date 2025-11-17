@@ -36,4 +36,14 @@ public interface ConfigApi {
    * @return map with application, profile, version, and properties
    */
   Map<String, Object> snapshot();
+  
+  /**
+   * Returns detailed configuration hash information including hash, snapshot, canonical string, and metadata.
+   * <p>
+   * This method provides comprehensive debugging information for configuration hash computation,
+   * including all components used in the hash calculation.
+   * 
+   * @return map containing hash, snapshot, canonical string, and metadata
+   */
+  Map<String, Object> hashDetails();
 }
