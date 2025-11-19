@@ -36,7 +36,8 @@ public record ServiceInstanceCriteria(
         String version,
         Instant lastSeenAtFrom,
         Instant lastSeenAtTo,
-        List<String> userTeamIds) {
+        List<String> userTeamIds,
+        List<String> sharedServiceIds) {
 
     /**
      * Creates criteria with no filtering (admin query).
@@ -158,14 +159,26 @@ public record ServiceInstanceCriteria(
     }
 
     /**
+     * Creates criteria for unhealthy instances (not seen since threshold).
+     *
+     * @param threshold the timestamp threshold
+     * @return criteria for unhealthy instances
+     */
+    public static ServiceInstanceCriteria unhealthyInstances(Instant threshold) {
+        return ServiceInstanceCriteria.builder()
+                .lastSeenAtTo(threshold)
+                .build();
+    }
+
+    /**
      * Creates criteria for stale instances (not seen since threshold).
      *
      * @param threshold the timestamp threshold
      * @return criteria for stale instances
+     * @deprecated Use {@link #unhealthyInstances(Instant)} instead. Kept for backward compatibility.
      */
+    @Deprecated
     public static ServiceInstanceCriteria staleInstances(Instant threshold) {
-        return ServiceInstanceCriteria.builder()
-                .lastSeenAtTo(threshold)
-                .build();
+        return unhealthyInstances(threshold);
     }
 }

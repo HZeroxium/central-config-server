@@ -3,13 +3,13 @@ package com.example.control.application.command;
 import com.example.control.domain.valueobject.id.ServiceInstanceId;
 import com.example.control.domain.model.ServiceInstance;
 import com.example.control.domain.port.repository.ServiceInstanceRepositoryPort;
-import com.example.control.infrastructure.config.cache.CacheProperties;
+import com.example.control.infrastructure.cache.ServiceInstanceCacheEvictionService;
+import com.example.control.infrastructure.observability.MetricsNames;
 import com.mongodb.bulk.BulkWriteResult;
+import io.micrometer.core.annotation.Timed;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.Cache;
-import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,14 +47,13 @@ import java.util.UUID;
 public class ServiceInstanceCommandService {
 
     private final ServiceInstanceRepositoryPort repository;
-    private final CacheManager cacheManager;
-    private final CacheProperties cacheProperties;
+    private final ServiceInstanceCacheEvictionService cacheEvictionService;
 
     /**
      * Saves a service instance (create or update).
      * <p>
      * Automatically generates ID if null (new entity).
-     * Evicts specific service-instances cache entry by ID.
+     * Evicts specific service-instances cache entry by ID, findAll caches, and count caches.
      *
      * @param instance the service instance to save (must be valid)
      * @return the saved service instance with generated/updated fields
@@ -71,13 +70,17 @@ public class ServiceInstanceCommandService {
 
         ServiceInstance saved = repository.save(instance);
         log.info("Saved service instance: {} for service: {}", saved.getId(), saved.getServiceId());
+
+        // Evict findAll and count caches (in addition to individual instance cache evicted by @CacheEvict)
+        cacheEvictionService.evictForInstanceUpdate(saved.getId());
+
         return saved;
     }
 
     /**
      * Deletes a service instance by ID.
      * <p>
-     * Evicts specific service-instances cache entry by ID.
+     * Evicts specific service-instances cache entry by ID, findAll caches, and count caches.
      *
      * @param id the service instance ID to delete
      */
@@ -85,6 +88,9 @@ public class ServiceInstanceCommandService {
     public void deleteById(ServiceInstanceId id) {
         log.info("Deleting service instance: {}", id);
         repository.deleteById(id);
+
+        // Evict findAll and count caches (in addition to individual instance cache evicted by @CacheEvict)
+        cacheEvictionService.evictForInstanceDelete(id);
     }
 
     /**
@@ -118,6 +124,7 @@ public class ServiceInstanceCommandService {
      * @param instances list of service instances to upsert
      * @return bulk write result with counts of inserted/updated documents
      */
+    @Timed(MetricsNames.Heartbeat.BATCH_MONGODB_INSTANCES_UPSERT_TIME)
     public BulkWriteResult bulkUpsert(List<ServiceInstance> instances) {
         if (instances == null || instances.isEmpty()) {
             log.debug("Empty instances list, skipping bulk upsert");
@@ -127,38 +134,10 @@ public class ServiceInstanceCommandService {
         log.info("Bulk upserting {} service instances", instances.size());
         BulkWriteResult result = repository.bulkUpsert(instances);
 
-        // Optimized batch cache eviction: use clear() for large batches, individual eviction for small ones
-        Cache cache = cacheManager.getCache("service-instances");
-        if (cache != null && !instances.isEmpty()) {
-            int batchThreshold = cacheProperties.getEviction().getBatchThreshold();
-            int batchSize = instances.size();
-
-            if (batchSize > batchThreshold) {
-                // Large batch: clear entire cache for better performance
-                try {
-                    cache.clear();
-                    log.debug("Cleared entire service-instances cache (batch size {} > threshold {})", 
-                            batchSize, batchThreshold);
-                } catch (Exception e) {
-                    log.warn("Failed to clear cache for service instances", e);
-                }
-            } else {
-                // Small batch: evict individual entries
-                int evictedCount = 0;
-                for (ServiceInstance instance : instances) {
-                    if (instance.getId() != null) {
-                        try {
-                            cache.evict(instance.getId());
-                            evictedCount++;
-                        } catch (Exception e) {
-                            log.warn("Failed to evict cache for service instance: {}", instance.getId(), e);
-                        }
-                    }
-                }
-                log.debug("Batch evicted {} cache entries for service instances (batch size {} <= threshold {})", 
-                        evictedCount, batchSize, batchThreshold);
-            }
-        }
+        // Cache eviction is handled by the caller (e.g., HeartbeatBatchService) using cacheEvictionService
+        // to ensure proper eviction of findAll and count caches. This method focuses on persistence only.
+        // Note: Individual instance cache eviction happens via @CacheEvict annotations on save() calls
+        // if instances are saved individually, but for bulk operations, eviction is delegated to callers.
 
         log.info("Bulk upsert completed: {} inserted, {} modified",
                 result != null ? result.getInsertedCount() : 0,

@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Orchestrator service for managing service sharing ACL.
@@ -110,6 +111,7 @@ public class ServiceShareService {
 
         // Create share domain object
         ServiceShare share = ServiceShare.builder()
+                .id(ServiceShareId.of(UUID.randomUUID().toString()))
                 .resourceLevel(ServiceShare.ResourceLevel.SERVICE)
                 .serviceId(serviceId)
                 .grantToType(grantToType)
@@ -170,7 +172,8 @@ public class ServiceShareService {
     /**
      * List shares for a specific service.
      * <p>
-     * Only service owners can view shares.
+     * Only service owners can view shares. Service owners see all shares for their service,
+     * not just shares granted to their teams.
      *
      * @param serviceId   the service ID
      * @param userContext the current user context
@@ -187,17 +190,22 @@ public class ServiceShareService {
             throw new IllegalStateException("User does not have permission to view shares for this service");
         }
 
+        // Service owners should see all shares for their service, not filtered by userTeamIds
+        // Only apply userTeamIds filter for non-owners (though they shouldn't reach here due to permission check)
         ServiceShareCriteria criteria = ServiceShareCriteria.builder()
                 .serviceId(serviceId)
-                .userTeamIds(userContext.getTeamIds())
+                // Do not set userTeamIds - service owners need to see all shares
                 .build();
         return serviceShareQueryService.findAll(criteria, Pageable.unpaged()).getContent();
     }
 
     /**
      * List service shares with filtering and pagination.
+     * <p>
+     * If filtering by a specific service and user owns that service, removes userTeamIds filter
+     * to show all shares for that service. Otherwise, applies ABAC filtering based on user's teams.
      *
-     * @param filter      the filter criteria
+     * @param criteria    the filter criteria (may contain userTeamIds from API mapper)
      * @param pageable    pagination information
      * @param userContext the current user context
      * @return page of service shares
@@ -216,6 +224,20 @@ public class ServiceShareService {
             if (!permissionEvaluator.canViewShares(userContext, service)) {
                 throw new IllegalStateException("User does not have permission to view shares for this service");
             }
+
+            // Service owners should see all shares for their service, not filtered by userTeamIds
+            // Create new criteria without userTeamIds filter
+            ServiceShareCriteria criteriaWithoutUserTeamIds = ServiceShareCriteria.builder()
+                    .serviceId(criteria.serviceId())
+                    .grantToType(criteria.grantToType())
+                    .grantToId(criteria.grantToId())
+                    .environments(criteria.environments())
+                    .grantedBy(criteria.grantedBy())
+                    // Explicitly do not set userTeamIds - service owners need to see all shares
+                    .build();
+            
+            log.debug("Service owner detected, removed userTeamIds filter for service: {}", criteria.serviceId());
+            return serviceShareQueryService.findAll(criteriaWithoutUserTeamIds, pageable);
         }
 
         return serviceShareQueryService.findAll(criteria, pageable);

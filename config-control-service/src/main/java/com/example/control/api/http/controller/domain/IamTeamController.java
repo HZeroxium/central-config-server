@@ -81,7 +81,7 @@ public class IamTeamController {
             @ApiResponse(responseCode = "500", description = "Internal server error",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
-    @PreAuthorize("hasRole('SYS_ADMIN')")
+//     @PreAuthorize("hasRole('SYS_ADMIN')")
     public ResponseEntity<IamTeamDtos.IamTeamPageResponse> findAll(
             @ParameterObject @Valid IamTeamCriteria criteria,
             @ParameterObject @PageableDefault(size = 20, page = 0) Pageable pageable,
@@ -128,7 +128,7 @@ public class IamTeamController {
             @ApiResponse(responseCode = "500", description = "Internal server error",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
-    @PreAuthorize("hasRole('SYS_ADMIN')")
+//     @PreAuthorize("hasRole('SYS_ADMIN')")
     public ResponseEntity<IamTeamDtos.Response> findById(
             @Parameter(description = "Team ID", example = "team_core")
             @PathVariable String teamId,
@@ -173,7 +173,7 @@ public class IamTeamController {
             @ApiResponse(responseCode = "500", description = "Internal server error",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
-    @PreAuthorize("hasRole('SYS_ADMIN')")
+//     @PreAuthorize("hasRole('SYS_ADMIN')")
     public ResponseEntity<List<IamTeamDtos.Response>> findByMember(
             @Parameter(description = "User ID to find teams for", example = "user1")
             @PathVariable String userId,
@@ -219,7 +219,7 @@ public class IamTeamController {
             @ApiResponse(responseCode = "500", description = "Internal server error",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
-    @PreAuthorize("hasRole('SYS_ADMIN')")
+//     @PreAuthorize("hasRole('SYS_ADMIN')")
     public ResponseEntity<IamTeamDtos.StatsResponse> getStats(@AuthenticationPrincipal Jwt jwt) {
 
         UserContext userContext = UserContext.fromJwt(jwt);

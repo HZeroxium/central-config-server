@@ -195,7 +195,14 @@ public class UnifiedCacheConfig {
 
     @Bean("delegatingCacheManager")
     @Primary
-    public DelegatingCacheManager delegatingCacheManager(CacheInvalidationPublisher cacheInvalidationPublisher,
+    public DelegatingCacheManager delegatingCacheManager(
+            @Qualifier("delegateCacheManager") CacheManager delegateCacheManager) {
+        return new DelegatingCacheManager(delegateCacheManager);
+    }
+
+    @Bean("delegateCacheManager")
+    public CacheManager delegateCacheManager(
+            CacheInvalidationPublisher cacheInvalidationPublisher,
             Optional<CacheOperationExecutor> cacheOperationExecutor,
             @Lazy Optional<CacheMetrics> cacheMetrics) {
         CacheManagerFactory factory = new CacheManagerFactory(
@@ -204,12 +211,7 @@ public class UnifiedCacheConfig {
                 Optional.of(cacheInvalidationPublisher),
                 cacheOperationExecutor,
                 cacheMetrics);
-        CacheManager initialManager = factory.createCacheManager();
-
-        log.info("Initialized DelegatingCacheManager with provider: {}",
-                cacheProperties.getProvider());
-
-        return new DelegatingCacheManager(initialManager);
+        return factory.createCacheManager();
     }
 
     /**

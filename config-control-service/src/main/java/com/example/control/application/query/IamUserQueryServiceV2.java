@@ -181,5 +181,97 @@ public class IamUserQueryServiceV2 {
         log.debug("Checking existence of IAM user from Keycloak: {}", id);
         return findById(id).isPresent();
     }
+
+    /**
+     * Find all users that have a specific realm role assigned.
+     * <p>
+     * Uses Keycloak Admin API to query role members directly.
+     * </p>
+     *
+     * @param role the role name (e.g., "SYS_ADMIN")
+     * @return list of users with the role
+     */
+    @Cacheable(value = "iam-users", key = "'role:' + #role")
+    public List<IamUser> findByRole(String role) {
+        log.debug("Finding IAM users by role from Keycloak: {}", role);
+        if (role == null || role.isBlank()) {
+            return Collections.emptyList();
+        }
+
+        try {
+            // Get all users with this role (unpaged to get all)
+            List<KeycloakUserRepresentation> keycloakUsers = keycloakAdminRestService.getRoleMembers(role, Pageable.unpaged());
+
+            // Convert to domain models with team IDs
+            List<IamUser> users = new ArrayList<>();
+            for (KeycloakUserRepresentation keycloakUser : keycloakUsers) {
+                // Get user's groups to populate teamIds
+                List<String> groupPaths = keycloakAdminRestService.getUserGroups(keycloakUser.getId());
+                List<String> teamIds = keycloakUserMapper.extractTeamIdsFromGroups(groupPaths);
+                IamUser user = keycloakUserMapper.toIamUserWithTeams(keycloakUser, teamIds);
+                users.add(user);
+            }
+
+            log.debug("Found {} users with role: {}", users.size(), role);
+            return users;
+        } catch (Exception e) {
+            log.error("Failed to find users by role: {}", role, e);
+            return Collections.emptyList();
+        }
+    }
+
+    /**
+     * Find all users that belong to a specific team (group).
+     * <p>
+     * Uses Keycloak Admin API to query group members and convert to IamUser objects.
+     * </p>
+     *
+     * @param teamId the team ID (group name or ID)
+     * @return list of users in the team
+     */
+    @Cacheable(value = "iam-users", key = "'team:' + #teamId")
+    public List<IamUser> findByTeam(String teamId) {
+        log.debug("Finding IAM users by team from Keycloak: {}", teamId);
+        if (teamId == null || teamId.isBlank()) {
+            return Collections.emptyList();
+        }
+
+        try {
+            // Find group by name or ID
+            List<KeycloakGroupRepresentation> groups = keycloakAdminRestService.getGroups(null, Pageable.unpaged());
+            Optional<KeycloakGroupRepresentation> matchingGroup = groups.stream()
+                    .filter(g -> teamId.equals(g.getName()) || teamId.equals(g.getId()))
+                    .findFirst();
+
+            if (matchingGroup.isEmpty()) {
+                log.debug("Team not found: {}", teamId);
+                return Collections.emptyList();
+            }
+
+            String groupId = matchingGroup.get().getId();
+            // Get all group members (unpaged to get all)
+            List<String> memberIds = keycloakAdminRestService.getGroupMembers(groupId, Pageable.unpaged());
+
+            if (memberIds.isEmpty()) {
+                log.debug("Team has no members: {}", teamId);
+                return Collections.emptyList();
+            }
+
+            // Convert user IDs to IamUser objects
+            List<IamUser> users = new ArrayList<>();
+            for (String userId : memberIds) {
+                Optional<IamUser> userOpt = findById(IamUserId.of(userId));
+                if (userOpt.isPresent()) {
+                    users.add(userOpt.get());
+                }
+            }
+
+            log.debug("Found {} users in team: {}", users.size(), teamId);
+            return users;
+        } catch (Exception e) {
+            log.error("Failed to find users by team: {}", teamId, e);
+            return Collections.emptyList();
+        }
+    }
 }
 

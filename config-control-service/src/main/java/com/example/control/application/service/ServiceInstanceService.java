@@ -2,12 +2,15 @@ package com.example.control.application.service;
 
 import com.example.control.application.command.ServiceInstanceCommandService;
 import com.example.control.application.query.ServiceInstanceQueryService;
+import com.example.control.application.query.ServiceShareQueryService;
 import com.example.control.infrastructure.config.security.DomainPermissionEvaluator;
 import com.example.control.infrastructure.config.security.UserContext;
 import com.example.control.infrastructure.observability.MetricsNames;
 import com.example.control.domain.model.ApplicationService;
 import com.example.control.domain.model.ServiceInstance;
+import com.example.control.domain.model.ServiceShare;
 import com.example.control.domain.criteria.ServiceInstanceCriteria;
+import com.example.control.domain.criteria.ServiceShareCriteria;
 import com.example.control.domain.valueobject.id.ApplicationServiceId;
 import com.example.control.domain.valueobject.id.ServiceInstanceId;
 import io.micrometer.observation.annotation.Observed;
@@ -40,7 +43,7 @@ public class ServiceInstanceService {
     private final ServiceInstanceQueryService queryService;
     private final DomainPermissionEvaluator permissionEvaluator;
     private final ApplicationServiceService applicationServiceService;
-
+    private final ServiceShareQueryService serviceShareQueryService;
     /**
      * Saves or updates a {@link ServiceInstance} record.
      * <p>
@@ -165,11 +168,47 @@ public class ServiceInstanceService {
         if (userContext == null || userContext.isSysAdmin()) {
             return criteria;
         }
+        
         List<String> teams = userContext.getTeamIds();
         if (teams == null || teams.isEmpty()) {
-            return criteria.toBuilder().userTeamIds(List.of("__none__")).build(); // yields empty result
+            return criteria.toBuilder()
+                    .userTeamIds(List.of("__none__")) // yields empty result
+                    .sharedServiceIds(List.of()) // no shared services
+                    .build();
         }
-        return criteria.toBuilder().userTeamIds(teams).build();
+        
+        // Get services shared to user's teams
+        List<String> sharedServiceIds;
+        try {
+            ServiceShareCriteria shareCriteria = ServiceShareCriteria.forTeams(teams);
+            List<ServiceShare> shares = serviceShareQueryService.findAll(shareCriteria, Pageable.unpaged())
+                    .getContent();
+            sharedServiceIds = shares.stream()
+                    .map(ServiceShare::getServiceId)
+                    .distinct()
+                    .toList();
+            log.debug("Found {} services shared to user {} teams: {}", 
+                    sharedServiceIds.size(), userContext.getUserId(), teams);
+        } catch (Exception e) {
+            log.warn("Error fetching shared services for user {}: {}", userContext.getUserId(), e.getMessage());
+            sharedServiceIds = List.of();
+        }
+        
+        return criteria.toBuilder()
+                .userTeamIds(teams)
+                .sharedServiceIds(sharedServiceIds.isEmpty() ? null : sharedServiceIds)
+                .build();
+    }
+
+    /**
+     * Finds instances that have become unhealthy (inactive).
+     *
+     * @param threshold timestamp cutoff
+     * @return list of unhealthy instances
+     */
+    public List<ServiceInstance> findUnhealthyInstances(java.time.Instant threshold) {
+        ServiceInstanceCriteria criteria = ServiceInstanceCriteria.unhealthyInstances(threshold);
+        return queryService.findAll(criteria, Pageable.unpaged()).getContent();
     }
 
     /**
@@ -177,10 +216,11 @@ public class ServiceInstanceService {
      *
      * @param threshold timestamp cutoff
      * @return list of stale instances
+     * @deprecated Use {@link #findUnhealthyInstances(java.time.Instant)} instead. Kept for backward compatibility.
      */
+    @Deprecated
     public List<ServiceInstance> findStaleInstances(java.time.Instant threshold) {
-        ServiceInstanceCriteria criteria = ServiceInstanceCriteria.staleInstances(threshold);
-        return queryService.findAll(criteria, Pageable.unpaged()).getContent();
+        return findUnhealthyInstances(threshold);
     }
 
     /**

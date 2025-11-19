@@ -80,7 +80,7 @@ public class IamUserController {
             @ApiResponse(responseCode = "500", description = "Internal server error",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
-    @PreAuthorize("hasRole('SYS_ADMIN')")
+//     @PreAuthorize("hasRole('SYS_ADMIN')")
     public ResponseEntity<IamUserDtos.IamUserPageResponse> findAll(
             @ParameterObject @Valid IamUserCriteria criteria,
             @ParameterObject @PageableDefault(size = 20, page = 0) Pageable pageable,
@@ -127,7 +127,7 @@ public class IamUserController {
             @ApiResponse(responseCode = "500", description = "Internal server error",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
-    @PreAuthorize("hasRole('SYS_ADMIN')")
+//     @PreAuthorize("hasRole('SYS_ADMIN')")
     public ResponseEntity<IamUserDtos.Response> findById(
             @Parameter(description = "User ID", example = "user1")
             @PathVariable String userId,
@@ -172,7 +172,7 @@ public class IamUserController {
             @ApiResponse(responseCode = "500", description = "Internal server error",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
-    @PreAuthorize("hasRole('SYS_ADMIN')")
+//     @PreAuthorize("hasRole('SYS_ADMIN')")
     public ResponseEntity<List<IamUserDtos.Response>> findByTeam(
             @Parameter(description = "Team ID to find users for", example = "team_core")
             @PathVariable String teamId,
@@ -220,7 +220,7 @@ public class IamUserController {
             @ApiResponse(responseCode = "500", description = "Internal server error",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
-    @PreAuthorize("hasRole('SYS_ADMIN')")
+//     @PreAuthorize("hasRole('SYS_ADMIN')")
     public ResponseEntity<List<IamUserDtos.Response>> findByManager(
             @Parameter(description = "Manager's user ID", example = "manager1")
             @PathVariable String managerId,
@@ -267,7 +267,7 @@ public class IamUserController {
             @ApiResponse(responseCode = "500", description = "Internal server error",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
-    @PreAuthorize("hasRole('SYS_ADMIN')")
+//     @PreAuthorize("hasRole('SYS_ADMIN')")
     public ResponseEntity<IamUserDtos.StatsResponse> getStats(@AuthenticationPrincipal Jwt jwt) {
 
         UserContext userContext = UserContext.fromJwt(jwt);

@@ -11,6 +11,7 @@ import com.example.control.application.query.ApprovalRequestQueryService;
 import com.example.control.domain.criteria.ApprovalRequestCriteria;
 import com.example.control.domain.event.ServiceOwnershipTransferred;
 import com.example.control.domain.event.ApprovalRequestApprovedEvent;
+import com.example.control.domain.event.ApprovalRequestRejectedEvent;
 import com.example.control.domain.valueobject.id.ApplicationServiceId;
 import com.example.control.domain.valueobject.id.ApprovalDecisionId;
 import com.example.control.domain.valueobject.id.ApprovalRequestId;
@@ -164,6 +165,20 @@ public class ApprovalCascadeService {
         .approverUserId(getApproverUserId(request))
         .approvedAt(Instant.now())
         .build());
+
+    // 8. Publish rejection events for cascade-rejected requests
+    String rejectionReason = "auto-rejected: service ownership assigned to another team";
+    for (ApprovalRequest rejectedRequest : cascadedRejectedRequests) {
+      eventPublisher.publishEvent(ApprovalRequestRejectedEvent.builder()
+          .requestId(rejectedRequest.getId().id())
+          .requesterUserId(rejectedRequest.getRequesterUserId())
+          .serviceId(serviceId)
+          .targetTeamId(rejectedRequest.getTarget().getTeamId())
+          .rejectorUserId("SYSTEM")
+          .rejectedAt(Instant.now())
+          .reason(rejectionReason)
+          .build());
+    }
   }
 
   /**

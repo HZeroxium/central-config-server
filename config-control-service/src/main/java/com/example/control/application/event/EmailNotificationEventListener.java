@@ -2,6 +2,8 @@ package com.example.control.application.event;
 
 import com.example.control.application.service.infra.EmailNotificationService;
 import com.example.control.domain.event.ApprovalRequestApprovedEvent;
+import com.example.control.domain.event.ApprovalRequestRejectedEvent;
+import com.example.control.domain.event.DriftEventCreatedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
@@ -45,6 +47,53 @@ public class EmailNotificationEventListener {
     } catch (Exception e) {
       log.error("Error processing approval notification event for request: {}",
           event.getRequestId(), e);
+      // Don't rethrow - email failures should not affect the system
+    }
+  }
+
+  /**
+   * Handles approval request rejected event by sending email notification.
+   * <p>
+   * Executes asynchronously after transaction commit to avoid blocking the main
+   * transaction.
+   * Uses the dedicated notificationExecutor thread pool for I/O-bound email operations.
+   * </p>
+   *
+   * @param event the approval request rejected event
+   */
+  @Async("notificationExecutor")
+  @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+  public void handleApprovalRequestRejected(ApprovalRequestRejectedEvent event) {
+    log.info("Received ApprovalRequestRejectedEvent for request: {}", event.getRequestId());
+    try {
+      emailNotificationService.sendRejectionNotification(event);
+    } catch (Exception e) {
+      log.error("Error processing rejection notification event for request: {}",
+          event.getRequestId(), e);
+      // Don't rethrow - email failures should not affect the system
+    }
+  }
+
+  /**
+   * Handles drift event created event by sending email notifications.
+   * <p>
+   * Executes asynchronously after transaction commit to avoid blocking the main
+   * transaction.
+   * Uses the dedicated notificationExecutor thread pool for I/O-bound email operations.
+   * </p>
+   *
+   * @param event the drift event created event
+   */
+  @Async("notificationExecutor")
+  @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+  public void handleDriftEventCreated(DriftEventCreatedEvent event) {
+    log.info("Received DriftEventCreatedEvent for event: {} service: {} instance: {}",
+        event.getDriftEventId(), event.getServiceName(), event.getInstanceId());
+    try {
+      emailNotificationService.sendDriftEventNotification(event);
+    } catch (Exception e) {
+      log.error("Error processing drift event notification for event: {}",
+          event.getDriftEventId(), e);
       // Don't rethrow - email failures should not affect the system
     }
   }

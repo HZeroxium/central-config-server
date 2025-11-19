@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.ArrayList;
 
 /**
  * MongoDB adapter implementation for {@link ServiceShareRepositoryPort}.
@@ -97,11 +98,69 @@ public class ServiceShareMongoAdapter
             ServiceShare.GranteeType grantToType,
             String grantToId,
             List<String> environments) {
-        log.debug("Checking if service share exists: service={}, grantee={}-{}, environments={}",
+        log.debug("Checking if service share exists with overlap: service={}, grantee={}-{}, environments={}",
                 serviceId, grantToType, grantToId, environments);
 
-        return repository.existsByServiceAndGranteeAndEnvironments(
-                serviceId, grantToType.name(), grantToId, environments);
+        // Find all existing shares for this (serviceId, grantToType, grantToId) combination
+        // that are not expired
+        List<Criteria> baseCriteria = new ArrayList<>();
+        baseCriteria.add(Criteria.where("serviceId").is(serviceId));
+        baseCriteria.add(Criteria.where("grantToType").is(grantToType.name()));
+        baseCriteria.add(Criteria.where("grantToId").is(grantToId));
+        
+        // Filter out expired shares: expiresAt == null OR expiresAt > now
+        Instant now = Instant.now();
+        baseCriteria.add(
+            new Criteria().orOperator(
+                Criteria.where("expiresAt").is(null),
+                Criteria.where("expiresAt").gt(now)
+            )
+        );
+        
+        Query query = new Query();
+        query.addCriteria(new Criteria().andOperator(baseCriteria.toArray(new Criteria[0])));
+        
+        // Fetch all matching shares to check for environment overlaps
+        List<ServiceShareDocument> existingShares = mongoTemplate.find(query, ServiceShareDocument.class, getCollectionName());
+        
+        if (existingShares.isEmpty()) {
+            log.debug("No existing shares found, no overlap");
+            return false;
+        }
+        
+        // Normalize environments: null or empty means "all environments"
+        boolean newShareCoversAll = (environments == null || environments.isEmpty());
+        
+        // Check each existing share for overlap
+        for (ServiceShareDocument existingShare : existingShares) {
+            List<String> existingEnvs = existingShare.getEnvironments();
+            boolean existingCoversAll = (existingEnvs == null || existingEnvs.isEmpty());
+            
+            // Case 1: If existing share covers all environments, any new share overlaps
+            if (existingCoversAll) {
+                log.debug("Overlap detected: existing share covers all environments");
+                return true;
+            }
+            
+            // Case 2: If new share covers all environments, it overlaps with any existing share
+            if (newShareCoversAll) {
+                log.debug("Overlap detected: new share covers all environments, existing share exists");
+                return true;
+            }
+            
+            // Case 3: Both have specific environments - check for intersection
+            if (existingEnvs != null && !existingEnvs.isEmpty() && environments != null && !environments.isEmpty()) {
+                // Check if there's any common environment
+                boolean hasIntersection = existingEnvs.stream().anyMatch(environments::contains);
+                if (hasIntersection) {
+                    log.debug("Overlap detected: environments intersect - existing={}, new={}", existingEnvs, environments);
+                    return true;
+                }
+            }
+        }
+        
+        log.debug("No overlap detected with {} existing shares", existingShares.size());
+        return false;
     }
 
     @Override

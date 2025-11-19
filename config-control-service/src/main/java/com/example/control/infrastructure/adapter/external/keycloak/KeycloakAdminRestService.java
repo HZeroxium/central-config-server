@@ -472,5 +472,62 @@ public class KeycloakAdminRestService {
 
         return decoratedCall.get();
     }
+
+    /**
+     * Get users that have a specific realm role assigned.
+     * <p>
+     * Uses Keycloak Admin API endpoint: /admin/realms/{realm}/roles/{role-name}/users
+     * </p>
+     *
+     * @param roleName Name of the realm role
+     * @param pageable Pagination info
+     * @return List of users with the role
+     */
+    public List<KeycloakUserRepresentation> getRoleMembers(String roleName, Pageable pageable) {
+        Supplier<List<KeycloakUserRepresentation>> apiCall = () -> {
+            try {
+                String url = String.format("%s/admin/realms/%s/roles/%s/users",
+                        properties.getUrl(), properties.getRealm(), roleName);
+
+                // Build query parameters for pagination
+                List<String> params = new ArrayList<>();
+                if (pageable != null && !pageable.isUnpaged()) {
+                    params.add("first=" + pageable.getOffset());
+                    params.add("max=" + pageable.getPageSize());
+                }
+
+                String fullUrl = url;
+                if (!params.isEmpty()) {
+                    fullUrl += "?" + String.join("&", params);
+                }
+
+                List<KeycloakUserRepresentation> users = restClient.get()
+                        .uri(fullUrl)
+                        .headers(h -> h.setBearerAuth(getAccessToken()))
+                        .retrieve()
+                        .body(new ParameterizedTypeReference<List<KeycloakUserRepresentation>>() {});
+
+                return users != null ? users : Collections.emptyList();
+            } catch (HttpClientErrorException.NotFound e) {
+                log.debug("Role not found or has no members: {}", roleName);
+                return Collections.emptyList();
+            } catch (Exception e) {
+                log.error("Failed to get role members: {}", roleName, e);
+                throw new ExternalServiceException("keycloak", "Failed to get role members: " + e.getMessage(), e);
+            }
+        };
+
+        Function<Throwable, List<KeycloakUserRepresentation>> fallback = (Throwable t) -> {
+            log.warn("Keycloak getRoleMembers fallback triggered for role: {} due to: {}", roleName, t.getMessage());
+            return Collections.emptyList();
+        };
+
+        Supplier<List<KeycloakUserRepresentation>> decoratedCall = resilienceFactory.decorateSupplier(
+                SERVICE_NAME,
+                apiCall,
+                fallback);
+
+        return decoratedCall.get();
+    }
 }
 

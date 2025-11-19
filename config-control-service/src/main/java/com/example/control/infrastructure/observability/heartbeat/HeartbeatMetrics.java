@@ -44,6 +44,14 @@ public class HeartbeatMetrics {
     // Timers
     private final Timer heartbeatProcessingTime;
     private final Timer heartbeatBatchProcessingTime;
+    /**
+     * Legacy timer for heartbeat ingestion time.
+     * <p>
+     * @deprecated Use {@code heartbeat.batch.ingestion.time} metric instead (exposed via {@code @Timed}
+     * annotation on {@link com.example.control.application.service.infra.HeartbeatIngestionService#enqueue}).
+     * This timer is kept for backward compatibility but will be removed in a future version.
+     */
+    @Deprecated
     private final Timer heartbeatIngestionTime;
 
     // Gauges (mutable state)
@@ -104,8 +112,11 @@ public class HeartbeatMetrics {
                 .publishPercentileHistogram()
                 .register(meterRegistry);
 
+        // Legacy timer for heartbeat ingestion time (deprecated)
+        // @deprecated Use heartbeat.batch.ingestion.time metric instead (exposed via @Timed annotation)
+        // This timer is kept for backward compatibility but will be removed in a future version.
         this.heartbeatIngestionTime = Timer.builder("heartbeat.ingestion.time")
-                .description("Time taken to ingest (enqueue) a heartbeat")
+                .description("Time taken to ingest (enqueue) a heartbeat (DEPRECATED: use heartbeat.batch.ingestion.time instead)")
                 .publishPercentiles(0.5, 0.9, 0.95, 0.99)
                 .register(meterRegistry);
 
@@ -187,9 +198,15 @@ public class HeartbeatMetrics {
 
     /**
      * Record heartbeat ingestion (enqueue) time.
+     * <p>
+     * @deprecated This method records to the legacy {@code heartbeat.ingestion.time} metric.
+     * The {@code @Timed} annotation on {@link com.example.control.application.service.infra.HeartbeatIngestionService#enqueue}
+     * automatically records to {@code heartbeat.batch.ingestion.time}, so this method is no longer needed.
+     * This method is kept for backward compatibility but will be removed in a future version.
      *
      * @param duration the ingestion duration
      */
+    @Deprecated
     public void recordIngestionTime(Duration duration) {
         heartbeatIngestionTime.record(duration);
     }

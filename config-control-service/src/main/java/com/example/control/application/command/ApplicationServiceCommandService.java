@@ -3,12 +3,13 @@ package com.example.control.application.command;
 import com.example.control.domain.valueobject.id.ApplicationServiceId;
 import com.example.control.domain.model.ApplicationService;
 import com.example.control.domain.port.repository.ApplicationServiceRepositoryPort;
+import com.example.control.infrastructure.cache.ApplicationServiceCacheEvictionService;
+import com.example.control.infrastructure.observability.MetricsNames;
 import com.mongodb.bulk.BulkWriteResult;
+import io.micrometer.core.annotation.Timed;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.Cache;
-import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,12 +35,12 @@ import java.util.UUID;
 public class ApplicationServiceCommandService {
 
     private final ApplicationServiceRepositoryPort repository;
-    private final CacheManager cacheManager;
+    private final ApplicationServiceCacheEvictionService cacheEvictionService;
 
     /**
      * Saves an application service (create or update).
      * Automatically generates ID if null.
-     * Evicts specific application-services cache entry by ID.
+     * Evicts specific application-services cache entry by ID, displayName cache, and findAll caches.
      *
      * @param service the application service to save
      * @return the saved application service
@@ -55,19 +56,26 @@ public class ApplicationServiceCommandService {
 
         ApplicationService saved = repository.save(service);
         log.info("Saved application service: {} (displayName: {})", saved.getId(), saved.getDisplayName());
+
+        // Evict displayName cache and findAll caches (in addition to individual service cache evicted by @CacheEvict)
+        cacheEvictionService.evictForServiceUpdate(saved.getId(), saved.getDisplayName());
+
         return saved;
     }
 
     /**
      * Deletes an application service by ID.
-     * Evicts specific application-services cache entry by ID.
+     * Evicts specific application-services cache entry by ID, displayName cache, and findAll caches.
      *
      * @param id the application service ID to delete
      */
     @CacheEvict(value = "application-services", key = "#id")
     public void deleteById(ApplicationServiceId id) {
         log.info("Deleting application service: {}", id);
+        // Note: We need displayName to evict displayName cache, but we can't get it after delete
+        // So we'll evict all caches to be safe
         repository.deleteById(id);
+        cacheEvictionService.evictAll("Service deletion: " + id);
     }
 
     /**
@@ -81,6 +89,7 @@ public class ApplicationServiceCommandService {
      * @param services list of application services to save
      * @return bulk write result with counts of inserted/updated documents
      */
+    @Timed(MetricsNames.Heartbeat.BATCH_MONGODB_APPSERVICES_SAVE_TIME)
     public BulkWriteResult bulkSave(List<ApplicationService> services) {
         if (services == null || services.isEmpty()) {
             log.debug("Empty services list, skipping bulk save");
@@ -98,22 +107,8 @@ public class ApplicationServiceCommandService {
 
         BulkWriteResult result = repository.bulkSave(services);
 
-        // Programmatically evict cache entries for specific service IDs
-        Cache cache = cacheManager.getCache("application-services");
-        if (cache != null) {
-            int evictedCount = 0;
-            for (ApplicationService service : services) {
-                if (service.getId() != null) {
-                    try {
-                        cache.evict(service.getId());
-                        evictedCount++;
-                    } catch (Exception e) {
-                        log.warn("Failed to evict cache for application service: {}", service.getId(), e);
-                    }
-                }
-            }
-            log.debug("Evicted {} cache entries for application services", evictedCount);
-        }
+        // Evict cache entries using helper service (handles displayName and findAll caches)
+        cacheEvictionService.evictForBatchUpdate(services);
 
         log.info("Bulk save completed: {} inserted, {} modified",
                 result != null ? result.getInsertedCount() : 0,

@@ -4,13 +4,18 @@ import com.example.control.application.command.ApprovalRequestCommandService;
 import com.example.control.application.query.ApprovalDecisionQueryService;
 import com.example.control.application.query.ApprovalRequestQueryService;
 import com.example.control.domain.criteria.ApprovalDecisionCriteria;
+import com.example.control.domain.event.ApprovalRequestRejectedEvent;
 import com.example.control.domain.valueobject.id.ApprovalRequestId;
 import com.example.control.domain.model.ApprovalDecision;
 import com.example.control.domain.model.ApprovalRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
 
 /**
  * Service for evaluating approval request status and updating requests
@@ -31,6 +36,7 @@ public class ApprovalStatusEvaluator {
   private final ApprovalDecisionQueryService approvalDecisionQueryService;
   private final ApprovalRequestCommandService approvalRequestCommandService;
   private final ApprovalCascadeService approvalCascadeService;
+  private final ApplicationEventPublisher eventPublisher;
 
   /**
    * Check if all gates are satisfied and update request status if so.
@@ -63,7 +69,14 @@ public class ApprovalStatusEvaluator {
       if (rejectCount > 0) {
         log.info("Found rejection for request: {} at gate: {}, rejecting entire request",
             requestId, gate.getGate());
-        rejectRequest(requestId, "Rejected by " + gate.getGate() + " gate");
+        // Find the first rejection decision to get rejector user ID
+        String rejectorUserId = "SYSTEM";
+        var rejectDecisions = approvalDecisionQueryService.findAll(rejectCriteria, Pageable.ofSize(1));
+        if (!rejectDecisions.isEmpty()) {
+          ApprovalDecision rejectDecision = rejectDecisions.getContent().get(0);
+          rejectorUserId = rejectDecision.getApproverUserId() != null ? rejectDecision.getApproverUserId() : "SYSTEM";
+        }
+        rejectRequest(requestId, "Rejected by " + gate.getGate() + " gate", rejectorUserId);
         return;
       }
     }
@@ -90,11 +103,12 @@ public class ApprovalStatusEvaluator {
   /**
    * Reject a request by updating its status with reason.
    *
-   * @param requestId the request ID
-   * @param reason    the rejection reason
+   * @param requestId     the request ID
+   * @param reason        the rejection reason
+   * @param rejectorUserId the user ID who rejected the request (can be SYSTEM)
    */
   @Transactional
-  public void rejectRequest(String requestId, String reason) {
+  public void rejectRequest(String requestId, String reason, String rejectorUserId) {
     ApprovalRequestId requestIdObj = ApprovalRequestId.of(requestId);
     ApprovalRequest request = approvalRequestQueryService.findById(requestIdObj)
         .orElseThrow(() -> new IllegalArgumentException(
@@ -108,6 +122,17 @@ public class ApprovalStatusEvaluator {
 
     if (updated) {
       log.info("Successfully rejected request: {} with reason: {}", requestId, reason);
+      
+      // Publish rejection event for email notification
+      eventPublisher.publishEvent(ApprovalRequestRejectedEvent.builder()
+          .requestId(requestId)
+          .requesterUserId(request.getRequesterUserId())
+          .serviceId(request.getTarget().getServiceId())
+          .targetTeamId(request.getTarget().getTeamId())
+          .rejectorUserId(rejectorUserId)
+          .rejectedAt(Instant.now())
+          .reason(reason)
+          .build());
     } else {
       log.warn("Failed to reject request: {} due to version conflict", requestId);
     }

@@ -412,9 +412,11 @@ public class CacheManagerFactory {
         }
 
         RedisCacheManager redisCacheManager = builder.build();
+
+        return redisCacheManager;
         
         // Wrap with ResilientRedisCacheManager to handle deserialization errors gracefully
-        return new ResilientRedisCacheManager(redisCacheManager);
+        // return new ResilientRedisCacheManager(redisCacheManager);
     }
 
     /**

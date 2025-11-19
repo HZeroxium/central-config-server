@@ -1,15 +1,19 @@
 package com.example.control.application.command;
 
+import com.example.control.domain.event.DriftEventCreatedEvent;
 import com.example.control.domain.valueobject.id.DriftEventId;
 import com.example.control.domain.model.DriftEvent;
 import com.example.control.domain.port.repository.DriftEventRepositoryPort;
+import com.example.control.infrastructure.observability.MetricsNames;
 import com.mongodb.bulk.BulkWriteResult;
+import io.micrometer.core.annotation.Timed;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
@@ -47,6 +51,7 @@ public class DriftEventCommandService {
 
     private final DriftEventRepositoryPort repository;
     private final CacheManager cacheManager;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * Saves a drift event (create or update).
@@ -61,14 +66,34 @@ public class DriftEventCommandService {
     public DriftEvent save(@Valid DriftEvent event) {
         log.debug("Saving drift event: {}", event.getId());
 
+        // Check if this is a new event (ID is null)
+        boolean isNewEvent = event.getId() == null;
+
         // Generate UUID if ID is null (new event)
-        if (event.getId() == null) {
+        if (isNewEvent) {
             event.setId(DriftEventId.of(UUID.randomUUID().toString()));
             log.debug("Generated new ID for drift event: {}", event.getId());
         }
 
         DriftEvent saved = repository.save(event);
         log.info("Saved drift event: {} for service: {}", saved.getId(), saved.getServiceName());
+
+        // Publish event for email notification (only for new events)
+        if (isNewEvent && saved.getStatus() == DriftEvent.DriftStatus.DETECTED) {
+            eventPublisher.publishEvent(DriftEventCreatedEvent.builder()
+                    .driftEventId(saved.getId().id())
+                    .serviceName(saved.getServiceName())
+                    .instanceId(saved.getInstanceId())
+                    .serviceId(saved.getServiceId())
+                    .teamId(saved.getTeamId())
+                    .environment(saved.getEnvironment())
+                    .expectedHash(saved.getExpectedHash())
+                    .appliedHash(saved.getAppliedHash())
+                    .severity(saved.getSeverity())
+                    .detectedAt(saved.getDetectedAt())
+                    .build());
+        }
+
         return saved;
     }
 
@@ -136,6 +161,7 @@ public class DriftEventCommandService {
      * @param events list of drift events to save
      * @return bulk write result with counts of inserted/updated documents
      */
+    @Timed(MetricsNames.Heartbeat.BATCH_MONGODB_DRIFT_SAVE_TIME)
     public BulkWriteResult bulkSave(List<DriftEvent> events) {
         if (events == null || events.isEmpty()) {
             log.debug("Empty events list, skipping bulk save");
@@ -168,6 +194,24 @@ public class DriftEventCommandService {
                 }
             }
             log.debug("Evicted {} cache entries for drift events", evictedCount);
+        }
+
+        // Publish events for email notification (only for new DETECTED events)
+        for (DriftEvent event : events) {
+            if (event.getStatus() == DriftEvent.DriftStatus.DETECTED) {
+                eventPublisher.publishEvent(DriftEventCreatedEvent.builder()
+                        .driftEventId(event.getId().id())
+                        .serviceName(event.getServiceName())
+                        .instanceId(event.getInstanceId())
+                        .serviceId(event.getServiceId())
+                        .teamId(event.getTeamId())
+                        .environment(event.getEnvironment())
+                        .expectedHash(event.getExpectedHash())
+                        .appliedHash(event.getAppliedHash())
+                        .severity(event.getSeverity())
+                        .detectedAt(event.getDetectedAt())
+                        .build());
+            }
         }
 
         log.info("Bulk save completed: {} inserted, {} modified",

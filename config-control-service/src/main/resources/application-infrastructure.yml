@@ -96,10 +96,13 @@ kv:
 # Service Instance Cleanup Configuration
 service-instance:
   cleanup:
-    enabled: false
-    stale-threshold-minutes: 10
-    cleanup-threshold-days: 30
-    schedule-cron: "0 */5 * * * *" # Every 5 minutes
+    enabled: true
+    unhealthy-threshold-minutes: 1 # Mark instances as UNHEALTHY after 5 minutes without heartbeat
+    unhealthy-cleanup-threshold-days: 30 # Delete UNHEALTHY instances after 30 days
+    schedule-cron: "*/30 * * * * *" # Every 5 minutes
+    # Deprecated properties (kept for backward compatibility)
+    # stale-threshold-minutes: 10
+    # cleanup-threshold-days: 30
 
 # Heartbeat Configuration
 app:

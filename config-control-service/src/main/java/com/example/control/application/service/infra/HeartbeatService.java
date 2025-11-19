@@ -14,6 +14,8 @@ import com.example.control.domain.model.ApplicationService;
 import com.example.control.domain.model.DriftEvent;
 import com.example.control.domain.model.HeartbeatPayload;
 import com.example.control.domain.model.ServiceInstance;
+import com.example.control.infrastructure.cache.ServiceInstanceCacheEvictionService;
+import com.example.control.infrastructure.config.messaging.HeartbeatProperties;
 import com.example.control.infrastructure.observability.MetricsNames;
 import io.micrometer.observation.annotation.Observed;
 import io.micrometer.tracing.annotation.NewSpan;
@@ -57,6 +59,8 @@ public class HeartbeatService {
     private final ServiceInstanceService serviceInstanceService;
     private final DriftEventService driftEventService;
     private final ConfigProxyService configProxyService;
+    private final ServiceInstanceCacheEvictionService cacheEvictionService;
+    private final HeartbeatProperties heartbeatProperties;
 
     // Command/Query services for ApplicationService
     private final ApplicationServiceCommandService applicationServiceCommandService;
@@ -71,6 +75,12 @@ public class HeartbeatService {
      * Maintains exponential backoff power per instance (1, 2, 4, 8, 16 cycles).
      */
     private final ConcurrentHashMap<String, Integer> driftBackoffPow = new ConcurrentHashMap<>();
+
+    /**
+     * Maintains drift event count per instance for threshold-based event creation.
+     * Separate from driftRetryCount which is used for refresh backoff.
+     */
+    private final ConcurrentHashMap<String, Integer> driftEventCount = new ConcurrentHashMap<>();
 
     /**
      * Main entry point for heartbeat processing.
@@ -176,7 +186,7 @@ public class HeartbeatService {
                     if (payload.getEnvironment() != null && !payload.getEnvironment().isEmpty()) {
                         initialEnvironments = List.of(payload.getEnvironment());
                     } else {
-                        initialEnvironments = List.of("dev", "staging", "prod"); // Default if no environment
+                        initialEnvironments = List.of("dev"); // Default to dev if no environment
                     }
 
                     ApplicationService orphanedService = ApplicationService.builder()
@@ -211,14 +221,14 @@ public class HeartbeatService {
                     if (payload.getEnvironment() != null && !payload.getEnvironment().isEmpty()) {
                         initialEnvironments = List.of(payload.getEnvironment());
                     } else {
-                        initialEnvironments = List.of("dev", "staging", "prod"); // Default if no environment
+                        initialEnvironments = List.of("dev"); // Default to dev if no environment
                     }
 
                     ApplicationService orphanedService = ApplicationService.builder()
-                            .id(ApplicationServiceId.of(instance.getServiceId())) // Try to reuse same ID if possible
-                            .displayName(payload.getServiceName())
-                            .ownerTeamId(null) // Orphaned - requires approval workflow
-                            .environments(initialEnvironments)
+                        .id(ApplicationServiceId.of(instance.getServiceId())) // Try to reuse same ID if possible
+                        .displayName(payload.getServiceName())
+                        .ownerTeamId(null) // Orphaned - requires approval workflow
+                        .environments(initialEnvironments)
                             .lifecycle(ApplicationService.ServiceLifecycle.ACTIVE)
                             .createdAt(Instant.now())
                             .createdBy("system") // System-created
@@ -242,7 +252,7 @@ public class HeartbeatService {
                     if (payload.getEnvironment() != null && !payload.getEnvironment().isEmpty()) {
                         initialEnvironments = List.of(payload.getEnvironment());
                     } else {
-                        initialEnvironments = List.of("dev", "staging", "prod");
+                        initialEnvironments = List.of("dev"); // Default to dev if no environment
                     }
 
                     ApplicationService orphanedService = ApplicationService.builder()
@@ -329,6 +339,7 @@ public class HeartbeatService {
             instance.setHasDrift(false);
             driftRetryCount.remove(id);
             driftBackoffPow.remove(id);
+            driftEventCount.remove(id);
             return serviceInstanceService.save(instance);
         }
 
@@ -336,20 +347,33 @@ public class HeartbeatService {
 
         // 7️⃣ Handle drift detection & resolution cases
         if (hasDrift && !Boolean.TRUE.equals(instance.getHasDrift())) {
-            /** Case A: Drift newly detected */
+            /** Case A: Drift newly detected - track internally but keep status HEALTHY until threshold */
             log.warn("Configuration drift detected for {}: expected={}, applied={}",
                     id, expectedHash, payload.getConfigHash());
 
-            instance.setHasDrift(true);
-            instance.setDriftDetectedAt(now);
+            // Keep status HEALTHY and hasDrift false until threshold is reached
+            // Only track drift internally via driftEventCount
             instance.setExpectedHash(expectedHash); // Store for future reference
             instance.setConfigHash(expectedHash);
-            instance.setStatus(ServiceInstance.InstanceStatus.DRIFT);
+            // Do NOT set hasDrift=true or status=DRIFT yet
 
-            // Create a drift event record for observability
-            createDriftEvent(payload, expectedHash, instance);
+            // Initialize drift event counter (start at 1 for first detection)
+            driftEventCount.put(id, 1);
+            
+            // Don't create event on first detection - wait for threshold to be reached
+            int threshold = heartbeatProperties.getDriftDetection().getEventThreshold();
+            if (threshold <= 1) {
+                // If threshold is 1 or less, set DRIFT status and create event immediately
+                instance.setHasDrift(true);
+                instance.setDriftDetectedAt(now);
+                instance.setStatus(ServiceInstance.InstanceStatus.DRIFT);
+                createDriftEvent(payload, expectedHash, instance);
+            } else {
+                log.debug("Drift detected for {} but threshold not reached ({}/{}) - keeping status HEALTHY",
+                        id, driftEventCount.get(id), threshold);
+            }
 
-            // Trigger /busrefresh to resync configuration
+            // Trigger /busrefresh to resync configuration (always trigger immediately for auto-correction)
             triggerRefreshForInstance(payload.getServiceName(), payload.getInstanceId());
 
             // Initialize retry counters for exponential backoff
@@ -375,6 +399,7 @@ public class HeartbeatService {
 
             driftRetryCount.remove(id);
             driftBackoffPow.remove(id);
+            driftEventCount.remove(id); // Reset drift event counter
 
         } else if (!hasDrift && !Boolean.TRUE.equals(instance.getHasDrift())) {
             /**
@@ -394,15 +419,35 @@ public class HeartbeatService {
 
             driftRetryCount.remove(id);
             driftBackoffPow.remove(id);
+            driftEventCount.remove(id); // Reset drift event counter
 
-        } else if (hasDrift && Boolean.TRUE.equals(instance.getHasDrift())) {
-            /** Case D: Persistent drift — apply exponential backoff strategy */
+        } else if (hasDrift) {
+            /** Case D: Persistent drift — increment counter and set DRIFT status when threshold reached */
             int count = driftRetryCount.merge(id, 1, Integer::sum);
             int pow = driftBackoffPow.compute(id, (k, v) -> v == null ? 0 : Math.min(v, 4)); // limit to 16 cycles
-            int threshold = 1 << pow; // 1, 2, 4, 8, 16
-            if (count >= threshold) {
+            int refreshThreshold = 1 << pow; // 1, 2, 4, 8, 16
+            
+            // Increment drift event counter and check if threshold reached
+            int eventCount = driftEventCount.merge(id, 1, Integer::sum);
+            int eventThreshold = heartbeatProperties.getDriftDetection().getEventThreshold();
+            
+            // Check if this is the first time threshold is reached
+            if (eventCount >= eventThreshold && !Boolean.TRUE.equals(instance.getHasDrift())) {
+                // Threshold reached - now set DRIFT status and create event
+                log.warn("Drift threshold reached for {} after {} consecutive detections. Setting status DRIFT and creating DriftEvent.",
+                        id, eventCount);
+                instance.setHasDrift(true);
+                instance.setDriftDetectedAt(now);
+                instance.setStatus(ServiceInstance.InstanceStatus.DRIFT);
+                createDriftEvent(payload, expectedHash, instance);
+            } else if (eventCount >= eventThreshold && Boolean.TRUE.equals(instance.getHasDrift())) {
+                // Already marked as DRIFT, just log
+                log.debug("Drift persists for {} (count: {})", id, eventCount);
+            }
+            
+            if (count >= refreshThreshold) {
                 log.warn("Persistent drift for {} after {} heartbeats (threshold {}). Re-triggering refresh.",
-                        id, count, threshold);
+                        id, count, refreshThreshold);
                 triggerRefreshForInstance(payload.getServiceName(), payload.getInstanceId());
 
                 driftRetryCount.put(id, 0);
@@ -411,7 +456,15 @@ public class HeartbeatService {
         }
 
         // 8️⃣ Persist instance to MongoDB and return updated state
-        return serviceInstanceService.save(instance);
+        ServiceInstance savedInstance = serviceInstanceService.save(instance);
+
+        // 9️⃣ Evict cache entries for findAll and count caches
+        // Status changes affect findAll queries with status filters, so we need to evict them
+        if (instance.getId() != null) {
+            cacheEvictionService.evictForStatusChange(instance.getId());
+        }
+
+        return savedInstance;
     }
 
     /**

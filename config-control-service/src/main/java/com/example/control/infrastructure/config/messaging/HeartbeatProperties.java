@@ -26,6 +26,23 @@ public class HeartbeatProperties {
      */
     private Kafka kafka = new Kafka();
 
+    /**
+     * Drift detection configuration.
+     */
+    private DriftDetection driftDetection = new DriftDetection();
+
+    @Data
+    public static class DriftDetection {
+        /**
+         * Number of consecutive drift detections required before creating a DriftEvent.
+         * <p>
+         * Defaults to 3 to avoid creating events for transient drift issues.
+         * Refresh events are still triggered immediately on first drift detection.
+         */
+        @Positive
+        private int eventThreshold = 3;
+    }
+
     @Data
     public static class Kafka {
         /**

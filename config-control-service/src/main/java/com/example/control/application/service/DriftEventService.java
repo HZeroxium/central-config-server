@@ -8,6 +8,7 @@ import com.example.control.infrastructure.observability.MetricsNames;
 import com.example.control.domain.model.DriftEvent;
 import com.example.control.domain.criteria.DriftEventCriteria;
 import com.example.control.domain.valueobject.id.DriftEventId;
+import io.micrometer.core.annotation.Timed;
 import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -212,6 +213,7 @@ public class DriftEventService {
      */
     @Observed(name = MetricsNames.DriftEvent.RESOLVE, contextualName = "drift-event-resolve", lowCardinalityKeyValues = {
             "operation", "resolve" })
+    @Timed(MetricsNames.Heartbeat.BATCH_DRIFT_RESOLVE_TIME)
     public void resolveForInstance(String serviceName, String instanceId, String resolvedBy) {
         commandService.resolveForInstance(serviceName, instanceId, resolvedBy);
     }

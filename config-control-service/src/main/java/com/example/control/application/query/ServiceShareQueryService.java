@@ -93,7 +93,11 @@ public class ServiceShareQueryService {
      * @param environments optional environment filter
      * @return true if share exists, false otherwise
      */
-    @Cacheable(value = "service-shares", key = "'exists:' + #serviceId + ':' + #grantToType + ':' + #grantToId + ':' + #environments.hashCode()")
+    @Cacheable(
+        value = "service-shares", 
+        key = "'exists:' + #serviceId + ':' + #grantToType + ':' + #grantToId + ':' + (T(java.util.Objects).hashCode(#environments))",
+        condition = "#serviceId != null && #grantToType != null && #grantToId != null"
+        )
     public boolean existsByServiceAndGranteeAndEnvironments(String serviceId,
                                                             ServiceShare.GranteeType grantToType,
                                                             String grantToId,

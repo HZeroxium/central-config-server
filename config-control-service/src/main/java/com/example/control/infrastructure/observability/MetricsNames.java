@@ -64,6 +64,116 @@ public final class MetricsNames {
      * {@link com.example.control.application.service.infra.HeartbeatIngestionService#enqueue}
      */
     public static final String INGESTION = "heartbeat.ingestion";
+
+    /**
+     * Heartbeat batch ingestion (enqueue) operation time.
+     * <p>
+     * Metric name: {@code heartbeat.batch.ingestion.time}
+     * <p>
+     * Used in:
+     * {@link com.example.control.application.service.infra.HeartbeatIngestionService#enqueue}
+     */
+    public static final String BATCH_INGESTION_TIME = "heartbeat.batch.ingestion.time";
+
+    /**
+     * Kafka batch processing time.
+     * <p>
+     * Metric name: {@code heartbeat.batch.kafka.process.time}
+     * <p>
+     * Used in:
+     * {@link com.example.control.application.service.infra.HeartbeatBatchProcessor#processBatch}
+     */
+    public static final String BATCH_KAFKA_PROCESS_TIME = "heartbeat.batch.kafka.process.time";
+
+    /**
+     * Batch load instances time.
+     * <p>
+     * Metric name: {@code heartbeat.batch.load.instances.time}
+     * <p>
+     * Used in:
+     * {@link com.example.control.application.service.infra.HeartbeatBatchService#loadInstancesBatch}
+     */
+    public static final String BATCH_LOAD_INSTANCES_TIME = "heartbeat.batch.load.instances.time";
+
+    /**
+     * Batch load application services time.
+     * <p>
+     * Metric name: {@code heartbeat.batch.load.appservices.time}
+     * <p>
+     * Used in:
+     * {@link com.example.control.application.service.infra.HeartbeatBatchService#loadApplicationServicesBatch}
+     */
+    public static final String BATCH_LOAD_APPSERVICES_TIME = "heartbeat.batch.load.appservices.time";
+
+    /**
+     * Batch load config hashes time.
+     * <p>
+     * Metric name: {@code heartbeat.batch.load.config.hashes.time}
+     * <p>
+     * Used in:
+     * {@link com.example.control.application.service.infra.HeartbeatBatchService#loadConfigHashesBatch}
+     */
+    public static final String BATCH_LOAD_CONFIG_HASHES_TIME = "heartbeat.batch.load.config.hashes.time";
+
+    /**
+     * Batch process heartbeats in memory time.
+     * <p>
+     * Metric name: {@code heartbeat.batch.process.inmemory.time}
+     * <p>
+     * Used in:
+     * {@link com.example.control.application.service.infra.HeartbeatBatchService#processBatch}
+     */
+    public static final String BATCH_PROCESS_INMEMORY_TIME = "heartbeat.batch.process.inmemory.time";
+
+    /**
+     * Batch bus refresh time.
+     * <p>
+     * Metric name: {@code heartbeat.batch.refresh.time}
+     * <p>
+     * Used in:
+     * {@link com.example.control.application.service.infra.HeartbeatBatchService#triggerBatchBusRefresh}
+     */
+    public static final String BATCH_REFRESH_TIME = "heartbeat.batch.refresh.time";
+
+    /**
+     * MongoDB bulk upsert instances time.
+     * <p>
+     * Metric name: {@code heartbeat.batch.mongodb.instances.upsert.time}
+     * <p>
+     * Used in:
+     * {@link com.example.control.application.command.ServiceInstanceCommandService#bulkUpsert}
+     */
+    public static final String BATCH_MONGODB_INSTANCES_UPSERT_TIME = "heartbeat.batch.mongodb.instances.upsert.time";
+
+    /**
+     * MongoDB bulk save application services time.
+     * <p>
+     * Metric name: {@code heartbeat.batch.mongodb.appservices.save.time}
+     * <p>
+     * Used in:
+     * {@link com.example.control.application.command.ApplicationServiceCommandService#bulkSave}
+     */
+    public static final String BATCH_MONGODB_APPSERVICES_SAVE_TIME = "heartbeat.batch.mongodb.appservices.save.time";
+
+    /**
+     * MongoDB bulk save drift events time.
+     * <p>
+     * Metric name: {@code heartbeat.batch.mongodb.drift.save.time}
+     * <p>
+     * Used in:
+     * {@link com.example.control.application.command.DriftEventCommandService#bulkSave}
+     */
+    public static final String BATCH_MONGODB_DRIFT_SAVE_TIME = "heartbeat.batch.mongodb.drift.save.time";
+
+    /**
+     * Batch drift event resolution time.
+     * <p>
+     * Metric name: {@code heartbeat.batch.drift.resolve.time}
+     * <p>
+     * Used in:
+     * {@link com.example.control.application.service.DriftEventService#resolveForInstance}
+     */
+    public static final String BATCH_DRIFT_RESOLVE_TIME = "heartbeat.batch.drift.resolve.time";
   }
 
   /**
@@ -92,13 +202,34 @@ public final class MetricsNames {
     }
 
     /**
-     * Instances marked as stale.
+     * Instances marked as unhealthy.
      * <p>
-     * Metric name: {@code config_control.cleanup.stale_instances_marked}
+     * Metric name: {@code config_control.cleanup.unhealthy_instances_marked}
      * <p>
      * Used in:
      * {@link com.example.control.application.service.infra.ServiceInstanceCleanupService}
      */
+    public static final String UNHEALTHY_INSTANCES_MARKED = "config_control.cleanup.unhealthy_instances_marked";
+
+    /**
+     * Unhealthy instances deleted.
+     * <p>
+     * Metric name: {@code config_control.cleanup.unhealthy_instances_deleted}
+     * <p>
+     * Used in:
+     * {@link com.example.control.application.service.infra.ServiceInstanceCleanupService}
+     */
+    public static final String UNHEALTHY_INSTANCES_DELETED = "config_control.cleanup.unhealthy_instances_deleted";
+
+    /**
+     * Instances marked as stale.
+     * <p>
+     * Metric name: {@code config_control.cleanup.stale_instances_marked}
+     * <p>
+     * 
+     * @deprecated Use {@link #UNHEALTHY_INSTANCES_MARKED} instead. Kept for backward compatibility.
+     */
+    @Deprecated
     public static final String STALE_INSTANCES_MARKED = "config_control.cleanup.stale_instances_marked";
 
     /**
@@ -106,9 +237,10 @@ public final class MetricsNames {
      * <p>
      * Metric name: {@code config_control.cleanup.stale_instances_deleted}
      * <p>
-     * Used in:
-     * {@link com.example.control.application.service.infra.ServiceInstanceCleanupService}
+     * 
+     * @deprecated Use {@link #UNHEALTHY_INSTANCES_DELETED} instead. Kept for backward compatibility.
      */
+    @Deprecated
     public static final String STALE_INSTANCES_DELETED = "config_control.cleanup.stale_instances_deleted";
   }
 

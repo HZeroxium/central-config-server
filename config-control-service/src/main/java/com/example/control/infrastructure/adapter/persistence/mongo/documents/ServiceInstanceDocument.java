@@ -88,9 +88,10 @@ public class ServiceInstanceDocument {
     /**
      * Timestamp of last heartbeat from the instance.
      * <p>
-     * Indexed with TTL = 1 hour to automatically expire inactive instances.
+     * Used to determine instance health status. Instances without heartbeat
+     * within the configured threshold (default: 5 minutes) will be marked as
+     * UNHEALTHY by ServiceInstanceCleanupService.
      */
-    @Indexed(expireAfter = "1h", name = "lastSeenAt_ttl")
     @Field("lastSeenAt")
     private Instant lastSeenAt;
 

@@ -41,8 +41,8 @@ app:
   # Cache configuration
   cache:
     # provider: CAFFEINE # Default to local cache
-    provider: REDIS
-    # provider: NOOP
+    # provider: REDIS
+    provider: NOOP
     application-name: ${spring.application.name:config-control-service}
     default-version: 1
     cache-name-prefix: "{spring.application.name:config-control-service}::"
@@ -122,6 +122,7 @@ app:
         ttl: 5m
         maximum-size: 10000
         allow-null-values: false
+
   # Heartbeat optimization configuration
   heartbeat:
     async:
@@ -129,7 +130,7 @@ app:
     kafka:
       topic: ${HEARTBEAT_KAFKA_TOPIC:heartbeat-queue}
       consumer:
-        concurrency: ${HEARTBEAT_CONSUMER_CONCURRENCY:10}
+        concurrency: ${HEARTBEAT_CONSUMER_CONCURRENCY:5}
         batch-size: ${HEARTBEAT_BATCH_SIZE:50}
         max-retries: ${HEARTBEAT_MAX_RETRIES:3}
         retry-backoff-ms: ${HEARTBEAT_RETRY_BACKOFF_MS:1000}
@@ -140,6 +141,12 @@ app:
       pre-warm:
         enabled: ${HEARTBEAT_CACHE_PREWARM_ENABLED:true}
         delay: ${HEARTBEAT_CACHE_PREWARM_DELAY:30s} # Delay after startup before pre-warming
+    # Drift detection configuration
+    # event-threshold: Number of consecutive drift detections required before creating a DriftEvent.
+    # Refresh events are triggered immediately on first drift detection, but DriftEvent is only
+    # created after threshold consecutive detections to avoid noise from transient issues.
+    drift-detection:
+      event-threshold: ${HEARTBEAT_DRIFT_EVENT_THRESHOLD:3}
 
 # Data Seeding Configuration
 seeding:
@@ -202,6 +209,3 @@ seeding:
         leaf-percentage: 20
         list-percentage: 50
         leaf-list-percentage: 30
-
-
-

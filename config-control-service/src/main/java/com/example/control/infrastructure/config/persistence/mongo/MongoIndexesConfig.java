@@ -3,6 +3,7 @@ package com.example.control.infrastructure.config.persistence.mongo;
 import com.example.control.infrastructure.adapter.persistence.mongo.documents.ApplicationServiceDocument;
 import com.example.control.infrastructure.adapter.persistence.mongo.documents.ApprovalRequestDocument;
 import com.example.control.infrastructure.adapter.persistence.mongo.documents.DriftEventDocument;
+import com.example.control.infrastructure.adapter.persistence.mongo.documents.ServiceInstanceDocument;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.domain.Sort;
@@ -38,6 +39,7 @@ public class MongoIndexesConfig {
         ensureApprovalRequestIndexes();
         ensureApplicationServiceIndexes();
         ensureDriftEventIndexes();
+        ensureServiceInstanceIndexes();
     }
 
     /**
@@ -162,5 +164,36 @@ public class MongoIndexesConfig {
         }
 
         log.info("Completed creating indexes for drift_events collection");
+    }
+
+    /**
+     * Ensures indexes for service_instances collection.
+     * <p>
+     * Removes the deprecated TTL index on lastSeenAt field if it exists.
+     * The TTL index was used for automatic deletion but is now replaced
+     * by application-controlled status management (UNHEALTHY marking and cleanup).
+     * </p>
+     */
+    private void ensureServiceInstanceIndexes() {
+        log.info("Ensuring MongoDB indexes for service_instances collection...");
+        IndexOperations ops = mongoTemplate.indexOps(ServiceInstanceDocument.class);
+
+        try {
+            // Drop the deprecated TTL index if it exists
+            // This index was used for automatic deletion but is now replaced
+            // by application-controlled status management
+            String ttlIndexName = "lastSeenAt_ttl";
+            if (ops.getIndexInfo().stream()
+                    .anyMatch(indexInfo -> ttlIndexName.equals(indexInfo.getName()))) {
+                ops.dropIndex(ttlIndexName);
+                log.info("Dropped deprecated TTL index: {}", ttlIndexName);
+            } else {
+                log.debug("TTL index {} does not exist, skipping drop", ttlIndexName);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to drop TTL index lastSeenAt_ttl: {}", e.getMessage());
+        }
+
+        log.info("Completed ensuring indexes for service_instances collection");
     }
 }

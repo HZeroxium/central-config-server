@@ -16,6 +16,7 @@ import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -74,12 +75,34 @@ public class ServiceInstanceMongoAdapter
             query.addCriteria(Criteria.where("lastSeenAt").gte(criteria.lastSeenAtFrom()));
         }
         if (criteria.lastSeenAtTo() != null) {
-            query.addCriteria(Criteria.where("lastSeenAt").lte(criteria.lastSeenAtTo()));
+            query.addCriteria(new Criteria().orOperator(
+                Criteria.where("lastSeenAt").lte(criteria.lastSeenAtTo()),
+                Criteria.where("lastSeenAt").is(null),
+                Criteria.where("lastSeenAt").exists(false)
+            ));
         }
 
-        // ABAC: Team-based filtering
+        // ABAC: Team-based filtering + Shared service filtering
+        List<Criteria> visibilityCriteria = new ArrayList<>();
+
+        // Filter by team ownership: teamId IN userTeamIds
         if (criteria.userTeamIds() != null && !criteria.userTeamIds().isEmpty()) {
-            query.addCriteria(Criteria.where("teamId").in(criteria.userTeamIds()));
+            visibilityCriteria.add(Criteria.where("teamId").in(criteria.userTeamIds()));
+        }
+
+        // Filter by shared services: serviceId IN sharedServiceIds
+        if (criteria.sharedServiceIds() != null && !criteria.sharedServiceIds().isEmpty()) {
+            visibilityCriteria.add(Criteria.where("serviceId").in(criteria.sharedServiceIds()));
+        }
+
+        // Combine visibility filters with $or operator
+        // User can see instances if: (teamId IN userTeamIds) OR (serviceId IN sharedServiceIds)
+        if (!visibilityCriteria.isEmpty()) {
+            if (visibilityCriteria.size() == 1) {
+                query.addCriteria(visibilityCriteria.get(0));
+            } else {
+                query.addCriteria(new Criteria().orOperator(visibilityCriteria.toArray(new Criteria[0])));
+            }
         }
 
         return query;

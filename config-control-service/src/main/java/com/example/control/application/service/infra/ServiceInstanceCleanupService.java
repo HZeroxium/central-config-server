@@ -4,6 +4,7 @@ import com.example.control.application.command.ServiceInstanceCommandService;
 import com.example.control.application.query.ServiceInstanceQueryService;
 import com.example.control.domain.criteria.ServiceInstanceCriteria;
 import com.example.control.domain.model.ServiceInstance;
+import com.example.control.infrastructure.cache.ServiceInstanceCacheEvictionService;
 import com.example.control.infrastructure.config.misc.ServiceInstanceCleanupProperties;
 import com.example.control.infrastructure.observability.MetricsNames;
 import io.micrometer.core.instrument.Counter;
@@ -19,14 +20,14 @@ import java.time.Instant;
 import java.util.List;
 
 /**
- * Scheduled service for cleaning up stale service instances.
+ * Scheduled service for cleaning up unhealthy service instances.
  * <p>
  * This service periodically:
  * <ul>
- * <li>Marks instances as STALE if they haven't sent a heartbeat within the
- * threshold</li>
- * <li>Deletes instances that have been STALE for longer than the cleanup
- * threshold</li>
+ * <li>Marks instances as UNHEALTHY if they haven't sent a heartbeat within the
+ * threshold (default: 5 minutes)</li>
+ * <li>Deletes instances that have been UNHEALTHY for longer than the cleanup
+ * threshold (default: 30 days)</li>
  * </ul>
  */
 @Slf4j
@@ -39,24 +40,152 @@ public class ServiceInstanceCleanupService {
   private final ServiceInstanceCommandService commandService;
   private final ServiceInstanceCleanupProperties properties;
   private final MeterRegistry meterRegistry;
+  private final ServiceInstanceCacheEvictionService cacheEvictionService;
 
-  private Counter staleInstancesMarkedCounter;
-  private Counter staleInstancesDeletedCounter;
+  private Counter unhealthyInstancesMarkedCounter;
+  private Counter unhealthyInstancesDeletedCounter;
 
   /**
    * Initialize metrics counters.
    */
   private void initMetrics() {
-    if (staleInstancesMarkedCounter == null) {
-      staleInstancesMarkedCounter = Counter.builder(MetricsNames.Cleanup.STALE_INSTANCES_MARKED)
-          .description("Number of instances marked as stale")
+    if (unhealthyInstancesMarkedCounter == null) {
+      unhealthyInstancesMarkedCounter = Counter.builder(MetricsNames.Cleanup.UNHEALTHY_INSTANCES_MARKED)
+          .description("Number of instances marked as unhealthy")
           .register(meterRegistry);
     }
-    if (staleInstancesDeletedCounter == null) {
-      staleInstancesDeletedCounter = Counter.builder(MetricsNames.Cleanup.STALE_INSTANCES_DELETED)
-          .description("Number of stale instances deleted")
+    if (unhealthyInstancesDeletedCounter == null) {
+      unhealthyInstancesDeletedCounter = Counter.builder(MetricsNames.Cleanup.UNHEALTHY_INSTANCES_DELETED)
+          .description("Number of unhealthy instances deleted")
           .register(meterRegistry);
     }
+  }
+
+  /**
+   * Mark instances as UNHEALTHY if they haven't sent a heartbeat within the
+   * threshold.
+   * <p>
+   * Runs periodically based on configured schedule (default: every 5 minutes).
+   * Instances that haven't sent a heartbeat within unhealthyThresholdMinutes
+   * (default: 5 minutes) will be marked as UNHEALTHY.
+   * <p>
+   * Instances will automatically recover to HEALTHY status when they send a new
+   * heartbeat (handled by HeartbeatService).
+   */
+  @Scheduled(cron = "${service-instance.cleanup.schedule-cron:0 */5 * * * *}")
+  @Transactional
+  public void markUnhealthyInstances() {
+    if (!properties.isEnabled()) {
+      log.debug("Cleanup is disabled, skipping unhealthy instance marking");
+      return;
+    }
+
+    initMetrics();
+
+    // Use unhealthyThresholdMinutes, fallback to staleThresholdMinutes for backward compatibility
+    @SuppressWarnings("deprecation")
+    int thresholdMinutes = properties.getUnhealthyThresholdMinutes() > 0
+        ? properties.getUnhealthyThresholdMinutes()
+        : properties.getStaleThresholdMinutes();
+    Instant threshold = Instant.now().minusSeconds(thresholdMinutes * 60L);
+    log.debug("Marking instances as UNHEALTHY if lastSeenAt < {} (threshold: {} minutes)", threshold,
+        thresholdMinutes);
+
+    ServiceInstanceCriteria criteria = ServiceInstanceCriteria.unhealthyInstances(threshold);
+    List<ServiceInstance> unhealthyInstances = queryService
+        .findAll(criteria, org.springframework.data.domain.Pageable.unpaged())
+        .getContent()
+        .stream()
+        .filter(instance -> instance.getStatus() != ServiceInstance.InstanceStatus.UNHEALTHY)
+        .toList();
+
+    if (unhealthyInstances.isEmpty()) {
+      log.debug("No instances to mark as UNHEALTHY");
+      return;
+    }
+
+    int marked = 0;
+    for (ServiceInstance instance : unhealthyInstances) {
+      try {
+        instance.setStatus(ServiceInstance.InstanceStatus.UNHEALTHY);
+        instance.setUpdatedAt(Instant.now());
+        commandService.save(instance);
+        marked++;
+        unhealthyInstancesMarkedCounter.increment();
+        log.debug("Marked instance {} as UNHEALTHY (lastSeenAt: {})", instance.getId(), instance.getLastSeenAt());
+      } catch (Exception e) {
+        log.error("Failed to mark instance {} as UNHEALTHY", instance.getId(), e);
+      }
+    }
+
+    // Evict cache entries for status-filtered findAll caches and count caches
+    // Status changes from HEALTHY/DRIFT to UNHEALTHY affect findAll queries with status filters
+    if (marked > 0) {
+      cacheEvictionService.evictAll("Status change: marked " + marked + " instances as UNHEALTHY");
+    }
+
+    log.info("Marked {} instances as UNHEALTHY", marked);
+  }
+
+  /**
+   * Cleanup old unhealthy instances that have been UNHEALTHY for longer than the
+   * cleanup threshold.
+   * <p>
+   * Runs periodically based on configured schedule (default: every 5 minutes).
+   * Instances that have been UNHEALTHY for longer than unhealthyCleanupThresholdDays
+   * (default: 30 days) will be permanently deleted.
+   */
+  @Scheduled(cron = "${service-instance.cleanup.schedule-cron:0 */5 * * * *}")
+  @Transactional
+  public void cleanupOldUnhealthyInstances() {
+    if (!properties.isEnabled()) {
+      log.debug("Cleanup is disabled, skipping unhealthy instance cleanup");
+      return;
+    }
+
+    initMetrics();
+
+    // Use unhealthyCleanupThresholdDays, fallback to cleanupThresholdDays for backward compatibility
+    @SuppressWarnings("deprecation")
+    int thresholdDays = properties.getUnhealthyCleanupThresholdDays() > 0
+        ? properties.getUnhealthyCleanupThresholdDays()
+        : properties.getCleanupThresholdDays();
+    Instant threshold = Instant.now().minusSeconds(thresholdDays * 24L * 60L * 60L);
+    log.debug("Cleaning up instances with status UNHEALTHY and lastSeenAt < {} (threshold: {} days)", threshold,
+        thresholdDays);
+
+    ServiceInstanceCriteria criteria = ServiceInstanceCriteria.unhealthyInstances(threshold)
+        .toBuilder()
+        .status(ServiceInstance.InstanceStatus.UNHEALTHY)
+        .build();
+    List<ServiceInstance> unhealthyInstances = queryService
+        .findAll(criteria, org.springframework.data.domain.Pageable.unpaged())
+        .getContent();
+
+    if (unhealthyInstances.isEmpty()) {
+      log.debug("No unhealthy instances to cleanup");
+      return;
+    }
+
+    int deleted = 0;
+    for (ServiceInstance instance : unhealthyInstances) {
+      try {
+        commandService.deleteById(instance.getId());
+        deleted++;
+        unhealthyInstancesDeletedCounter.increment();
+        log.debug("Deleted unhealthy instance {} (lastSeenAt: {})", instance.getId(), instance.getLastSeenAt());
+      } catch (Exception e) {
+        log.error("Failed to delete unhealthy instance {}", instance.getId(), e);
+      }
+    }
+
+    // Evict cache entries for findAll and count caches
+    // Deletions affect findAll queries and count caches
+    if (deleted > 0) {
+      cacheEvictionService.evictAll("Cleanup: deleted " + deleted + " unhealthy instances");
+    }
+
+    log.info("Deleted {} unhealthy instances", deleted);
   }
 
   /**
@@ -64,94 +193,15 @@ public class ServiceInstanceCleanupService {
    * threshold.
    * <p>
    * Runs periodically based on configured schedule.
+   * 
+   * @deprecated Use {@link #markUnhealthyInstances()} instead. Kept for backward
+   *             compatibility.
    */
+  @Deprecated
   @Scheduled(cron = "${service-instance.cleanup.schedule-cron:0 */5 * * * *}")
   @Transactional
   public void markStaleInstances() {
-    if (!properties.isEnabled()) {
-      log.debug("Cleanup is disabled, skipping stale instance marking");
-      return;
-    }
-
-    initMetrics();
-
-    Instant threshold = Instant.now().minusSeconds(properties.getStaleThresholdMinutes() * 60L);
-    log.debug("Marking instances as STALE if lastSeenAt < {}", threshold);
-
-    ServiceInstanceCriteria criteria = ServiceInstanceCriteria.staleInstances(threshold);
-    List<ServiceInstance> staleInstances = queryService
-        .findAll(criteria, org.springframework.data.domain.Pageable.unpaged())
-        .getContent()
-        .stream()
-        .filter(instance -> instance.getStatus() != ServiceInstance.InstanceStatus.STALE)
-        .toList();
-
-    if (staleInstances.isEmpty()) {
-      log.debug("No instances to mark as STALE");
-      return;
-    }
-
-    int marked = 0;
-    for (ServiceInstance instance : staleInstances) {
-      try {
-        instance.setStatus(ServiceInstance.InstanceStatus.STALE);
-        instance.setUpdatedAt(Instant.now());
-        commandService.save(instance);
-        marked++;
-        staleInstancesMarkedCounter.increment();
-        log.debug("Marked instance {} as STALE (lastSeenAt: {})", instance.getId(), instance.getLastSeenAt());
-      } catch (Exception e) {
-        log.error("Failed to mark instance {} as STALE", instance.getId(), e);
-      }
-    }
-
-    log.info("Marked {} instances as STALE", marked);
+    log.warn("markStaleInstances() is deprecated, use markUnhealthyInstances() instead");
+    markUnhealthyInstances();
   }
-
-  /**
-   * Cleanup old stale instances that have been STALE for longer than the cleanup
-   * threshold.
-   * <p>
-   * Runs periodically based on configured schedule.
-   */
-  // @Scheduled(cron = "${service-instance.cleanup.schedule-cron:0 */5 * * * *}")
-  // @Transactional
-  // public void cleanupOldStaleInstances() {
-  //   if (!properties.isEnabled()) {
-  //     log.debug("Cleanup is disabled, skipping stale instance cleanup");
-  //     return;
-  //   }
-
-  //   initMetrics();
-
-  //   Instant threshold = Instant.now().minusSeconds(properties.getCleanupThresholdDays() * 24L * 60L * 60L);
-  //   log.debug("Cleaning up instances with status STALE and lastSeenAt < {}", threshold);
-
-  //   ServiceInstanceCriteria criteria = ServiceInstanceCriteria.staleInstances(threshold);
-  //   List<ServiceInstance> staleInstances = queryService
-  //       .findAll(criteria, org.springframework.data.domain.Pageable.unpaged())
-  //       .getContent()
-  //       .stream()
-  //       .filter(instance -> instance.getStatus() == ServiceInstance.InstanceStatus.STALE)
-  //       .toList();
-
-  //   if (staleInstances.isEmpty()) {
-  //     log.debug("No stale instances to cleanup");
-  //     return;
-  //   }
-
-  //   int deleted = 0;
-  //   for (ServiceInstance instance : staleInstances) {
-  //     try {
-  //       commandService.deleteById(instance.getId());
-  //       deleted++;
-  //       staleInstancesDeletedCounter.increment();
-  //       log.debug("Deleted stale instance {} (lastSeenAt: {})", instance.getId(), instance.getLastSeenAt());
-  //     } catch (Exception e) {
-  //       log.error("Failed to delete stale instance {}", instance.getId(), e);
-  //     }
-  //   }
-
-  //   log.info("Deleted {} stale instances", deleted);
-  // }
 }

@@ -14,6 +14,8 @@ import io.micrometer.tracing.annotation.NewSpan;
 import io.micrometer.tracing.annotation.SpanTag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cloud.client.ServiceInstance;
 import org.springframework.cloud.client.discovery.DiscoveryClient;
@@ -41,6 +43,8 @@ import java.util.Map;
 @Service
 public class ConfigProxyService {
 
+    private static final String CONFIG_HASHES_CACHE_NAME = "config-hashes";
+
     private final DiscoveryClient discoveryClient;
     private final ConfigServerProperties configServerProperties;
     private final ConfigProxyProperties configProxyProperties;
@@ -48,6 +52,7 @@ public class ConfigProxyService {
     private final RestClient loadBalancedRestClient;
     private final RestClient directRestClient;
     private final ConfigSnapshotBuilder snapshotBuilder;
+    private final CacheManager cacheManager;
 
     public ConfigProxyService(
             DiscoveryClient discoveryClient,
@@ -55,7 +60,8 @@ public class ConfigProxyService {
             ConfigProxyProperties configProxyProperties,
             ObjectMapper objectMapper,
             @Qualifier("loadBalancedConfigServerRestClient") RestClient loadBalancedRestClient,
-            @Qualifier("configServerRestClient") RestClient directRestClient) {
+            @Qualifier("configServerRestClient") RestClient directRestClient,
+            CacheManager cacheManager) {
         this.discoveryClient = discoveryClient;
         this.configServerProperties = configServerProperties;
         this.configProxyProperties = configProxyProperties;
@@ -63,6 +69,7 @@ public class ConfigProxyService {
         this.loadBalancedRestClient = loadBalancedRestClient;
         this.directRestClient = directRestClient;
         this.snapshotBuilder = new ConfigSnapshotBuilder();
+        this.cacheManager = cacheManager;
     }
 
     /**
@@ -413,6 +420,8 @@ public class ConfigProxyService {
      * This uses Spring Cloud Bus to broadcast refresh events.
      * <p>
      * Uses service discovery if enabled, otherwise falls back to direct URL.
+     * After successfully triggering bus refresh, clears the config-hashes cache
+     * to prevent stale cache entries.
      * </p>
      *
      * @param destination optional destination pattern (service:instance or
@@ -447,6 +456,10 @@ public class ConfigProxyService {
                                 .body(String.class);
 
                         log.info("Bus refresh triggered successfully via service discovery for destination: {}", destination);
+                        
+                        // Clear config-hashes cache after successful bus refresh
+                        clearConfigHashesCache();
+                        
                         return response;
                     }
                 } catch (Exception e) {
@@ -467,6 +480,10 @@ public class ConfigProxyService {
                         .body(String.class);
 
                 log.info("Bus refresh triggered successfully via direct URL for destination: {}", destination);
+                
+                // Clear config-hashes cache after successful bus refresh
+                clearConfigHashesCache();
+                
                 return response;
             } else {
                 throw new ExternalServiceException("config-server",
@@ -477,6 +494,36 @@ public class ConfigProxyService {
             log.error("Failed to trigger bus refresh for destination: {}", destination, e);
             throw new ExternalServiceException("config-server",
                     "Failed to trigger bus refresh: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Clears the config-hashes cache to prevent stale entries after bus refresh.
+     * <p>
+     * This ensures that subsequent calls to {@link #getEffectiveConfigHash(String, String)}
+     * will fetch fresh configuration from Config Server instead of using cached values
+     * that may have become stale after configuration changes.
+     * </p>
+     * <p>
+     * Cache clearing failures are logged but do not propagate exceptions to avoid
+     * breaking the bus refresh operation.
+     * </p>
+     */
+    private void clearConfigHashesCache() {
+        try {
+            Cache cache = cacheManager.getCache(CONFIG_HASHES_CACHE_NAME);
+            if (cache == null) {
+                log.debug("Config-hashes cache not found, skipping cache clear");
+                return;
+            }
+
+            cache.clear();
+            log.info("Cleared config-hashes cache after bus refresh");
+            log.debug("Cache cleared: {}", CONFIG_HASHES_CACHE_NAME);
+        } catch (Exception e) {
+            log.warn("Failed to clear config-hashes cache after bus refresh, but bus refresh succeeded. " +
+                    "Cache may contain stale entries until TTL expiration. Error: {}", e.getMessage());
+            log.debug("Cache clearing error details", e);
         }
     }
 

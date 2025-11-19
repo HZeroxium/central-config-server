@@ -3,6 +3,7 @@ package com.example.control.application.service.infra;
 import com.example.control.domain.model.HeartbeatPayload;
 import com.example.control.infrastructure.observability.MetricsNames;
 import com.example.control.infrastructure.observability.heartbeat.HeartbeatMetrics;
+import io.micrometer.core.annotation.Timed;
 import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -46,6 +47,7 @@ public class HeartbeatBatchProcessor {
             containerFactory = "heartbeatKafkaListenerContainerFactory"
     )
     @Observed(name = MetricsNames.Heartbeat.BATCH_PROCESS, contextualName = "heartbeat-batch-process")
+    @Timed(MetricsNames.Heartbeat.BATCH_KAFKA_PROCESS_TIME)
     public void processBatch(
             List<ConsumerRecord<String, HeartbeatPayload>> records,
             Acknowledgment acknowledgment) {

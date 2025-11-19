@@ -2,16 +2,16 @@ package com.example.control.application.service.infra;
 
 import com.example.control.domain.model.HeartbeatPayload;
 import com.example.control.infrastructure.config.messaging.HeartbeatProperties;
+import com.example.control.infrastructure.observability.MetricsNames;
 import com.example.control.infrastructure.observability.heartbeat.HeartbeatMetrics;
 import com.example.control.infrastructure.resilience.messaging.ResilientKafkaProducer;
+import io.micrometer.core.annotation.Timed;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Service;
 
-import java.time.Duration;
-import java.time.Instant;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -57,9 +57,8 @@ public class HeartbeatIngestionService {
      * @param payload the heartbeat payload to enqueue
      * @throws RuntimeException if Kafka send fails (should be rare due to resilience)
      */
+    @Timed(MetricsNames.Heartbeat.BATCH_INGESTION_TIME)
     public void enqueue(HeartbeatPayload payload) {
-        Instant start = Instant.now();
-
         try {
             // Use serviceName as partition key to ensure ordering per service
             String partitionKey = payload.getServiceName();
@@ -70,8 +69,8 @@ public class HeartbeatIngestionService {
 
             // Record metrics
             heartbeatMetrics.recordReceived();
-            Duration ingestionTime = Duration.between(start, Instant.now());
-            heartbeatMetrics.recordIngestionTime(ingestionTime);
+            // Note: Ingestion time is automatically recorded via @Timed annotation on this method
+            // No need to manually call recordIngestionTime() - it's deprecated anyway
 
             log.debug("Enqueued heartbeat for {}:{} to topic {}", payload.getServiceName(),
                     payload.getInstanceId(), heartbeatProperties.getKafka().getTopic());

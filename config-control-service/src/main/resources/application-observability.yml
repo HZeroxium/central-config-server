@@ -37,17 +37,53 @@ management:
         http.server.requests: true # Critical: API latency SLO
         heartbeat.process: true # Critical: Heartbeat processing SLO (from MetricsNames.Heartbeat.PROCESS)
         heartbeat.batch.processing.time: true # Critical: Batch processing SLO
-        heartbeat.ingestion.time: true # Critical: Ingestion latency SLO
+        heartbeat.ingestion.time: true # Legacy: Deprecated, use heartbeat.batch.ingestion.time instead
+        # Batch processing flow metrics - enable histograms for PromQL histogram_quantile() queries
+        heartbeat.batch.ingestion.time: true # Critical: Batch ingestion latency SLO
+        heartbeat.batch.kafka.process.time: true # Critical: Kafka batch processing latency SLO
+        heartbeat.batch.load.instances.time: true # Critical: Batch load instances latency SLO
+        heartbeat.batch.load.appservices.time: true # Critical: Batch load app services latency SLO
+        heartbeat.batch.load.config.hashes.time: true # Critical: Batch load config hashes latency SLO
+        heartbeat.batch.process.inmemory.time: true # Critical: In-memory processing latency SLO
+        heartbeat.batch.mongodb.instances.upsert.time: true # Critical: MongoDB instances upsert latency SLO
+        heartbeat.batch.mongodb.appservices.save.time: true # Critical: MongoDB app services save latency SLO
+        heartbeat.batch.mongodb.drift.save.time: true # Critical: MongoDB drift save latency SLO
+        heartbeat.batch.drift.resolve.time: true # Critical: Drift resolution latency SLO
+        heartbeat.batch.refresh.time: true # Critical: Bus refresh latency SLO
       percentiles:
         http.server.requests: 0.5, 0.9, 0.95, 0.99
         heartbeat.process: 0.5, 0.9, 0.95, 0.99
         heartbeat.batch.processing.time: 0.5, 0.9, 0.95, 0.99
-        heartbeat.ingestion.time: 0.5, 0.9, 0.95, 0.99
+        heartbeat.ingestion.time: 0.5, 0.9, 0.95, 0.99 # Legacy: Deprecated
+        # Batch processing flow metrics - publish percentiles for all timers
+        heartbeat.batch.ingestion.time: 0.5, 0.9, 0.95, 0.99
+        heartbeat.batch.kafka.process.time: 0.5, 0.9, 0.95, 0.99
+        heartbeat.batch.load.instances.time: 0.5, 0.9, 0.95, 0.99
+        heartbeat.batch.load.appservices.time: 0.5, 0.9, 0.95, 0.99
+        heartbeat.batch.load.config.hashes.time: 0.5, 0.9, 0.95, 0.99
+        heartbeat.batch.process.inmemory.time: 0.5, 0.9, 0.95, 0.99
+        heartbeat.batch.mongodb.instances.upsert.time: 0.5, 0.9, 0.95, 0.99
+        heartbeat.batch.mongodb.appservices.save.time: 0.5, 0.9, 0.95, 0.99
+        heartbeat.batch.mongodb.drift.save.time: 0.5, 0.9, 0.95, 0.99
+        heartbeat.batch.drift.resolve.time: 0.5, 0.9, 0.95, 0.99
+        heartbeat.batch.refresh.time: 0.5, 0.9, 0.95, 0.99
       slo:
         http.server.requests: 50ms, 100ms, 200ms, 500ms, 1s, 2s, 5s
         heartbeat.process: 10ms, 50ms, 100ms, 200ms, 500ms, 1s
         heartbeat.batch.processing.time: 100ms, 500ms, 1s, 2s, 5s
-        heartbeat.ingestion.time: 1ms, 5ms, 10ms, 50ms, 100ms
+        heartbeat.ingestion.time: 1ms, 5ms, 10ms, 50ms, 100ms # Legacy: Deprecated
+        # Batch processing flow metrics - SLO buckets for alerting thresholds
+        heartbeat.batch.ingestion.time: 1ms, 5ms, 10ms, 50ms, 100ms, 200ms
+        heartbeat.batch.kafka.process.time: 100ms, 500ms, 1s, 2s, 5s, 10s
+        heartbeat.batch.load.instances.time: 10ms, 50ms, 100ms, 200ms, 500ms, 1s
+        heartbeat.batch.load.appservices.time: 10ms, 50ms, 100ms, 200ms, 500ms, 1s
+        heartbeat.batch.load.config.hashes.time: 50ms, 100ms, 200ms, 500ms, 1s, 2s
+        heartbeat.batch.process.inmemory.time: 10ms, 50ms, 100ms, 200ms, 500ms, 1s
+        heartbeat.batch.mongodb.instances.upsert.time: 50ms, 100ms, 200ms, 500ms, 1s, 2s
+        heartbeat.batch.mongodb.appservices.save.time: 50ms, 100ms, 200ms, 500ms, 1s, 2s
+        heartbeat.batch.mongodb.drift.save.time: 50ms, 100ms, 200ms, 500ms, 1s, 2s
+        heartbeat.batch.drift.resolve.time: 10ms, 50ms, 100ms, 200ms, 500ms, 1s
+        heartbeat.batch.refresh.time: 100ms, 200ms, 500ms, 1s, 2s, 5s
       exemplars:
         enabled: true
   health:
