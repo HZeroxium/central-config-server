@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Approval Request Rejected</title>
+  </head>
+  <body
+    style="
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+    "
+  >
+    <div
+      style="
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        padding: 30px;
+        margin-bottom: 20px;
+      "
+    >
+      <h1 style="color: #dc3545; margin-top: 0">
+        ❌ Approval Request Rejected
+      </h1>
+
+      <p style="font-size: 16px">
+        Hello <strong th:text="${requesterName}">User</strong>,
+      </p>
+
+      <p style="font-size: 16px">
+        Unfortunately, your approval request has been rejected. The service ownership transfer could not be completed.
+      </p>
+
+      <div
+        style="
+          background-color: #ffffff;
+          border-left: 4px solid #dc3545;
+          padding: 15px;
+          margin: 20px 0;
+        "
+      >
+        <p style="margin: 0; font-weight: bold">Service:</p>
+        <p style="margin: 5px 0 0 0" th:text="${serviceName}">Service Name</p>
+        <p style="margin: 10px 0 0 0; font-size: 12px; color: #666" th:text="${serviceId}">Service ID</p>
+      </div>
+
+      <div
+        style="
+          background-color: #fff3cd;
+          border-left: 4px solid #ffc107;
+          padding: 15px;
+          margin: 20px 0;
+        "
+      >
+        <p style="margin: 0; font-weight: bold">Rejection Reason:</p>
+        <p style="margin: 5px 0 0 0" th:text="${reason}">Rejection reason</p>
+      </div>
+
+      <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd">
+        <p style="margin: 0; font-size: 14px; color: #666">
+          <strong>Rejected by:</strong> <span th:text="${rejectorName}">System</span>
+        </p>
+        <p style="margin: 5px 0 0 0; font-size: 14px; color: #666">
+          <strong>Rejected at:</strong> <span th:text="${rejectedAt}">Date</span>
+        </p>
+        <p style="margin: 5px 0 0 0; font-size: 14px; color: #666">
+          <strong>Request ID:</strong> <span th:text="${requestId}">Request ID</span>
+        </p>
+      </div>
+
+      <p style="font-size: 14px; color: #666; margin-top: 30px">
+        If you have any questions or would like to resubmit your request, please contact your administrator.
+      </p>
+    </div>
+  </body>
+</html>
+

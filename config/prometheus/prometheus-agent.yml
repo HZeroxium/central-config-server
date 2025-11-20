@@ -28,6 +28,34 @@ scrape_configs:
     params:
       format: ['prometheus']
 
+  - job_name: 'config-control-service-local-2'
+    static_configs:
+      - targets: ['config-control-service-2:8080']
+        labels:
+          service: 'config-control-service'
+          instance: 'local-instance-2'
+          location: 'local'
+    scrape_interval: 15s
+    metrics_path: /actuator/prometheus
+    scrape_timeout: 10s
+    honor_labels: true
+    params:
+      format: ['prometheus']
+
+  - job_name: 'config-control-service-local-3'
+    static_configs:
+      - targets: ['config-control-service-3:8080']
+        labels:
+          service: 'config-control-service'
+          instance: 'local-instance-3'
+          location: 'local'
+    scrape_interval: 15s
+    metrics_path: /actuator/prometheus
+    scrape_timeout: 10s
+    honor_labels: true
+    params:
+      format: ['prometheus']
+
   # Config Server (local)
   # - job_name: 'config-server-local'
   #   static_configs:

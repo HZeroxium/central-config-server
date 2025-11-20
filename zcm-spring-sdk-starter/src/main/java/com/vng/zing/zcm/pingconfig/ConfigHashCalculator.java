@@ -65,7 +65,7 @@ public class ConfigHashCalculator {
    * @return a lowercase hexadecimal representation of the configuration hash,
    *         or {@code "NA"} if an error occurs
    */
-  @Cacheable(value = "config-hash-cache", keyGenerator = "configHashCacheKeyGenerator", unless = "#result == null || #result == 'NA'")
+  // @Cacheable(value = "config-hash-cache", keyGenerator = "configHashCacheKeyGenerator", unless = "#result == null || #result == 'NA'")
   public String currentHash() {
     try {
       String application = environment.getProperty("spring.application.name", "unknown");
@@ -155,7 +155,7 @@ public class ConfigHashCalculator {
    * @param input input string to hash
    * @return SHA-256 hash as lowercase hex string
    */
-  private String hash(String input) {
+  public static String hash(String input) {
     try {
       MessageDigest md = MessageDigest.getInstance("SHA-256");
       byte[] digest = md.digest(input.getBytes(StandardCharsets.UTF_8));

@@ -214,9 +214,7 @@ export const ServiceSharesTab: React.FC<ServiceSharesTabProps> = ({
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2">
-                          {share.createdAt
-                            ? new Date(share.createdAt).toLocaleDateString()
-                            : "-"}
+                          {share.grantedBy || "-"}
                         </Typography>
                       </TableCell>
                       <TableCell>

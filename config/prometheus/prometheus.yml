@@ -29,6 +29,26 @@ scrape_configs:
     params:
       format: ['prometheus']
 
+  - job_name: 'config-control-service-2'
+    static_configs:
+      - targets: ['config-control-service-2:8080']
+    scrape_interval: 15s
+    metrics_path: /actuator/prometheus
+    scrape_timeout: 10s
+    honor_labels: true
+    params:
+      format: ['prometheus']
+
+  - job_name: 'config-control-service-3'
+    static_configs:
+      - targets: ['config-control-service-3:8080']
+    scrape_interval: 15s
+    metrics_path: /actuator/prometheus
+    scrape_timeout: 10s
+    honor_labels: true
+    params:
+      format: ['prometheus']
+
   # Sample Service
   - job_name: 'sample-service'
     static_configs:

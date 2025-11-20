@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Config Demo - Sample Service</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .status-bar {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .status-bar .polling-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #4CAF50;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .status-indicator.error {
+            background: #F44336;
+            animation: none;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            grid-column: 1 / -1;
+            color: white;
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+            transition: transform 0.2s, box-shadow 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 24px rgba(0,0,0,0.3);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .card-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+            color: white;
+            text-transform: uppercase;
+        }
+
+        .banner-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .banner-logo {
+            width: 48px;
+            height: 48px;
+            border-radius: 8px;
+            object-fit: cover;
+        }
+
+        .banner-text {
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        .metrics-section {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .metric-card {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .metric-label {
+            font-size: 0.85em;
+            color: #666;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .metric-value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .instance-info {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .instance-info-item {
+            margin-bottom: 5px;
+        }
+
+        .instance-info-label {
+            font-weight: bold;
+            color: #999;
+        }
+
+        .timestamp {
+            font-size: 0.85em;
+            color: #999;
+            margin-top: 10px;
+            text-align: right;
+        }
+
+        .flash {
+            animation: flash 0.5s ease-in-out;
+        }
+
+        @keyframes flash {
+            0%, 100% { background-color: transparent; }
+            50% { background-color: #fff9c4; }
+        }
+
+        .error-message {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #c62828;
+        }
+
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .metrics-section {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Dynamic Configuration Demo</h1>
+            <p>Real-time visualization of configuration changes across service instances</p>
+        </div>
+
+        <div class="status-bar">
+            <div class="polling-status">
+                <div class="status-indicator" id="statusIndicator"></div>
+                <span id="statusText">Polling...</span>
+            </div>
+            <div>
+                <span>Poll Interval: <strong>2 seconds</strong></span>
+            </div>
+        </div>
+
+        <div id="errorContainer"></div>
+
+        <div class="grid">
+            <div class="section-title">Development Instances</div>
+            <div class="card" id="card-dev-1">
+                <div class="card-header">
+                    <div class="card-title">Instance 1</div>
+                    <div class="badge" id="badge-dev-1">DEV</div>
+                </div>
+                <div class="banner-section" id="banner-dev-1"></div>
+                <div class="metrics-section" id="metrics-dev-1"></div>
+                <div class="instance-info" id="info-dev-1"></div>
+                <div class="timestamp" id="timestamp-dev-1"></div>
+            </div>
+            <div class="card" id="card-dev-2">
+                <div class="card-header">
+                    <div class="card-title">Instance 2</div>
+                    <div class="badge" id="badge-dev-2">DEV</div>
+                </div>
+                <div class="banner-section" id="banner-dev-2"></div>
+                <div class="metrics-section" id="metrics-dev-2"></div>
+                <div class="instance-info" id="info-dev-2"></div>
+                <div class="timestamp" id="timestamp-dev-2"></div>
+            </div>
+
+            <div class="section-title">Production Instances</div>
+            <div class="card" id="card-prod-1">
+                <div class="card-header">
+                    <div class="card-title">Instance 1</div>
+                    <div class="badge" id="badge-prod-1">PROD</div>
+                </div>
+                <div class="banner-section" id="banner-prod-1"></div>
+                <div class="metrics-section" id="metrics-prod-1"></div>
+                <div class="instance-info" id="info-prod-1"></div>
+                <div class="timestamp" id="timestamp-prod-1"></div>
+            </div>
+            <div class="card" id="card-prod-2">
+                <div class="card-header">
+                    <div class="card-title">Instance 2</div>
+                    <div class="badge" id="badge-prod-2">PROD</div>
+                </div>
+                <div class="banner-section" id="banner-prod-2"></div>
+                <div class="metrics-section" id="metrics-prod-2"></div>
+                <div class="instance-info" id="info-prod-2"></div>
+                <div class="timestamp" id="timestamp-prod-2"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const INSTANCES = [
+            { id: 'dev-1', url: 'http://localhost:28083/api/demo/config', profile: 'dev' },
+            { id: 'dev-2', url: 'http://localhost:28084/api/demo/config', profile: 'dev' },
+            { id: 'prod-1', url: 'http://localhost:28085/api/demo/config', profile: 'prod' },
+            { id: 'prod-2', url: 'http://localhost:28086/api/demo/config', profile: 'prod' }
+        ];
+
+        const POLL_INTERVAL = 2000; // 2 seconds
+        const previousData = {};
+
+        // Initialize
+        function init() {
+            INSTANCES.forEach(instance => {
+                previousData[instance.id] = null;
+            });
+            pollAll();
+            setInterval(pollAll, POLL_INTERVAL);
+        }
+
+        // Poll all instances
+        async function pollAll() {
+            const promises = INSTANCES.map(instance => pollInstance(instance));
+            await Promise.allSettled(promises);
+        }
+
+        // Poll single instance
+        async function pollInstance(instance) {
+            try {
+                const response = await fetch(instance.url);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                const data = await response.json();
+                updateCard(instance.id, data);
+                updateStatus(true);
+                clearError();
+            } catch (error) {
+                console.error(`Error polling ${instance.id}:`, error);
+                updateStatus(false);
+                showError(`Failed to connect to ${instance.id}: ${error.message}`);
+            }
+        }
+
+        // Update card with data
+        function updateCard(instanceId, data) {
+            const previous = previousData[instanceId];
+            const demo = data.demo;
+            const instance = data.instance;
+
+            // Update theme colors
+            const card = document.getElementById(`card-${instanceId}`);
+            if (card && demo.theme) {
+                const changed = !previous || 
+                    previous.demo.theme.primaryColor !== demo.theme.primaryColor ||
+                    previous.demo.theme.backgroundColor !== demo.theme.backgroundColor;
+                
+                card.style.borderLeft = `5px solid ${demo.theme.primaryColor}`;
+                card.style.backgroundColor = demo.theme.backgroundColor;
+                
+                if (changed) {
+                    card.classList.add('flash');
+                    setTimeout(() => card.classList.remove('flash'), 500);
+                }
+            }
+
+            // Update badge
+            const badge = document.getElementById(`badge-${instanceId}`);
+            if (badge && demo.status) {
+                const changed = !previous || previous.demo.status.badge !== demo.status.badge;
+                badge.textContent = demo.status.badge;
+                badge.style.backgroundColor = demo.status.badgeColor;
+                if (changed && badge.parentElement) {
+                    badge.parentElement.classList.add('flash');
+                    setTimeout(() => badge.parentElement.classList.remove('flash'), 500);
+                }
+            }
+
+            // Update banner
+            const bannerEl = document.getElementById(`banner-${instanceId}`);
+            if (bannerEl && demo.banner) {
+                const changed = !previous || previous.demo.banner.text !== demo.banner.text;
+                if (demo.banner.show) {
+                    bannerEl.style.display = 'flex';
+                    bannerEl.style.backgroundColor = demo.theme.secondaryColor;
+                    bannerEl.style.color = demo.theme.textColor;
+                    bannerEl.innerHTML = '';
+                    if (demo.banner.logoUrl) {
+                        const img = document.createElement('img');
+                        img.src = demo.banner.logoUrl;
+                        img.className = 'banner-logo';
+                        img.alt = 'Logo';
+                        bannerEl.appendChild(img);
+                    }
+                    const text = document.createElement('div');
+                    text.className = 'banner-text';
+                    text.textContent = demo.banner.text;
+                    bannerEl.appendChild(text);
+                } else {
+                    bannerEl.style.display = 'none';
+                }
+                if (changed) {
+                    bannerEl.classList.add('flash');
+                    setTimeout(() => bannerEl.classList.remove('flash'), 500);
+                }
+            }
+
+            // Update metrics
+            const metricsEl = document.getElementById(`metrics-${instanceId}`);
+            if (metricsEl && demo.metrics) {
+                const retryChanged = !previous || previous.demo.metrics.retryCount !== demo.metrics.retryCount;
+                const cacheChanged = !previous || previous.demo.metrics.cacheTtl !== demo.metrics.cacheTtl;
+                
+                metricsEl.innerHTML = `
+                    <div class="metric-card ${retryChanged ? 'flash' : ''}">
+                        <div class="metric-label">Retry Count</div>
+                        <div class="metric-value">${demo.metrics.retryCount}</div>
+                    </div>
+                    <div class="metric-card ${cacheChanged ? 'flash' : ''}">
+                        <div class="metric-label">Cache TTL (s)</div>
+                        <div class="metric-value">${demo.metrics.cacheTtl}</div>
+                    </div>
+                `;
+                setTimeout(() => {
+                    metricsEl.querySelectorAll('.flash').forEach(el => el.classList.remove('flash'));
+                }, 500);
+            }
+
+            // Update instance info
+            const infoEl = document.getElementById(`info-${instanceId}`);
+            if (infoEl && instance) {
+                infoEl.innerHTML = `
+                    <div class="instance-info-item">
+                        <span class="instance-info-label">Instance ID:</span> ${instance.instanceId}
+                    </div>
+                    <div class="instance-info-item">
+                        <span class="instance-info-label">Host:</span> ${instance.host}
+                    </div>
+                    <div class="instance-info-item">
+                        <span class="instance-info-label">Port:</span> ${instance.port}
+                    </div>
+                    <div class="instance-info-item">
+                        <span class="instance-info-label">Profile:</span> ${instance.profile}
+                    </div>
+                `;
+            }
+
+            // Update timestamp
+            const timestampEl = document.getElementById(`timestamp-${instanceId}`);
+            if (timestampEl && data.timestamp) {
+                const date = new Date(data.timestamp);
+                timestampEl.textContent = `Last updated: ${date.toLocaleTimeString()}`;
+            }
+
+            // Store previous data
+            previousData[instanceId] = JSON.parse(JSON.stringify(data));
+        }
+
+        // Update status indicator
+        function updateStatus(success) {
+            const indicator = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('statusText');
+            if (success) {
+                indicator.className = 'status-indicator';
+                statusText.textContent = 'Polling...';
+            } else {
+                indicator.className = 'status-indicator error';
+                statusText.textContent = 'Connection Error';
+            }
+        }
+
+        // Show error message
+        function showError(message) {
+            const container = document.getElementById('errorContainer');
+            container.innerHTML = `<div class="error-message">${message}</div>`;
+        }
+
+        // Clear error message
+        function clearError() {
+            const container = document.getElementById('errorContainer');
+            container.innerHTML = '';
+        }
+
+        // Start on load
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
+

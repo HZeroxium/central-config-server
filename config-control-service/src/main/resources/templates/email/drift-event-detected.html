@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Configuration Drift Detected</title>
+  </head>
+  <body
+    style="
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+    "
+  >
+    <div
+      style="
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        padding: 30px;
+        margin-bottom: 20px;
+      "
+    >
+      <h1 style="color: #dc3545; margin-top: 0">
+        ⚠️ Configuration Drift Detected
+      </h1>
+
+      <p style="font-size: 16px">
+        Hello <strong th:text="${recipientName}">User</strong>,
+      </p>
+
+      <p style="font-size: 16px">
+        A configuration drift has been detected for a service instance. The instance configuration does not match the expected configuration from the source of truth.
+      </p>
+
+      <div
+        style="
+          background-color: #ffffff;
+          border-left: 4px solid #dc3545;
+          padding: 15px;
+          margin: 20px 0;
+        "
+      >
+        <h2 style="margin-top: 0; color: #dc3545">Drift Event Details</h2>
+        <table style="width: 100%; border-collapse: collapse">
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold; width: 150px">
+              Service Name:
+            </td>
+            <td style="padding: 8px 0" th:text="${serviceName}">
+              Service Name
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold">Instance ID:</td>
+            <td style="padding: 8px 0" th:text="${instanceId}">instance-id</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold">Environment:</td>
+            <td style="padding: 8px 0" th:text="${environment}">environment</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold">Severity:</td>
+            <td style="padding: 8px 0">
+              <span th:if="${severity == 'CRITICAL'}" style="color: #dc3545; font-weight: bold" th:text="${severity}">CRITICAL</span>
+              <span th:if="${severity == 'HIGH'}" style="color: #fd7e14; font-weight: bold" th:text="${severity}">HIGH</span>
+              <span th:if="${severity == 'MEDIUM'}" style="color: #ffc107; font-weight: bold" th:text="${severity}">MEDIUM</span>
+              <span th:if="${severity == 'LOW'}" style="color: #28a745; font-weight: bold" th:text="${severity}">LOW</span>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold">Expected Hash:</td>
+            <td style="padding: 8px 0; font-family: monospace; font-size: 12px" th:text="${expectedHash}">expected-hash</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold">Applied Hash:</td>
+            <td style="padding: 8px 0; font-family: monospace; font-size: 12px" th:text="${appliedHash}">applied-hash</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold">Detected At:</td>
+            <td style="padding: 8px 0" th:text="${detectedAt}">Date and Time</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold">Event ID:</td>
+            <td style="padding: 8px 0; font-size: 12px" th:text="${driftEventId}">event-id</td>
+          </tr>
+        </table>
+      </div>
+
+      <div
+        style="
+          background-color: #fff3cd;
+          border-left: 4px solid #ffc107;
+          padding: 15px;
+          margin: 20px 0;
+        "
+      >
+        <p style="margin: 0; font-weight: bold">What does this mean?</p>
+        <p style="margin: 5px 0 0 0; font-size: 14px">
+          The service instance is running with a configuration that differs from the expected configuration stored in the Config Server. This may indicate:
+        </p>
+        <ul style="margin: 10px 0 0 20px; font-size: 14px">
+          <li>The instance failed to refresh its configuration</li>
+          <li>Manual configuration changes were made directly on the instance</li>
+          <li>The configuration refresh mechanism is not working properly</li>
+        </ul>
+      </div>
+
+      <div
+        style="
+          background-color: #e7f3ff;
+          border-radius: 4px;
+          padding: 15px;
+          margin: 20px 0;
+        "
+      >
+        <p style="margin: 0; font-size: 14px; color: #004085">
+          <strong>Recommended Actions:</strong><br />
+          • Check the instance logs for configuration refresh errors<br />
+          • Verify the instance can reach the Config Server<br />
+          • Manually trigger a configuration refresh if needed<br />
+          • Review the configuration changes in the Config Server<br />
+          • Visit the admin dashboard to view detailed drift information
+        </p>
+      </div>
+
+      <p style="font-size: 14px; color: #666; margin-top: 30px">
+        The system has automatically attempted to refresh the configuration. If the drift persists, please investigate the root cause.
+      </p>
+
+      <hr style="border: none; border-top: 1px solid #dee2e6; margin: 30px 0" />
+
+      <p style="font-size: 12px; color: #999; text-align: center">
+        This is an automated notification from Config Control Service.<br />
+        Please do not reply to this email.
+      </p>
+    </div>
+  </body>
+</html>
+

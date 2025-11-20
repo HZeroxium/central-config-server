@@ -203,7 +203,7 @@ public class SdkProperties {
        * When enabled, config hash is cached and only recalculated when cache expires
        * or when refresh events are received.
        */
-      private boolean enabled = true;
+      private boolean enabled = false;
 
       /**
        * Cache TTL in milliseconds.

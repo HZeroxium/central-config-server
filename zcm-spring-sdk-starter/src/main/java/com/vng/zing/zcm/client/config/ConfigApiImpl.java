@@ -74,15 +74,15 @@ public class ConfigApiImpl implements ConfigApi {
     
     ConfigurableEnvironment configurableEnv = (ConfigurableEnvironment) env();
     
-    // Build snapshot
+    // Build snapshot ONCE
     ConfigSnapshot snapshot = new ConfigSnapshotBuilder(configurableEnv)
         .build(application, profile, label, version);
     
-    // Get hash
-    String hash = hashCalc.currentHash();
-    
-    // Build canonical string
+    // Build canonical string from the SAME snapshot
     String canonicalString = snapshot.toCanonicalString();
+    
+    // Calculate hash from the SAME canonical string (not from cache)
+    String hash = ConfigHashCalculator.hash(canonicalString);
     
     // Collect metadata
     List<String> sourceNames = new ArrayList<>();
