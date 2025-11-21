@@ -26,6 +26,7 @@ import GroupIcon from "@mui/icons-material/Group";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import StorageIcon from "@mui/icons-material/Storage";
+import IntegrationInstructionsIcon from "@mui/icons-material/IntegrationInstructions";
 import SidebarHeader from "./SidebarHeader";
 import SidebarItem from "./SidebarItem";
 import { usePermissions } from "@features/auth/hooks/usePermissions";
@@ -115,6 +116,12 @@ export function Sidebar({ open, onToggle }: SidebarProps) {
         path: "/service-shares",
         label: "Service Shares",
         icon: <ShareIcon />,
+        badge: undefined,
+      },
+      {
+        path: "/sdk-integration",
+        label: "SDK Integration",
+        icon: <IntegrationInstructionsIcon />,
         badge: undefined,
       },
     ],

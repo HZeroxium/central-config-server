@@ -40,6 +40,7 @@ import type {
   ConfigServerInfo,
   ErrorResponse,
   GetActuatorEndpointConfigServer200,
+  GetConfigHashDetails200,
   GetEnvironmentConfigServerParams
 } from '../../models';
 
@@ -228,6 +229,108 @@ export function useGetHealthConfigServer<TData = Awaited<ReturnType<typeof getHe
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getGetHealthConfigServerQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+/**
+ * Retrieves detailed configuration hash information for debugging and comparison purposes.
+Includes hash, snapshot, canonical string, and metadata (key count, source names, excluded keys).
+This endpoint is public and does not require authentication for easier debugging.
+
+ * @summary Get configuration hash details
+ */
+export const getConfigHashDetails = (
+    serviceName: string,
+    profile: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<GetConfigHashDetails200>(
+      {url: `/api/config-server/hash/${serviceName}/${profile}`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+
+
+export const getGetConfigHashDetailsQueryKey = (serviceName?: string,
+    profile?: string,) => {
+    return [
+    `/api/config-server/hash/${serviceName}/${profile}`
+    ] as const;
+    }
+
+    
+export const getGetConfigHashDetailsQueryOptions = <TData = Awaited<ReturnType<typeof getConfigHashDetails>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(serviceName: string,
+    profile: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getConfigHashDetails>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetConfigHashDetailsQueryKey(serviceName,profile);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getConfigHashDetails>>> = ({ signal }) => getConfigHashDetails(serviceName,profile, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(serviceName && profile), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getConfigHashDetails>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetConfigHashDetailsQueryResult = NonNullable<Awaited<ReturnType<typeof getConfigHashDetails>>>
+export type GetConfigHashDetailsQueryError = ErrorResponse | ErrorResponse | ErrorResponse
+
+
+export function useGetConfigHashDetails<TData = Awaited<ReturnType<typeof getConfigHashDetails>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
+ serviceName: string,
+    profile: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getConfigHashDetails>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getConfigHashDetails>>,
+          TError,
+          Awaited<ReturnType<typeof getConfigHashDetails>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetConfigHashDetails<TData = Awaited<ReturnType<typeof getConfigHashDetails>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
+ serviceName: string,
+    profile: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getConfigHashDetails>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getConfigHashDetails>>,
+          TError,
+          Awaited<ReturnType<typeof getConfigHashDetails>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetConfigHashDetails<TData = Awaited<ReturnType<typeof getConfigHashDetails>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
+ serviceName: string,
+    profile: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getConfigHashDetails>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get configuration hash details
+ */
+
+export function useGetConfigHashDetails<TData = Awaited<ReturnType<typeof getConfigHashDetails>>, TError = ErrorResponse | ErrorResponse | ErrorResponse>(
+ serviceName: string,
+    profile: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getConfigHashDetails>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetConfigHashDetailsQueryOptions(serviceName,profile,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

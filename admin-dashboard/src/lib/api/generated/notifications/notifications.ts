@@ -31,7 +31,11 @@ import type {
 
 import type {
   ErrorResponse,
-  TestEmailRequest
+  TestApprovalApprovedRequest,
+  TestApprovalRejectedRequest,
+  TestDriftEventRequest,
+  TestEmailRequest,
+  TestNotificationResponse
 } from '../../models';
 
 import { customInstance } from '../../mutator';
@@ -104,6 +108,247 @@ export const useSendTestEmail = <TError = ErrorResponse | ErrorResponse | ErrorR
       > => {
 
       const mutationOptions = getSendTestEmailMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    /**
+ * Sends test email notifications for a configuration drift event.
+
+**Use Case:**
+- Testing email templates and notification flow
+- Verifying email delivery configuration
+- Debugging notification issues
+
+**Behavior:**
+- Creates a mock DriftEventCreatedEvent with provided data
+- Auto-generates driftEventId, serviceName, hashes, and detectedAt timestamp
+- Sends emails to all SYS_ADMIN users and service owner team members
+- Returns actual recipients count (SYS_ADMIN + team members)
+
+**Recipients:**
+- All users with SYS_ADMIN role
+- All users in the service owner team (if teamId provided)
+
+**Requires SYS_ADMIN role.**
+
+ * @summary Test drift event notification
+ */
+export const testDriftEvent = (
+    testDriftEventRequest: TestDriftEventRequest,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<TestNotificationResponse>(
+      {url: `/api/admin/notifications/test-drift-event`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: testDriftEventRequest, signal
+    },
+      options);
+    }
+  
+
+
+export const getTestDriftEventMutationOptions = <TError = ErrorResponse | ErrorResponse | ErrorResponse,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof testDriftEvent>>, TError,{data: TestDriftEventRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof testDriftEvent>>, TError,{data: TestDriftEventRequest}, TContext> => {
+
+const mutationKey = ['testDriftEvent'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof testDriftEvent>>, {data: TestDriftEventRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  testDriftEvent(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TestDriftEventMutationResult = NonNullable<Awaited<ReturnType<typeof testDriftEvent>>>
+    export type TestDriftEventMutationBody = TestDriftEventRequest
+    export type TestDriftEventMutationError = ErrorResponse | ErrorResponse | ErrorResponse
+
+    /**
+ * @summary Test drift event notification
+ */
+export const useTestDriftEvent = <TError = ErrorResponse | ErrorResponse | ErrorResponse,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof testDriftEvent>>, TError,{data: TestDriftEventRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof testDriftEvent>>,
+        TError,
+        {data: TestDriftEventRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getTestDriftEventMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    /**
+ * Sends a test email notification for a rejected approval request.
+
+**Use Case:**
+- Testing email templates and notification flow
+- Verifying email delivery configuration
+- Debugging notification issues
+
+**Behavior:**
+- Creates a mock ApprovalRequestRejectedEvent with provided data
+- Auto-generates requestId and rejectedAt timestamp
+- Sends email to the requester user
+- Uses mock user data if requester not found in database
+
+**Requires SYS_ADMIN role.**
+
+ * @summary Test approval rejected notification
+ */
+export const testApprovalRejected = (
+    testApprovalRejectedRequest: TestApprovalRejectedRequest,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<TestNotificationResponse>(
+      {url: `/api/admin/notifications/test-approval-rejected`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: testApprovalRejectedRequest, signal
+    },
+      options);
+    }
+  
+
+
+export const getTestApprovalRejectedMutationOptions = <TError = ErrorResponse | ErrorResponse | ErrorResponse,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof testApprovalRejected>>, TError,{data: TestApprovalRejectedRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof testApprovalRejected>>, TError,{data: TestApprovalRejectedRequest}, TContext> => {
+
+const mutationKey = ['testApprovalRejected'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof testApprovalRejected>>, {data: TestApprovalRejectedRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  testApprovalRejected(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TestApprovalRejectedMutationResult = NonNullable<Awaited<ReturnType<typeof testApprovalRejected>>>
+    export type TestApprovalRejectedMutationBody = TestApprovalRejectedRequest
+    export type TestApprovalRejectedMutationError = ErrorResponse | ErrorResponse | ErrorResponse
+
+    /**
+ * @summary Test approval rejected notification
+ */
+export const useTestApprovalRejected = <TError = ErrorResponse | ErrorResponse | ErrorResponse,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof testApprovalRejected>>, TError,{data: TestApprovalRejectedRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof testApprovalRejected>>,
+        TError,
+        {data: TestApprovalRejectedRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getTestApprovalRejectedMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    /**
+ * Sends a test email notification for an approved approval request.
+
+**Use Case:**
+- Testing email templates and notification flow
+- Verifying email delivery configuration
+- Debugging notification issues
+
+**Behavior:**
+- Creates a mock ApprovalRequestApprovedEvent with provided data
+- Auto-generates requestId and approvedAt timestamp
+- Sends email to the requester user
+- Uses mock user data if requester not found in database
+
+**Requires SYS_ADMIN role.**
+
+ * @summary Test approval approved notification
+ */
+export const testApprovalApproved = (
+    testApprovalApprovedRequest: TestApprovalApprovedRequest,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<TestNotificationResponse>(
+      {url: `/api/admin/notifications/test-approval-approved`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: testApprovalApprovedRequest, signal
+    },
+      options);
+    }
+  
+
+
+export const getTestApprovalApprovedMutationOptions = <TError = ErrorResponse | ErrorResponse | ErrorResponse,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof testApprovalApproved>>, TError,{data: TestApprovalApprovedRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof testApprovalApproved>>, TError,{data: TestApprovalApprovedRequest}, TContext> => {
+
+const mutationKey = ['testApprovalApproved'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof testApprovalApproved>>, {data: TestApprovalApprovedRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  testApprovalApproved(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TestApprovalApprovedMutationResult = NonNullable<Awaited<ReturnType<typeof testApprovalApproved>>>
+    export type TestApprovalApprovedMutationBody = TestApprovalApprovedRequest
+    export type TestApprovalApprovedMutationError = ErrorResponse | ErrorResponse | ErrorResponse
+
+    /**
+ * @summary Test approval approved notification
+ */
+export const useTestApprovalApproved = <TError = ErrorResponse | ErrorResponse | ErrorResponse,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof testApprovalApproved>>, TError,{data: TestApprovalApprovedRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof testApprovalApproved>>,
+        TError,
+        {data: TestApprovalApprovedRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getTestApprovalApprovedMutationOptions(options);
 
       return useMutation(mutationOptions, queryClient);
     }

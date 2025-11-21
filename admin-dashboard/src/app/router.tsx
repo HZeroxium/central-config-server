@@ -79,6 +79,9 @@ const KVStoreListPage = lazy(
 const KVStorePage = lazy(
   () => import("@features/key-value-store/pages/KVStorePage")
 );
+const SdkIntegrationWizard = lazy(
+  () => import("@features/sdk-integration/pages/SdkIntegrationWizard")
+);
 
 export const router = createBrowserRouter([
   {
@@ -387,6 +390,14 @@ export const router = createBrowserRouter([
               <ProfilePage />
             </Suspense>
           </ProtectedRoute>
+        ),
+      },
+      {
+        path: "sdk-integration",
+        element: (
+          <Suspense fallback={<Loading />}>
+            <SdkIntegrationWizard />
+          </Suspense>
         ),
       },
       {
