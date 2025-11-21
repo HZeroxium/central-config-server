@@ -144,6 +144,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authz -> {
                     authz.requestMatchers("/api/heartbeat/**").permitAll();
                     authz.requestMatchers("/api/config-server/hash/**").permitAll();
+                    // Migration endpoints are public to facilitate SDK integration
+                    authz.requestMatchers("/api/migration/**").permitAll();
 
                     // Permit seeding endpoints in dev/local/seed-data profiles without
                     // authentication

@@ -1,0 +1,1473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Config API Demo - Sample Service</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #2c3e50;
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .section {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+        }
+
+        .section-title {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .control-panel {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            color: #555;
+            font-size: 0.9em;
+        }
+
+        .form-group input,
+        .form-group select {
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 0.95em;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #95a5a6;
+        }
+
+        .btn-success {
+            background: #2ecc71;
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+        }
+
+        .status-bar {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #4CAF50;
+            animation: pulse 2s infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .status-indicator.error {
+            background: #F44336;
+            animation: none;
+        }
+
+        .instances-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .instance-card {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            border-radius: 8px;
+            padding: 15px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+        }
+
+        .instance-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .instance-card.selected {
+            border-left-color: #2ecc71;
+            background: #d5f4e6;
+        }
+
+        .instance-card input[type="checkbox"] {
+            margin-right: 10px;
+        }
+
+        .instance-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .instance-id {
+            font-weight: bold;
+            color: #333;
+            font-size: 1.1em;
+        }
+
+        .result-display {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .result-display.success {
+            border-color: #2ecc71;
+            background: #d5f4e6;
+        }
+
+        .result-display.error {
+            border-color: #e74c3c;
+            background: #fadbd8;
+            color: #c0392b;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-size: 1em;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .tab:hover {
+            color: #667eea;
+        }
+
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+            font-weight: bold;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .property-item {
+            padding: 8px;
+            margin: 5px 0;
+            background: #f8f9fa;
+            border-radius: 4px;
+            border-left: 3px solid #667eea;
+        }
+
+        .property-item.highlight {
+            background: #fff3cd;
+            border-left-color: #ffc107;
+        }
+
+        .property-key {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .property-value {
+            color: #666;
+            margin-left: 10px;
+        }
+
+        .tree-node {
+            margin-left: 20px;
+            margin-top: 5px;
+        }
+
+        .tree-node-header {
+            cursor: pointer;
+            padding: 5px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .tree-node-header:hover {
+            background: #f0f0f0;
+            border-radius: 4px;
+        }
+
+        .tree-toggle {
+            width: 16px;
+            height: 16px;
+            display: inline-block;
+            text-align: center;
+            line-height: 16px;
+            font-weight: bold;
+        }
+
+        .tree-children {
+            margin-left: 20px;
+            display: none;
+        }
+
+        .tree-children.expanded {
+            display: block;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-top: 20px;
+        }
+
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .comparison-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            border-left: 4px solid #667eea;
+        }
+
+        .hash-comparison {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .hash-item {
+            flex: 1;
+        }
+
+        .hash-value {
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            word-break: break-all;
+            padding: 10px;
+            background: white;
+            border-radius: 4px;
+            margin-top: 5px;
+        }
+
+        .hash-match {
+            color: #2ecc71;
+            font-weight: bold;
+        }
+
+        .hash-diff {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+
+        .search-panel {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .search-controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+
+        .search-input {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .filter-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            background: #667eea;
+            color: white;
+            border-radius: 12px;
+            font-size: 0.85em;
+            margin: 2px;
+        }
+
+        .error-message {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #c62828;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 24px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .toggle-slider {
+            background-color: #667eea;
+        }
+
+        input:checked + .toggle-slider:before {
+            transform: translateX(26px);
+        }
+
+        .metadata-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .metadata-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .metadata-label {
+            font-size: 0.85em;
+            color: #666;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .metadata-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .collapsible {
+            cursor: pointer;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            margin-top: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .collapsible:hover {
+            background: #e0e0e0;
+        }
+
+        .collapsible-content {
+            display: none;
+            padding: 10px;
+            background: white;
+            border-radius: 4px;
+            margin-top: 5px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+        }
+
+        .collapsible-content.expanded {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .control-panel {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .instances-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .comparison-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Config API Demo</h1>
+            <p>Interactive demonstration of configuration management with real-time visualization</p>
+        </div>
+
+        <div class="status-bar">
+            <div style="display: flex; align-items: center;">
+                <div class="status-indicator" id="statusIndicator"></div>
+                <span id="statusText">Ready</span>
+            </div>
+            <div>
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                    <span>Auto-refresh:</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="autoRefreshToggle">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </label>
+                <span style="margin-left: 15px;">
+                    Interval: 
+                    <select id="refreshInterval" style="padding: 5px; border-radius: 4px;">
+                        <option value="2000">2s</option>
+                        <option value="3000" selected>3s</option>
+                        <option value="5000">5s</option>
+                        <option value="10000">10s</option>
+                    </select>
+                </span>
+            </div>
+        </div>
+
+        <div id="errorContainer"></div>
+
+        <!-- Service Discovery Section -->
+        <div class="section">
+            <div class="section-title">Service Discovery & Instance Selection</div>
+            <div class="control-panel">
+                <div class="form-group">
+                    <label>Service Name:</label>
+                    <input type="text" id="serviceName" value="sample-service" placeholder="e.g., sample-service">
+                </div>
+                <button class="btn" onclick="discoverInstances()">Discover Instances</button>
+                <button class="btn btn-secondary" onclick="clearSelection()">Clear Selection</button>
+            </div>
+            <div id="instancesContainer" class="instances-grid"></div>
+        </div>
+
+        <!-- Single Value Lookup -->
+        <div class="section">
+            <div class="section-title">Configuration Value Lookup</div>
+            <div class="control-panel">
+                <div class="form-group" style="flex: 1;">
+                    <label>Configuration Key:</label>
+                    <input type="text" id="configKey" placeholder="e.g., spring.application.name" style="width: 100%;">
+                </div>
+                <button class="btn" onclick="getConfigValue()">Get Value</button>
+            </div>
+            <div id="singleValueResult" class="result-display" style="display: none;"></div>
+        </div>
+
+        <!-- Prefix-based Retrieval -->
+        <div class="section">
+            <div class="section-title">Prefix-based Property Retrieval</div>
+            <div class="control-panel">
+                <div class="form-group" style="flex: 1;">
+                    <label>Prefix:</label>
+                    <input type="text" id="prefixInput" placeholder="e.g., spring. or demo." style="width: 100%;">
+                </div>
+                <button class="btn" onclick="getAllWithPrefix()">Get All with Prefix</button>
+            </div>
+            <div id="prefixResult" class="result-display" style="display: none;"></div>
+        </div>
+
+        <!-- Configuration Snapshot -->
+        <div class="section">
+            <div class="section-title">Configuration Snapshot</div>
+            <div class="control-panel">
+                <button class="btn" onclick="getSnapshot()">Get Snapshot</button>
+                <button class="btn btn-secondary" onclick="clearSnapshot()">Clear</button>
+            </div>
+            <div id="snapshotTabs" style="display: none;">
+                <div class="tabs">
+                    <button class="tab active" onclick="switchTab('flat', this)">Flat List</button>
+                    <button class="tab" onclick="switchTab('grouped', this)">Grouped</button>
+                    <button class="tab" onclick="switchTab('tree', this)">Tree View</button>
+                    <button class="tab" onclick="switchTab('source', this)">By Source</button>
+                </div>
+                <div id="snapshotInfo" style="margin-bottom: 15px; padding: 10px; background: #f8f9fa; border-radius: 8px;"></div>
+                <div id="snapshotFlat" class="tab-content active"></div>
+                <div id="snapshotGrouped" class="tab-content"></div>
+                <div id="snapshotTree" class="tab-content"></div>
+                <div id="snapshotSource" class="tab-content"></div>
+            </div>
+        </div>
+
+        <!-- Hash Display -->
+        <div class="section">
+            <div class="section-title">Configuration Hash</div>
+            <div class="control-panel">
+                <button class="btn" onclick="getHash()">Get Hash</button>
+                <button class="btn btn-success" onclick="compareHashes()">Compare Selected Instances</button>
+            </div>
+            <div id="hashResult" class="result-display" style="display: none;"></div>
+            <div id="hashComparison" style="display: none;"></div>
+        </div>
+
+        <!-- Hash Details -->
+        <div class="section">
+            <div class="section-title">Hash Details Visualization</div>
+            <div class="control-panel">
+                <button class="btn" onclick="getHashDetails()">Get Hash Details</button>
+            </div>
+            <div id="hashDetailsResult" style="display: none;">
+                <div class="metadata-grid" id="hashMetadata"></div>
+                <div class="chart-container">
+                    <canvas id="hashChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <canvas id="sourceChart"></canvas>
+                </div>
+                <div id="hashDetailsContent"></div>
+            </div>
+        </div>
+
+        <!-- Multi-Instance Comparison -->
+        <div class="section">
+            <div class="section-title">Multi-Instance Comparison</div>
+            <div class="control-panel">
+                <button class="btn" onclick="compareInstances()">Compare Selected Instances</button>
+                <button class="btn btn-secondary" onclick="clearComparison()">Clear</button>
+            </div>
+            <div id="comparisonResults" class="comparison-grid" style="display: none;"></div>
+        </div>
+
+        <!-- Advanced Search & Filter -->
+        <div class="section">
+            <div class="section-title">Advanced Search & Filter</div>
+            <div class="search-panel">
+                <div class="search-controls">
+                    <input type="text" id="searchInput" class="search-input" placeholder="Search properties..." oninput="filterProperties()">
+                    <select id="searchType">
+                        <option value="exact">Exact Match</option>
+                        <option value="prefix">Prefix</option>
+                        <option value="regex">Regex</option>
+                    </select>
+                    <select id="sourceFilter">
+                        <option value="">All Sources</option>
+                        <option value="configserver">Config Server</option>
+                        <option value="local">Local</option>
+                    </select>
+                    <button class="btn btn-secondary" onclick="exportResults()">Export JSON</button>
+                </div>
+                <div id="activeFilters"></div>
+            </div>
+            <div id="searchResults" class="result-display" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        // State management
+        const state = {
+            instances: [],
+            selectedInstances: new Set(),
+            snapshot: null,
+            hashDetails: null,
+            comparisonData: {},
+            charts: {},
+            autoRefreshInterval: null,
+            refreshInterval: 3000
+        };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('autoRefreshToggle').addEventListener('change', (e) => {
+                if (e.target.checked) {
+                    startAutoRefresh();
+                } else {
+                    stopAutoRefresh();
+                }
+            });
+
+            document.getElementById('refreshInterval').addEventListener('change', (e) => {
+                state.refreshInterval = parseInt(e.target.value);
+                if (state.autoRefreshInterval) {
+                    stopAutoRefresh();
+                    startAutoRefresh();
+                }
+            });
+        });
+
+        // Service Discovery
+        async function discoverInstances() {
+            const serviceName = document.getElementById('serviceName').value.trim();
+            if (!serviceName) {
+                showError('Service name is required');
+                return;
+            }
+
+            updateStatus(true, 'Discovering...');
+            try {
+                const response = await fetch(`/api/sdk/discovery/${encodeURIComponent(serviceName)}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                const data = await response.json();
+                state.instances = data.instances || [];
+                displayInstances(state.instances);
+                updateStatus(true, 'Discovery complete');
+                clearError();
+            } catch (error) {
+                console.error('Discovery error:', error);
+                showError(`Failed to discover instances: ${error.message}`);
+                updateStatus(false, 'Discovery failed');
+            }
+        }
+
+        function displayInstances(instances) {
+            const container = document.getElementById('instancesContainer');
+            if (instances.length === 0) {
+                container.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: #999; padding: 40px;">No instances found</div>';
+                return;
+            }
+
+            container.innerHTML = instances.map((instance, index) => {
+                const instanceId = instance.instanceId || `instance-${index}`;
+                const isSelected = state.selectedInstances.has(instanceId);
+                return `
+                    <div class="instance-card ${isSelected ? 'selected' : ''}" onclick="toggleInstanceSelection('${instanceId}')">
+                        <div class="instance-header">
+                            <div>
+                                <input type="checkbox" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation(); toggleInstanceSelection('${instanceId}')">
+                                <span class="instance-id">${instanceId}</span>
+                            </div>
+                        </div>
+                        <div style="font-size: 0.9em; color: #666; margin-top: 5px;">
+                            <div><strong>Host:</strong> ${instance.host}</div>
+                            <div><strong>Port:</strong> ${instance.port}</div>
+                            <div><strong>URI:</strong> ${instance.uri}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function toggleInstanceSelection(instanceId) {
+            if (state.selectedInstances.has(instanceId)) {
+                state.selectedInstances.delete(instanceId);
+            } else {
+                state.selectedInstances.add(instanceId);
+            }
+            displayInstances(state.instances);
+        }
+
+        function clearSelection() {
+            state.selectedInstances.clear();
+            displayInstances(state.instances);
+        }
+
+        // Single Value Lookup
+        async function getConfigValue() {
+            const key = document.getElementById('configKey').value.trim();
+            if (!key) {
+                showError('Configuration key is required');
+                return;
+            }
+
+            updateStatus(true, 'Fetching...');
+            try {
+                const response = await fetch(`/api/sdk/config/value/${encodeURIComponent(key)}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                const data = await response.json();
+                displaySingleValue(data);
+                updateStatus(true, 'Value retrieved');
+                clearError();
+            } catch (error) {
+                console.error('Get value error:', error);
+                showError(`Failed to get value: ${error.message}`);
+                updateStatus(false, 'Failed');
+            }
+        }
+
+        function displaySingleValue(data) {
+            const resultDiv = document.getElementById('singleValueResult');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result-display success';
+            resultDiv.innerHTML = `
+                <strong>Key:</strong> ${escapeHtml(data.key)}<br>
+                <strong>Value:</strong> ${escapeHtml(data.value)}<br>
+                <strong>Status:</strong> ${data.status}
+            `;
+        }
+
+        // Prefix-based Retrieval
+        async function getAllWithPrefix() {
+            const prefix = document.getElementById('prefixInput').value.trim();
+            if (!prefix) {
+                showError('Prefix is required');
+                return;
+            }
+
+            updateStatus(true, 'Fetching...');
+            try {
+                const response = await fetch(`/api/sdk/config/all/${encodeURIComponent(prefix)}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                const data = await response.json();
+                displayPrefixResult(data);
+                updateStatus(true, 'Properties retrieved');
+                clearError();
+            } catch (error) {
+                console.error('Get all error:', error);
+                showError(`Failed to get properties: ${error.message}`);
+                updateStatus(false, 'Failed');
+            }
+        }
+
+        function displayPrefixResult(data) {
+            const resultDiv = document.getElementById('prefixResult');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result-display success';
+            
+            const properties = data.properties || {};
+            const count = data.count || 0;
+            
+            if (count === 0) {
+                resultDiv.innerHTML = `<strong>Prefix:</strong> ${escapeHtml(data.prefix)}<br>No properties found.`;
+                return;
+            }
+
+            let html = `<strong>Prefix:</strong> ${escapeHtml(data.prefix)}<br><strong>Count:</strong> ${count}<br><br>`;
+            html += Object.entries(properties).map(([key, value]) => 
+                `<div class="property-item"><span class="property-key">${escapeHtml(key)}</span><span class="property-value">${escapeHtml(String(value))}</span></div>`
+            ).join('');
+            
+            resultDiv.innerHTML = html;
+        }
+
+        // Snapshot
+        async function getSnapshot() {
+            updateStatus(true, 'Fetching snapshot...');
+            try {
+                const response = await fetch('/api/sdk/config/snapshot');
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                const data = await response.json();
+                state.snapshot = data;
+                displaySnapshot(data);
+                updateStatus(true, 'Snapshot retrieved');
+                clearError();
+            } catch (error) {
+                console.error('Snapshot error:', error);
+                showError(`Failed to get snapshot: ${error.message}`);
+                updateStatus(false, 'Failed');
+            }
+        }
+
+        function displaySnapshot(data) {
+            document.getElementById('snapshotTabs').style.display = 'block';
+            
+            // Display info
+            const infoDiv = document.getElementById('snapshotInfo');
+            infoDiv.innerHTML = `
+                <strong>Application:</strong> ${escapeHtml(data.application || 'N/A')} | 
+                <strong>Profile:</strong> ${escapeHtml(data.profile || 'N/A')} | 
+                <strong>Label:</strong> ${escapeHtml(data.label || 'N/A')} | 
+                <strong>Version:</strong> ${escapeHtml(data.version || 'N/A')} | 
+                <strong>Hash:</strong> <code>${escapeHtml(data.hash || 'N/A')}</code> | 
+                <strong>Properties:</strong> ${data.keyCount || 0}
+            `;
+
+            const properties = data.properties || {};
+            
+            // Flat view
+            displayFlatView(properties);
+            
+            // Grouped view
+            displayGroupedView(properties);
+            
+            // Tree view
+            displayTreeView(properties);
+            
+            // Source view (would need source info from hash-details)
+            displaySourceView(properties);
+        }
+
+        function displayFlatView(properties) {
+            const container = document.getElementById('snapshotFlat');
+            container.innerHTML = Object.entries(properties).map(([key, value]) => 
+                `<div class="property-item"><span class="property-key">${escapeHtml(key)}</span><span class="property-value">${escapeHtml(String(value))}</span></div>`
+            ).join('');
+        }
+
+        function displayGroupedView(properties) {
+            const container = document.getElementById('snapshotGrouped');
+            const grouped = {};
+            
+            Object.entries(properties).forEach(([key, value]) => {
+                const parts = key.split('.');
+                const prefix = parts[0];
+                if (!grouped[prefix]) {
+                    grouped[prefix] = {};
+                }
+                grouped[prefix][key] = value;
+            });
+
+            container.innerHTML = Object.entries(grouped).map(([prefix, props]) => 
+                `<div style="margin-bottom: 20px;">
+                    <h4 style="color: #667eea; margin-bottom: 10px;">${escapeHtml(prefix)}</h4>
+                    ${Object.entries(props).map(([key, value]) => 
+                        `<div class="property-item"><span class="property-key">${escapeHtml(key)}</span><span class="property-value">${escapeHtml(String(value))}</span></div>`
+                    ).join('')}
+                </div>`
+            ).join('');
+        }
+
+        function displayTreeView(properties) {
+            const container = document.getElementById('snapshotTree');
+            const tree = buildTree(properties);
+            container.innerHTML = renderTree(tree);
+        }
+
+        function buildTree(properties) {
+            const tree = {};
+            Object.entries(properties).forEach(([key, value]) => {
+                const parts = key.split('.');
+                let current = tree;
+                parts.forEach((part, index) => {
+                    if (!current[part]) {
+                        current[part] = index === parts.length - 1 ? { _value: value } : {};
+                    }
+                    current = current[part];
+                });
+            });
+            return tree;
+        }
+
+        function renderTree(node, level = 0) {
+            let html = '';
+            Object.entries(node).forEach(([key, value]) => {
+                if (key === '_value') return;
+                const hasChildren = Object.keys(value).length > (value._value !== undefined ? 1 : 0);
+                const nodeId = `tree-node-${Math.random().toString(36).substr(2, 9)}`;
+                html += `
+                    <div class="tree-node">
+                        <div class="tree-node-header" onclick="toggleTreeNode('${nodeId}')">
+                            <span class="tree-toggle">${hasChildren ? '+' : ''}</span>
+                            <span class="property-key">${escapeHtml(key)}</span>
+                            ${value._value !== undefined ? `<span class="property-value">${escapeHtml(String(value._value))}</span>` : ''}
+                        </div>
+                        ${hasChildren ? `
+                            <div class="tree-children" id="${nodeId}">
+                                ${renderTree(value, level + 1)}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            });
+            return html;
+        }
+
+        function toggleTreeNode(nodeId) {
+            const node = document.getElementById(nodeId);
+            if (node) {
+                node.classList.toggle('expanded');
+                const toggle = node.previousElementSibling.querySelector('.tree-toggle');
+                if (toggle) {
+                    toggle.textContent = node.classList.contains('expanded') ? '-' : '+';
+                }
+            }
+        }
+
+        function displaySourceView(properties) {
+            const container = document.getElementById('snapshotSource');
+            // Group by source (simplified - would need actual source info)
+            container.innerHTML = '<p>Source view requires hash-details data. Please fetch hash details first.</p>';
+        }
+
+        function switchTab(tabName, element) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            if (element) {
+                element.classList.add('active');
+            } else {
+                document.querySelectorAll('.tab').forEach(t => {
+                    if (t.textContent.trim().toLowerCase().includes(tabName.toLowerCase())) {
+                        t.classList.add('active');
+                    }
+                });
+            }
+            document.getElementById(`snapshot${tabName.charAt(0).toUpperCase() + tabName.slice(1)}`).classList.add('active');
+        }
+
+        function clearSnapshot() {
+            state.snapshot = null;
+            document.getElementById('snapshotTabs').style.display = 'none';
+        }
+
+        // Hash
+        async function getHash() {
+            updateStatus(true, 'Fetching hash...');
+            try {
+                const response = await fetch('/api/sdk/config/info');
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                const data = await response.json();
+                displayHash(data);
+                updateStatus(true, 'Hash retrieved');
+                clearError();
+            } catch (error) {
+                console.error('Hash error:', error);
+                showError(`Failed to get hash: ${error.message}`);
+                updateStatus(false, 'Failed');
+            }
+        }
+
+        function displayHash(data) {
+            const resultDiv = document.getElementById('hashResult');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result-display success';
+            resultDiv.innerHTML = `
+                <strong>Config Hash:</strong> <code>${escapeHtml(data.configHash || 'N/A')}</code><br>
+                <strong>Load Balancer Strategy:</strong> ${escapeHtml(data.loadBalancerStrategy || 'N/A')}<br>
+                <strong>Status:</strong> ${data.status}
+            `;
+        }
+
+        async function compareHashes() {
+            if (state.selectedInstances.size < 2) {
+                showError('Please select at least 2 instances for comparison');
+                return;
+            }
+
+            updateStatus(true, 'Comparing hashes...');
+            const comparisonDiv = document.getElementById('hashComparison');
+            comparisonDiv.style.display = 'block';
+            comparisonDiv.innerHTML = '<div class="loading-spinner"></div> Comparing...';
+
+            const promises = Array.from(state.selectedInstances).map(async (instanceId) => {
+                const instance = state.instances.find(i => (i.instanceId || '') === instanceId);
+                if (!instance) return null;
+                
+                try {
+                    const url = `${instance.uri}/api/sdk/config/info`;
+                    const response = await fetch(url);
+                    if (response.ok) {
+                        return { instanceId, data: await response.json() };
+                    }
+                } catch (error) {
+                    console.error(`Error fetching hash for ${instanceId}:`, error);
+                }
+                return null;
+            });
+
+            const results = (await Promise.all(promises)).filter(r => r !== null);
+            
+            if (results.length < 2) {
+                comparisonDiv.innerHTML = '<div class="error-message">Failed to fetch hashes from selected instances</div>';
+                return;
+            }
+
+            const hashes = results.map(r => r.data.configHash);
+            const allMatch = hashes.every(h => h === hashes[0]);
+
+            let html = '<div class="hash-comparison">';
+            results.forEach((result, index) => {
+                html += `
+                    <div class="hash-item">
+                        <strong>${escapeHtml(result.instanceId)}</strong>
+                        <div class="hash-value">${escapeHtml(result.data.configHash || 'N/A')}</div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            html += `<div style="margin-top: 15px; padding: 15px; background: ${allMatch ? '#d5f4e6' : '#fff3cd'}; border-radius: 8px;">
+                <strong class="${allMatch ? 'hash-match' : 'hash-diff'}">${allMatch ? '✓ All hashes match' : '✗ Hashes differ'}</strong>
+            </div>`;
+
+            comparisonDiv.innerHTML = html;
+            updateStatus(true, 'Comparison complete');
+        }
+
+        // Hash Details
+        async function getHashDetails() {
+            updateStatus(true, 'Fetching hash details...');
+            try {
+                const response = await fetch('/api/sdk/config/hash-details');
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                const data = await response.json();
+                state.hashDetails = data;
+                displayHashDetails(data);
+                updateStatus(true, 'Hash details retrieved');
+                clearError();
+            } catch (error) {
+                console.error('Hash details error:', error);
+                showError(`Failed to get hash details: ${error.message}`);
+                updateStatus(false, 'Failed');
+            }
+        }
+
+        function displayHashDetails(data) {
+            const resultDiv = document.getElementById('hashDetailsResult');
+            resultDiv.style.display = 'block';
+
+            // Metadata
+            const metadata = data.metadata || {};
+            const metadataDiv = document.getElementById('hashMetadata');
+            metadataDiv.innerHTML = `
+                <div class="metadata-card">
+                    <div class="metadata-label">Total Keys</div>
+                    <div class="metadata-value">${metadata.keyCount || 0}</div>
+                </div>
+                <div class="metadata-card">
+                    <div class="metadata-label">Excluded Keys</div>
+                    <div class="metadata-value">${metadata.excludedKeyCount || 0}</div>
+                </div>
+                <div class="metadata-card">
+                    <div class="metadata-label">Included Keys</div>
+                    <div class="metadata-value">${(metadata.keyCount || 0) - (metadata.excludedKeyCount || 0)}</div>
+                </div>
+                <div class="metadata-card">
+                    <div class="metadata-label">Sources</div>
+                    <div class="metadata-value">${(metadata.sourceNames || []).length}</div>
+                </div>
+            `;
+
+            // Charts
+            renderHashChart(metadata);
+            renderSourceChart(metadata);
+
+            // Details content
+            const contentDiv = document.getElementById('hashDetailsContent');
+            contentDiv.innerHTML = `
+                <div style="margin-top: 20px;">
+                    <div class="collapsible" onclick="toggleCollapsible('hashValue')">
+                        <strong>Hash Value</strong>
+                        <span>+</span>
+                    </div>
+                    <div id="hashValue" class="collapsible-content">
+                        <code>${escapeHtml(data.hash || 'N/A')}</code>
+                    </div>
+                </div>
+                <div style="margin-top: 10px;">
+                    <div class="collapsible" onclick="toggleCollapsible('canonicalString')">
+                        <strong>Canonical String</strong>
+                        <span>+</span>
+                    </div>
+                    <div id="canonicalString" class="collapsible-content">
+                        <pre>${escapeHtml(data.canonicalString || 'N/A')}</pre>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderHashChart(metadata) {
+            const ctx = document.getElementById('hashChart').getContext('2d');
+            if (state.charts.hashChart) {
+                state.charts.hashChart.destroy();
+            }
+            
+            const included = (metadata.keyCount || 0) - (metadata.excludedKeyCount || 0);
+            const excluded = metadata.excludedKeyCount || 0;
+            
+            state.charts.hashChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: ['Included Keys', 'Excluded Keys'],
+                    datasets: [{
+                        data: [included, excluded],
+                        backgroundColor: ['#2ecc71', '#e74c3c']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Key Distribution'
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderSourceChart(metadata) {
+            const ctx = document.getElementById('sourceChart').getContext('2d');
+            if (state.charts.sourceChart) {
+                state.charts.sourceChart.destroy();
+            }
+            
+            const sources = metadata.sourceNames || [];
+            state.charts.sourceChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: sources.length > 0 ? sources : ['Config Sources'],
+                    datasets: [{
+                        label: 'Sources',
+                        data: sources.length > 0 ? sources.map(() => 1) : [0],
+                        backgroundColor: '#667eea'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Configuration Sources'
+                        }
+                    }
+                }
+            });
+        }
+
+        function toggleCollapsible(id) {
+            const content = document.getElementById(id);
+            const toggle = content.previousElementSibling.querySelector('span');
+            content.classList.toggle('expanded');
+            toggle.textContent = content.classList.contains('expanded') ? '-' : '+';
+        }
+
+        // Multi-Instance Comparison
+        async function compareInstances() {
+            if (state.selectedInstances.size < 2) {
+                showError('Please select at least 2 instances for comparison');
+                return;
+            }
+
+            updateStatus(true, 'Comparing instances...');
+            const comparisonDiv = document.getElementById('comparisonResults');
+            comparisonDiv.style.display = 'grid';
+            comparisonDiv.innerHTML = '<div class="loading-spinner"></div> Comparing...';
+
+            const promises = Array.from(state.selectedInstances).map(async (instanceId) => {
+                const instance = state.instances.find(i => (i.instanceId || '') === instanceId);
+                if (!instance) return null;
+                
+                try {
+                    const baseUrl = instance.uri;
+                    const [snapshotRes, infoRes] = await Promise.all([
+                        fetch(`${baseUrl}/api/sdk/config/snapshot`),
+                        fetch(`${baseUrl}/api/sdk/config/info`)
+                    ]);
+                    
+                    if (snapshotRes.ok && infoRes.ok) {
+                        return {
+                            instanceId,
+                            snapshot: await snapshotRes.json(),
+                            info: await infoRes.json()
+                        };
+                    }
+                } catch (error) {
+                    console.error(`Error fetching data for ${instanceId}:`, error);
+                }
+                return null;
+            });
+
+            const results = (await Promise.all(promises)).filter(r => r !== null);
+            
+            if (results.length === 0) {
+                comparisonDiv.innerHTML = '<div class="error-message">Failed to fetch data from selected instances</div>';
+                return;
+            }
+
+            comparisonDiv.innerHTML = results.map(result => `
+                <div class="comparison-card">
+                    <h3>${escapeHtml(result.instanceId)}</h3>
+                    <div style="margin-top: 10px;">
+                        <strong>Application:</strong> ${escapeHtml(result.snapshot.application || 'N/A')}<br>
+                        <strong>Profile:</strong> ${escapeHtml(result.snapshot.profile || 'N/A')}<br>
+                        <strong>Hash:</strong> <code style="font-size: 0.85em;">${escapeHtml(result.info.configHash || 'N/A')}</code><br>
+                        <strong>Properties:</strong> ${result.snapshot.keyCount || 0}
+                    </div>
+                </div>
+            `).join('');
+
+            updateStatus(true, 'Comparison complete');
+        }
+
+        function clearComparison() {
+            document.getElementById('comparisonResults').style.display = 'none';
+        }
+
+        // Search & Filter
+        function filterProperties() {
+            if (!state.snapshot) {
+                showError('Please fetch snapshot first');
+                return;
+            }
+
+            const searchTerm = document.getElementById('searchInput').value.trim();
+            const searchType = document.getElementById('searchType').value;
+            const sourceFilter = document.getElementById('sourceFilter').value;
+            const properties = state.snapshot.properties || {};
+
+            let filtered = Object.entries(properties);
+
+            // Apply search
+            if (searchTerm) {
+                if (searchType === 'exact') {
+                    filtered = filtered.filter(([key]) => key === searchTerm);
+                } else if (searchType === 'prefix') {
+                    filtered = filtered.filter(([key]) => key.startsWith(searchTerm));
+                } else if (searchType === 'regex') {
+                    try {
+                        const regex = new RegExp(searchTerm);
+                        filtered = filtered.filter(([key]) => regex.test(key));
+                    } catch (e) {
+                        showError(`Invalid regex: ${e.message}`);
+                        return;
+                    }
+                }
+            }
+
+            // Apply source filter (simplified - would need actual source info)
+            // For now, just display results
+
+            const resultsDiv = document.getElementById('searchResults');
+            resultsDiv.style.display = 'block';
+            resultsDiv.className = 'result-display success';
+            
+            if (filtered.length === 0) {
+                resultsDiv.innerHTML = '<p>No properties match the search criteria.</p>';
+                return;
+            }
+
+            resultsDiv.innerHTML = `
+                <strong>Found ${filtered.length} properties:</strong><br><br>
+                ${filtered.map(([key, value]) => {
+                    const highlighted = searchTerm ? highlightMatch(key, searchTerm) : escapeHtml(key);
+                    return `<div class="property-item highlight"><span class="property-key">${highlighted}</span><span class="property-value">${escapeHtml(String(value))}</span></div>`;
+                }).join('')}
+            `;
+
+            // Update active filters
+            const filtersDiv = document.getElementById('activeFilters');
+            const filters = [];
+            if (searchTerm) filters.push(`Search: ${searchTerm} (${searchType})`);
+            if (sourceFilter) filters.push(`Source: ${sourceFilter}`);
+            filtersDiv.innerHTML = filters.map(f => `<span class="filter-badge">${escapeHtml(f)}</span>`).join('');
+        }
+
+        function highlightMatch(text, term) {
+            const regex = new RegExp(`(${escapeRegex(term)})`, 'gi');
+            return escapeHtml(text).replace(regex, '<mark style="background: #ffc107;">$1</mark>');
+        }
+
+        function escapeRegex(str) {
+            return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
+        function exportResults() {
+            if (!state.snapshot) {
+                showError('No data to export');
+                return;
+            }
+
+            const dataStr = JSON.stringify(state.snapshot, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `config-snapshot-${Date.now()}.json`;
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Auto-refresh
+        function startAutoRefresh() {
+            stopAutoRefresh();
+            state.autoRefreshInterval = setInterval(() => {
+                if (state.selectedInstances.size > 0 && state.snapshot) {
+                    getSnapshot();
+                }
+            }, state.refreshInterval);
+        }
+
+        function stopAutoRefresh() {
+            if (state.autoRefreshInterval) {
+                clearInterval(state.autoRefreshInterval);
+                state.autoRefreshInterval = null;
+            }
+        }
+
+        // Utility functions
+        function updateStatus(success, message) {
+            const indicator = document.getElementById('statusIndicator');
+            const text = document.getElementById('statusText');
+            indicator.className = 'status-indicator' + (success ? '' : ' error');
+            text.textContent = message;
+        }
+
+        function showError(message) {
+            const container = document.getElementById('errorContainer');
+            container.innerHTML = `<div class="error-message">${escapeHtml(message)}</div>`;
+        }
+
+        function clearError() {
+            document.getElementById('errorContainer').innerHTML = '';
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,44 @@
+# Feature Flags Configuration Template
+# This template provides a common pattern for feature flags configuration
+
+feature-flags:
+  enabled: true
+  provider: unleash
+  unleash:
+    api-url: ${UNLEASH_API_URL:http://unleash:4242/api/}
+    api-key: ${UNLEASH_API_KEY:}
+    environment: ${UNLEASH_ENVIRONMENT:development}
+    app-name: ${spring.application.name}
+  refresh-interval: 60000
+
+# Generated @ConfigurationProperties class:
+# @ConfigurationProperties(prefix = "feature-flags")
+# @Data
+# public class FeatureFlagsProperties {
+#   private Boolean enabled = true;
+#   
+#   @NotBlank
+#   private String provider = "unleash";
+#   
+#   @Valid
+#   private Unleash unleash = new Unleash();
+#   
+#   @Min(0)
+#   private Long refreshInterval = 60000L;
+#   
+#   @Data
+#   public static class Unleash {
+#     @NotBlank
+#     private String apiUrl = "http://unleash:4242/api/";
+#     
+#     @NotBlank
+#     private String apiKey;
+#     
+#     @NotBlank
+#     private String environment = "development";
+#     
+#     @NotBlank
+#     private String appName;
+#   }
+# }
+

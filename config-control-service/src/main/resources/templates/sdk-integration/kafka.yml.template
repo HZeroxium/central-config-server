@@ -1,0 +1,54 @@
+# Kafka Configuration Template
+# This template provides a common pattern for Kafka configuration
+
+kafka:
+  bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+  consumer:
+    group-id: ${KAFKA_CONSUMER_GROUP_ID:my-group}
+    auto-offset-reset: earliest
+    enable-auto-commit: false
+  producer:
+    acks: all
+    retries: 3
+    batch-size: 16384
+    linger-ms: 10
+
+# Generated @ConfigurationProperties class:
+# @ConfigurationProperties(prefix = "kafka")
+# @Data
+# public class KafkaProperties {
+#   @NotBlank
+#   private String bootstrapServers = "localhost:9092";
+#   
+#   @Valid
+#   private Consumer consumer = new Consumer();
+#   
+#   @Valid
+#   private Producer producer = new Producer();
+#   
+#   @Data
+#   public static class Consumer {
+#     @NotBlank
+#     private String groupId = "my-group";
+#     
+#     private String autoOffsetReset = "earliest";
+#     
+#     private Boolean enableAutoCommit = false;
+#   }
+#   
+#   @Data
+#   public static class Producer {
+#     @NotBlank
+#     private String acks = "all";
+#     
+#     @Min(0)
+#     private Integer retries = 3;
+#     
+#     @Min(0)
+#     private Integer batchSize = 16384;
+#     
+#     @Min(0)
+#     private Long lingerMs = 10L;
+#   }
+# }
+

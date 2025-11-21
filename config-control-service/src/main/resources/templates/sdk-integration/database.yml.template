@@ -1,0 +1,50 @@
+# Database Configuration Template
+# This template provides a common pattern for database configuration using @ConfigurationProperties
+
+database:
+  host: ${DB_HOST:localhost}
+  port: ${DB_PORT:5432}
+  name: ${DB_NAME:mydb}
+  username: ${DB_USERNAME:user}
+  password: ${DB_PASSWORD:password}
+  pool:
+    min-size: 5
+    max-size: 20
+    connection-timeout: 30000
+
+# Generated @ConfigurationProperties class:
+# @ConfigurationProperties(prefix = "database")
+# @Data
+# public class DatabaseProperties {
+#   @NotBlank
+#   private String host = "localhost";
+#   
+#   @Min(1)
+#   @Max(65535)
+#   private Integer port = 5432;
+#   
+#   @NotBlank
+#   private String name;
+#   
+#   @NotBlank
+#   private String username;
+#   
+#   @NotBlank
+#   private String password;
+#   
+#   @Valid
+#   private Pool pool = new Pool();
+#   
+#   @Data
+#   public static class Pool {
+#     @Min(1)
+#     private Integer minSize = 5;
+#     
+#     @Min(1)
+#     private Integer maxSize = 20;
+#     
+#     @Min(0)
+#     private Long connectionTimeout = 30000L;
+#   }
+# }
+

@@ -35,6 +35,10 @@
       "description": "User information and permissions endpoints"
     },
     {
+      "name": "Config Migration",
+      "description": "Tools for migrating and integrating SDK configuration"
+    },
+    {
       "name": "Heartbeat",
       "description": "Service instance heartbeat and health tracking"
     },
@@ -69,6 +73,14 @@
     {
       "name": "IAM Teams",
       "description": "Team management endpoints"
+    },
+    {
+      "name": "Infrastructure",
+      "description": "Infrastructure configuration API for SDK clients"
+    },
+    {
+      "name": "Config Files",
+      "description": "Config file generation for Spring Cloud Config Server"
     },
     {
       "name": "Drift Events",
@@ -113,6 +125,26 @@
           }
         ],
         "responses": {
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "403": {
             "description": "Forbidden - Insufficient permissions",
             "content": {
@@ -139,26 +171,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ServiceInstanceResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -203,36 +215,6 @@
           "required": true
         },
         "responses": {
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Service instance not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "200": {
             "description": "Service instance updated successfully",
             "content": {
@@ -253,8 +235,38 @@
               }
             }
           },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "401": {
             "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Service instance not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -293,6 +305,29 @@
           }
         ],
         "responses": {
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "Service instance deleted successfully"
+          },
           "403": {
             "description": "Forbidden - Insufficient permissions",
             "content": {
@@ -305,29 +340,6 @@
           },
           "404": {
             "description": "Service instance not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "204": {
-            "description": "Service instance deleted successfully"
-          },
-          "401": {
-            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -383,7 +395,7 @@
         }
       }
     },
-    "/api/application-services/{serviceId}/kv/{path}": {
+    "/api/application-services/{serviceId}/kv/{*path}": {
       "get": {
         "tags": [
           "Key-Value Store"
@@ -405,10 +417,9 @@
           {
             "name": "path",
             "in": "path",
-            "description": "Key path (relative to service root). Example: config/db.url or config/app/settings.json",
+            "description": "Key path (relative to service root)",
             "required": true,
             "schema": {
-              "pattern": "^[a-zA-Z0-9._/-]+$",
               "type": "string"
             },
             "example": "config/db.url"
@@ -445,16 +456,6 @@
           }
         ],
         "responses": {
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "200": {
             "description": "KV entry found",
             "headers": {
@@ -488,6 +489,16 @@
                 "schema": {
                   "type": "string",
                   "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -533,10 +544,9 @@
           {
             "name": "path",
             "in": "path",
-            "description": "Key path (relative to service root). Example: config/db.url or config/app/settings.json",
+            "description": "Key path (relative to service root)",
             "required": true,
             "schema": {
-              "pattern": "^[a-zA-Z0-9._/-]+$",
               "type": "string"
             },
             "example": "config/db.url"
@@ -562,16 +572,6 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "KV entry created/updated successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/KVWriteResponse"
-                }
-              }
-            }
-          },
           "400": {
             "description": "Invalid request",
             "content": {
@@ -588,6 +588,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "KV entry created/updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KVWriteResponse"
                 }
               }
             }
@@ -633,10 +643,9 @@
           {
             "name": "path",
             "in": "path",
-            "description": "Key path (relative to service root). Example: config/db.url or config/app/settings.json",
+            "description": "Key path (relative to service root)",
             "required": true,
             "schema": {
-              "pattern": "^[a-zA-Z0-9._/-]+$",
               "type": "string"
             },
             "example": "config/db.url"
@@ -756,22 +765,22 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "List structure found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/KVListResponseV2"
-                }
-              }
-            }
-          },
           "401": {
             "description": "Unauthorized",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "List structure found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KVListResponseV2"
                 }
               }
             }
@@ -837,6 +846,16 @@
           "required": true
         },
         "responses": {
+          "404": {
+            "description": "Service not found or access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "400": {
             "description": "Invalid request",
             "content": {
@@ -847,8 +866,8 @@
               }
             }
           },
-          "404": {
-            "description": "Service not found or access denied",
+          "401": {
+            "description": "Unauthorized",
             "content": {
               "application/json": {
                 "schema": {
@@ -863,16 +882,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/KVTransactionResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -909,12 +918,12 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "Application service found",
+          "404": {
+            "description": "Application service not found or access denied",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApplicationServiceResponse"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -929,8 +938,8 @@
               }
             }
           },
-          "404": {
-            "description": "Application service not found or access denied",
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -939,12 +948,12 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "200": {
+            "description": "Application service found",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "$ref": "#/components/schemas/ApplicationServiceResponse"
                 }
               }
             }
@@ -989,8 +998,8 @@
           "required": true
         },
         "responses": {
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
+          "400": {
+            "description": "Invalid request data",
             "content": {
               "application/json": {
                 "schema": {
@@ -1001,26 +1010,6 @@
           },
           "500": {
             "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Application service not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid request data",
             "content": {
               "application/json": {
                 "schema": {
@@ -1041,6 +1030,26 @@
           },
           "401": {
             "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Application service not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -1079,16 +1088,6 @@
           }
         ],
         "responses": {
-          "403": {
-            "description": "Forbidden - SYS_ADMIN role required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "500": {
             "description": "Internal server error",
             "content": {
@@ -1102,8 +1101,8 @@
           "204": {
             "description": "Application service deleted successfully"
           },
-          "404": {
-            "description": "Application service not found",
+          "403": {
+            "description": "Forbidden - SYS_ADMIN role required",
             "content": {
               "application/json": {
                 "schema": {
@@ -1114,6 +1113,16 @@
           },
           "401": {
             "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Application service not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -1262,8 +1271,8 @@
               }
             }
           },
-          "400": {
-            "description": "Invalid request parameters",
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -1272,8 +1281,8 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "400": {
+            "description": "Invalid request parameters",
             "content": {
               "application/json": {
                 "schema": {
@@ -1310,8 +1319,8 @@
           "required": true
         },
         "responses": {
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
+          "400": {
+            "description": "Invalid request data",
             "content": {
               "application/json": {
                 "schema": {
@@ -1330,26 +1339,6 @@
               }
             }
           },
-          "201": {
-            "description": "Service share created successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ServiceShareResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid request data",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "404": {
             "description": "Service not found",
             "content": {
@@ -1360,8 +1349,28 @@
               }
             }
           },
+          "201": {
+            "description": "Service share created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceShareResponse"
+                }
+              }
+            }
+          },
           "401": {
             "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
             "content": {
               "application/json": {
                 "schema": {
@@ -1533,18 +1542,18 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "Service instances retrieved successfully",
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ServiceInstancePageResponse"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
           },
-          "500": {
-            "description": "Internal server error",
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -1563,12 +1572,12 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "200": {
+            "description": "Service instances retrieved successfully",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "$ref": "#/components/schemas/ServiceInstancePageResponse"
                 }
               }
             }
@@ -1601,6 +1610,16 @@
           "required": true
         },
         "responses": {
+          "400": {
+            "description": "Invalid request data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "404": {
             "description": "ApplicationService not found",
             "content": {
@@ -1611,28 +1630,8 @@
               }
             }
           },
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "500": {
             "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid request data",
             "content": {
               "application/json": {
                 "schema": {
@@ -1660,6 +1659,16 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1670,6 +1679,216 @@
             "oauth2_password": []
           }
         ]
+      }
+    },
+    "/api/migration/properties-to-yaml": {
+      "post": {
+        "tags": [
+          "Config Migration"
+        ],
+        "summary": "Convert Properties file to YAML",
+        "description": "Converts Properties format configuration file to YAML format with hierarchical structure",
+        "operationId": "convertPropertiesToYaml",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PropertiesToYamlRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Conversion successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PropertiesToYamlResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid Properties format",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PropertiesToYamlResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/migration/ini-to-yaml": {
+      "post": {
+        "tags": [
+          "Config Migration"
+        ],
+        "summary": "Convert INI file to YAML",
+        "description": "Converts INI format configuration file to YAML format with proper structure",
+        "operationId": "convertIniToYaml",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IniToYamlRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "400": {
+            "description": "Invalid INI format",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IniToYamlResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Conversion successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IniToYamlResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/migration/generate-sdk-config": {
+      "post": {
+        "tags": [
+          "Config Migration"
+        ],
+        "summary": "Generate SDK configuration",
+        "description": "Analyzes existing application.yml and generates ZCM SDK configuration snippet",
+        "operationId": "generateSdkConfig",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateSdkConfigRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "400": {
+            "description": "Invalid YAML format",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SdkConfigGenerationResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Generation successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SdkConfigGenerationResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/migration/generate-properties-class": {
+      "post": {
+        "tags": [
+          "Config Migration"
+        ],
+        "summary": "Generate @ConfigurationProperties class",
+        "description": "Analyzes YAML configuration and generates @ConfigurationProperties classes with validation annotations",
+        "operationId": "generatePropertiesClass",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GeneratePropertiesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "400": {
+            "description": "Invalid YAML format",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigPropertiesGenerationResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Generation successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigPropertiesGenerationResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/migration/analyze-config": {
+      "post": {
+        "tags": [
+          "Config Migration"
+        ],
+        "summary": "Analyze configuration",
+        "description": "Analyzes configuration file and provides validation, linting, and migration suggestions",
+        "operationId": "analyzeConfig",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalyzeConfigRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Analysis successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigAnalysisResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid configuration format",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigAnalysisResponse"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/heartbeat": {
@@ -1691,6 +1910,16 @@
           "required": true
         },
         "responses": {
+          "500": {
+            "description": "Internal server error during heartbeat processing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "200": {
             "description": "Heartbeat processed successfully",
             "content": {
@@ -1715,8 +1944,8 @@
               }
             }
           },
-          "500": {
-            "description": "Internal server error during heartbeat processing",
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -1727,16 +1956,6 @@
           },
           "400": {
             "description": "Invalid heartbeat payload",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -1896,16 +2115,6 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "Drift events retrieved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DriftEventPageResponse"
-                }
-              }
-            }
-          },
           "500": {
             "description": "Internal server error",
             "content": {
@@ -1916,8 +2125,18 @@
               }
             }
           },
-          "400": {
-            "description": "Invalid request parameters",
+          "200": {
+            "description": "Drift events retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DriftEventPageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -1926,8 +2145,8 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "400": {
+            "description": "Invalid request parameters",
             "content": {
               "application/json": {
                 "schema": {
@@ -1964,26 +2183,6 @@
           "required": true
         },
         "responses": {
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "200": {
             "description": "Drift event created successfully",
             "content": {
@@ -2004,8 +2203,28 @@
               }
             }
           },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "401": {
             "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
             "content": {
               "application/json": {
                 "schema": {
@@ -2023,6 +2242,133 @@
             "oauth2_password": []
           }
         ]
+      }
+    },
+    "/api/config-files/generate": {
+      "post": {
+        "tags": [
+          "Config Files"
+        ],
+        "summary": "Generate config files for all services",
+        "description": "Generates Spring Cloud Config Server YAML files for all ApplicationServices in the database",
+        "operationId": "generateAll",
+        "responses": {
+          "200": {
+            "description": "Config files generated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenerateAllResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenerateAllResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/config-files/generate/{serviceId}": {
+      "post": {
+        "tags": [
+          "Config Files"
+        ],
+        "summary": "Generate config files for a specific service",
+        "description": "Generates Spring Cloud Config Server YAML files for the specified ApplicationService",
+        "operationId": "generateForService",
+        "parameters": [
+          {
+            "name": "serviceId",
+            "in": "path",
+            "description": "Service identifier",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Config files generated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenerateResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenerateResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Service not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenerateResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/config-files/generate/load-test": {
+      "post": {
+        "tags": [
+          "Config Files"
+        ],
+        "summary": "Generate config files for load test services",
+        "description": "Generates config files for services matching HeartbeatLoadTester pattern (payment-service-1, order-service-2, etc.)",
+        "operationId": "generateForLoadTest",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateLoadTestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Config files generated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenerateLoadTestResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenerateLoadTestResponse"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/cache/test": {
@@ -2184,8 +2530,8 @@
               }
             }
           },
-          "400": {
-            "description": "Invalid request parameters",
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -2204,8 +2550,8 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "400": {
+            "description": "Invalid request parameters",
             "content": {
               "application/json": {
                 "schema": {
@@ -2242,18 +2588,8 @@
           "required": true
         },
         "responses": {
-          "201": {
-            "description": "Approval request created successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApprovalRequestResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
+          "400": {
+            "description": "Invalid request data",
             "content": {
               "application/json": {
                 "schema": {
@@ -2282,8 +2618,18 @@
               }
             }
           },
-          "400": {
-            "description": "Invalid request data",
+          "201": {
+            "description": "Approval request created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalRequestResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -2292,8 +2638,8 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
             "content": {
               "application/json": {
                 "schema": {
@@ -2344,6 +2690,36 @@
           "required": true
         },
         "responses": {
+          "201": {
+            "description": "Decision submitted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalRequestResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Not authorized to approve this request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "400": {
             "description": "Invalid decision data",
             "content": {
@@ -2364,38 +2740,8 @@
               }
             }
           },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "201": {
-            "description": "Decision submitted successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApprovalRequestResponse"
-                }
-              }
-            }
-          },
           "401": {
             "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden - Not authorized to approve this request",
             "content": {
               "application/json": {
                 "schema": {
@@ -2554,6 +2900,16 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "200": {
             "description": "Successfully retrieved application services",
             "content": {
@@ -2566,16 +2922,6 @@
           },
           "400": {
             "description": "Invalid request parameters",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -2612,8 +2958,8 @@
           "required": true
         },
         "responses": {
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
+          "400": {
+            "description": "Invalid request data",
             "content": {
               "application/json": {
                 "schema": {
@@ -2624,26 +2970,6 @@
           },
           "500": {
             "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "201": {
-            "description": "Application service created successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApplicationServiceResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid request data",
             "content": {
               "application/json": {
                 "schema": {
@@ -2668,6 +2994,26 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Application service created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationServiceResponse"
                 }
               }
             }
@@ -2742,8 +3088,8 @@
         "description": "Generates and saves new mock data (services, instances, drift events, etc.) based on seeding configuration. Does not clean existing data first.",
         "operationId": "seedData",
         "responses": {
-          "500": {
-            "description": "Internal server error during seeding operation",
+          "200": {
+            "description": "Data seeded successfully",
             "content": {
               "application/json": {
                 "schema": {
@@ -2752,8 +3098,8 @@
               }
             }
           },
-          "200": {
-            "description": "Data seeded successfully",
+          "500": {
+            "description": "Internal server error during seeding operation",
             "content": {
               "application/json": {
                 "schema": {
@@ -2784,8 +3130,8 @@
         "description": "Atomically removes all existing mock data and generates fresh data. This is the recommended endpoint for environment resets.",
         "operationId": "cleanAndSeedData",
         "responses": {
-          "200": {
-            "description": "Data cleaned and seeded successfully",
+          "403": {
+            "description": "Forbidden: Requires SYS_ADMIN role or dev profile",
             "content": {
               "application/json": {
                 "schema": {
@@ -2794,8 +3140,8 @@
               }
             }
           },
-          "403": {
-            "description": "Forbidden: Requires SYS_ADMIN role or dev profile",
+          "200": {
+            "description": "Data cleaned and seeded successfully",
             "content": {
               "application/json": {
                 "schema": {
@@ -2846,8 +3192,8 @@
           "required": true
         },
         "responses": {
-          "403": {
-            "description": "Forbidden - SYS_ADMIN role required",
+          "400": {
+            "description": "Invalid request data",
             "content": {
               "application/json": {
                 "schema": {
@@ -2866,6 +3212,48 @@
               }
             }
           },
+          "200": {
+            "description": "Email sent successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - SYS_ADMIN role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/notifications/test-drift-event": {
+      "post": {
+        "tags": [
+          "Notifications"
+        ],
+        "summary": "Test drift event notification",
+        "description": "Sends test email notifications for a configuration drift event.\n\n**Use Case:**\n- Testing email templates and notification flow\n- Verifying email delivery configuration\n- Debugging notification issues\n\n**Behavior:**\n- Creates a mock DriftEventCreatedEvent with provided data\n- Auto-generates driftEventId, serviceName, hashes, and detectedAt timestamp\n- Sends emails to all SYS_ADMIN users and service owner team members\n- Returns actual recipients count (SYS_ADMIN + team members)\n\n**Recipients:**\n- All users with SYS_ADMIN role\n- All users in the service owner team (if teamId provided)\n\n**Requires SYS_ADMIN role.**\n",
+        "operationId": "testDriftEvent",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestDriftEventRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
           "400": {
             "description": "Invalid request data",
             "content": {
@@ -2876,12 +3264,156 @@
               }
             }
           },
-          "200": {
-            "description": "Email sent successfully",
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "string"
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - SYS_ADMIN role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Test emails sent successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestNotificationResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/notifications/test-approval-rejected": {
+      "post": {
+        "tags": [
+          "Notifications"
+        ],
+        "summary": "Test approval rejected notification",
+        "description": "Sends a test email notification for a rejected approval request.\n\n**Use Case:**\n- Testing email templates and notification flow\n- Verifying email delivery configuration\n- Debugging notification issues\n\n**Behavior:**\n- Creates a mock ApprovalRequestRejectedEvent with provided data\n- Auto-generates requestId and rejectedAt timestamp\n- Sends email to the requester user\n- Uses mock user data if requester not found in database\n\n**Requires SYS_ADMIN role.**\n",
+        "operationId": "testApprovalRejected",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestApprovalRejectedRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "400": {
+            "description": "Invalid request data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - SYS_ADMIN role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Test email sent successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestNotificationResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/notifications/test-approval-approved": {
+      "post": {
+        "tags": [
+          "Notifications"
+        ],
+        "summary": "Test approval approved notification",
+        "description": "Sends a test email notification for an approved approval request.\n\n**Use Case:**\n- Testing email templates and notification flow\n- Verifying email delivery configuration\n- Debugging notification issues\n\n**Behavior:**\n- Creates a mock ApprovalRequestApprovedEvent with provided data\n- Auto-generates requestId and approvedAt timestamp\n- Sends email to the requester user\n- Uses mock user data if requester not found in database\n\n**Requires SYS_ADMIN role.**\n",
+        "operationId": "testApprovalApproved",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestApprovalApprovedRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "400": {
+            "description": "Invalid request data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - SYS_ADMIN role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Test email sent successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestNotificationResponse"
                 }
               }
             }
@@ -2910,26 +3442,6 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "Drift event found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DriftEventResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "500": {
             "description": "Internal server error",
             "content": {
@@ -2950,8 +3462,28 @@
               }
             }
           },
+          "200": {
+            "description": "Drift event found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DriftEventResponse"
+                }
+              }
+            }
+          },
           "401": {
             "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
             "content": {
               "application/json": {
                 "schema": {
@@ -3000,18 +3532,8 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "Drift event updated successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DriftEventResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
+          "400": {
+            "description": "Invalid request data",
             "content": {
               "application/json": {
                 "schema": {
@@ -3040,8 +3562,8 @@
               }
             }
           },
-          "400": {
-            "description": "Invalid request data",
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -3050,8 +3572,18 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "200": {
+            "description": "Drift event updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DriftEventResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
             "content": {
               "application/json": {
                 "schema": {
@@ -3080,22 +3612,22 @@
         "description": "Retrieve detailed information about the currently authenticated user.\nThis includes user ID, username, email, names, team memberships, roles, and manager ID.\n",
         "operationId": "findCurrentUserInformation",
         "responses": {
-          "200": {
-            "description": "User information retrieved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MeResponse"
-                }
-              }
-            }
-          },
           "500": {
             "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "User information retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResponse"
                 }
               }
             }
@@ -3192,8 +3724,28 @@
           }
         ],
         "responses": {
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Service share not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -3212,32 +3764,12 @@
               }
             }
           },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "200": {
             "description": "Service share found",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ServiceShareResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -3272,6 +3804,16 @@
           }
         ],
         "responses": {
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Service share not found",
             "content": {
@@ -3282,18 +3824,8 @@
               }
             }
           },
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -3305,8 +3837,8 @@
           "204": {
             "description": "Service share revoked successfully"
           },
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
             "content": {
               "application/json": {
                 "schema": {
@@ -3335,8 +3867,8 @@
         "description": "Retrieves a list of all services registered with Consul.\nThis provides an overview of available services in the ecosystem.\n",
         "operationId": "listServiceRegistryServices",
         "responses": {
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -3365,8 +3897,8 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
             "content": {
               "application/json": {
                 "schema": {
@@ -3428,8 +3960,8 @@
               }
             }
           },
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
+          "404": {
+            "description": "Service not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -3438,8 +3970,8 @@
               }
             }
           },
-          "404": {
-            "description": "Service not found",
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -3458,12 +3990,116 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "oauth2_auth_code": []
+          },
+          {
+            "oauth2_password": []
+          }
+        ]
+      }
+    },
+    "/api/migration/templates": {
+      "get": {
+        "tags": [
+          "Config Migration"
+        ],
+        "summary": "List available templates",
+        "description": "Returns list of all available configuration templates",
+        "operationId": "listTemplates",
+        "responses": {
+          "200": {
+            "description": "Templates retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateListResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/migration/templates/{templateId}": {
+      "get": {
+        "tags": [
+          "Config Migration"
+        ],
+        "summary": "Get template details",
+        "description": "Returns detailed information about a specific template",
+        "operationId": "getTemplate",
+        "parameters": [
+          {
+            "name": "templateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "Template not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateDetailResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Template retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateDetailResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/infrastructure/kafka-config": {
+      "get": {
+        "tags": [
+          "Infrastructure"
+        ],
+        "summary": "Get Kafka configuration for heartbeat ping",
+        "description": "Retrieves Kafka configuration (bootstrap servers and topic name)\nthat SDK clients need to send heartbeat messages via Kafka.\n\n**Public Endpoint:** No authentication required for SDK integration\n**Caching:** Clients should cache this configuration and refresh periodically\n**Fallback:** Clients should have fallback configuration via properties/env vars\n",
+        "operationId": "getKafkaConfig",
+        "responses": {
+          "200": {
+            "description": "Kafka configuration retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KafkaConfigResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KafkaConfigResponse"
                 }
               }
             }
@@ -3597,12 +4233,12 @@
           }
         ],
         "responses": {
-          "403": {
-            "description": "Forbidden - SYS_ADMIN role required",
+          "200": {
+            "description": "Successfully retrieved IAM users",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "$ref": "#/components/schemas/IamUserPageResponse"
                 }
               }
             }
@@ -3617,12 +4253,12 @@
               }
             }
           },
-          "200": {
-            "description": "Successfully retrieved IAM users",
+          "403": {
+            "description": "Forbidden - SYS_ADMIN role required",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/IamUserPageResponse"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -3672,12 +4308,12 @@
           }
         ],
         "responses": {
-          "403": {
-            "description": "Forbidden - SYS_ADMIN role required",
+          "200": {
+            "description": "IAM user found",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "$ref": "#/components/schemas/IamUserResponse"
                 }
               }
             }
@@ -3692,18 +4328,8 @@
               }
             }
           },
-          "200": {
-            "description": "IAM user found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IamUserResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "IAM user not found",
+          "403": {
+            "description": "Forbidden - SYS_ADMIN role required",
             "content": {
               "application/json": {
                 "schema": {
@@ -3714,6 +4340,16 @@
           },
           "401": {
             "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "IAM user not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -3745,12 +4381,12 @@
         "description": "Retrieve user count statistics from cached IAM data.\nThis endpoint is restricted to system administrators.\n",
         "operationId": "getStatsIamUser",
         "responses": {
-          "403": {
-            "description": "Forbidden - SYS_ADMIN role required",
+          "200": {
+            "description": "User statistics retrieved successfully",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "$ref": "#/components/schemas/IamUserStatsResponse"
                 }
               }
             }
@@ -3765,12 +4401,12 @@
               }
             }
           },
-          "200": {
-            "description": "User statistics retrieved successfully",
+          "403": {
+            "description": "Forbidden - SYS_ADMIN role required",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/IamUserStatsResponse"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -3820,6 +4456,16 @@
           }
         ],
         "responses": {
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "403": {
             "description": "Forbidden - SYS_ADMIN role required",
             "content": {
@@ -3830,8 +4476,8 @@
               }
             }
           },
-          "500": {
-            "description": "Internal server error",
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -3846,16 +4492,6 @@
               "application/json": {
                 "schema": {
                   "type": "string"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -3895,6 +4531,16 @@
           }
         ],
         "responses": {
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "403": {
             "description": "Forbidden - SYS_ADMIN role required",
             "content": {
@@ -3905,8 +4551,8 @@
               }
             }
           },
-          "500": {
-            "description": "Internal server error",
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -3921,16 +4567,6 @@
               "application/json": {
                 "schema": {
                   "type": "string"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -4024,6 +4660,16 @@
           }
         ],
         "responses": {
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "200": {
             "description": "Successfully retrieved IAM teams",
             "content": {
@@ -4036,16 +4682,6 @@
           },
           "403": {
             "description": "Forbidden - SYS_ADMIN role required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -4109,26 +4745,6 @@
               }
             }
           },
-          "403": {
-            "description": "Forbidden - SYS_ADMIN role required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "IAM team not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "500": {
             "description": "Internal server error",
             "content": {
@@ -4139,8 +4755,28 @@
               }
             }
           },
+          "403": {
+            "description": "Forbidden - SYS_ADMIN role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "401": {
             "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "IAM team not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -4172,16 +4808,6 @@
         "description": "Retrieve team count statistics from cached IAM data.\nThis endpoint is restricted to system administrators.\n",
         "operationId": "getStatsIamTeam",
         "responses": {
-          "403": {
-            "description": "Forbidden - SYS_ADMIN role required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "500": {
             "description": "Internal server error",
             "content": {
@@ -4198,6 +4824,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/IamTeamStatsResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - SYS_ADMIN role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -4247,16 +4883,6 @@
           }
         ],
         "responses": {
-          "403": {
-            "description": "Forbidden - SYS_ADMIN role required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "500": {
             "description": "Internal server error",
             "content": {
@@ -4273,6 +4899,16 @@
               "application/json": {
                 "schema": {
                   "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - SYS_ADMIN role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -4366,12 +5002,62 @@
               }
             }
           },
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "200": {
             "description": "Config Server information retrieved successfully",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ConfigServerInfo"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "oauth2_auth_code": []
+          },
+          {
+            "oauth2_password": []
+          }
+        ]
+      }
+    },
+    "/api/config-server/health": {
+      "get": {
+        "tags": [
+          "Config Server"
+        ],
+        "summary": "Get Config Server health status",
+        "description": "Retrieves the health status of the underlying Spring Cloud Config Server.\nThis provides information about the Config Server's operational state.\n",
+        "operationId": "getHealthConfigServer",
+        "responses": {
+          "200": {
+            "description": "Config Server health status retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigServerActuatorHealthResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error or Config Server unreachable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -4397,15 +5083,60 @@
         ]
       }
     },
-    "/api/config-server/health": {
+    "/api/config-server/hash/{serviceName}/{profile}": {
       "get": {
         "tags": [
           "Config Server"
         ],
-        "summary": "Get Config Server health status",
-        "description": "Retrieves the health status of the underlying Spring Cloud Config Server.\nThis provides information about the Config Server's operational state.\n",
-        "operationId": "getHealthConfigServer",
+        "summary": "Get configuration hash details",
+        "description": "Retrieves detailed configuration hash information for debugging and comparison purposes.\nIncludes hash, snapshot, canonical string, and metadata (key count, source names, excluded keys).\nThis endpoint is public and does not require authentication for easier debugging.\n",
+        "operationId": "getConfigHashDetails",
+        "parameters": [
+          {
+            "name": "serviceName",
+            "in": "path",
+            "description": "Name of the service",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "sample-service"
+          },
+          {
+            "name": "profile",
+            "in": "path",
+            "description": "Profile of the service (e.g., dev, prod)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "dev"
+          }
+        ],
         "responses": {
+          "400": {
+            "description": "Invalid service name or profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Configuration hash details retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          },
           "500": {
             "description": "Internal server error or Config Server unreachable",
             "content": {
@@ -4416,18 +5147,8 @@
               }
             }
           },
-          "200": {
-            "description": "Config Server health status retrieved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ConfigServerActuatorHealthResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "404": {
+            "description": "Configuration not found for the specified service/profile",
             "content": {
               "application/json": {
                 "schema": {
@@ -4436,15 +5157,7 @@
               }
             }
           }
-        },
-        "security": [
-          {
-            "oauth2_auth_code": []
-          },
-          {
-            "oauth2_password": []
-          }
-        ]
+        }
       }
     },
     "/api/config-server/environment/{application}/{profile}": {
@@ -4508,8 +5221,8 @@
               }
             }
           },
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
+          "400": {
+            "description": "Invalid application or profile name",
             "content": {
               "application/json": {
                 "schema": {
@@ -4518,8 +5231,18 @@
               }
             }
           },
-          "400": {
-            "description": "Invalid application or profile name",
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
             "content": {
               "application/json": {
                 "schema": {
@@ -4534,16 +5257,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ConfigServerEnvironmentResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -4580,12 +5293,12 @@
           }
         ],
         "responses": {
-          "500": {
-            "description": "Internal server error or Config Server unreachable",
+          "200": {
+            "description": "Actuator endpoint response retrieved successfully",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "type": "object"
                 }
               }
             }
@@ -4610,12 +5323,12 @@
               }
             }
           },
-          "200": {
-            "description": "Actuator endpoint response retrieved successfully",
+          "500": {
+            "description": "Internal server error or Config Server unreachable",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -4764,26 +5477,6 @@
           }
         ],
         "responses": {
-          "403": {
-            "description": "Forbidden - Insufficient permissions",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Approval request not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "200": {
             "description": "Approval request found",
             "content": {
@@ -4804,8 +5497,28 @@
               }
             }
           },
+          "404": {
+            "description": "Approval request not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "401": {
             "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions",
             "content": {
               "application/json": {
                 "schema": {
@@ -4844,16 +5557,6 @@
           }
         ],
         "responses": {
-          "404": {
-            "description": "Approval request not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "500": {
             "description": "Internal server error",
             "content": {
@@ -4867,6 +5570,26 @@
           "204": {
             "description": "Approval request cancelled successfully"
           },
+          "404": {
+            "description": "Approval request not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "403": {
             "description": "Forbidden - Not authorized to cancel this request",
             "content": {
@@ -4879,16 +5602,6 @@
           },
           "409": {
             "description": "Conflict - Request cannot be cancelled in current status",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -5037,8 +5750,8 @@
               }
             }
           },
-          "400": {
-            "description": "Invalid request parameters",
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -5047,8 +5760,8 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "400": {
+            "description": "Invalid request parameters",
             "content": {
               "application/json": {
                 "schema": {
@@ -5089,12 +5802,32 @@
           }
         ],
         "responses": {
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "200": {
             "description": "Approval decision found",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApprovalDecisionResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -5109,28 +5842,8 @@
               }
             }
           },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "404": {
             "description": "Approval decision not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -5225,8 +5938,8 @@
               }
             }
           },
-          "400": {
-            "description": "Invalid request parameters",
+          "401": {
+            "description": "Unauthorized - Authentication required",
             "content": {
               "application/json": {
                 "schema": {
@@ -5235,8 +5948,8 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized - Authentication required",
+          "400": {
+            "description": "Invalid request parameters",
             "content": {
               "application/json": {
                 "schema": {
@@ -5550,8 +6263,8 @@
         "description": "Removes all application services, instances, drift events, shares, approval requests, and decisions. IAM data (users/teams) is preserved.",
         "operationId": "cleanData",
         "responses": {
-          "500": {
-            "description": "Internal server error during cleaning operation",
+          "200": {
+            "description": "Data cleaned successfully",
             "content": {
               "application/json": {
                 "schema": {
@@ -5560,8 +6273,8 @@
               }
             }
           },
-          "200": {
-            "description": "Data cleaned successfully",
+          "500": {
+            "description": "Internal server error during cleaning operation",
             "content": {
               "application/json": {
                 "schema": {
@@ -5667,90 +6380,6 @@
           }
         },
         "description": "Service instance update request"
-      },
-      "ErrorResponse": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string",
-            "description": "A URI reference that identifies the problem type",
-            "example": "https://api.example.com/problems/validation-error"
-          },
-          "title": {
-            "type": "string",
-            "description": "A short, human-readable summary of the problem type",
-            "example": "Validation Failed"
-          },
-          "status": {
-            "type": "integer",
-            "description": "The HTTP status code",
-            "format": "int32",
-            "example": 400
-          },
-          "detail": {
-            "type": "string",
-            "description": "A human-readable explanation specific to this occurrence of the problem",
-            "example": "Request validation failed"
-          },
-          "instance": {
-            "type": "string",
-            "description": "A URI reference that identifies the specific occurrence of the problem",
-            "example": "/api/application-services"
-          },
-          "timestamp": {
-            "type": "string",
-            "description": "Timestamp when the error occurred",
-            "format": "date-time",
-            "example": "2024-01-15T10:30:45.123Z"
-          },
-          "traceId": {
-            "type": "string",
-            "description": "Trace ID for correlation across services",
-            "example": "550e8400-e29b-41d4-a716-446655440000"
-          },
-          "context": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "object",
-              "description": "Additional context about the error"
-            },
-            "description": "Additional context about the error"
-          },
-          "validationErrors": {
-            "type": "array",
-            "description": "Validation errors (for validation failures)",
-            "items": {
-              "$ref": "#/components/schemas/ValidationError"
-            }
-          }
-        },
-        "description": "Standardized error response following RFC-7807 Problem Details for HTTP APIs"
-      },
-      "ValidationError": {
-        "type": "object",
-        "properties": {
-          "field": {
-            "type": "string",
-            "description": "The field that failed validation",
-            "example": "serviceId"
-          },
-          "rejectedValue": {
-            "type": "object",
-            "description": "The value that was rejected",
-            "example": "invalid-service-id"
-          },
-          "message": {
-            "type": "string",
-            "description": "Human-readable error message",
-            "example": "Service ID must not exceed 100 characters"
-          },
-          "code": {
-            "type": "string",
-            "description": "Validation constraint code",
-            "example": "Size"
-          }
-        },
-        "description": "Individual validation error details"
       },
       "ServiceInstanceResponse": {
         "type": "object",
@@ -5866,6 +6495,90 @@
           }
         },
         "description": "Service instance details response"
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "A URI reference that identifies the problem type",
+            "example": "https://api.example.com/problems/validation-error"
+          },
+          "title": {
+            "type": "string",
+            "description": "A short, human-readable summary of the problem type",
+            "example": "Validation Failed"
+          },
+          "status": {
+            "type": "integer",
+            "description": "The HTTP status code",
+            "format": "int32",
+            "example": 400
+          },
+          "detail": {
+            "type": "string",
+            "description": "A human-readable explanation specific to this occurrence of the problem",
+            "example": "Request validation failed"
+          },
+          "instance": {
+            "type": "string",
+            "description": "A URI reference that identifies the specific occurrence of the problem",
+            "example": "/api/application-services"
+          },
+          "timestamp": {
+            "type": "string",
+            "description": "Timestamp when the error occurred",
+            "format": "date-time",
+            "example": "2024-01-15T10:30:45.123Z"
+          },
+          "traceId": {
+            "type": "string",
+            "description": "Trace ID for correlation across services",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "context": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "description": "Additional context about the error"
+            },
+            "description": "Additional context about the error"
+          },
+          "validationErrors": {
+            "type": "array",
+            "description": "Validation errors (for validation failures)",
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            }
+          }
+        },
+        "description": "Standardized error response following RFC-7807 Problem Details for HTTP APIs"
+      },
+      "ValidationError": {
+        "type": "object",
+        "properties": {
+          "field": {
+            "type": "string",
+            "description": "The field that failed validation",
+            "example": "serviceId"
+          },
+          "rejectedValue": {
+            "type": "object",
+            "description": "The value that was rejected",
+            "example": "invalid-service-id"
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable error message",
+            "example": "Service ID must not exceed 100 characters"
+          },
+          "code": {
+            "type": "string",
+            "description": "Validation constraint code",
+            "example": "Size"
+          }
+        },
+        "description": "Individual validation error details"
       },
       "KVPutRequest": {
         "required": [
@@ -6429,6 +7142,371 @@
         },
         "description": "Service instance creation request"
       },
+      "PropertiesToYamlRequest": {
+        "required": [
+          "propertiesContent"
+        ],
+        "type": "object",
+        "properties": {
+          "propertiesContent": {
+            "type": "string",
+            "description": "Properties file content",
+            "example": "spring.application.name=my-service\nserver.port=8080"
+          }
+        },
+        "description": "Request to convert Properties file to YAML format"
+      },
+      "PropertiesToYamlResponse": {
+        "type": "object",
+        "properties": {
+          "yamlContent": {
+            "type": "string",
+            "description": "Converted YAML content"
+          },
+          "yamlMap": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "description": "YAML as structured map"
+            },
+            "description": "YAML as structured map"
+          },
+          "suggestions": {
+            "type": "array",
+            "description": "Conversion suggestions",
+            "items": {
+              "type": "string",
+              "description": "Conversion suggestions"
+            }
+          }
+        },
+        "description": "Response containing converted YAML content"
+      },
+      "IniToYamlRequest": {
+        "required": [
+          "iniContent"
+        ],
+        "type": "object",
+        "properties": {
+          "iniContent": {
+            "type": "string",
+            "description": "INI file content",
+            "example": "[database]\nhost=localhost\nport=5432"
+          }
+        },
+        "description": "Request to convert INI file to YAML format"
+      },
+      "IniToYamlResponse": {
+        "type": "object",
+        "properties": {
+          "yamlContent": {
+            "type": "string",
+            "description": "Converted YAML content",
+            "example": "database:\n  host: localhost\n  port: 5432"
+          },
+          "yamlMap": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "description": "YAML as structured map"
+            },
+            "description": "YAML as structured map"
+          },
+          "suggestions": {
+            "type": "array",
+            "description": "Conversion suggestions",
+            "items": {
+              "type": "string",
+              "description": "Conversion suggestions"
+            }
+          }
+        },
+        "description": "Response containing converted YAML content"
+      },
+      "GenerateSdkConfigRequest": {
+        "required": [
+          "applicationYml"
+        ],
+        "type": "object",
+        "properties": {
+          "applicationYml": {
+            "type": "string",
+            "description": "Existing application.yml content"
+          },
+          "serviceName": {
+            "type": "string",
+            "description": "Service name (optional, will be extracted from config if not provided)",
+            "example": "my-service"
+          }
+        },
+        "description": "Request to generate ZCM SDK configuration"
+      },
+      "SdkConfigGenerationResponse": {
+        "type": "object",
+        "properties": {
+          "serviceName": {
+            "type": "string",
+            "description": "Service name",
+            "example": "my-service"
+          },
+          "generatedConfig": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "description": "Generated SDK configuration as map"
+            },
+            "description": "Generated SDK configuration as map"
+          },
+          "generatedConfigYaml": {
+            "type": "string",
+            "description": "Generated SDK configuration as YAML string"
+          },
+          "integrationSteps": {
+            "type": "array",
+            "description": "Step-by-step integration instructions",
+            "items": {
+              "type": "string",
+              "description": "Step-by-step integration instructions"
+            }
+          },
+          "estimatedTime": {
+            "type": "string",
+            "description": "Estimated integration time",
+            "example": "15 minutes"
+          },
+          "suggestions": {
+            "type": "array",
+            "description": "Suggestions for optional features",
+            "items": {
+              "type": "string",
+              "description": "Suggestions for optional features"
+            }
+          }
+        },
+        "description": "Response containing generated SDK configuration"
+      },
+      "GeneratePropertiesRequest": {
+        "required": [
+          "yamlContent"
+        ],
+        "type": "object",
+        "properties": {
+          "yamlContent": {
+            "type": "string",
+            "description": "YAML configuration content"
+          },
+          "packageName": {
+            "type": "string",
+            "description": "Target package name for generated classes",
+            "example": "com.example.config",
+            "default": "com.example.config"
+          }
+        },
+        "description": "Request to generate @ConfigurationProperties classes from YAML"
+      },
+      "ConfigPropertiesGenerationResponse": {
+        "type": "object",
+        "properties": {
+          "classes": {
+            "type": "array",
+            "description": "List of generated Java classes",
+            "items": {
+              "$ref": "#/components/schemas/GeneratedClass"
+            }
+          },
+          "imports": {
+            "type": "array",
+            "description": "All required import statements",
+            "items": {
+              "type": "string",
+              "description": "All required import statements"
+            }
+          },
+          "metadataJson": {
+            "type": "string",
+            "description": "Spring Boot configuration metadata JSON"
+          },
+          "packageName": {
+            "type": "string",
+            "description": "Package name used for generation"
+          }
+        },
+        "description": "Response containing generated @ConfigurationProperties classes"
+      },
+      "GeneratedClass": {
+        "type": "object",
+        "properties": {
+          "className": {
+            "type": "string",
+            "description": "Class name",
+            "example": "DatabaseProperties"
+          },
+          "prefix": {
+            "type": "string",
+            "description": "Configuration prefix",
+            "example": "database"
+          },
+          "code": {
+            "type": "string",
+            "description": "Generated Java source code"
+          },
+          "imports": {
+            "type": "array",
+            "description": "Required imports for this class",
+            "items": {
+              "type": "string",
+              "description": "Required imports for this class"
+            }
+          }
+        },
+        "description": "A generated @ConfigurationProperties class"
+      },
+      "AnalyzeConfigRequest": {
+        "required": [
+          "configContent"
+        ],
+        "type": "object",
+        "properties": {
+          "configContent": {
+            "type": "string",
+            "description": "Configuration content (YAML, Properties, or INI)"
+          },
+          "format": {
+            "type": "string",
+            "description": "Configuration format",
+            "example": "yaml",
+            "enum": [
+              "yaml",
+              "properties",
+              "ini"
+            ],
+            "default": "yaml"
+          }
+        },
+        "description": "Request to analyze configuration and provide suggestions"
+      },
+      "ConfigAnalysisResponse": {
+        "type": "object",
+        "properties": {
+          "validation": {
+            "$ref": "#/components/schemas/ValidationResult"
+          },
+          "lintingIssues": {
+            "type": "array",
+            "description": "Linting issues",
+            "items": {
+              "$ref": "#/components/schemas/LintingIssue"
+            }
+          },
+          "propertyGroupSuggestions": {
+            "type": "array",
+            "description": "Suggested property groups for @ConfigurationProperties",
+            "items": {
+              "$ref": "#/components/schemas/PropertyGroupSuggestion"
+            }
+          },
+          "migrationChecklist": {
+            "type": "array",
+            "description": "Migration checklist",
+            "items": {
+              "type": "string",
+              "description": "Migration checklist"
+            }
+          }
+        },
+        "description": "Response containing configuration analysis and suggestions"
+      },
+      "LintingIssue": {
+        "type": "object",
+        "properties": {
+          "severity": {
+            "type": "string",
+            "description": "Issue severity",
+            "example": "INFO",
+            "enum": [
+              "INFO",
+              "WARN",
+              "ERROR"
+            ]
+          },
+          "message": {
+            "type": "string",
+            "description": "Issue message"
+          },
+          "suggestion": {
+            "type": "string",
+            "description": "Suggestion to fix the issue"
+          },
+          "property": {
+            "type": "string",
+            "description": "Property path related to the issue"
+          }
+        },
+        "description": "A linting issue found in configuration"
+      },
+      "PropertyGroupSuggestion": {
+        "type": "object",
+        "properties": {
+          "prefix": {
+            "type": "string",
+            "description": "Property prefix",
+            "example": "database"
+          },
+          "className": {
+            "type": "string",
+            "description": "Suggested class name",
+            "example": "DatabaseProperties"
+          },
+          "propertyCount": {
+            "type": "integer",
+            "description": "Number of properties in this group",
+            "format": "int32"
+          },
+          "properties": {
+            "type": "array",
+            "description": "List of property names",
+            "items": {
+              "type": "string",
+              "description": "List of property names"
+            }
+          }
+        },
+        "description": "Suggestion for a property group"
+      },
+      "ValidationResult": {
+        "type": "object",
+        "properties": {
+          "valid": {
+            "type": "boolean",
+            "description": "Whether configuration is valid"
+          },
+          "errors": {
+            "type": "array",
+            "description": "List of validation errors",
+            "items": {
+              "type": "string",
+              "description": "List of validation errors"
+            }
+          },
+          "warnings": {
+            "type": "array",
+            "description": "List of validation warnings",
+            "items": {
+              "type": "string",
+              "description": "List of validation warnings"
+            }
+          },
+          "suggestions": {
+            "type": "array",
+            "description": "List of suggestions",
+            "items": {
+              "type": "string",
+              "description": "List of suggestions"
+            }
+          }
+        },
+        "description": "Configuration validation result"
+      },
       "HeartbeatPayload": {
         "required": [
           "instanceId",
@@ -6629,6 +7707,155 @@
           }
         },
         "description": "Drift event details response"
+      },
+      "GenerateAllResponse": {
+        "type": "object",
+        "properties": {
+          "totalServices": {
+            "type": "integer",
+            "description": "Total number of services processed",
+            "format": "int32",
+            "example": 100
+          },
+          "successCount": {
+            "type": "integer",
+            "description": "Number of services with successful generation",
+            "format": "int32",
+            "example": 98
+          },
+          "failureCount": {
+            "type": "integer",
+            "description": "Number of services with failed generation",
+            "format": "int32",
+            "example": 2
+          },
+          "totalFilesGenerated": {
+            "type": "integer",
+            "description": "Total number of files generated",
+            "format": "int32",
+            "example": 392
+          },
+          "results": {
+            "type": "array",
+            "description": "Detailed results for each service",
+            "items": {
+              "$ref": "#/components/schemas/GenerationResult"
+            }
+          }
+        },
+        "description": "Response for config file generation for all services"
+      },
+      "GenerationResult": {
+        "type": "object",
+        "properties": {
+          "serviceId": {
+            "type": "string",
+            "description": "Service identifier",
+            "example": "payment-service"
+          },
+          "filesGenerated": {
+            "type": "integer",
+            "description": "Number of files generated",
+            "format": "int32",
+            "example": 4
+          },
+          "filesSkipped": {
+            "type": "integer",
+            "description": "Number of files skipped (already existed)",
+            "format": "int32",
+            "example": 0
+          },
+          "error": {
+            "type": "string",
+            "description": "Error message if generation failed",
+            "example": "null"
+          }
+        },
+        "description": "Result of config file generation for a single service"
+      },
+      "GenerateResponse": {
+        "type": "object",
+        "properties": {
+          "serviceId": {
+            "type": "string",
+            "description": "Service identifier",
+            "example": "payment-service"
+          },
+          "filesGenerated": {
+            "type": "integer",
+            "description": "Number of files generated",
+            "format": "int32",
+            "example": 4
+          },
+          "filesSkipped": {
+            "type": "integer",
+            "description": "Number of files skipped (already existed)",
+            "format": "int32",
+            "example": 0
+          },
+          "error": {
+            "type": "string",
+            "description": "Error message if generation failed",
+            "example": "null"
+          }
+        },
+        "description": "Response for config file generation for a single service"
+      },
+      "GenerateLoadTestRequest": {
+        "required": [
+          "instancesPerService",
+          "numServices"
+        ],
+        "type": "object",
+        "properties": {
+          "numServices": {
+            "maximum": 10000,
+            "minimum": 1,
+            "type": "integer",
+            "description": "Number of services to generate",
+            "format": "int32",
+            "example": 1000
+          },
+          "instancesPerService": {
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer",
+            "description": "Number of instances per service (for variation)",
+            "format": "int32",
+            "example": 5
+          }
+        },
+        "description": "Request to generate config files for load test services"
+      },
+      "GenerateLoadTestResponse": {
+        "type": "object",
+        "properties": {
+          "totalServices": {
+            "type": "integer",
+            "description": "Total number of services generated",
+            "format": "int32",
+            "example": 1000
+          },
+          "successCount": {
+            "type": "integer",
+            "description": "Number of services with successful generation",
+            "format": "int32",
+            "example": 1000
+          },
+          "failureCount": {
+            "type": "integer",
+            "description": "Number of services with failed generation",
+            "format": "int32",
+            "example": 0
+          },
+          "totalFilesGenerated": {
+            "type": "integer",
+            "description": "Total number of files generated",
+            "format": "int32",
+            "example": 4000
+          }
+        },
+        "description": "Response for config file generation for load test services"
       },
       "ApprovalRequestCreateRequest": {
         "required": [
@@ -6965,6 +8192,10 @@
             "type": "integer",
             "format": "int32"
           },
+          "configFilesGenerated": {
+            "type": "integer",
+            "format": "int32"
+          },
           "totalSeeded": {
             "type": "integer",
             "format": "int32"
@@ -7041,6 +8272,130 @@
           }
         },
         "description": "Request to send a test email"
+      },
+      "TestDriftEventRequest": {
+        "required": [
+          "instanceId",
+          "serviceId"
+        ],
+        "type": "object",
+        "properties": {
+          "serviceId": {
+            "type": "string",
+            "description": "Service ID where drift occurred",
+            "example": "service-456"
+          },
+          "instanceId": {
+            "type": "string",
+            "description": "Instance ID where drift occurred",
+            "example": "instance-789"
+          },
+          "teamId": {
+            "type": "string",
+            "description": "Team ID that owns the service",
+            "example": "team-abc"
+          },
+          "environment": {
+            "type": "string",
+            "description": "Environment where drift occurred (default: dev)",
+            "example": "dev"
+          },
+          "severity": {
+            "type": "string",
+            "description": "Drift severity (default: MEDIUM)",
+            "example": "MEDIUM",
+            "enum": [
+              "LOW",
+              "MEDIUM",
+              "HIGH",
+              "CRITICAL"
+            ]
+          }
+        },
+        "description": "Request to test drift event notification"
+      },
+      "TestNotificationResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "Success message",
+            "example": "Test approval notification email sent successfully"
+          },
+          "recipientsCount": {
+            "type": "integer",
+            "description": "Number of email recipients",
+            "format": "int32",
+            "example": 1
+          }
+        },
+        "description": "Response from test notification endpoint"
+      },
+      "TestApprovalRejectedRequest": {
+        "required": [
+          "reason",
+          "requesterUserId",
+          "serviceId"
+        ],
+        "type": "object",
+        "properties": {
+          "requesterUserId": {
+            "type": "string",
+            "description": "User ID who requested approval",
+            "example": "user-123"
+          },
+          "serviceId": {
+            "type": "string",
+            "description": "Service ID that was requested",
+            "example": "service-456"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Reason for rejection",
+            "example": "Service already owned by another team"
+          },
+          "rejectorUserId": {
+            "type": "string",
+            "description": "User ID who rejected the request (default: SYSTEM)",
+            "example": "admin-789"
+          },
+          "targetTeamId": {
+            "type": "string",
+            "description": "Target team ID that was requested (default: test-team-id)",
+            "example": "team-abc"
+          }
+        },
+        "description": "Request to test approval rejected notification"
+      },
+      "TestApprovalApprovedRequest": {
+        "required": [
+          "requesterUserId",
+          "serviceId"
+        ],
+        "type": "object",
+        "properties": {
+          "requesterUserId": {
+            "type": "string",
+            "description": "User ID who requested approval",
+            "example": "user-123"
+          },
+          "serviceId": {
+            "type": "string",
+            "description": "Service ID that was requested",
+            "example": "service-456"
+          },
+          "approverUserId": {
+            "type": "string",
+            "description": "User ID who approved the request (default: SYSTEM)",
+            "example": "admin-789"
+          },
+          "targetTeamId": {
+            "type": "string",
+            "description": "Target team ID that will own the service (default: test-team-id)",
+            "example": "team-abc"
+          }
+        },
+        "description": "Request to test approval approved notification"
       },
       "DriftEventUpdateRequest": {
         "type": "object",
@@ -7306,10 +8661,10 @@
             "description": "Whether the page is empty",
             "example": false
           },
-          "last": {
+          "first": {
             "type": "boolean"
           },
-          "first": {
+          "last": {
             "type": "boolean"
           }
         },
@@ -7433,6 +8788,77 @@
             }
           }
         }
+      },
+      "TemplateInfo": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Template ID",
+            "example": "database"
+          },
+          "name": {
+            "type": "string",
+            "description": "Template display name",
+            "example": "Database"
+          },
+          "description": {
+            "type": "string",
+            "description": "Template description"
+          },
+          "category": {
+            "type": "string",
+            "description": "Template category",
+            "example": "Database"
+          },
+          "content": {
+            "type": "string",
+            "description": "Template content (YAML)"
+          }
+        },
+        "description": "Template information"
+      },
+      "TemplateListResponse": {
+        "type": "object",
+        "properties": {
+          "templates": {
+            "type": "array",
+            "description": "List of available templates",
+            "items": {
+              "$ref": "#/components/schemas/TemplateInfo"
+            }
+          }
+        },
+        "description": "Response containing list of available templates"
+      },
+      "TemplateDetailResponse": {
+        "type": "object",
+        "properties": {
+          "template": {
+            "$ref": "#/components/schemas/TemplateInfo"
+          }
+        },
+        "description": "Response containing template details"
+      },
+      "KafkaConfigResponse": {
+        "required": [
+          "bootstrapServers",
+          "topic"
+        ],
+        "type": "object",
+        "properties": {
+          "bootstrapServers": {
+            "type": "string",
+            "description": "Kafka bootstrap servers (comma-separated list)",
+            "example": "kafka:9092"
+          },
+          "topic": {
+            "type": "string",
+            "description": "Kafka topic for heartbeat messages",
+            "example": "heartbeat-queue"
+          }
+        },
+        "description": "Kafka configuration response for SDK clients"
       },
       "IamUserPageResponse": {
         "type": "object",
@@ -7975,8 +9401,8 @@
         "type": "oauth2",
         "flows": {
           "authorizationCode": {
-            "authorizationUrl": "http://keycloak:8080/realms/config-control/protocol/openid-connect/auth",
-            "tokenUrl": "http://keycloak:8080/realms/config-control/protocol/openid-connect/token",
+            "authorizationUrl": "http://10.40.30.161:28080/realms/config-control/protocol/openid-connect/auth",
+            "tokenUrl": "http://10.40.30.161:28080/realms/config-control/protocol/openid-connect/token",
             "scopes": {
               "openid": "OpenID",
               "profile": "Profile",
@@ -7989,7 +9415,7 @@
         "type": "oauth2",
         "flows": {
           "password": {
-            "tokenUrl": "http://keycloak:8080/realms/config-control/protocol/openid-connect/token",
+            "tokenUrl": "http://10.40.30.161:28080/realms/config-control/protocol/openid-connect/token",
             "scopes": {
               "openid": "OpenID",
               "profile": "Profile",

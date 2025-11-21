@@ -93,6 +93,28 @@ public class SdkConfigController {
   }
 
   /**
+   * Retrieves all configuration properties with a given prefix.
+   *
+   * @param prefix the property key prefix to filter (e.g., "spring.", "demo.")
+   * @return map of matching key-value pairs
+   */
+  @Operation(
+      summary = "Get all properties with prefix",
+      description = "Retrieve all configuration properties that start with the given prefix")
+  @Parameter(name = "prefix", description = "The property key prefix to filter", required = true, example = "spring.")
+  @ApiResponse(responseCode = "200", description = "Properties retrieved successfully")
+  @GetMapping("/all/{prefix}")
+  public ResponseEntity<Map<String, Object>> getAllWithPrefix(@PathVariable String prefix) {
+    Map<String, Object> properties = client.config().getAll(prefix);
+    Map<String, Object> result = new LinkedHashMap<>();
+    result.put("status", "ok");
+    result.put("prefix", prefix);
+    result.put("properties", properties);
+    result.put("count", properties.size());
+    return ResponseEntity.ok(result);
+  }
+
+  /**
    * Lists available load balancing policies and the current active strategy.
    *
    * @return policy overview

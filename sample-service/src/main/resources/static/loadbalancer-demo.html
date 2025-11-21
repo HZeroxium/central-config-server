@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Load Balancer & Service Discovery Demo - Sample Service</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #2c3e50;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .section {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+        }
+
+        .section-title {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .control-panel {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            color: #555;
+            font-size: 0.9em;
+        }
+
+        .form-group input,
+        .form-group select {
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 0.95em;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #95a5a6;
+        }
+
+        .btn-success {
+            background: #2ecc71;
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+        }
+
+        .status-bar {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #4CAF50;
+            animation: pulse 2s infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .status-indicator.error {
+            background: #F44336;
+            animation: none;
+        }
+
+        .instances-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .instance-card {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            border-radius: 8px;
+            padding: 15px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .instance-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .instance-card.selected {
+            border-left-color: #2ecc71;
+            background: #d5f4e6;
+        }
+
+        .instance-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .instance-id {
+            font-weight: bold;
+            color: #333;
+            font-size: 1.1em;
+        }
+
+        .instance-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            font-weight: bold;
+            background: #667eea;
+            color: white;
+        }
+
+        .instance-details {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .instance-detail-item {
+            margin-bottom: 5px;
+        }
+
+        .instance-detail-label {
+            font-weight: 600;
+            color: #999;
+        }
+
+        .result-display {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        .result-display.success {
+            border-color: #2ecc71;
+            background: #d5f4e6;
+        }
+
+        .result-display.error {
+            border-color: #e74c3c;
+            background: #fadbd8;
+            color: #c0392b;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-top: 20px;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .metric-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .metric-label {
+            font-size: 0.85em;
+            color: #666;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .metric-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .affinity-results {
+            margin-top: 20px;
+        }
+
+        .affinity-result-item {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .affinity-result-item.same-instance {
+            border-left-color: #2ecc71;
+            background: #d5f4e6;
+        }
+
+        .affinity-status {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+
+        .affinity-status.success {
+            background: #2ecc71;
+            color: white;
+        }
+
+        .affinity-status.failure {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 24px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .toggle-slider {
+            background-color: #667eea;
+        }
+
+        input:checked + .toggle-slider:before {
+            transform: translateX(26px);
+        }
+
+        .error-message {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #c62828;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .control-panel {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .instances-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Load Balancer & Service Discovery Demo</h1>
+            <p>Interactive demonstration of service discovery and load balancing with real-time visualization</p>
+        </div>
+
+        <div class="status-bar">
+            <div style="display: flex; align-items: center;">
+                <div class="status-indicator" id="statusIndicator"></div>
+                <span id="statusText">Ready</span>
+            </div>
+            <div>
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                    <span>Auto-refresh Discovery:</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="autoRefreshToggle">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </label>
+            </div>
+        </div>
+
+        <div id="errorContainer"></div>
+
+        <!-- Service Discovery Section -->
+        <div class="section">
+            <div class="section-title">Service Discovery</div>
+            <div class="control-panel">
+                <div class="form-group">
+                    <label>Service Name:</label>
+                    <input type="text" id="serviceName" value="sample-service" placeholder="e.g., sample-service">
+                </div>
+                <button class="btn" onclick="discoverInstances()">Discover Instances</button>
+                <button class="btn btn-secondary" onclick="clearDiscovery()">Clear</button>
+            </div>
+            <div id="instancesContainer" class="instances-grid"></div>
+        </div>
+
+        <!-- Load Balancing Section -->
+        <div class="section">
+            <div class="section-title">Load Balancing</div>
+            <div class="control-panel">
+                <div class="form-group">
+                    <label>Policy:</label>
+                    <select id="lbPolicy">
+                        <option value="ROUND_ROBIN">ROUND_ROBIN</option>
+                        <option value="RANDOM">RANDOM</option>
+                        <option value="WEIGHTED_RANDOM">WEIGHTED_RANDOM</option>
+                        <option value="RENDEZVOUS">RENDEZVOUS</option>
+                        <option value="CONSISTENT_HASHING">CONSISTENT_HASHING</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Request ID:</label>
+                    <input type="text" id="requestId" placeholder="Auto-generated">
+                </div>
+                <div class="form-group">
+                    <label>User ID (optional):</label>
+                    <input type="text" id="userId" placeholder="e.g., user123">
+                </div>
+                <div class="form-group">
+                    <label>Session ID (optional):</label>
+                    <input type="text" id="sessionId" placeholder="e.g., sess456">
+                </div>
+                <div class="form-group">
+                    <label>Client ID (optional):</label>
+                    <input type="text" id="clientId" placeholder="e.g., client789">
+                </div>
+            </div>
+            <button class="btn" onclick="chooseInstance()">Choose Instance</button>
+            <div id="lbResult" class="result-display" style="display: none;"></div>
+        </div>
+
+        <!-- Distribution Visualization -->
+        <div class="section">
+            <div class="section-title">Distribution Visualization</div>
+            <div class="control-panel">
+                <div class="form-group">
+                    <label>Policy:</label>
+                    <select id="batchPolicy">
+                        <option value="ROUND_ROBIN">ROUND_ROBIN</option>
+                        <option value="RANDOM">RANDOM</option>
+                        <option value="WEIGHTED_RANDOM">WEIGHTED_RANDOM</option>
+                        <option value="RENDEZVOUS">RENDEZVOUS</option>
+                        <option value="CONSISTENT_HASHING">CONSISTENT_HASHING</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Number of Requests:</label>
+                    <input type="number" id="batchCount" value="10" min="1" max="100">
+                </div>
+                <div class="form-group">
+                    <label>Session ID (for affinity):</label>
+                    <input type="text" id="batchSessionId" placeholder="Leave empty for random">
+                </div>
+                <button class="btn" onclick="runBatchTest()">Run Batch Test</button>
+                <button class="btn btn-secondary" onclick="clearDistribution()">Clear Chart</button>
+            </div>
+            <div class="chart-container">
+                <canvas id="distributionChart"></canvas>
+            </div>
+            <div id="distributionStats" class="metrics-grid"></div>
+        </div>
+
+        <!-- Session Affinity Testing -->
+        <div class="section">
+            <div class="section-title">Session Affinity Testing</div>
+            <div class="control-panel">
+                <div class="form-group">
+                    <label>Session ID:</label>
+                    <input type="text" id="affinitySessionId" value="test-session-123" placeholder="e.g., test-session-123">
+                </div>
+                <div class="form-group">
+                    <label>Number of Requests:</label>
+                    <input type="number" id="affinityCount" value="5" min="1" max="20">
+                </div>
+                <button class="btn" onclick="testSessionAffinity()">Test Session Affinity</button>
+                <button class="btn btn-secondary" onclick="clearAffinity()">Clear</button>
+            </div>
+            <div id="affinityResults" class="affinity-results"></div>
+        </div>
+
+        <!-- Performance Metrics Dashboard -->
+        <div class="section">
+            <div class="section-title">Performance Metrics Dashboard</div>
+            <div class="metrics-grid" id="metricsDashboard">
+                <div class="metric-card">
+                    <div class="metric-label">Total Requests</div>
+                    <div class="metric-value" id="metricTotalRequests">0</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Average Latency</div>
+                    <div class="metric-value" id="metricAvgLatency">0ms</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Success Rate</div>
+                    <div class="metric-value" id="metricSuccessRate">100%</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Active Instances</div>
+                    <div class="metric-value" id="metricActiveInstances">0</div>
+                </div>
+            </div>
+            <div style="margin-top: 20px;">
+                <button class="btn btn-danger" onclick="resetMetrics()">Reset Metrics</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State management
+        const state = {
+            instances: [],
+            selectedInstance: null,
+            metrics: {
+                totalRequests: 0,
+                successfulRequests: 0,
+                failedRequests: 0,
+                latencies: [],
+                instanceHits: {},
+                policyStats: {}
+            },
+            distributionData: {},
+            chart: null,
+            autoRefreshInterval: null
+        };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            // Auto-generate request ID
+            document.getElementById('requestId').value = 'req-' + Date.now();
+            
+            // Initialize chart
+            initDistributionChart();
+            
+            // Auto-refresh toggle
+            document.getElementById('autoRefreshToggle').addEventListener('change', (e) => {
+                if (e.target.checked) {
+                    startAutoRefresh();
+                } else {
+                    stopAutoRefresh();
+                }
+            });
+        });
+
+        // Service Discovery
+        async function discoverInstances() {
+            const serviceName = document.getElementById('serviceName').value.trim();
+            if (!serviceName) {
+                showError('Service name is required');
+                return;
+            }
+
+            updateStatus(true, 'Discovering...');
+            try {
+                const response = await fetch(`/api/sdk/discovery/${encodeURIComponent(serviceName)}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                const data = await response.json();
+                state.instances = data.instances || [];
+                displayInstances(state.instances);
+                updateMetric('metricActiveInstances', state.instances.length);
+                updateStatus(true, 'Discovery complete');
+                clearError();
+            } catch (error) {
+                console.error('Discovery error:', error);
+                showError(`Failed to discover instances: ${error.message}`);
+                updateStatus(false, 'Discovery failed');
+            }
+        }
+
+        function displayInstances(instances) {
+            const container = document.getElementById('instancesContainer');
+            if (instances.length === 0) {
+                container.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: #999; padding: 40px;">No instances found</div>';
+                return;
+            }
+
+            container.innerHTML = instances.map((instance, index) => `
+                <div class="instance-card ${state.selectedInstance?.instanceId === instance.instanceId ? 'selected' : ''}" 
+                     onclick="selectInstance('${instance.instanceId}')">
+                    <div class="instance-header">
+                        <div class="instance-id">${instance.instanceId || 'N/A'}</div>
+                        <div class="instance-badge">Instance ${index + 1}</div>
+                    </div>
+                    <div class="instance-details">
+                        <div class="instance-detail-item">
+                            <span class="instance-detail-label">Host:</span> ${instance.host}
+                        </div>
+                        <div class="instance-detail-item">
+                            <span class="instance-detail-label">Port:</span> ${instance.port}
+                        </div>
+                        <div class="instance-detail-item">
+                            <span class="instance-detail-label">URI:</span> ${instance.uri}
+                        </div>
+                        ${instance.metadata && Object.keys(instance.metadata).length > 0 ? `
+                            <div class="instance-detail-item">
+                                <span class="instance-detail-label">Metadata:</span>
+                                <pre style="font-size: 0.8em; margin-top: 5px;">${JSON.stringify(instance.metadata, null, 2)}</pre>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function selectInstance(instanceId) {
+            const instance = state.instances.find(i => i.instanceId === instanceId);
+            if (instance) {
+                state.selectedInstance = instance;
+                displayInstances(state.instances);
+            }
+        }
+
+        function clearDiscovery() {
+            state.instances = [];
+            state.selectedInstance = null;
+            document.getElementById('instancesContainer').innerHTML = '';
+        }
+
+        // Load Balancing
+        async function chooseInstance() {
+            const serviceName = document.getElementById('serviceName').value.trim();
+            const policy = document.getElementById('lbPolicy').value;
+            const requestId = document.getElementById('requestId').value.trim() || 'req-' + Date.now();
+            const userId = document.getElementById('userId').value.trim();
+            const sessionId = document.getElementById('sessionId').value.trim();
+            const clientId = document.getElementById('clientId').value.trim();
+
+            if (!serviceName) {
+                showError('Service name is required');
+                return;
+            }
+
+            updateStatus(true, 'Choosing instance...');
+            const startTime = Date.now();
+            
+            try {
+                let url = `/api/sdk/loadbalancer/choose-with-context/${encodeURIComponent(serviceName)}/${policy}`;
+                const params = new URLSearchParams();
+                if (requestId) params.append('requestId', requestId);
+                if (userId) params.append('userId', userId);
+                if (sessionId) params.append('sessionId', sessionId);
+                if (clientId) params.append('clientId', clientId);
+                if (params.toString()) url += '?' + params.toString();
+
+                const response = await fetch(url);
+                const latency = Date.now() - startTime;
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                displayLoadBalancerResult(data, latency);
+                
+                // Update metrics
+                updateMetrics('success', latency, policy, data.chosen?.instanceId);
+                updateStatus(true, 'Instance chosen');
+                clearError();
+            } catch (error) {
+                console.error('Load balancing error:', error);
+                const latency = Date.now() - startTime;
+                updateMetrics('failure', latency, policy);
+                showError(`Failed to choose instance: ${error.message}`);
+                updateStatus(false, 'Selection failed');
+            }
+        }
+
+        function displayLoadBalancerResult(data, latency) {
+            const resultDiv = document.getElementById('lbResult');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result-display success';
+            
+            const chosen = data.chosen || {};
+            const context = data.requestContext || {};
+            
+            resultDiv.innerHTML = `
+                <strong>Selected Instance:</strong><br>
+                Instance ID: ${chosen.instanceId || 'N/A'}<br>
+                Host: ${chosen.host || 'N/A'}<br>
+                Port: ${chosen.port || 'N/A'}<br>
+                URI: ${chosen.uri || 'N/A'}<br><br>
+                
+                <strong>Request Context:</strong><br>
+                Request ID: ${context.requestId || 'N/A'}<br>
+                User ID: ${context.userId || 'null'}<br>
+                Session ID: ${context.sessionId || 'null'}<br>
+                Client ID: ${context.clientId || 'null'}<br>
+                Hash Key: ${context.hashKey || 'N/A'}<br>
+                Timestamp: ${new Date(context.timestamp).toLocaleString()}<br><br>
+                
+                <strong>Strategy:</strong> ${data.strategy || 'N/A'}<br>
+                <strong>Response Time:</strong> ${latency}ms
+            `;
+
+            // Select the chosen instance visually
+            if (chosen.instanceId) {
+                selectInstance(chosen.instanceId);
+            }
+        }
+
+        // Distribution Visualization
+        function initDistributionChart() {
+            const ctx = document.getElementById('distributionChart').getContext('2d');
+            state.chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Request Count',
+                        data: [],
+                        backgroundColor: 'rgba(102, 126, 234, 0.6)',
+                        borderColor: 'rgba(102, 126, 234, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `Requests: ${context.parsed.y}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        async function runBatchTest() {
+            const serviceName = document.getElementById('serviceName').value.trim();
+            const policy = document.getElementById('batchPolicy').value;
+            const count = parseInt(document.getElementById('batchCount').value) || 10;
+            const sessionId = document.getElementById('batchSessionId').value.trim();
+
+            if (!serviceName) {
+                showError('Service name is required');
+                return;
+            }
+
+            updateStatus(true, `Running batch test (${count} requests)...`);
+            
+            const results = [];
+            const instanceCounts = {};
+            const latencies = [];
+
+            for (let i = 0; i < count; i++) {
+                try {
+                    const startTime = Date.now();
+                    let url = `/api/sdk/loadbalancer/choose-with-context/${encodeURIComponent(serviceName)}/${policy}`;
+                    const params = new URLSearchParams();
+                    params.append('requestId', `batch-${i}-${Date.now()}`);
+                    if (sessionId) params.append('sessionId', sessionId);
+                    url += '?' + params.toString();
+
+                    const response = await fetch(url);
+                    const latency = Date.now() - startTime;
+                    latencies.push(latency);
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        const instanceId = data.chosen?.instanceId || 'unknown';
+                        instanceCounts[instanceId] = (instanceCounts[instanceId] || 0) + 1;
+                        results.push({ success: true, instanceId, latency });
+                        updateMetrics('success', latency, policy, instanceId);
+                    } else {
+                        results.push({ success: false, error: `HTTP ${response.status}` });
+                        updateMetrics('failure', latency, policy);
+                    }
+                } catch (error) {
+                    results.push({ success: false, error: error.message });
+                    updateMetrics('failure', 0, policy);
+                }
+                
+                // Small delay to avoid overwhelming the server
+                await new Promise(resolve => setTimeout(resolve, 50));
+            }
+
+            updateDistributionChart(instanceCounts);
+            updateDistributionStats(instanceCounts, latencies, policy);
+            updateStatus(true, 'Batch test complete');
+        }
+
+        function updateDistributionChart(instanceCounts) {
+            const labels = Object.keys(instanceCounts);
+            const data = Object.values(instanceCounts);
+
+            state.chart.data.labels = labels;
+            state.chart.data.datasets[0].data = data;
+            state.chart.update();
+        }
+
+        function updateDistributionStats(instanceCounts, latencies, policy) {
+            const total = Object.values(instanceCounts).reduce((a, b) => a + b, 0);
+            const avgLatency = latencies.length > 0 
+                ? Math.round(latencies.reduce((a, b) => a + b, 0) / latencies.length)
+                : 0;
+
+            const statsHtml = Object.entries(instanceCounts).map(([instanceId, count]) => {
+                const percentage = total > 0 ? ((count / total) * 100).toFixed(1) : 0;
+                return `
+                    <div class="metric-card">
+                        <div class="metric-label">${instanceId}</div>
+                        <div class="metric-value">${count}</div>
+                        <div style="font-size: 0.8em; color: #666; margin-top: 5px;">${percentage}%</div>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('distributionStats').innerHTML = `
+                ${statsHtml}
+                <div class="metric-card">
+                    <div class="metric-label">Total Requests</div>
+                    <div class="metric-value">${total}</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Avg Latency</div>
+                    <div class="metric-value">${avgLatency}ms</div>
+                </div>
+            `;
+        }
+
+        function clearDistribution() {
+            state.chart.data.labels = [];
+            state.chart.data.datasets[0].data = [];
+            state.chart.update();
+            document.getElementById('distributionStats').innerHTML = '';
+        }
+
+        // Session Affinity Testing
+        async function testSessionAffinity() {
+            const serviceName = document.getElementById('serviceName').value.trim();
+            const sessionId = document.getElementById('affinitySessionId').value.trim();
+            const count = parseInt(document.getElementById('affinityCount').value) || 5;
+
+            if (!serviceName) {
+                showError('Service name is required');
+                return;
+            }
+
+            if (!sessionId) {
+                showError('Session ID is required for affinity testing');
+                return;
+            }
+
+            updateStatus(true, `Testing session affinity (${count} requests)...`);
+            
+            try {
+                const response = await fetch(`/api/sdk/loadbalancer/test-session-affinity/${encodeURIComponent(serviceName)}/${encodeURIComponent(sessionId)}?count=${count}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                displayAffinityResults(data);
+                updateStatus(true, 'Session affinity test complete');
+                clearError();
+            } catch (error) {
+                console.error('Session affinity error:', error);
+                showError(`Failed to test session affinity: ${error.message}`);
+                updateStatus(false, 'Test failed');
+            }
+        }
+
+        function displayAffinityResults(data) {
+            const container = document.getElementById('affinityResults');
+            const results = data.results || [];
+            const working = data.sessionAffinityWorking || false;
+
+            if (results.length === 0) {
+                container.innerHTML = '<div style="color: #999; text-align: center; padding: 20px;">No results</div>';
+                return;
+            }
+
+            const firstInstanceId = results[0]?.instanceId;
+            const allSame = results.every(r => r.instanceId === firstInstanceId);
+
+            container.innerHTML = `
+                <div style="margin-bottom: 15px; padding: 15px; background: ${allSame ? '#d5f4e6' : '#fff3cd'}; border-radius: 8px; border-left: 4px solid ${allSame ? '#2ecc71' : '#ffc107'};">
+                    <strong>Session Affinity Status:</strong> 
+                    <span class="affinity-status ${allSame ? 'success' : 'failure'}">
+                        ${allSame ? '✓ Working' : '✗ Not Working'}
+                    </span>
+                    <br>
+                    <small>All ${results.length} requests ${allSame ? 'went to the same instance' : 'were distributed across different instances'}</small>
+                </div>
+                ${results.map((result, index) => `
+                    <div class="affinity-result-item ${result.instanceId === firstInstanceId ? 'same-instance' : ''}">
+                        <div>
+                            <strong>Request ${index + 1}:</strong> ${result.instanceId}<br>
+                            <small>${result.host}:${result.port}</small>
+                        </div>
+                        <div class="affinity-status ${result.instanceId === firstInstanceId ? 'success' : 'failure'}">
+                            ${result.instanceId === firstInstanceId ? 'Match' : 'Different'}
+                        </div>
+                    </div>
+                `).join('')}
+            `;
+        }
+
+        function clearAffinity() {
+            document.getElementById('affinityResults').innerHTML = '';
+        }
+
+        // Metrics Management
+        function updateMetrics(type, latency, policy, instanceId) {
+            if (type === 'success') {
+                state.metrics.totalRequests++;
+                state.metrics.successfulRequests++;
+                state.metrics.latencies.push(latency);
+                
+                if (instanceId) {
+                    state.metrics.instanceHits[instanceId] = (state.metrics.instanceHits[instanceId] || 0) + 1;
+                }
+                
+                if (!state.metrics.policyStats[policy]) {
+                    state.metrics.policyStats[policy] = { requests: 0, successes: 0, failures: 0 };
+                }
+                state.metrics.policyStats[policy].requests++;
+                state.metrics.policyStats[policy].successes++;
+            } else {
+                state.metrics.totalRequests++;
+                state.metrics.failedRequests++;
+                
+                if (!state.metrics.policyStats[policy]) {
+                    state.metrics.policyStats[policy] = { requests: 0, successes: 0, failures: 0 };
+                }
+                state.metrics.policyStats[policy].requests++;
+                state.metrics.policyStats[policy].failures++;
+            }
+
+            updateMetricsDisplay();
+        }
+
+        function updateMetricsDisplay() {
+            const m = state.metrics;
+            const avgLatency = m.latencies.length > 0
+                ? Math.round(m.latencies.reduce((a, b) => a + b, 0) / m.latencies.length)
+                : 0;
+            const successRate = m.totalRequests > 0
+                ? ((m.successfulRequests / m.totalRequests) * 100).toFixed(1)
+                : 100;
+
+            updateMetric('metricTotalRequests', m.totalRequests);
+            updateMetric('metricAvgLatency', avgLatency + 'ms');
+            updateMetric('metricSuccessRate', successRate + '%');
+        }
+
+        function updateMetric(id, value) {
+            const element = document.getElementById(id);
+            if (element) {
+                element.textContent = value;
+            }
+        }
+
+        function resetMetrics() {
+            state.metrics = {
+                totalRequests: 0,
+                successfulRequests: 0,
+                failedRequests: 0,
+                latencies: [],
+                instanceHits: {},
+                policyStats: {}
+            };
+            updateMetricsDisplay();
+        }
+
+        // Auto-refresh
+        function startAutoRefresh() {
+            stopAutoRefresh();
+            state.autoRefreshInterval = setInterval(() => {
+                const serviceName = document.getElementById('serviceName').value.trim();
+                if (serviceName) {
+                    discoverInstances();
+                }
+            }, 3000);
+        }
+
+        function stopAutoRefresh() {
+            if (state.autoRefreshInterval) {
+                clearInterval(state.autoRefreshInterval);
+                state.autoRefreshInterval = null;
+            }
+        }
+
+        // Utility functions
+        function updateStatus(success, message) {
+            const indicator = document.getElementById('statusIndicator');
+            const text = document.getElementById('statusText');
+            indicator.className = 'status-indicator' + (success ? '' : ' error');
+            text.textContent = message;
+        }
+
+        function showError(message) {
+            const container = document.getElementById('errorContainer');
+            container.innerHTML = `<div class="error-message">${escapeHtml(message)}</div>`;
+        }
+
+        function clearError() {
+            document.getElementById('errorContainer').innerHTML = '';
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
+

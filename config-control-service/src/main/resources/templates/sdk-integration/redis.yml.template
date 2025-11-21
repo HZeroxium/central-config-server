@@ -1,0 +1,49 @@
+# Redis Configuration Template
+# This template provides a common pattern for Redis configuration
+
+redis:
+  host: ${REDIS_HOST:localhost}
+  port: ${REDIS_PORT:6379}
+  password: ${REDIS_PASSWORD:}
+  database: 0
+  timeout: 2000
+  pool:
+    max-active: 8
+    max-idle: 8
+    min-idle: 0
+
+# Generated @ConfigurationProperties class:
+# @ConfigurationProperties(prefix = "redis")
+# @Data
+# public class RedisProperties {
+#   @NotBlank
+#   private String host = "localhost";
+#   
+#   @Min(1)
+#   @Max(65535)
+#   private Integer port = 6379;
+#   
+#   private String password;
+#   
+#   @Min(0)
+#   private Integer database = 0;
+#   
+#   @Min(0)
+#   private Integer timeout = 2000;
+#   
+#   @Valid
+#   private Pool pool = new Pool();
+#   
+#   @Data
+#   public static class Pool {
+#     @Min(1)
+#     private Integer maxActive = 8;
+#     
+#     @Min(0)
+#     private Integer maxIdle = 8;
+#     
+#     @Min(0)
+#     private Integer minIdle = 0;
+#   }
+# }
+

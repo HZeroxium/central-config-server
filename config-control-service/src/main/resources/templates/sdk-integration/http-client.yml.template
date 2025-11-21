@@ -1,0 +1,60 @@
+# HTTP Client Configuration Template
+# This template provides a common pattern for HTTP client configuration
+
+http:
+  client:
+    timeout:
+      connect: 5000
+      read: 10000
+      write: 10000
+    pool:
+      max-connections: 100
+      max-connections-per-route: 20
+    retry:
+      max-attempts: 3
+      backoff-delay: 1000
+
+# Generated @ConfigurationProperties class:
+# @ConfigurationProperties(prefix = "http.client")
+# @Data
+# public class HttpClientProperties {
+#   @Valid
+#   private Timeout timeout = new Timeout();
+#   
+#   @Valid
+#   private Pool pool = new Pool();
+#   
+#   @Valid
+#   private Retry retry = new Retry();
+#   
+#   @Data
+#   public static class Timeout {
+#     @Min(0)
+#     private Integer connect = 5000;
+#     
+#     @Min(0)
+#     private Integer read = 10000;
+#     
+#     @Min(0)
+#     private Integer write = 10000;
+#   }
+#   
+#   @Data
+#   public static class Pool {
+#     @Min(1)
+#     private Integer maxConnections = 100;
+#     
+#     @Min(1)
+#     private Integer maxConnectionsPerRoute = 20;
+#   }
+#   
+#   @Data
+#   public static class Retry {
+#     @Min(0)
+#     private Integer maxAttempts = 3;
+#     
+#     @Min(0)
+#     private Long backoffDelay = 1000L;
+#   }
+# }
+
