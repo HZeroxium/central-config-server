@@ -5,9 +5,10 @@ import com.example.control.api.http.exception.exceptions.ValidationException;
 import com.example.control.infrastructure.external.configserver.ConfigProxyService;
 import com.example.control.application.command.ApplicationServiceCommandService;
 import com.example.control.application.query.ApplicationServiceQueryService;
+import com.example.control.application.query.ServiceCredentialQueryService;
 import com.example.control.application.service.DriftEventService;
 import com.example.control.application.service.ServiceInstanceService;
-import com.example.control.domain.valueobject.id.ApplicationServiceId;
+import com.example.control.domain.model.ServiceCredential;
 import com.example.control.domain.valueobject.id.DriftEventId;
 import com.example.control.domain.valueobject.id.ServiceInstanceId;
 import com.example.control.domain.model.ApplicationService;
@@ -17,6 +18,7 @@ import com.example.control.domain.model.ServiceInstance;
 import com.example.control.infrastructure.cache.ServiceInstanceCacheEvictionService;
 import com.example.control.infrastructure.config.messaging.HeartbeatProperties;
 import com.example.control.infrastructure.observability.MetricsNames;
+import com.example.control.infrastructure.security.JwtExtractor;
 import io.micrometer.observation.annotation.Observed;
 import io.micrometer.tracing.annotation.NewSpan;
 import io.micrometer.tracing.annotation.SpanTag;
@@ -65,6 +67,7 @@ public class HeartbeatService {
     // Command/Query services for ApplicationService
     private final ApplicationServiceCommandService applicationServiceCommandService;
     private final ApplicationServiceQueryService applicationServiceQueryService;
+    private final ServiceCredentialQueryService serviceCredentialQueryService;
 
     /**
      * Maintains retry count per instance for drift backoff algorithm.
@@ -115,6 +118,9 @@ public class HeartbeatService {
 
         // 1️⃣ Validate payload (basic sanity checks)
         validateHeartbeatPayload(payload);
+
+        // 1.5️⃣ Validate authentication and service credentials
+        validateAuthenticationAndCredentials(payload);
 
         String id = payload.getServiceName() + ":" + payload.getInstanceId();
 
@@ -176,106 +182,20 @@ public class HeartbeatService {
                     }
                 }
             } else {
-                // Business logic: Recreate orphaned ApplicationService if instance exists but
-                // service is missing
-                // This handles edge case where ApplicationService was deleted but instance
-                // still exists
-                if (isFirstHeartbeat || instance.getServiceId() == null) {
-                    // Create orphaned service with environment from payload
-                    List<String> initialEnvironments;
-                    if (payload.getEnvironment() != null && !payload.getEnvironment().isEmpty()) {
-                        initialEnvironments = List.of(payload.getEnvironment());
-                    } else {
-                        initialEnvironments = List.of("dev"); // Default to dev if no environment
-                    }
-
-                    ApplicationService orphanedService = ApplicationService.builder()
-                            .id(ApplicationServiceId.of(UUID.randomUUID().toString()))
-                            .displayName(payload.getServiceName())
-                            .ownerTeamId(null) // Orphaned - requires approval workflow
-                            .environments(initialEnvironments)
-                            .lifecycle(ApplicationService.ServiceLifecycle.ACTIVE)
-                            .createdAt(Instant.now())
-                            .createdBy("system") // System-created
-                            .build();
-
-                    appService = applicationServiceCommandService.save(orphanedService);
-                    if (isFirstHeartbeat) {
-                        log.warn(
-                                "Auto-created orphaned ApplicationService: {} (displayName: {}, environment: {}) - requires approval workflow for team assignment",
-                                appService.getId(), payload.getServiceName(), payload.getEnvironment());
-                    } else {
-                        log.warn(
-                                "Recreated orphaned ApplicationService: {} (displayName: {}) - ApplicationService was missing but instance exists",
-                                appService.getId(), payload.getServiceName());
-                    }
-                } else {
-                    // Instance exists but ApplicationService not found - this shouldn't happen
-                    // normally
-                    // But we'll recreate it to ensure consistency
-                    log.warn(
-                            "ApplicationService not found for displayName: {} but instance has serviceId: {}, recreating orphaned service",
-                            payload.getServiceName(), instance.getServiceId());
-
-                    List<String> initialEnvironments;
-                    if (payload.getEnvironment() != null && !payload.getEnvironment().isEmpty()) {
-                        initialEnvironments = List.of(payload.getEnvironment());
-                    } else {
-                        initialEnvironments = List.of("dev"); // Default to dev if no environment
-                    }
-
-                    ApplicationService orphanedService = ApplicationService.builder()
-                        .id(ApplicationServiceId.of(instance.getServiceId())) // Try to reuse same ID if possible
-                        .displayName(payload.getServiceName())
-                        .ownerTeamId(null) // Orphaned - requires approval workflow
-                        .environments(initialEnvironments)
-                            .lifecycle(ApplicationService.ServiceLifecycle.ACTIVE)
-                            .createdAt(Instant.now())
-                            .createdBy("system") // System-created
-                            .build();
-
-                    appService = applicationServiceCommandService.save(orphanedService);
-                    log.warn(
-                            "Recreated orphaned ApplicationService: {} (displayName: {}) - maintaining consistency",
-                            appService.getId(), payload.getServiceName());
-                }
+                // ApplicationService not found - throw exception (no auto-create)
+                throw new IllegalStateException(
+                        String.format("ApplicationService not found for displayName: %s. " +
+                                "Please register the service via Admin Dashboard first, then obtain service credentials.",
+                                payload.getServiceName()));
             }
+        } catch (IllegalStateException e) {
+            // Re-throw IllegalStateException (service not found)
+            throw e;
         } catch (Exception e) {
             log.error("Failed to sync serviceId and teamId for instance {}: {}", id, e.getMessage(), e);
-            // If lookup fails, ensure we still create an orphaned service to maintain
-            // consistency
-            // This ensures instance always has a valid serviceId (even if null) and
-            // prevents NPE
-            if (appService == null) {
-                try {
-                    List<String> initialEnvironments;
-                    if (payload.getEnvironment() != null && !payload.getEnvironment().isEmpty()) {
-                        initialEnvironments = List.of(payload.getEnvironment());
-                    } else {
-                        initialEnvironments = List.of("dev"); // Default to dev if no environment
-                    }
-
-                    ApplicationService orphanedService = ApplicationService.builder()
-                            .id(ApplicationServiceId.of(UUID.randomUUID().toString()))
-                            .displayName(payload.getServiceName())
-                            .ownerTeamId(null) // Orphaned - requires approval workflow
-                            .environments(initialEnvironments)
-                            .lifecycle(ApplicationService.ServiceLifecycle.ACTIVE)
-                            .createdAt(Instant.now())
-                            .createdBy("system") // System-created
-                            .build();
-
-                    appService = applicationServiceCommandService.save(orphanedService);
-                    log.warn("Created fallback orphaned ApplicationService: {} (displayName: {}) due to lookup failure",
-                            appService.getId(), payload.getServiceName());
-                } catch (Exception fallbackException) {
-                    log.error("Failed to create fallback orphaned ApplicationService for instance {}: {}", id,
-                            fallbackException.getMessage(), fallbackException);
-                    // If fallback also fails, instance will have null serviceId - this is
-                    // acceptable
-                    // for orphaned instances that will be linked later
-                }
-            }
+            throw new IllegalStateException(
+                    String.format("Failed to resolve ApplicationService for displayName: %s. Error: %s",
+                            payload.getServiceName(), e.getMessage()), e);
         }
 
         // Sync serviceId and teamId if appService was successfully resolved (after
@@ -553,12 +473,82 @@ public class HeartbeatService {
     }
 
     /**
-     * Validates the structure and fields of a heartbeat payload.
+     * Validate authentication and service credentials for heartbeat.
      * <p>
-     * Throws {@link ValidationException} if required fields are missing or invalid.
+     * Validates that:
+     * <ul>
+     * <li>JWT token is present in SecurityContext</li>
+     * <li>Client ID can be extracted from JWT (azp or aud claim)</li>
+     * <li>ServiceCredential exists for the client ID</li>
+     * <li>Credential status is ACTIVE</li>
+     * <li>Service name from payload matches ApplicationService.displayName</li>
+     * </ul>
+     * </p>
      *
-     * @param payload incoming heartbeat data
+     * @param payload the heartbeat payload
+     * @throws IllegalStateException if authentication or credential validation fails
      */
+    private void validateAuthenticationAndCredentials(HeartbeatPayload payload) {
+        // Extract clientId from JWT
+        String clientId;
+        try {
+            clientId = JwtExtractor.extractClientIdFromContext();
+        } catch (IllegalStateException e) {
+            throw new IllegalStateException(
+                    "Authentication required for heartbeat. No JWT token found in SecurityContext.", e);
+        }
+
+        if (clientId == null || clientId.isEmpty()) {
+            throw new IllegalStateException(
+                    "Unable to extract client ID from JWT token. Missing 'azp' or 'aud' claim.");
+        }
+
+        log.debug("Extracted clientId from JWT: {} for service: {}", clientId, payload.getServiceName());
+
+        // Lookup ServiceCredential by keycloakClientId
+        Optional<ServiceCredential> credentialOpt = serviceCredentialQueryService
+                .findByKeycloakClientId(clientId);
+
+        if (credentialOpt.isEmpty()) {
+            throw new IllegalStateException(
+                    String.format("ServiceCredential not found for clientId: %s. " +
+                            "Please ensure service credentials are created and activated.", clientId));
+        }
+
+        ServiceCredential credential = credentialOpt.get();
+
+        // Validate credential status is ACTIVE (PENDING credentials cannot be used)
+        if (credential.getStatus() != ServiceCredential.CredentialStatus.ACTIVE) {
+            throw new IllegalStateException(
+                    String.format("ServiceCredential for clientId: %s is not ACTIVE. Current status: %s. " +
+                            "Please activate credentials via POST /api/services/%s/credentials/activate " +
+                            "after config files are ready.", clientId, credential.getStatus(), 
+                            credential.getServiceId().id()));
+        }
+
+        // Validate serviceName matches ApplicationService.displayName
+        Optional<ApplicationService> appServiceOpt = applicationServiceQueryService
+                .findById(credential.getServiceId());
+
+        if (appServiceOpt.isEmpty()) {
+            throw new IllegalStateException(
+                    String.format("ApplicationService not found for credential serviceId: %s. " +
+                            "Credential may be orphaned.", credential.getServiceId()));
+        }
+
+        ApplicationService appService = appServiceOpt.get();
+        if (!appService.getDisplayName().equals(payload.getServiceName())) {
+            throw new IllegalStateException(
+                    String.format("Service name mismatch. JWT clientId '%s' is associated with service '%s', " +
+                            "but heartbeat payload contains serviceName '%s'. " +
+                            "Please ensure SDK is configured with correct client credentials.",
+                            clientId, appService.getDisplayName(), payload.getServiceName()));
+        }
+
+        log.debug("Authentication and credential validation passed for service: {} (clientId: {})",
+                payload.getServiceName(), clientId);
+    }
+
     private void validateHeartbeatPayload(HeartbeatPayload payload) {
         if (payload == null) {
             throw new ValidationException("Heartbeat payload cannot be null");

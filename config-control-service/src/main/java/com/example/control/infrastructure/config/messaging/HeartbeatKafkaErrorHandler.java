@@ -17,7 +17,20 @@ import java.util.concurrent.atomic.AtomicInteger;
  * <p>
  * Implements retry logic with exponential backoff and routes failed batches
  * to dead letter queue after max retries.
+ * <p>
+ * <strong>DEPRECATED:</strong> This class is deprecated and will be removed in a future version.
+ * The retry mechanism has been replaced with Spring Kafka best practices:
+ * <ul>
+ * <li>{@link org.springframework.kafka.listener.DefaultErrorHandler} with {@link org.springframework.util.backoff.ExponentialBackOff}</li>
+ * <li>{@link org.springframework.kafka.listener.DeadLetterPublishingRecoverer} for DLQ routing with metadata headers</li>
+ * </ul>
+ * See {@link HeartbeatKafkaListenerConfig#createErrorHandler()} for the new implementation.
+ *
+ * @deprecated Use {@link org.springframework.kafka.listener.DefaultErrorHandler} with
+ *             {@link org.springframework.kafka.listener.DeadLetterPublishingRecoverer} instead.
+ *             This class is kept for backward compatibility only.
  */
+@Deprecated(since = "1.0.0", forRemoval = true)
 @Slf4j
 public class HeartbeatKafkaErrorHandler implements CommonErrorHandler {
 

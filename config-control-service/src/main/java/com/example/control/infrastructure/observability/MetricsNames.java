@@ -174,6 +174,26 @@ public final class MetricsNames {
      * {@link com.example.control.application.service.DriftEventService#resolveForInstance}
      */
     public static final String BATCH_DRIFT_RESOLVE_TIME = "heartbeat.batch.drift.resolve.time";
+
+    /**
+     * DLQ consumer operation.
+     * <p>
+     * Metric name: {@code heartbeat.dlq.consume}
+     * <p>
+     * Used in:
+     * {@link com.example.control.application.service.infra.HeartbeatDlqConsumer#processDlqBatch}
+     */
+    public static final String DLQ_CONSUME = "heartbeat.dlq.consume";
+
+    /**
+     * DLQ consumer processing time.
+     * <p>
+     * Metric name: {@code heartbeat.dlq.consume.time}
+     * <p>
+     * Used in:
+     * {@link com.example.control.application.service.infra.HeartbeatDlqConsumer#processDlqBatch}
+     */
+    public static final String DLQ_CONSUME_TIME = "heartbeat.dlq.consume.time";
   }
 
   /**

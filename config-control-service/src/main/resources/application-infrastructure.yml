@@ -113,13 +113,21 @@ app:
       topic: ${HEARTBEAT_KAFKA_TOPIC:heartbeat-queue}
       consumer:
         concurrency: ${HEARTBEAT_CONSUMER_CONCURRENCY:10} # Increased for load testing (default: 10)
-        max-retries: ${HEARTBEAT_KAFKA_CONSUMER_MAX_RETRIES:3}
+        max-retries: ${HEARTBEAT_KAFKA_CONSUMER_MAX_RETRIES:3} # Deprecated: use retry.max-retries
         max-poll-records: ${HEARTBEAT_KAFKA_CONSUMER_MAX_POLL_RECORDS:200} # Increased for load testing (default: 200)
         fetch-max-wait-ms: ${HEARTBEAT_KAFKA_CONSUMER_FETCH_MAX_WAIT_MS:1000} # Increased for batching (default: 1000)
         fetch-min-bytes: ${HEARTBEAT_KAFKA_CONSUMER_FETCH_MIN_BYTES:8192} # Increased for batching (default: 8192)
         max-poll-interval-ms: ${HEARTBEAT_KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS:300000} # 5 minutes
+        retry:
+          initial-interval-ms: ${HEARTBEAT_RETRY_INITIAL_INTERVAL_MS:1000}
+          multiplier: ${HEARTBEAT_RETRY_MULTIPLIER:2.0}
+          max-retries: ${HEARTBEAT_RETRY_MAX_RETRIES:3}
+          max-interval-ms: ${HEARTBEAT_RETRY_MAX_INTERVAL_MS:4000}
       dlq:
         topic: ${HEARTBEAT_KAFKA_DLQ_TOPIC:heartbeat-queue-dlq}
+        consumer:
+          concurrency: ${HEARTBEAT_DLQ_CONSUMER_CONCURRENCY:2}
+          max-poll-records: ${HEARTBEAT_DLQ_CONSUMER_MAX_POLL_RECORDS:50}
   observability:
     environment: ${APP_ENVIRONMENT:development}
     otlp:
@@ -130,6 +138,15 @@ app:
   name: ${APP_NAME:config-control-service}
   version: ${APP_VERSION:1.0.0}
   environment: ${APP_ENVIRONMENT:development}
+
+# GitHub Configuration
+github:
+  token: ${GITHUB_TOKEN:}
+  owner: ${GITHUB_OWNER:HZeroxium}
+  repo: ${GITHUB_REPO:ztf-spring-cloud-config-server}
+  branch: ${GITHUB_BRANCH:master}
+  cache:
+    ttl-seconds: ${GITHUB_CACHE_TTL:60}
 
 # Spring Cloud LoadBalancer Configuration
 spring:

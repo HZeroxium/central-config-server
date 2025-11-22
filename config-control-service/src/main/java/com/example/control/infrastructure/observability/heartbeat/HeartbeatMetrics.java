@@ -40,6 +40,8 @@ public class HeartbeatMetrics {
     private final Counter heartbeatBatchProcessed;
     private final Counter heartbeatBatchFailed;
     private final Counter heartbeatDlqSent;
+    private final Counter heartbeatDlqConsumed;
+    private final Counter heartbeatDlqRedrive;
 
     // Timers
     private final Timer heartbeatProcessingTime;
@@ -57,6 +59,7 @@ public class HeartbeatMetrics {
     // Gauges (mutable state)
     private final AtomicLong queueSize = new AtomicLong(0);
     private final AtomicLong currentBatchSize = new AtomicLong(0);
+    private final AtomicLong failedHeartbeatCount = new AtomicLong(0);
 
     /**
      * Constructor that initializes all metrics.
@@ -99,6 +102,14 @@ public class HeartbeatMetrics {
                 .description("Total number of heartbeats sent to dead letter queue")
                 .register(meterRegistry);
 
+        this.heartbeatDlqConsumed = Counter.builder("heartbeat.dlq.consumed")
+                .description("Total number of failed heartbeats consumed from DLQ and persisted to MongoDB")
+                .register(meterRegistry);
+
+        this.heartbeatDlqRedrive = Counter.builder("heartbeat.dlq.redrive.count")
+                .description("Total number of failed heartbeats re-driven to main topic")
+                .register(meterRegistry);
+
         // Initialize timers
         this.heartbeatProcessingTime = Timer.builder("heartbeat.processing.time")
                 .description("Time taken to process a single heartbeat")
@@ -127,6 +138,10 @@ public class HeartbeatMetrics {
 
         Gauge.builder("heartbeat.batch.size", currentBatchSize, AtomicLong::get)
                 .description("Current batch processing size")
+                .register(meterRegistry);
+
+        Gauge.builder("heartbeat.dlq.failed_heartbeat_count", failedHeartbeatCount, AtomicLong::get)
+                .description("Current count of failed heartbeats with NEW status in MongoDB")
                 .register(meterRegistry);
     }
 
@@ -218,6 +233,34 @@ public class HeartbeatMetrics {
      */
     public void updateQueueSize(long size) {
         queueSize.set(size);
+    }
+
+    /**
+     * Record that a failed heartbeat was consumed from DLQ and persisted to MongoDB.
+     *
+     * @param count the number of failed heartbeats consumed (for batch operations)
+     */
+    public void recordDlqConsumed(long count) {
+        heartbeatDlqConsumed.increment(count);
+    }
+
+    /**
+     * Update the count of failed heartbeats with NEW status.
+     * <p>
+     * This gauge should be updated periodically (e.g., via scheduled task) by
+     * querying MongoDB for count of NEW status failed heartbeats.
+     *
+     * @param count the current count of NEW status failed heartbeats
+     */
+    public void updateFailedHeartbeatCount(long count) {
+        failedHeartbeatCount.set(count);
+    }
+
+    /**
+     * Record that a failed heartbeat was re-driven to the main topic.
+     */
+    public void recordRedrive() {
+        heartbeatDlqRedrive.increment();
     }
 }
 

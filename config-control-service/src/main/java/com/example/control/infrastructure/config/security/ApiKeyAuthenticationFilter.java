@@ -32,7 +32,7 @@ import java.util.List;
  *   <li>Extracts {@code X-API-Key} header from request</li>
  *   <li>If present and valid, creates Authentication with SYS_ADMIN role</li>
  *   <li>If invalid or missing, continues to JWT authentication (doesn't fail)</li>
- *   <li>Skips processing for public endpoints like {@code /api/heartbeat/**}</li>
+ *   <li>Deprecated: API key authentication is being phased out in favor of Keycloak client credentials</li>
  * </ul>
  * </p>
  *
@@ -58,13 +58,9 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
-        // Skip API key authentication for public endpoints
-        String path = request.getRequestURI();
-        if (path.startsWith("/api/heartbeat/")) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
+        // Note: Heartbeat endpoint now requires authentication (client credentials flow)
+        // API key authentication is deprecated in favor of Keycloak client credentials
+        
         // Skip if API key validation is disabled
         if (!apiKeyValidator.isEnabled()) {
             filterChain.doFilter(request, response);
@@ -91,7 +87,7 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
                 
                 // Set authentication in SecurityContext
                 SecurityContextHolder.getContext().setAuthentication(authentication);
-                log.debug("API key authentication successful for path: {}", path);
+                log.debug("API key authentication successful for path: {}", request.getRequestURI());
             } else {
                 log.debug("Invalid API key provided, continuing to JWT authentication");
                 // Don't fail here - let JWT authentication handle it

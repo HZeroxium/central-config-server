@@ -98,6 +98,10 @@ app:
         ttl: 15m
         maximum-size: 5000
         allow-null-values: false
+      github-content:
+        ttl: ${GITHUB_CACHE_TTL:60s}
+        maximum-size: 1000
+        allow-null-values: false
       iam-teams:
         ttl: 30m
         maximum-size: 500
@@ -132,11 +136,19 @@ app:
       consumer:
         concurrency: ${HEARTBEAT_CONSUMER_CONCURRENCY:5}
         batch-size: ${HEARTBEAT_BATCH_SIZE:50}
-        max-retries: ${HEARTBEAT_MAX_RETRIES:3}
-        retry-backoff-ms: ${HEARTBEAT_RETRY_BACKOFF_MS:1000}
+        max-retries: ${HEARTBEAT_MAX_RETRIES:3} # Deprecated: use retry.max-retries
+        retry-backoff-ms: ${HEARTBEAT_RETRY_BACKOFF_MS:1000} # Deprecated: use retry configuration
+        retry:
+          initial-interval-ms: ${HEARTBEAT_RETRY_INITIAL_INTERVAL_MS:1000}
+          multiplier: ${HEARTBEAT_RETRY_MULTIPLIER:2.0}
+          max-retries: ${HEARTBEAT_RETRY_MAX_RETRIES:3}
+          max-interval-ms: ${HEARTBEAT_RETRY_MAX_INTERVAL_MS:4000}
       dlq:
         topic: ${HEARTBEAT_DLQ_TOPIC:heartbeat-queue-dlq}
         enabled: ${HEARTBEAT_DLQ_ENABLED:true}
+        consumer:
+          concurrency: ${HEARTBEAT_DLQ_CONSUMER_CONCURRENCY:2}
+          max-poll-records: ${HEARTBEAT_DLQ_CONSUMER_MAX_POLL_RECORDS:50}
     cache:
       pre-warm:
         enabled: ${HEARTBEAT_CACHE_PREWARM_ENABLED:true}

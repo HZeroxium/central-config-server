@@ -132,7 +132,7 @@ public class SecurityConfig {
                 .securityMatcher("/api/**")
                 .csrf(AbstractHttpConfigurer::disable)
                 // CORS is now handled by gateway-service
-                // .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
         
         // Add API key authentication filter before JWT authentication (if enabled)
@@ -142,7 +142,8 @@ public class SecurityConfig {
         
         httpBuilder
                 .authorizeHttpRequests(authz -> {
-                    authz.requestMatchers("/api/heartbeat/**").permitAll();
+                    // Heartbeat endpoint now requires authentication (client credentials flow)
+                    authz.requestMatchers("/api/heartbeat/**").authenticated();
                     authz.requestMatchers("/api/config-server/hash/**").permitAll();
                     // Migration endpoints are public to facilitate SDK integration
                     authz.requestMatchers("/api/migration/**").permitAll();

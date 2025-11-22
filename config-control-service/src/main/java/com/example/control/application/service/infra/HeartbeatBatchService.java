@@ -9,7 +9,6 @@ import com.example.control.domain.model.DriftEvent;
 import com.example.control.domain.model.HeartbeatPayload;
 import com.example.control.domain.model.ServiceInstance;
 import com.example.control.domain.port.repository.ServiceInstanceRepositoryPort;
-import com.example.control.domain.valueobject.id.ApplicationServiceId;
 import com.example.control.domain.valueobject.id.DriftEventId;
 import com.example.control.domain.valueobject.id.ServiceInstanceId;
 import com.example.control.infrastructure.cache.ServiceInstanceCacheEvictionService;
@@ -342,12 +341,12 @@ public class HeartbeatBatchService {
     /**
      * Batch loads ApplicationServices by display names.
      * <p>
-     * Creates orphaned services for missing ones to maintain consistency.
-     * Orphaned services are collected and will be bulk saved later.
+     * Returns only existing services. Missing services are not auto-created.
+     * Services must be registered via Admin Dashboard before heartbeats can be processed.
      *
      * @param serviceNames set of service display names to load
-     * @param appServicesToSave set to collect ApplicationServices that need to be saved
-     * @return map of display name to ApplicationService
+     * @param appServicesToSave set to collect ApplicationServices that need to be saved (for environment merges)
+     * @return map of display name to ApplicationService (only existing services)
      */
     @Timed(MetricsNames.Heartbeat.BATCH_LOAD_APPSERVICES_TIME)
     Map<String, ApplicationService> loadApplicationServicesBatch(
@@ -359,32 +358,16 @@ public class HeartbeatBatchService {
         Map<String, ApplicationService> appServicesMap = applicationServiceQueryService
                 .findByDisplayNamesMap(serviceNames);
 
-        // Create orphaned services for missing ones (collect for bulk save)
+        // Check for missing services and log warning (but don't create them)
         Set<String> missingServices = new HashSet<>(serviceNames);
         missingServices.removeAll(appServicesMap.keySet());
 
-        Instant now = Instant.now();
-        for (String displayName : missingServices) {
-            try {
-                // Note: Environment will be merged from payload when processing heartbeats
-                // Default to ["dev"] if no environment is provided in payload
-                ApplicationService orphanedService = ApplicationService.builder()
-                        .id(ApplicationServiceId.of(UUID.randomUUID().toString()))
-                        .displayName(displayName)
-                        .ownerTeamId(null) // Orphaned
-                        .environments(List.of("dev")) // Default to dev, will be merged from payload
-                        .lifecycle(ApplicationService.ServiceLifecycle.ACTIVE)
-                        .createdAt(now)
-                        .createdBy("system")
-                        .build();
-
-                // Add to map for immediate use and to save set for bulk save
-                appServicesMap.put(displayName, orphanedService);
-                appServicesToSave.add(orphanedService);
-                log.debug("Prepared orphaned ApplicationService: {} for displayName: {}", orphanedService.getId(), displayName);
-            } catch (Exception e) {
-                log.error("Failed to create orphaned ApplicationService for displayName: {}", displayName, e);
-            }
+        if (!missingServices.isEmpty()) {
+            log.warn(
+                    "ApplicationServices not found for display names: {}. " +
+                            "These services must be registered via Admin Dashboard before heartbeats can be processed. " +
+                            "Heartbeats from these services will fail authentication.",
+                    missingServices);
         }
 
         return appServicesMap;

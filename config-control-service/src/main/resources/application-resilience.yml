@@ -57,6 +57,11 @@ resilience4j:
         failureRateThreshold: 50
         slowCallDurationThreshold: 3s
         waitDurationInOpenState: 30s
+      github:
+        baseConfig: default
+        failureRateThreshold: 50
+        slowCallDurationThreshold: 5s
+        waitDurationInOpenState: 30s
 
   # Retry Configuration with Exponential Backoff + Jitter
   retry:
@@ -102,6 +107,10 @@ resilience4j:
         baseConfig: default
         maxAttempts: 3
         waitDuration: 1s
+      github:
+        baseConfig: default
+        maxAttempts: 3
+        waitDuration: 500ms
 
   # Bulkhead Configuration (Semaphore + ThreadPool)
   bulkhead:
@@ -128,6 +137,9 @@ resilience4j:
       kafka-producer:
         baseConfig: default
         maxConcurrentCalls: 15
+      github:
+        baseConfig: default
+        maxConcurrentCalls: 10
 
   # ThreadPool Bulkhead Configuration
   thread-pool-bulkhead:

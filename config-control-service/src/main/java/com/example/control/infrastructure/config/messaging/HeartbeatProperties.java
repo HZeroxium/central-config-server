@@ -62,6 +62,11 @@ public class HeartbeatProperties {
         @NotBlank
         private String dlqTopic = "heartbeat-queue-dlq";
 
+        /**
+         * DLQ consumer configuration.
+         */
+        private DlqConsumer dlqConsumer = new DlqConsumer();
+
         @Data
         public static class Consumer {
             /**
@@ -72,9 +77,17 @@ public class HeartbeatProperties {
 
             /**
              * Maximum number of retries before sending to DLQ.
+             * <p>
+             * @deprecated Use {@link Retry#maxRetries} instead. This field is kept for backward compatibility.
              */
+            @Deprecated
             @Positive
             private int maxRetries = 3;
+
+            /**
+             * Retry configuration for error handling.
+             */
+            private Retry retry = new Retry();
 
             /**
              * Maximum number of records to poll in a single batch.
@@ -109,6 +122,57 @@ public class HeartbeatProperties {
              */
             @Positive
             private int maxPollIntervalMs = 300000; // 5 minutes
+
+            @Data
+            public static class Retry {
+                /**
+                 * Initial retry interval in milliseconds.
+                 * <p>
+                 * First retry will wait this amount before attempting again.
+                 */
+                @Positive
+                private long initialIntervalMs = 1000;
+
+                /**
+                 * Multiplier for exponential backoff.
+                 * <p>
+                 * Each retry will wait: initialIntervalMs * (multiplier ^ retryAttempt).
+                 * Example: 1000ms * (2.0 ^ 0) = 1000ms, 1000ms * (2.0 ^ 1) = 2000ms, etc.
+                 */
+                @Positive
+                private double multiplier = 2.0;
+
+                /**
+                 * Maximum number of retries before sending to DLQ.
+                 */
+                @Positive
+                private int maxRetries = 3;
+
+                /**
+                 * Maximum retry interval in milliseconds.
+                 * <p>
+                 * Caps the exponential backoff to prevent excessive wait times.
+                 */
+                @Positive
+                private long maxIntervalMs = 4000;
+            }
+        }
+
+        @Data
+        public static class DlqConsumer {
+            /**
+             * Number of concurrent DLQ consumer threads.
+             * <p>
+             * Lower concurrency than main consumer to avoid flooding MongoDB.
+             */
+            @Positive
+            private int concurrency = 2;
+
+            /**
+             * Maximum number of records to poll in a single batch for DLQ consumer.
+             */
+            @Positive
+            private int maxPollRecords = 50;
         }
     }
 }
