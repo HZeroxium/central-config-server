@@ -68,13 +68,16 @@ public class ApplicationServiceService {
                 userContext.getUserId());
 
         // Business logic: Permission check for orphaned services
-        // Only SYS_ADMIN can create orphaned services (ownerTeamId=null)
+        // Any authenticated user can create orphaned services (ownerTeamId=null)
+        // Orphaned services require approval workflow to assign ownership
         if (service.getOwnerTeamId() == null) {
-            if (!userContext.isSysAdmin()) {
+            // Validate user is authenticated
+            if (userContext.getUserId() == null || userContext.getUserId().isBlank()) {
                 throw new IllegalStateException(
-                        "Only system administrators can create orphaned services (ownerTeamId=null)");
+                        "User must be authenticated to create services");
             }
-            log.debug("Creating orphaned service by admin: {}", userContext.getUserId());
+            log.debug("Creating orphaned service by user: {} (will require approval workflow)", 
+                    userContext.getUserId());
         } else {
             // Business logic: Team members can only create services for their own team
             if (!userContext.isSysAdmin()) {
@@ -82,13 +85,15 @@ public class ApplicationServiceService {
                 if (userTeamIds == null || userTeamIds.isEmpty()) {
                     throw new IllegalStateException(
                             String.format(
-                                    "User %s has no team membership and cannot create services. Only system administrators can create services.",
+                                    "User %s has no team membership and cannot create services for a team. " +
+                                    "Create an orphaned service (ownerTeamId=null) and request ownership via approval workflow.",
                                     userContext.getUserId()));
                 }
                 if (!userTeamIds.contains(service.getOwnerTeamId())) {
                     throw new IllegalStateException(
                             String.format(
-                                    "User %s cannot create service for team %s. Users can only create services for their own teams.",
+                                    "User %s cannot create service for team %s. Users can only create services for their own teams. " +
+                                    "Create an orphaned service (ownerTeamId=null) and request ownership via approval workflow.",
                                     userContext.getUserId(), service.getOwnerTeamId()));
                 }
             }
@@ -145,18 +150,28 @@ public class ApplicationServiceService {
     /**
      * Find or create application service by display name.
      * <p>
+     * <strong>DEPRECATED:</strong> This method auto-creates orphan services, which is no longer allowed.
+     * Services must be registered via Admin Dashboard first.
+     * </p>
+     * <p>
      * If service exists, returns it. If not, creates an orphaned service with
      * ownerTeamId=null.
-     * This is used during heartbeat processing when a service instance registers
-     * but no
-     * ApplicationService exists yet.
+     * This method is deprecated because it violates the new workflow where services
+     * must be explicitly registered and approved before heartbeats can be processed.
+     * </p>
      *
      * @param displayName the exact display name to search for
      * @return the application service (existing or newly created orphaned)
+     * @deprecated Use {@link #findByDisplayName(String)} instead. Services must be registered via Admin Dashboard.
+     *             Auto-creation will be removed in a future version.
      */
+    @Deprecated(since = "2.0.0", forRemoval = true)
     @Transactional
     public ApplicationService findOrCreateByDisplayName(String displayName) {
-        log.debug("Finding or creating application service by display name: {}", displayName);
+        log.warn(
+                "DEPRECATED: findOrCreateByDisplayName() called for displayName: {}. " +
+                        "This method will be removed. Services must be registered via Admin Dashboard first.",
+                displayName);
 
         ApplicationServiceCriteria criteria = ApplicationServiceCriteria.byDisplayName(displayName);
         Page<ApplicationService> results = queryService.findAll(criteria, Pageable.unpaged());
@@ -166,6 +181,7 @@ public class ApplicationServiceService {
         }
 
         // Business logic: Create orphaned service (no owner team) - generate UUID
+        // NOTE: This is deprecated behavior - will be removed
         ApplicationService orphanedService = ApplicationService.builder()
                 .id(ApplicationServiceId.of(UUID.randomUUID().toString()))
                 .displayName(displayName)
@@ -178,7 +194,8 @@ public class ApplicationServiceService {
 
         ApplicationService saved = commandService.save(orphanedService);
         log.warn(
-                "Auto-created orphaned ApplicationService: {} (displayName: {}) - requires approval workflow for team assignment",
+                "DEPRECATED: Auto-created orphaned ApplicationService: {} (displayName: {}) - requires approval workflow for team assignment. " +
+                        "This behavior will be removed. Please register services via Admin Dashboard.",
                 saved.getId(), displayName);
 
         return saved;

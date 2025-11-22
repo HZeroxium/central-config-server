@@ -63,7 +63,15 @@ public class HeartbeatController {
       This endpoint tracks instance liveness, detects configuration drift,
       and can trigger automatic configuration refreshes.
 
-      **Public Endpoint:** No authentication required for SDK integration
+      **Authentication Required:** This endpoint requires Keycloak client credentials authentication.
+      SDK clients must obtain a JWT token using their client_id and client_secret, then include
+      it in the Authorization header as Bearer token.
+
+      **Prerequisites:**
+      - Service must be registered via Admin Dashboard
+      - Service credentials must be created and activated (status: ACTIVE)
+      - SDK must be configured with correct client credentials
+
       **Drift Detection:** Compares current config hash with last applied hash
       **Auto-Refresh:** Can trigger config refresh if drift is detected
       """, security = {

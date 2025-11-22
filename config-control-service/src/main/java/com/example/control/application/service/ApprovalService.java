@@ -62,6 +62,9 @@ public class ApprovalService {
         private final DomainPermissionEvaluator permissionEvaluator;
         private final ApprovalStatusEvaluator statusEvaluator;
 
+        // Thread-local storage for credentials created during approval (for response)
+        private static final ThreadLocal<com.example.control.application.service.ServiceCredentialService.ServiceCredentialResponse> credentialsHolder = new ThreadLocal<>();
+
         /**
          * Create a new approval request.
          * <p>
@@ -250,8 +253,17 @@ public class ApprovalService {
                 ApprovalDecision saved = approvalDecisionCommandService.save(approvalDecision);
                 log.info("Successfully submitted decision: {}", saved.getId());
 
-                // Check if all gates are satisfied
+                // Check if all gates are satisfied (this may trigger approval and credential creation)
                 statusEvaluator.checkAndUpdateRequestStatus(requestId);
+
+                // Store credentials in thread-local for retrieval by controller
+                // Credentials are only available if approval was just completed
+                com.example.control.application.service.ServiceCredentialService.ServiceCredentialResponse credentials = 
+                    statusEvaluator.getCredentialsFromApproval();
+                if (credentials != null) {
+                  // Store in ApprovalService thread-local for controller access
+                  ApprovalService.credentialsHolder.set(credentials);
+                }
 
                 return saved;
         }
@@ -320,6 +332,26 @@ public class ApprovalService {
                 }
 
                 return Optional.of(approvalRequest);
+        }
+
+        /**
+         * Retrieves credentials created during approval workflow.
+         * <p>
+         * This method retrieves credentials from thread-local storage that were
+         * created during the approval cascade. Credentials are only available
+         * immediately after submitDecision() completes successfully and request
+         * was approved.
+         * </p>
+         *
+         * @return ServiceCredentialResponse if credentials were created, null otherwise
+         */
+        public com.example.control.application.service.ServiceCredentialService.ServiceCredentialResponse getCredentialsFromApproval() {
+            com.example.control.application.service.ServiceCredentialService.ServiceCredentialResponse credentials = credentialsHolder.get();
+            if (credentials != null) {
+                // Clear thread-local after retrieval (one-time access)
+                credentialsHolder.remove();
+            }
+            return credentials;
         }
 
         /**

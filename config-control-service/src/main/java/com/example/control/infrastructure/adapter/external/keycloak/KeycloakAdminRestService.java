@@ -3,6 +3,8 @@ package com.example.control.infrastructure.adapter.external.keycloak;
 import com.example.control.api.http.exception.exceptions.ExternalServiceException;
 import com.example.control.domain.criteria.IamTeamCriteria;
 import com.example.control.domain.criteria.IamUserCriteria;
+import com.example.control.infrastructure.adapter.external.keycloak.dto.KeycloakClientRepresentation;
+import com.example.control.infrastructure.adapter.external.keycloak.dto.KeycloakClientSecretResponse;
 import com.example.control.infrastructure.adapter.external.keycloak.dto.KeycloakGroupRepresentation;
 import com.example.control.infrastructure.adapter.external.keycloak.dto.KeycloakTokenResponse;
 import com.example.control.infrastructure.adapter.external.keycloak.dto.KeycloakUserRepresentation;
@@ -12,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
@@ -19,10 +22,14 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 
+import java.net.URI;
+import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
@@ -529,5 +536,320 @@ public class KeycloakAdminRestService {
 
         return decoratedCall.get();
     }
+
+    /**
+     * Create a Keycloak client for service-to-service authentication.
+     * <p>
+     * Creates a new client with client credentials flow enabled.
+     * Keycloak generates the secret automatically, which is retrieved after creation.
+     * </p>
+     *
+     * @param clientId the client ID (typically serviceName)
+     * @param description optional description
+     * @return KeycloakClientCreationResult with clientId, clientSecret, and clientUuid
+     * @throws ExternalServiceException if client creation fails
+     */
+    public KeycloakClientCreationResult createServiceClient(String clientId, String description) {
+        Supplier<KeycloakClientCreationResult> apiCall = () -> {
+            try {
+                String url = String.format("%s/admin/realms/%s/clients",
+                        properties.getUrl(), properties.getRealm());
+
+                // Build client representation
+                // Note: Keycloak generates the secret automatically, we don't set it here
+                KeycloakClientRepresentation clientRep = new KeycloakClientRepresentation();
+                clientRep.setClientId(clientId);
+                clientRep.setName(description != null ? description : "Service Client: " + clientId);
+                clientRep.setDescription(description != null ? description : "Auto-generated client for " + clientId);
+                clientRep.setEnabled(true);
+                clientRep.setClientAuthenticatorType("client-secret");
+                // Don't set secret - Keycloak will generate it
+                clientRep.setStandardFlowEnabled(false);
+                clientRep.setImplicitFlowEnabled(false);
+                clientRep.setDirectAccessGrantsEnabled(false);
+                clientRep.setServiceAccountsEnabled(true); // Enable service account for client credentials flow
+                clientRep.setPublicClient(false);
+                clientRep.setProtocol("openid-connect");
+                clientRep.setAttributes(Map.of(
+                        "access.token.lifespan", "300" // 5 minutes
+                ));
+
+                // Create client
+                HttpHeaders headers = restClient.post()
+                        .uri(url)
+                        .headers(h -> h.setBearerAuth(getAccessToken()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(clientRep)
+                        .retrieve()
+                        .toBodilessEntity()
+                        .getHeaders();
+
+                // Extract client UUID from Location header
+                URI location = headers.getLocation();
+                if (location == null) {
+                    throw new ExternalServiceException("keycloak", "No Location header in client creation response");
+                }
+
+                String clientUuid = extractClientUuidFromLocation(location.toString());
+
+                // Retrieve the generated secret immediately after creation
+                String clientSecret = getClientSecret(clientUuid)
+                        .orElseThrow(() -> new ExternalServiceException("keycloak", 
+                                "Failed to retrieve client secret after creation for client: " + clientId));
+
+                log.info("Created Keycloak client: {} with UUID: {}", clientId, clientUuid);
+
+                return new KeycloakClientCreationResult(clientId, clientSecret, clientUuid);
+            } catch (HttpClientErrorException e) {
+                log.error("Failed to create Keycloak client: {} - Status: {}, Body: {}", 
+                        clientId, e.getStatusCode(), e.getResponseBodyAsString(), e);
+                throw new ExternalServiceException("keycloak", 
+                        "Failed to create client: " + e.getStatusCode() + " - " + e.getResponseBodyAsString(), e);
+            } catch (Exception e) {
+                log.error("Failed to create Keycloak client: {}", clientId, e);
+                throw new ExternalServiceException("keycloak", "Failed to create client: " + e.getMessage(), e);
+            }
+        };
+
+        Function<Throwable, KeycloakClientCreationResult> fallback = (Throwable t) -> {
+            log.error("Keycloak createServiceClient fallback triggered for clientId: {} due to: {}", 
+                    clientId, t.getMessage(), t);
+            throw new ExternalServiceException("keycloak", "Client creation failed: " + t.getMessage(), t);
+        };
+
+        Supplier<KeycloakClientCreationResult> decoratedCall = resilienceFactory.decorateSupplier(
+                SERVICE_NAME, apiCall, fallback);
+
+        return decoratedCall.get();
+    }
+
+    /**
+     * Rotate client secret (generate new secret).
+     * <p>
+     * This invalidates the old secret and returns a new one.
+     * </p>
+     *
+     * @param clientUuid the Keycloak client UUID
+     * @return the new client secret
+     * @throws ExternalServiceException if rotation fails
+     */
+    public String rotateClientSecret(String clientUuid) {
+        Supplier<String> apiCall = () -> {
+            try {
+                String url = String.format("%s/admin/realms/%s/clients/%s/client-secret",
+                        properties.getUrl(), properties.getRealm(), clientUuid);
+
+                KeycloakClientSecretResponse response = restClient.post()
+                        .uri(url)
+                        .headers(h -> h.setBearerAuth(getAccessToken()))
+                        .retrieve()
+                        .body(KeycloakClientSecretResponse.class);
+
+                if (response == null || response.getValue() == null) {
+                    throw new ExternalServiceException("keycloak", "No secret in rotation response");
+                }
+
+                log.info("Rotated client secret for client UUID: {}", clientUuid);
+                return response.getValue();
+            } catch (HttpClientErrorException e) {
+                log.error("Failed to rotate client secret for UUID: {} - Status: {}, Body: {}", 
+                        clientUuid, e.getStatusCode(), e.getResponseBodyAsString(), e);
+                throw new ExternalServiceException("keycloak", 
+                        "Failed to rotate secret: " + e.getStatusCode() + " - " + e.getResponseBodyAsString(), e);
+            } catch (Exception e) {
+                log.error("Failed to rotate client secret for UUID: {}", clientUuid, e);
+                throw new ExternalServiceException("keycloak", "Failed to rotate secret: " + e.getMessage(), e);
+            }
+        };
+
+        Function<Throwable, String> fallback = (Throwable t) -> {
+            log.error("Keycloak rotateClientSecret fallback triggered for UUID: {} due to: {}", 
+                    clientUuid, t.getMessage(), t);
+            throw new ExternalServiceException("keycloak", "Secret rotation failed: " + t.getMessage(), t);
+        };
+
+        Supplier<String> decoratedCall = resilienceFactory.decorateSupplier(
+                SERVICE_NAME, apiCall, fallback);
+
+        return decoratedCall.get();
+    }
+
+    /**
+     * Get client secret (only works if secret was created recently).
+     * <p>
+     * Keycloak Admin API can retrieve secret only if it was created recently.
+     * For existing clients, use {@link #rotateClientSecret(String)} instead.
+     * </p>
+     *
+     * @param clientUuid the Keycloak client UUID
+     * @return the client secret if available, empty otherwise
+     */
+    public Optional<String> getClientSecret(String clientUuid) {
+        Supplier<Optional<String>> apiCall = () -> {
+            try {
+                String url = String.format("%s/admin/realms/%s/clients/%s/client-secret",
+                        properties.getUrl(), properties.getRealm(), clientUuid);
+
+                KeycloakClientSecretResponse response = restClient.get()
+                        .uri(url)
+                        .headers(h -> h.setBearerAuth(getAccessToken()))
+                        .retrieve()
+                        .body(KeycloakClientSecretResponse.class);
+
+                if (response == null || response.getValue() == null) {
+                    return Optional.empty();
+                }
+
+                log.debug("Retrieved client secret for client UUID: {}", clientUuid);
+                return Optional.of(response.getValue());
+            } catch (HttpClientErrorException.NotFound e) {
+                log.debug("Client secret not found for UUID: {} (may need rotation)", clientUuid);
+                return Optional.empty();
+            } catch (Exception e) {
+                log.warn("Failed to get client secret for UUID: {}", clientUuid, e);
+                return Optional.empty();
+            }
+        };
+
+        Function<Throwable, Optional<String>> fallback = (Throwable t) -> {
+            log.warn("Keycloak getClientSecret fallback triggered for UUID: {} due to: {}", 
+                    clientUuid, t.getMessage());
+            return Optional.empty();
+        };
+
+        Supplier<Optional<String>> decoratedCall = resilienceFactory.decorateSupplier(
+                SERVICE_NAME, apiCall, fallback);
+
+        return decoratedCall.get();
+    }
+
+    /**
+     * Revoke client (disable it).
+     * <p>
+     * This disables the client, preventing it from obtaining new tokens.
+     * Existing tokens may still be valid until expiration.
+     * </p>
+     *
+     * @param clientUuid the Keycloak client UUID
+     * @throws ExternalServiceException if revocation fails
+     */
+    public void revokeClient(String clientUuid) {
+        Supplier<Void> apiCall = () -> {
+            try {
+                String url = String.format("%s/admin/realms/%s/clients/%s",
+                        properties.getUrl(), properties.getRealm(), clientUuid);
+
+                // Get current client representation
+                KeycloakClientRepresentation client = restClient.get()
+                        .uri(url)
+                        .headers(h -> h.setBearerAuth(getAccessToken()))
+                        .retrieve()
+                        .body(KeycloakClientRepresentation.class);
+
+                if (client == null) {
+                    throw new ExternalServiceException("keycloak", "Client not found: " + clientUuid);
+                }
+
+                // Disable the client
+                client.setEnabled(false);
+
+                // Update client
+                restClient.put()
+                        .uri(url)
+                        .headers(h -> h.setBearerAuth(getAccessToken()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(client)
+                        .retrieve()
+                        .toBodilessEntity();
+
+                log.info("Revoked client (disabled) for UUID: {}", clientUuid);
+                return null;
+            } catch (HttpClientErrorException e) {
+                log.error("Failed to revoke client for UUID: {} - Status: {}, Body: {}", 
+                        clientUuid, e.getStatusCode(), e.getResponseBodyAsString(), e);
+                throw new ExternalServiceException("keycloak", 
+                        "Failed to revoke client: " + e.getStatusCode() + " - " + e.getResponseBodyAsString(), e);
+            } catch (Exception e) {
+                log.error("Failed to revoke client for UUID: {}", clientUuid, e);
+                throw new ExternalServiceException("keycloak", "Failed to revoke client: " + e.getMessage(), e);
+            }
+        };
+
+        Function<Throwable, Void> fallback = (Throwable t) -> {
+            log.error("Keycloak revokeClient fallback triggered for UUID: {} due to: {}", 
+                    clientUuid, t.getMessage(), t);
+            throw new ExternalServiceException("keycloak", "Client revocation failed: " + t.getMessage(), t);
+        };
+
+        Supplier<Void> decoratedCall = resilienceFactory.decorateSupplier(
+                SERVICE_NAME, apiCall, fallback);
+
+        decoratedCall.get();
+    }
+
+    /**
+     * Generate a cryptographically secure random secret.
+     * <p>
+     * Generates 32 random bytes and encodes them as base64 URL-safe string
+     * without padding.
+     * </p>
+     *
+     * @return secure random secret string
+     */
+    private String generateSecureSecret() {
+        SecureRandom random = new SecureRandom();
+        byte[] bytes = new byte[32];
+        random.nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
+
+    /**
+     * Extract client UUID from Keycloak Location header.
+     * <p>
+     * Location header format: /admin/realms/{realm}/clients/{uuid}
+     * </p>
+     *
+     * @param location the Location header value
+     * @return the client UUID
+     */
+    private String extractClientUuidFromLocation(String location) {
+        if (location == null || location.isEmpty()) {
+            throw new IllegalArgumentException("Location header is null or empty");
+        }
+
+        // Extract UUID from location path
+        // Format: /admin/realms/{realm}/clients/{uuid}
+        String[] parts = location.split("/clients/");
+        if (parts.length != 2) {
+            throw new IllegalArgumentException("Invalid Location header format: " + location);
+        }
+
+        String uuid = parts[1];
+        // Remove any query parameters or fragments
+        if (uuid.contains("?")) {
+            uuid = uuid.substring(0, uuid.indexOf("?"));
+        }
+        if (uuid.contains("#")) {
+            uuid = uuid.substring(0, uuid.indexOf("#"));
+        }
+
+        return uuid.trim();
+    }
+
+    /**
+     * Result of Keycloak client creation.
+     * <p>
+     * Contains the client ID, secret (returned only once), and UUID for future operations.
+     * </p>
+     *
+     * @param clientId the Keycloak client ID
+     * @param clientSecret the client secret (only returned once during creation)
+     * @param clientUuid the Keycloak client UUID (for Admin API operations)
+     */
+    public record KeycloakClientCreationResult(
+            String clientId,
+            String clientSecret,
+            String clientUuid
+    ) {}
 }
 
