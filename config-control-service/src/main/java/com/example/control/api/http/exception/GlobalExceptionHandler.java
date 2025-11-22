@@ -1,6 +1,9 @@
 package com.example.control.api.http.exception;
 
 import com.example.control.api.http.exception.exceptions.*;
+import com.example.control.domain.exception.ConfigConflictException;
+import com.example.control.domain.exception.ConfigFileNotFoundException;
+import com.example.control.domain.exception.GitHubRateLimitException;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import jakarta.validation.ConstraintViolation;
@@ -41,6 +44,7 @@ public class GlobalExceptionHandler {
     private static final String BAD_REQUEST_TYPE = "https://api.example.com/problems/bad-request";
     private static final String EXTERNAL_SERVICE_TYPE = "https://api.example.com/problems/external-service-error";
     private static final String CONFLICT_TYPE = "https://api.example.com/problems/conflict";
+    private static final String SERVICE_CREDENTIAL_ERROR_TYPE = "https://api.example.com/problems/service-credential-error";
 
     /**
      * Handle ConfigControlException and its subclasses.
@@ -385,18 +389,80 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Handle ConfigFileNotFoundException specifically.
+     */
+    @ExceptionHandler(ConfigFileNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleConfigFileNotFoundException(ConfigFileNotFoundException ex, WebRequest request) {
+        log.warn("Config file not found: {}", ex.getMessage());
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .type(NOT_FOUND_TYPE)
+                .title("Config File Not Found")
+                .status(HttpStatus.NOT_FOUND.value())
+                .detail(ex.getMessage())
+                .instance(request.getDescription(false))
+                .timestamp(Instant.now())
+                .traceId(generateTraceId())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+    }
+
+    /**
+     * Handle ConfigConflictException specifically.
+     */
+    @ExceptionHandler(ConfigConflictException.class)
+    public ResponseEntity<ErrorResponse> handleConfigConflictException(ConfigConflictException ex, WebRequest request) {
+        log.warn("Config conflict: {}", ex.getMessage());
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .type(CONFLICT_TYPE)
+                .title("Config File Conflict")
+                .status(HttpStatus.CONFLICT.value())
+                .detail(ex.getMessage())
+                .instance(request.getDescription(false))
+                .timestamp(Instant.now())
+                .traceId(generateTraceId())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+    }
+
+    /**
+     * Handle GitHubRateLimitException specifically.
+     */
+    @ExceptionHandler(GitHubRateLimitException.class)
+    public ResponseEntity<ErrorResponse> handleGitHubRateLimitException(GitHubRateLimitException ex, WebRequest request) {
+        log.warn("GitHub rate limit exceeded: {}", ex.getMessage());
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .type(EXTERNAL_SERVICE_TYPE)
+                .title("GitHub Rate Limit Exceeded")
+                .status(HttpStatus.TOO_MANY_REQUESTS.value())
+                .detail(ex.getMessage())
+                .instance(request.getDescription(false))
+                .timestamp(Instant.now())
+                .traceId(generateTraceId())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(errorResponse);
+    }
+
+    /**
      * Determine HTTP status based on exception type.
      */
     private HttpStatus determineHttpStatus(ConfigControlException ex) {
-        if (ex instanceof ServiceNotFoundException || ex instanceof InstanceNotFoundException) {
+        if (ex instanceof ServiceNotFoundException || ex instanceof InstanceNotFoundException 
+                || ex instanceof ConfigFileNotFoundException || ex instanceof ServiceCredentialNotFoundException) {
             return HttpStatus.NOT_FOUND;
         } else if (ex instanceof ValidationException) {
             return HttpStatus.BAD_REQUEST;
-        } else if (ex instanceof ConflictException) {
+        } else if (ex instanceof ConflictException || ex instanceof ConfigConflictException 
+                || ex instanceof ServiceCredentialAlreadyExistsException) {
             return HttpStatus.CONFLICT;
-        } else if (ex instanceof ConfigurationException) {
-            return HttpStatus.UNPROCESSABLE_ENTITY;
-        } else if (ex instanceof ExternalServiceException) {
+        } else if (ex instanceof ConfigurationException || ex instanceof ServiceCredentialNotActiveException) {
+            return HttpStatus.BAD_REQUEST;
+        } else if (ex instanceof ExternalServiceException || ex instanceof GitHubRateLimitException) {
             return HttpStatus.SERVICE_UNAVAILABLE;
         }
         return HttpStatus.INTERNAL_SERVER_ERROR;
@@ -406,16 +472,20 @@ public class GlobalExceptionHandler {
      * Get error type based on exception class.
      */
     private String getErrorType(ConfigControlException ex) {
-        if (ex instanceof ServiceNotFoundException || ex instanceof InstanceNotFoundException) {
+        if (ex instanceof ServiceNotFoundException || ex instanceof InstanceNotFoundException 
+                || ex instanceof ConfigFileNotFoundException || ex instanceof ServiceCredentialNotFoundException) {
             return NOT_FOUND_TYPE;
         } else if (ex instanceof ValidationException) {
             return VALIDATION_ERROR_TYPE;
-        } else if (ex instanceof ConflictException) {
+        } else if (ex instanceof ConflictException || ex instanceof ConfigConflictException 
+                || ex instanceof ServiceCredentialAlreadyExistsException) {
             return CONFLICT_TYPE;
-        } else if (ex instanceof ConfigurationException) {
+        } else if (ex instanceof ConfigurationException || ex instanceof ServiceCredentialNotActiveException) {
             return BAD_REQUEST_TYPE;
-        } else if (ex instanceof ExternalServiceException) {
+        } else if (ex instanceof ExternalServiceException || ex instanceof GitHubRateLimitException) {
             return EXTERNAL_SERVICE_TYPE;
+        } else if (ex instanceof ServiceCredentialException) {
+            return SERVICE_CREDENTIAL_ERROR_TYPE;
         }
         return INTERNAL_ERROR_TYPE;
     }

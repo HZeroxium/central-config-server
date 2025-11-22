@@ -197,6 +197,13 @@ public class ApprovalRequestController {
                         **Access Control:**
                         - Only authorized approvers can submit decisions
                         - Decision is recorded with approver information and timestamp
+
+                        **Credentials Response:**
+                        - When a request is approved, service credentials are automatically created
+                        - Credentials are returned ONCE in the approval response (status: PENDING)
+                        - Client secret must be saved securely - it will not be returned again
+                        - Credentials must be activated via POST /api/services/{serviceId}/credentials/activate
+                          after config files are ready
                         """, security = {
                         @SecurityRequirement(name = "oauth2_auth_code"),
                         @SecurityRequirement(name = "oauth2_password")
@@ -236,7 +243,14 @@ public class ApprovalRequestController {
                         return ResponseEntity.notFound().build();
                 }
 
-                ApprovalRequestDtos.Response response = ApprovalRequestApiMapper.toResponse(updatedRequest.get());
+                // Retrieve credentials if they were created during approval (one-time only)
+                com.example.control.application.service.ServiceCredentialService.ServiceCredentialResponse credentials = 
+                    approvalService.getCredentialsFromApproval();
+                
+                ApprovalRequestDtos.Response response = ApprovalRequestApiMapper.toResponse(
+                    updatedRequest.get(), 
+                    credentials != null ? toServiceCredentialDto(credentials) : null
+                );
                 return ResponseEntity.status(HttpStatus.CREATED).body(response);
         }
 
@@ -277,6 +291,23 @@ public class ApprovalRequestController {
 
                 log.warn("User {} cannot approve for any gate in request {}", userContext.getUserId(), requestId);
                 return null;
+        }
+
+        /**
+         * Converts ServiceCredentialService.ServiceCredentialResponse to ServiceCredentialDtos.ServiceCredentialResponse.
+         *
+         * @param credentials the service credential response from service layer
+         * @return the DTO response
+         */
+        private com.example.control.api.http.dto.domain.ServiceCredentialDtos.ServiceCredentialResponse toServiceCredentialDto(
+                com.example.control.application.service.ServiceCredentialService.ServiceCredentialResponse credentials) {
+            return com.example.control.api.http.dto.domain.ServiceCredentialDtos.ServiceCredentialResponse.builder()
+                    .clientId(credentials.clientId())
+                    .clientSecret(credentials.clientSecret())
+                    .status(credentials.status().name())
+                    .expiresAt(credentials.expiresAt())
+                    .tokenEndpoint(credentials.tokenEndpoint())
+                    .build();
         }
 
         /**

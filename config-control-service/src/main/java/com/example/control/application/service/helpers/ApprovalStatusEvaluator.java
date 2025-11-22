@@ -38,6 +38,9 @@ public class ApprovalStatusEvaluator {
   private final ApprovalCascadeService approvalCascadeService;
   private final ApplicationEventPublisher eventPublisher;
 
+  // Thread-local storage for credentials created during approval (for response)
+  private static final ThreadLocal<com.example.control.application.service.ServiceCredentialService.ServiceCredentialResponse> credentialsHolder = new ThreadLocal<>();
+
   /**
    * Check if all gates are satisfied and update request status if so.
    * <p>
@@ -97,6 +100,12 @@ public class ApprovalStatusEvaluator {
     if (allGatesSatisfied) {
       log.info("All gates satisfied for request: {}, approving", requestId);
       approvalCascadeService.handleApproval(requestId);
+      // Retrieve credentials created during approval and store in thread-local
+      com.example.control.application.service.ServiceCredentialService.ServiceCredentialResponse credentials = 
+          approvalCascadeService.getCredentialsFromApproval();
+      if (credentials != null) {
+        credentialsHolder.set(credentials);
+      }
     }
   }
 
@@ -136,5 +145,25 @@ public class ApprovalStatusEvaluator {
     } else {
       log.warn("Failed to reject request: {} due to version conflict", requestId);
     }
+  }
+
+  /**
+   * Retrieves credentials created during approval workflow.
+   * <p>
+   * This method retrieves credentials from thread-local storage that were
+   * created during the approval cascade. Credentials are only available
+   * immediately after checkAndUpdateRequestStatus() completes successfully
+   * and request was approved.
+   * </p>
+   *
+   * @return ServiceCredentialResponse if credentials were created, null otherwise
+   */
+  public com.example.control.application.service.ServiceCredentialService.ServiceCredentialResponse getCredentialsFromApproval() {
+    com.example.control.application.service.ServiceCredentialService.ServiceCredentialResponse credentials = credentialsHolder.get();
+    if (credentials != null) {
+      // Clear thread-local after retrieval (one-time access)
+      credentialsHolder.remove();
+    }
+    return credentials;
   }
 }

@@ -1,6 +1,7 @@
 package com.vng.zing.zcm.pingconfig.strategy;
 
 import com.vng.zing.zcm.config.SdkProperties;
+import com.vng.zing.zcm.pingconfig.auth.ClientCredentialsTokenService;
 import com.vng.zing.zcm.pingconfig.metrics.PingMetrics;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +32,9 @@ public class KafkaConfigCache {
     // This will be injected by Spring after construction via setter injection or @PostConstruct
     private PingMetrics pingMetrics;
 
+    // Optional - for authentication when fetching Kafka config
+    private final ClientCredentialsTokenService tokenService;
+
     private volatile KafkaConfig cachedConfig;
     private volatile Instant lastFetchTime;
     private volatile boolean initialized = false;
@@ -41,11 +45,25 @@ public class KafkaConfigCache {
      * @param restClient    RestClient for HTTP requests
      * @param sdkProperties SDK configuration properties
      * @param environment   Spring environment for env var overrides
+     * @param tokenService  Client credentials token service (optional, for authentication)
      */
-    public KafkaConfigCache(RestClient restClient, SdkProperties sdkProperties, Environment environment) {
+    public KafkaConfigCache(RestClient restClient, SdkProperties sdkProperties, Environment environment,
+                           ClientCredentialsTokenService tokenService) {
         this.restClient = restClient;
         this.sdkProperties = sdkProperties;
         this.environment = environment;
+        this.tokenService = tokenService;
+    }
+
+    /**
+     * Creates a new KafkaConfigCache without token service (backward compatibility).
+     *
+     * @param restClient    RestClient for HTTP requests
+     * @param sdkProperties SDK configuration properties
+     * @param environment   Spring environment for env var overrides
+     */
+    public KafkaConfigCache(RestClient restClient, SdkProperties sdkProperties, Environment environment) {
+        this(restClient, sdkProperties, environment, null);
     }
 
     /**
@@ -59,12 +77,12 @@ public class KafkaConfigCache {
     }
 
     /**
-     * Gets the KafkaConfigFetcher, creating it with PingMetrics if available.
+     * Gets the KafkaConfigFetcher, creating it with PingMetrics and token service if available.
      *
      * @return KafkaConfigFetcher instance
      */
     private KafkaConfigFetcher getFetcher() {
-        return new KafkaConfigFetcher(restClient, sdkProperties, environment, pingMetrics);
+        return new KafkaConfigFetcher(restClient, sdkProperties, environment, pingMetrics, tokenService);
     }
 
     /**

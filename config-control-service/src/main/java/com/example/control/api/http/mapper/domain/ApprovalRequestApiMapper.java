@@ -30,6 +30,19 @@ public final class ApprovalRequestApiMapper {
      * @return the response DTO
      */
     public static ApprovalRequestDtos.Response toResponse(ApprovalRequest entity) {
+        return toResponse(entity, null);
+    }
+
+    /**
+     * Map domain entity to Response DTO with optional credentials.
+     *
+     * @param entity the domain entity
+     * @param credentials optional credentials created during approval (one-time only)
+     * @return the response DTO
+     */
+    public static ApprovalRequestDtos.Response toResponse(
+            ApprovalRequest entity,
+            com.example.control.api.http.dto.domain.ServiceCredentialDtos.ServiceCredentialResponse credentials) {
         return new ApprovalRequestDtos.Response(
                 entity.getId().id(),
                 entity.getRequesterUserId(),
@@ -54,7 +67,8 @@ public final class ApprovalRequestApiMapper {
                 entity.getCreatedAt(),
                 entity.getUpdatedAt(),
                 entity.getNote(),
-                entity.getCancelReason()
+                entity.getCancelReason(),
+                credentials
         );
     }
 

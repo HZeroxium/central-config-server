@@ -131,6 +131,10 @@ dependencies {
     implementation 'io.github.resilience4j:resilience4j-all:2.2.0'
     implementation 'org.springframework.cloud:spring-cloud-starter-circuitbreaker-resilience4j'
     
+    // GitHub API
+    // implementation libs.github.api
+    implementation 'org.kohsuke:github-api:1.315'
+    
     // Datafaker for mock data generation
     implementation 'net.datafaker:datafaker:2.1.0'
     

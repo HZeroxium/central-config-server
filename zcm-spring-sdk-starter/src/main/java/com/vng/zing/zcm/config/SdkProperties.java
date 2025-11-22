@@ -154,6 +154,9 @@ public class SdkProperties {
     /** Circuit breaker configuration for Kafka ping operations. */
     private CircuitBreaker circuitBreaker = new CircuitBreaker();
 
+    /** Client credentials configuration for M2M authentication. */
+    private ClientCredentials clientCredentials = new ClientCredentials();
+
     /**
      * Kafka configuration for ping operations.
      * <p>
@@ -328,6 +331,90 @@ public class SdkProperties {
          */
         STATIC
       }
+    }
+
+    /**
+     * Configuration for client credentials authentication (M2M).
+     * <p>
+     * Required for authenticating heartbeat requests to config-control-service.
+     * Credentials are obtained after service approval and activation.
+     * </p>
+     */
+    @Data
+    public static class ClientCredentials {
+
+      /**
+       * Whether client credentials authentication is required.
+       * <p>
+       * Default: true (required for M2M authentication).
+       * Set to false only for backward compatibility during migration.
+       * </p>
+       */
+      private boolean required = true;
+
+      /**
+       * Keycloak client ID (obtained from service credentials).
+       * <p>
+       * This is the client_id used to obtain JWT tokens from Keycloak.
+       * Typically matches the service name (displayName).
+       * </p>
+       * <p>
+       * Can be overridden via environment variable {@code ZCM_SDK_PING_CLIENT_CREDENTIALS_CLIENT_ID}.
+       * </p>
+       */
+      private String clientId;
+
+      /**
+       * Keycloak client secret (obtained from service credentials).
+       * <p>
+       * This is the client_secret used to obtain JWT tokens from Keycloak.
+       * Must be kept secure and not committed to version control.
+       * </p>
+       * <p>
+       * Can be overridden via environment variable {@code ZCM_SDK_PING_CLIENT_CREDENTIALS_CLIENT_SECRET}.
+       * </p>
+       */
+      private String clientSecret;
+
+      /**
+       * Keycloak token endpoint URL.
+       * <p>
+       * Format: http://keycloak:8080/realms/{realm}/protocol/openid-connect/token
+       * </p>
+       * <p>
+       * If not provided, will be constructed from realm and Keycloak base URL.
+       * Can be overridden via environment variable {@code ZCM_SDK_PING_CLIENT_CREDENTIALS_TOKEN_ENDPOINT}.
+       * </p>
+       */
+      private String tokenEndpoint;
+
+      /**
+       * Keycloak realm name (default: config-control).
+       * <p>
+       * Used to construct token endpoint if not explicitly provided.
+       * </p>
+       */
+      private String realm = "config-control";
+
+      /**
+       * Deprecation period end date for API key fallback (ISO-8601 format).
+       * <p>
+       * After this date, API key authentication will be rejected and client credentials
+       * will be required. Set to null or empty to disable deprecation period (enforce immediately).
+       * </p>
+       * <p>
+       * Example: "2024-12-31T23:59:59Z"
+       * </p>
+       */
+      private String deprecationPeriodEnd;
+
+      /**
+       * Keycloak base URL (e.g., http://keycloak:8080).
+       * <p>
+       * Used to construct token endpoint if not explicitly provided.
+       * </p>
+       */
+      private String keycloakUrl;
     }
   }
 

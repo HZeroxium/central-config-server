@@ -8,6 +8,8 @@ import com.example.control.application.command.ServiceInstanceCommandService;
 import com.example.control.application.query.ApplicationServiceQueryService;
 import com.example.control.application.query.ApprovalDecisionQueryService;
 import com.example.control.application.query.ApprovalRequestQueryService;
+import com.example.control.application.service.ConfigGitService;
+import com.example.control.application.service.ServiceCredentialService;
 import com.example.control.domain.criteria.ApprovalRequestCriteria;
 import com.example.control.domain.event.ServiceOwnershipTransferred;
 import com.example.control.domain.event.ApprovalRequestApprovedEvent;
@@ -18,6 +20,7 @@ import com.example.control.domain.valueobject.id.ApprovalRequestId;
 import com.example.control.domain.model.ApplicationService;
 import com.example.control.domain.model.ApprovalDecision;
 import com.example.control.domain.model.ApprovalRequest;
+import com.example.control.infrastructure.config.security.UserContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -51,6 +54,11 @@ public class ApprovalCascadeService {
   private final ServiceInstanceCommandService serviceInstanceCommandService;
   private final DriftEventCommandService driftEventCommandService;
   private final ApplicationEventPublisher eventPublisher;
+  private final ServiceCredentialService serviceCredentialService;
+  private final ConfigGitService configGitService;
+
+  // Thread-local storage for credentials created during approval (for response)
+  private static final ThreadLocal<ServiceCredentialService.ServiceCredentialResponse> credentialsHolder = new ThreadLocal<>();
 
   /**
    * Handle approval of a request: transfer ownership and cascade operations.
@@ -113,6 +121,51 @@ public class ApprovalCascadeService {
         .build());
 
     log.info("Successfully transferred ownership of service {} to team {}", serviceId, newTeamId);
+
+    // 3.5. Create service credentials after ownership transfer
+    // This must happen within the same transaction - if Keycloak client creation fails,
+    // the entire approval transaction will rollback
+    ServiceCredentialService.ServiceCredentialResponse credentialsResponse = null;
+    try {
+      UserContext systemContext = UserContext.builder()
+          .userId("SYSTEM")
+          .username("system")
+          .roles(List.of("SYS_ADMIN"))
+          .teamIds(List.of())
+          .build();
+      
+      credentialsResponse = serviceCredentialService.createCredentialsForService(
+          ApplicationServiceId.of(serviceId), systemContext);
+      // Store credentials in thread-local for retrieval by ApprovalService
+      credentialsHolder.set(credentialsResponse);
+      log.info("Created service credentials for service: {} (status: PENDING)", serviceId);
+    } catch (Exception e) {
+      log.error("Failed to create service credentials for service: {}", serviceId, e);
+      // Re-throw to trigger transaction rollback
+      throw new RuntimeException("Failed to create service credentials: " + e.getMessage(), e);
+    } finally {
+      // Clean up thread-local after approval completes
+      // Note: This will be cleared after ApprovalService retrieves credentials
+    }
+
+    // 3.6. Initialize Git repository directory and template config file
+    // This is non-blocking - if Git operations fail, approval still succeeds
+    // User can manually create config files later if needed
+    try {
+      String displayName = service.getDisplayName();
+      List<String> environments = service.getEnvironments() != null 
+          ? service.getEnvironments() 
+          : List.of("dev", "staging", "prod");
+      
+      configGitService.initializeServiceDirectory(serviceId, displayName, environments);
+      log.info("Initialized Git directory and template config file for service: {}", serviceId);
+    } catch (Exception e) {
+      // Log warning but don't fail approval - Git operations are non-critical
+      log.warn("Failed to initialize Git directory for service: {}: {}. " +
+              "Approval succeeded, but user will need to create config files manually.",
+              serviceId, e.getMessage(), e);
+      // Don't re-throw - allow approval to complete successfully
+    }
 
     // 4. Cascade: Update approval request statuses in bulk
     long approvedAuto = approvalRequestCommandService.cascadeApproveSameTeamPending(serviceId, newTeamId);
@@ -306,5 +359,24 @@ public class ApprovalCascadeService {
       log.info("Created system REJECT decision for cascaded request: {}",
           refreshedRequest.getId());
     }
+  }
+
+  /**
+   * Retrieves credentials created during approval workflow.
+   * <p>
+   * This method retrieves credentials from thread-local storage that were
+   * created during the approval cascade. Credentials are only available
+   * immediately after handleApproval() completes successfully.
+   * </p>
+   *
+   * @return ServiceCredentialResponse if credentials were created, null otherwise
+   */
+  public ServiceCredentialService.ServiceCredentialResponse getCredentialsFromApproval() {
+    ServiceCredentialService.ServiceCredentialResponse credentials = credentialsHolder.get();
+    if (credentials != null) {
+      // Clear thread-local after retrieval (one-time access)
+      credentialsHolder.remove();
+    }
+    return credentials;
   }
 }

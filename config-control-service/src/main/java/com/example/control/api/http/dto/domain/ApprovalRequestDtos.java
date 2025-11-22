@@ -103,7 +103,10 @@ public class ApprovalRequestDtos {
             String note,
 
             @JsonProperty("cancelReason")
-            String cancelReason
+            String cancelReason,
+
+            @JsonProperty("credentials")
+            ServiceCredentialDtos.ServiceCredentialResponse credentials
     ) {
     }
 

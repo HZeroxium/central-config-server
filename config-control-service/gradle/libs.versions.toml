@@ -65,6 +65,9 @@ spring-cloud = "2023.0.5"
 # Consul
 consul-api = "1.4.6"
 
+# GitHub API
+github-api = "1.315"
+
 # Note: Removed Confluent Schema Registry & Avro versions - using String serialization
 
 [libraries]
@@ -161,6 +164,9 @@ spring-cloud-starter-loadbalancer = { group = "org.springframework.cloud", name 
 
 # Consul
 consul-api = { group = "com.ecwid.consul", name = "consul-api", version.ref = "consul-api" }
+
+# GitHub API
+github-api = { group = "org.kohsuke", name = "github-api", version.ref = "github-api" }
 
 # Note: Removed Confluent Schema Registry & Avro libraries - using String serialization
 

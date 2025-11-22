@@ -25,8 +25,6 @@ import com.vng.zing.zcm.pingconfig.strategy.GrpcPingStrategy;
 import com.vng.zing.zcm.pingconfig.strategy.KafkaPingStrategy;
 import com.vng.zing.zcm.pingconfig.strategy.KafkaConfigCache;
 import com.vng.zing.zcm.pingconfig.metrics.PingMetrics;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.kafka.core.KafkaTemplate;
 import io.getunleash.DefaultUnleash;
 import io.getunleash.Unleash;
 import io.getunleash.util.UnleashConfig;
@@ -175,6 +173,7 @@ public class SdkAutoConfiguration {
   public KafkaConfigCache kafkaConfigCache(
       @Autowired(required = false) @Qualifier("kvRestClientBuilder") RestClient.Builder kvRestClientBuilder,
       @Autowired(required = false) @Qualifier("kafkaPingRestClientBuilder") RestClient.Builder kafkaPingRestClientBuilder,
+      @Autowired(required = false) @Qualifier("pingClientCredentialsTokenService") com.vng.zing.zcm.pingconfig.auth.ClientCredentialsTokenService pingTokenService,
       Environment environment) {
     log.info("Creating KafkaConfigCache for ping operations");
     
@@ -185,12 +184,74 @@ public class SdkAutoConfiguration {
             ? kafkaPingRestClientBuilder 
             : RestClient.builder()); // Final fallback
     
-    return new KafkaConfigCache(builder.build(), props, environment);
+    return new KafkaConfigCache(builder.build(), props, environment, pingTokenService);
+  }
+
+  /**
+   * Creates a non-load-balanced RestClient.Builder for ping operations.
+   * <p>
+   * This builder is used for HTTP ping strategy to call config-control-service directly.
+   *
+   * @return a RestClient.Builder for ping operations
+   */
+  @Bean(name = "pingRestClientBuilder")
+  @ConditionalOnMissingBean(name = "pingRestClientBuilder")
+  public RestClient.Builder pingRestClientBuilder() {
+    return RestClient.builder();
+  }
+
+  /**
+   * Creates a ClientCredentialsTokenService for ping operations (HTTP, gRPC, Kafka config fetch).
+   * <p>
+   * This token service is used by ping strategies to authenticate with config-control-service.
+   *
+   * @param pingRestClientBuilder RestClient builder for ping operations
+   * @param env Spring environment for reading environment variables
+   * @return a ClientCredentialsTokenService instance for ping operations
+   */
+  @Bean(name = "pingClientCredentialsTokenService")
+  @ConditionalOnMissingBean(name = "pingClientCredentialsTokenService")
+  public com.vng.zing.zcm.pingconfig.auth.ClientCredentialsTokenService pingClientCredentialsTokenService(
+      @Qualifier("pingRestClientBuilder") RestClient.Builder pingRestClientBuilder,
+      Environment env) {
+    SdkProperties.Ping.ClientCredentials keycloakConfig = props.getPing().getClientCredentials();
+
+    // Support environment variable overrides
+    String tokenEndpoint = env.getProperty("ZCM_SDK_PING_CLIENT_CREDENTIALS_TOKEN_ENDPOINT", keycloakConfig.getTokenEndpoint());
+    String clientId = env.getProperty("ZCM_SDK_PING_CLIENT_CREDENTIALS_CLIENT_ID", keycloakConfig.getClientId());
+    String clientSecret = env.getProperty("ZCM_SDK_PING_CLIENT_CREDENTIALS_CLIENT_SECRET", keycloakConfig.getClientSecret());
+    String realm = env.getProperty("ZCM_SDK_PING_CLIENT_CREDENTIALS_REALM", keycloakConfig.getRealm());
+
+    // Create a copy of config with environment variable overrides
+    SdkProperties.Ping.ClientCredentials effectiveConfig = new SdkProperties.Ping.ClientCredentials();
+    effectiveConfig.setTokenEndpoint(tokenEndpoint);
+    effectiveConfig.setClientId(clientId);
+    effectiveConfig.setClientSecret(clientSecret);
+    effectiveConfig.setRealm(realm != null ? realm : "config-control");
+    effectiveConfig.setKeycloakUrl(keycloakConfig.getKeycloakUrl());
+    effectiveConfig.setRequired(keycloakConfig.isRequired());
+
+    if (effectiveConfig.getTokenEndpoint() == null || effectiveConfig.getTokenEndpoint().isBlank()) {
+      if (effectiveConfig.getKeycloakUrl() == null || effectiveConfig.getKeycloakUrl().isBlank()) {
+        log.warn("Ping client credentials enabled but token-endpoint and keycloak-url are not configured. " +
+                "Ping operations may fail. Configure zcm.sdk.ping.client-credentials.token-endpoint or keycloak-url.");
+      }
+    }
+    if (effectiveConfig.getClientId() == null || effectiveConfig.getClientId().isBlank()) {
+      log.warn("Ping client credentials enabled but client-id is not configured. Ping operations may fail.");
+    }
+    if (effectiveConfig.getClientSecret() == null || effectiveConfig.getClientSecret().isBlank()) {
+      log.warn("Ping client credentials enabled but client-secret is not configured. Ping operations may fail.");
+    }
+
+    log.info("Creating ClientCredentialsTokenService for ping operations");
+    return new com.vng.zing.zcm.pingconfig.auth.ClientCredentialsTokenService(pingRestClientBuilder.build(), effectiveConfig);
   }
 
   /**
    * Creates a {@link PingStrategy} based on the configured protocol.
    *
+   * @param pingRestClientBuilder RestClient builder for HTTP protocol
    * @param pingKafkaTemplate Kafka template for Kafka protocol (optional, only for KAFKA)
    * @param kafkaConfigCache  Kafka config cache (optional, only for KAFKA)
    * @param pingMetrics       Ping metrics component (optional)
@@ -199,21 +260,31 @@ public class SdkAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean
   public PingStrategy pingStrategy(
+      @Qualifier("pingRestClientBuilder") RestClient.Builder pingRestClientBuilder,
       @Autowired(required = false) @Qualifier("pingKafkaTemplate") KafkaTemplate<String, com.vng.zing.zcm.pingconfig.HeartbeatPayload> pingKafkaTemplate,
       @Autowired(required = false) KafkaConfigCache kafkaConfigCache,
+      @Autowired(required = false) @Qualifier("pingClientCredentialsTokenService") com.vng.zing.zcm.pingconfig.auth.ClientCredentialsTokenService pingTokenService,
       @Autowired(required = false) PingMetrics pingMetrics) {
     String protocol = props.getPing().getProtocol();
     PingProtocol pingProtocol = PingProtocol.fromString(protocol);
     
     return switch (pingProtocol) {
-      case HTTP -> new HttpRestPingStrategy(props);
-      case THRIFT -> new ThriftRpcPingStrategy();
-      case GRPC -> new GrpcPingStrategy();
+      case HTTP -> new HttpRestPingStrategy(props, pingRestClientBuilder.build());
+      case THRIFT -> new ThriftRpcPingStrategy(props);
+      case GRPC -> {
+        if (pingTokenService != null) {
+          yield new GrpcPingStrategy(props, pingTokenService);
+        } else {
+          log.warn("gRPC protocol selected but pingClientCredentialsTokenService not available. " +
+                  "Creating GrpcPingStrategy without token service (authentication may fail).");
+          yield new GrpcPingStrategy(props);
+        }
+      }
       case KAFKA -> {
         if (pingKafkaTemplate == null || kafkaConfigCache == null) {
           log.warn("Kafka protocol selected but KafkaTemplate or KafkaConfigCache not available. "
               + "Ensure KafkaPingProducerConfig is configured.");
-          yield new HttpRestPingStrategy(props); // Fallback to HTTP
+          yield new HttpRestPingStrategy(props, pingRestClientBuilder.build()); // Fallback to HTTP
         }
         yield new KafkaPingStrategy(pingKafkaTemplate, kafkaConfigCache);
       }

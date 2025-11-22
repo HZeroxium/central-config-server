@@ -3,6 +3,7 @@ package com.vng.zing.zcm.pingconfig.strategy;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.vng.zing.zcm.config.SdkProperties;
+import com.vng.zing.zcm.pingconfig.auth.ClientCredentialsTokenService;
 import com.vng.zing.zcm.pingconfig.metrics.PingMetrics;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.env.Environment;
@@ -14,8 +15,9 @@ import org.springframework.web.client.RestClient;
  * Fetches Kafka configuration from config-control-service.
  * <p>
  * This fetcher retrieves Kafka bootstrap servers and topic name from the
- * control service's infrastructure endpoint. It supports API key authentication
- * and handles errors gracefully with fallback to property-based configuration.
+ * control service's infrastructure endpoint. It supports client credentials
+ * authentication (Keycloak) and handles errors gracefully with fallback to
+ * property-based configuration.
  */
 @Slf4j
 public class KafkaConfigFetcher {
@@ -24,6 +26,7 @@ public class KafkaConfigFetcher {
     private final SdkProperties sdkProperties;
     private final Environment environment;
     private final PingMetrics pingMetrics; // Optional - can be null
+    private final ClientCredentialsTokenService tokenService; // Optional - for authentication
 
     /**
      * Creates a new KafkaConfigFetcher.
@@ -32,12 +35,27 @@ public class KafkaConfigFetcher {
      * @param sdkProperties SDK configuration properties
      * @param environment   Spring environment for env var overrides
      * @param pingMetrics   Ping metrics component (optional, can be null)
+     * @param tokenService Client credentials token service (optional, for authentication)
      */
-    public KafkaConfigFetcher(RestClient restClient, SdkProperties sdkProperties, Environment environment, PingMetrics pingMetrics) {
+    public KafkaConfigFetcher(RestClient restClient, SdkProperties sdkProperties, Environment environment, 
+                              PingMetrics pingMetrics, ClientCredentialsTokenService tokenService) {
         this.restClient = restClient;
         this.sdkProperties = sdkProperties;
         this.environment = environment;
         this.pingMetrics = pingMetrics;
+        this.tokenService = tokenService;
+    }
+
+    /**
+     * Creates a new KafkaConfigFetcher without token service (backward compatibility).
+     *
+     * @param restClient    RestClient for HTTP requests
+     * @param sdkProperties SDK configuration properties
+     * @param environment   Spring environment for env var overrides
+     * @param pingMetrics   Ping metrics component (optional, can be null)
+     */
+    public KafkaConfigFetcher(RestClient restClient, SdkProperties sdkProperties, Environment environment, PingMetrics pingMetrics) {
+        this(restClient, sdkProperties, environment, pingMetrics, null);
     }
 
     /**
@@ -68,12 +86,25 @@ public class KafkaConfigFetcher {
                     .uri(url)
                     .accept(MediaType.APPLICATION_JSON);
 
-            // Add API key header if configured and enabled
-            if (sdkProperties.getApiKey() != null
+            // Add Bearer token for client credentials authentication (preferred)
+            if (tokenService != null) {
+                try {
+                    String accessToken = tokenService.getAccessToken();
+                    requestBuilder.header("Authorization", "Bearer " + accessToken);
+                    log.debug("Including Bearer token in Kafka config fetch request");
+                } catch (Exception e) {
+                    log.error("Failed to obtain access token for Kafka config fetch authentication", e);
+                    // Continue without token - may fail, but fallback will handle it
+                }
+            }
+            // Fallback to API key if token service not available (deprecated)
+            else if (sdkProperties.getApiKey() != null
                     && sdkProperties.getApiKey().isEnabled()
                     && StringUtils.hasText(sdkProperties.getApiKey().getKey())) {
                 requestBuilder.header("X-API-Key", sdkProperties.getApiKey().getKey());
-                log.debug("Including API key in Kafka config fetch request");
+                log.warn("Using deprecated API key authentication for Kafka config fetch. Please migrate to client credentials.");
+            } else {
+                log.warn("No authentication configured for Kafka config fetch - request may fail");
             }
 
             KafkaConfigResponse response = requestBuilder
