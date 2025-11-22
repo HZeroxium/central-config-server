@@ -19,18 +19,17 @@
 
  * OpenAPI spec version: 1.0.0
  */
-import type { HeartbeatPayloadMetadata } from './heartbeatPayloadMetadata';
 
 /**
- * Original heartbeat payload
+ * New status
  */
-export interface HeartbeatPayload {
-  serviceName: string;
-  instanceId: string;
-  configHash?: string;
-  host?: string;
-  port?: number;
-  environment?: string;
-  version?: string;
-  metadata?: HeartbeatPayloadMetadata;
-}
+export type BulkUpdateStatusRequestStatus = typeof BulkUpdateStatusRequestStatus[keyof typeof BulkUpdateStatusRequestStatus];
+
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const BulkUpdateStatusRequestStatus = {
+  NEW: 'NEW',
+  INVESTIGATING: 'INVESTIGATING',
+  RESOLVED: 'RESOLVED',
+  IGNORED: 'IGNORED',
+} as const;

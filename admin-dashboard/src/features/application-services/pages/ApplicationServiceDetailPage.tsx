@@ -67,6 +67,8 @@ import { ServiceShareDrawer } from "../components/ServiceShareDrawer";
 import { ServiceSharesTab } from "../components/ServiceSharesTab";
 import { ApprovalsTab } from "../components/ApprovalsTab";
 import { KVStorePage } from "@features/key-value-store/pages";
+import { CredentialsTab } from "@features/service-credentials/components/CredentialsTab";
+import { ConfigFilesTab } from "@features/config-git/components/ConfigFilesTab";
 import type { FindAllServiceInstancesEnvironment } from "@lib/api/models";
 
 export default function ApplicationServiceDetailPage() {
@@ -458,6 +460,8 @@ export default function ApplicationServiceDetailPage() {
           <Tab label="Shares" />
           <Tab label="Approvals" />
           <Tab label="Key-Value Store" />
+          <Tab label="Credentials" />
+          <Tab label="Config Files" />
         </Tabs>
       </Box>
 
@@ -795,6 +799,12 @@ export default function ApplicationServiceDetailPage() {
           <KVStorePage serviceId={id} hideHeader={true} />
         </Box>
       )}
+
+      {/* Credentials Tab */}
+      {tabValue === 5 && id && <CredentialsTab serviceId={id} />}
+
+      {/* Config Files Tab */}
+      {tabValue === 6 && id && <ConfigFilesTab serviceId={id} />}
 
       {/* Edit Service Drawer */}
       <Drawer

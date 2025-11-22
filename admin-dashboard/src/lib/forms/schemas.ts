@@ -132,3 +132,25 @@ export type DriftEventUpdateInput = z.infer<typeof driftEventUpdateSchema>;
 export type ServiceInstanceUpdateInput = z.infer<
   typeof serviceInstanceUpdateSchema
 >;
+
+/**
+ * User Service Registration Schema (simplified)
+ */
+export const userServiceRegistrationSchema = z.object({
+  id: z
+    .string()
+    .min(1, "Service ID is required")
+    .max(100, "Service ID must not exceed 100 characters")
+    .regex(
+      /^[a-z0-9-]+$/,
+      "Service ID must contain only lowercase letters, numbers, and hyphens"
+    ),
+  displayName: z
+    .string()
+    .min(1, "Display name is required")
+    .max(200, "Display name must not exceed 200 characters"),
+});
+
+export type UserServiceRegistrationInput = z.infer<
+  typeof userServiceRegistrationSchema
+>;

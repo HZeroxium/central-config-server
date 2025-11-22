@@ -19,18 +19,17 @@
 
  * OpenAPI spec version: 1.0.0
  */
-import type { HeartbeatPayloadMetadata } from './heartbeatPayloadMetadata';
 
 /**
- * Original heartbeat payload
+ * Credential status
  */
-export interface HeartbeatPayload {
-  serviceName: string;
-  instanceId: string;
-  configHash?: string;
-  host?: string;
-  port?: number;
-  environment?: string;
-  version?: string;
-  metadata?: HeartbeatPayloadMetadata;
-}
+export type ServiceCredentialResponseStatus = typeof ServiceCredentialResponseStatus[keyof typeof ServiceCredentialResponseStatus];
+
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const ServiceCredentialResponseStatus = {
+  PENDING: 'PENDING',
+  ACTIVE: 'ACTIVE',
+  EXPIRED: 'EXPIRED',
+  REVOKED: 'REVOKED',
+} as const;

@@ -19,18 +19,19 @@
 
  * OpenAPI spec version: 1.0.0
  */
-import type { HeartbeatPayloadMetadata } from './heartbeatPayloadMetadata';
 
 /**
- * Original heartbeat payload
+ * Commit information response
  */
-export interface HeartbeatPayload {
-  serviceName: string;
-  instanceId: string;
-  configHash?: string;
-  host?: string;
-  port?: number;
-  environment?: string;
-  version?: string;
-  metadata?: HeartbeatPayloadMetadata;
+export interface CommitResponse {
+  /** Commit SHA */
+  sha?: string;
+  /** Commit message */
+  message?: string;
+  /** Author name */
+  author?: string;
+  /** Commit timestamp */
+  timestamp?: string;
+  /** Commit URL */
+  url?: string;
 }

@@ -241,6 +241,13 @@ export const useCreateApprovalRequest = <TError = ErrorResponse | ErrorResponse 
 - Only authorized approvers can submit decisions
 - Decision is recorded with approver information and timestamp
 
+**Credentials Response:**
+- When a request is approved, service credentials are automatically created
+- Credentials are returned ONCE in the approval response (status: PENDING)
+- Client secret must be saved securely - it will not be returned again
+- Credentials must be activated via POST /api/services/{serviceId}/credentials/activate
+  after config files are ready
+
  * @summary Submit approval decision
  */
 export const submitApprovalDecision = (

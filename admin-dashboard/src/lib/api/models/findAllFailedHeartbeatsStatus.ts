@@ -19,18 +19,14 @@
 
  * OpenAPI spec version: 1.0.0
  */
-import type { HeartbeatPayloadMetadata } from './heartbeatPayloadMetadata';
 
-/**
- * Original heartbeat payload
- */
-export interface HeartbeatPayload {
-  serviceName: string;
-  instanceId: string;
-  configHash?: string;
-  host?: string;
-  port?: number;
-  environment?: string;
-  version?: string;
-  metadata?: HeartbeatPayloadMetadata;
-}
+export type FindAllFailedHeartbeatsStatus = typeof FindAllFailedHeartbeatsStatus[keyof typeof FindAllFailedHeartbeatsStatus];
+
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const FindAllFailedHeartbeatsStatus = {
+  NEW: 'NEW',
+  INVESTIGATING: 'INVESTIGATING',
+  RESOLVED: 'RESOLVED',
+  IGNORED: 'IGNORED',
+} as const;

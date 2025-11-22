@@ -93,3 +93,26 @@ export {
   useFindByManagerIamUser,
   useGetStatsIamUser,
 } from "./generated/iam-users/iam-users";
+
+// Service Credentials - M2M authentication credentials
+export {
+  useGetServiceCredentials,
+  useActivateServiceCredentials,
+  useRevokeServiceCredentials,
+} from "./generated/service-credentials/service-credentials";
+
+// Config Git - Git-based config file management
+export {
+  useGetConfigFile,
+  useUpdateConfigFile,
+  useGetCommitHistory,
+} from "./generated/config-git/config-git";
+
+// Failed Heartbeats - DLQ monitoring and management
+export {
+  useFindAllFailedHeartbeats,
+  useFindFailedHeartbeatById,
+  useRedriveFailedHeartbeat,
+  useUpdateFailedHeartbeatStatus,
+  useBulkUpdateFailedHeartbeatStatus,
+} from "./generated/failed-heartbeats/failed-heartbeats";

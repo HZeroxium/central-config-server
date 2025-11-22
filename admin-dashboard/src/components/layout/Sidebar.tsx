@@ -19,6 +19,7 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import GavelIcon from "@mui/icons-material/Gavel";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
+import ErrorIcon from "@mui/icons-material/Error";
 import ShareIcon from "@mui/icons-material/Share";
 import PeopleIcon from "@mui/icons-material/People";
 import PersonIcon from "@mui/icons-material/Person";
@@ -110,6 +111,12 @@ export function Sidebar({ open, onToggle }: SidebarProps) {
         path: "/drift-events",
         label: "Drift Events",
         icon: <TrendingUpIcon />,
+        badge: undefined,
+      },
+      {
+        path: "/failed-heartbeats",
+        label: "Failed Heartbeats",
+        icon: <ErrorIcon />,
         badge: undefined,
       },
       {

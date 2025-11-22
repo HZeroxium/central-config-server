@@ -23,6 +23,7 @@ import type { ApprovalRequestApprovalTarget } from './approvalRequestApprovalTar
 import type { ApprovalRequestApprovalGate } from './approvalRequestApprovalGate';
 import type { ApprovalRequestRequesterSnapshot } from './approvalRequestRequesterSnapshot';
 import type { ApprovalRequestResponseCounts } from './approvalRequestResponseCounts';
+import type { ServiceCredentialResponse } from './serviceCredentialResponse';
 
 /**
  * Approval request details response
@@ -40,4 +41,5 @@ export interface ApprovalRequestResponse {
   updatedAt?: string;
   note?: string;
   cancelReason?: string;
+  credentials?: ServiceCredentialResponse;
 }

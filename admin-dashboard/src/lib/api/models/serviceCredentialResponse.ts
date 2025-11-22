@@ -19,18 +19,20 @@
 
  * OpenAPI spec version: 1.0.0
  */
-import type { HeartbeatPayloadMetadata } from './heartbeatPayloadMetadata';
+import type { ServiceCredentialResponseStatus } from './serviceCredentialResponseStatus';
 
 /**
- * Original heartbeat payload
+ * Service credential details response
  */
-export interface HeartbeatPayload {
-  serviceName: string;
-  instanceId: string;
-  configHash?: string;
-  host?: string;
-  port?: number;
-  environment?: string;
-  version?: string;
-  metadata?: HeartbeatPayloadMetadata;
+export interface ServiceCredentialResponse {
+  /** Keycloak client ID */
+  clientId: string;
+  /** Keycloak client secret (one-time retrieval) */
+  clientSecret: string;
+  /** Credential status */
+  status: ServiceCredentialResponseStatus;
+  /** When credentials expire (optional) */
+  expiresAt?: string;
+  /** Keycloak token endpoint URL */
+  tokenEndpoint: string;
 }

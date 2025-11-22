@@ -19,18 +19,15 @@
 
  * OpenAPI spec version: 1.0.0
  */
-import type { HeartbeatPayloadMetadata } from './heartbeatPayloadMetadata';
 
 /**
- * Original heartbeat payload
+ * Request to update config file
  */
-export interface HeartbeatPayload {
-  serviceName: string;
-  instanceId: string;
-  configHash?: string;
-  host?: string;
-  port?: number;
-  environment?: string;
-  version?: string;
-  metadata?: HeartbeatPayloadMetadata;
+export interface UpdateConfigFileRequest {
+  /** File content (YAML) */
+  content: string;
+  /** Optional custom commit message */
+  customMessage?: string;
+  /** Expected SHA for optimistic locking (optional). If provided and doesn't match current SHA, update will fail with conflict. */
+  expectedSha?: string;
 }

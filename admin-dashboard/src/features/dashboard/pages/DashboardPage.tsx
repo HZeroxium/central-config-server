@@ -19,6 +19,7 @@ import { DriftEventsStackedAreaChart } from "../components/DriftEventsStackedAre
 import { RecentActivityList } from "../components/RecentActivityList";
 import { TimeRangeSelector, type TimeRange } from "../components/TimeRangeSelector";
 import { TopServicesDriftTable } from "../components/TopServicesDriftTable";
+import { FailedHeartbeatsWidget } from "@features/failed-heartbeats/components/FailedHeartbeatsWidget";
 import {
   useFindAllApplicationServices,
   useFindAllServiceInstances,
@@ -483,6 +484,13 @@ export default function DashboardPage() {
         </Grid>
         <Grid size={{ xs: 12, md: 6 }}>
           <InstanceStatusChart data={instanceStatusData} />
+        </Grid>
+      </Grid>
+
+      {/* Failed Heartbeats Widget */}
+      <Grid container spacing={3} sx={{ mb: 3 }}>
+        <Grid size={{ xs: 12, md: 4 }}>
+          <FailedHeartbeatsWidget />
         </Grid>
       </Grid>
 

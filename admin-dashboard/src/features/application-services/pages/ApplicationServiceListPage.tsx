@@ -35,6 +35,8 @@ import { toast } from "@lib/toast/toast";
 import { handleApiError } from "@lib/api/errorHandler";
 import { ApplicationServiceTable } from "../components/ApplicationServiceTable";
 import { ApplicationServiceForm } from "../components/ApplicationServiceForm";
+import { UserServiceRegistrationForm } from "../components/UserServiceRegistrationForm";
+import { ServiceRegistrationNextStepsModal } from "../components/ServiceRegistrationNextStepsModal";
 import { ClaimOwnershipDialog } from "../components/ClaimOwnershipDialog";
 import { useSearchWithToggle } from "@hooks/useSearchWithToggle";
 import { useDebouncedUrlSync } from "@hooks/useDebouncedUrlSync";
@@ -45,7 +47,7 @@ import type {
 
 export default function ApplicationServiceListPage() {
   const navigate = useNavigate();
-  const { isSysAdmin, permissions } = useAuth();
+  const { isSysAdmin, permissions, isAuthenticated } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
 
@@ -73,6 +75,12 @@ export default function ApplicationServiceListPage() {
   );
 
   const [formDrawerOpen, setFormDrawerOpen] = useState(false);
+  const [userRegistrationDrawerOpen, setUserRegistrationDrawerOpen] =
+    useState(false);
+  const [nextStepsModalOpen, setNextStepsModalOpen] = useState(false);
+  const [createdApprovalRequestId, setCreatedApprovalRequestId] =
+    useState<string>("");
+  const [createdServiceId, setCreatedServiceId] = useState<string>("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [claimDialogOpen, setClaimDialogOpen] = useState(false);
   const [selectedServiceId, setSelectedServiceId] = useState<string | null>(
@@ -178,6 +186,12 @@ export default function ApplicationServiceListPage() {
   const canCreate =
     isSysAdmin ||
     permissions?.actions?.["APPLICATION_SERVICE"]?.includes("CREATE");
+
+  // Admin can create directly (with ownerTeamId)
+  const canCreateDirectly = isSysAdmin;
+
+  // Any authenticated user can register (create orphan + approval request)
+  const canRegister = isAuthenticated;
 
   const handleDeleteService = async () => {
     if (!selectedServiceId) return;
@@ -288,9 +302,9 @@ export default function ApplicationServiceListPage() {
                 Refresh
               </Button>
             </Tooltip>
-            {canCreate && (
+            {canCreateDirectly && (
               <Tooltip
-                title="Create a new application service"
+                title="Create a new application service (Admin)"
                 placement="bottom"
               >
                 <Button
@@ -299,6 +313,20 @@ export default function ApplicationServiceListPage() {
                   onClick={() => setFormDrawerOpen(true)}
                 >
                   Create Service
+                </Button>
+              </Tooltip>
+            )}
+            {canRegister && !isSysAdmin && (
+              <Tooltip
+                title="Register a new application service"
+                placement="bottom"
+              >
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={() => setUserRegistrationDrawerOpen(true)}
+                >
+                  Register Service
                 </Button>
               </Tooltip>
             )}
@@ -458,7 +486,7 @@ export default function ApplicationServiceListPage() {
         </CardContent>
       </Card>
 
-      {/* Create Service Drawer */}
+      {/* Create Service Drawer (Admin) */}
       <Drawer
         anchor="right"
         open={formDrawerOpen}
@@ -475,6 +503,46 @@ export default function ApplicationServiceListPage() {
           onCancel={() => setFormDrawerOpen(false)}
         />
       </Drawer>
+
+      {/* User Registration Drawer */}
+      <Drawer
+        anchor="right"
+        open={userRegistrationDrawerOpen}
+        onClose={() => setUserRegistrationDrawerOpen(false)}
+        slotProps={{
+          paper: {
+            sx: { width: { xs: "100%", sm: 600 } },
+          },
+        }}
+      >
+        <UserServiceRegistrationForm
+          onSuccess={(approvalRequestId, serviceId) => {
+            setCreatedApprovalRequestId(approvalRequestId);
+            setCreatedServiceId(serviceId);
+            setUserRegistrationDrawerOpen(false);
+            setNextStepsModalOpen(true);
+            // Invalidate queries to refresh list
+            queryClient.invalidateQueries({
+              queryKey: getFindAllApplicationServicesQueryKey({
+                search: effectiveSearch || undefined,
+                ownerTeamId: showUnassignedOnly ? "null" : ownerTeamFilter || undefined,
+                lifecycle: lifecycleFilter || undefined,
+                page,
+                size: pageSize,
+              }),
+            });
+          }}
+          onCancel={() => setUserRegistrationDrawerOpen(false)}
+        />
+      </Drawer>
+
+      {/* Next Steps Modal */}
+      <ServiceRegistrationNextStepsModal
+        open={nextStepsModalOpen}
+        onClose={() => setNextStepsModalOpen(false)}
+        serviceId={createdServiceId}
+        approvalRequestId={createdApprovalRequestId}
+      />
 
       {/* Delete Confirmation Dialog */}
       <ConfirmDialog

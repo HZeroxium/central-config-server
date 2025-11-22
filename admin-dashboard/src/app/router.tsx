@@ -82,6 +82,9 @@ const KVStorePage = lazy(
 const SdkIntegrationWizard = lazy(
   () => import("@features/sdk-integration/pages/SdkIntegrationWizard")
 );
+const FailedHeartbeatsListPage = lazy(
+  () => import("@features/failed-heartbeats/pages/FailedHeartbeatsListPage")
+);
 
 export const router = createBrowserRouter([
   {
@@ -297,6 +300,16 @@ export const router = createBrowserRouter([
           <ProtectedRoute>
             <Suspense fallback={<Loading />}>
               <DriftEventDetailPage />
+            </Suspense>
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "failed-heartbeats",
+        element: (
+          <ProtectedRoute requiredRoute="/failed-heartbeats">
+            <Suspense fallback={<Loading />}>
+              <FailedHeartbeatsListPage />
             </Suspense>
           </ProtectedRoute>
         ),

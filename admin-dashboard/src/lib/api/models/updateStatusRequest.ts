@@ -19,18 +19,14 @@
 
  * OpenAPI spec version: 1.0.0
  */
-import type { HeartbeatPayloadMetadata } from './heartbeatPayloadMetadata';
+import type { UpdateStatusRequestStatus } from './updateStatusRequestStatus';
 
 /**
- * Original heartbeat payload
+ * Status update request
  */
-export interface HeartbeatPayload {
-  serviceName: string;
-  instanceId: string;
-  configHash?: string;
-  host?: string;
-  port?: number;
-  environment?: string;
-  version?: string;
-  metadata?: HeartbeatPayloadMetadata;
+export interface UpdateStatusRequest {
+  /** New status */
+  status: UpdateStatusRequestStatus;
+  /** Optional notes */
+  notes?: string;
 }

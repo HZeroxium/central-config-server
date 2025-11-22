@@ -19,18 +19,14 @@
 
  * OpenAPI spec version: 1.0.0
  */
-import type { HeartbeatPayloadMetadata } from './heartbeatPayloadMetadata';
+import type { BulkUpdateStatusRequestStatus } from './bulkUpdateStatusRequestStatus';
 
 /**
- * Original heartbeat payload
+ * Bulk update request
  */
-export interface HeartbeatPayload {
-  serviceName: string;
-  instanceId: string;
-  configHash?: string;
-  host?: string;
-  port?: number;
-  environment?: string;
-  version?: string;
-  metadata?: HeartbeatPayloadMetadata;
+export interface BulkUpdateStatusRequest {
+  /** List of failed heartbeat IDs to update */
+  ids: string[];
+  /** New status */
+  status: BulkUpdateStatusRequestStatus;
 }

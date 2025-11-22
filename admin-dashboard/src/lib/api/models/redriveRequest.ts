@@ -19,18 +19,11 @@
 
  * OpenAPI spec version: 1.0.0
  */
-import type { HeartbeatPayloadMetadata } from './heartbeatPayloadMetadata';
 
 /**
- * Original heartbeat payload
+ * Re-drive request (force flag is ignored for now)
  */
-export interface HeartbeatPayload {
-  serviceName: string;
-  instanceId: string;
-  configHash?: string;
-  host?: string;
-  port?: number;
-  environment?: string;
-  version?: string;
-  metadata?: HeartbeatPayloadMetadata;
+export interface RedriveRequest {
+  /** Optional force flag (ignored for now) */
+  force?: boolean;
 }

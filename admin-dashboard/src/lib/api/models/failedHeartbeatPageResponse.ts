@@ -19,18 +19,14 @@
 
  * OpenAPI spec version: 1.0.0
  */
-import type { HeartbeatPayloadMetadata } from './heartbeatPayloadMetadata';
+import type { FailedHeartbeatResponse } from './failedHeartbeatResponse';
+import type { PageMetadata } from './pageMetadata';
 
 /**
- * Original heartbeat payload
+ * Page response for failed heartbeats
  */
-export interface HeartbeatPayload {
-  serviceName: string;
-  instanceId: string;
-  configHash?: string;
-  host?: string;
-  port?: number;
-  environment?: string;
-  version?: string;
-  metadata?: HeartbeatPayloadMetadata;
+export interface FailedHeartbeatPageResponse {
+  /** List of failed heartbeats in current page */
+  items?: FailedHeartbeatResponse[];
+  metadata?: PageMetadata;
 }
