@@ -180,7 +180,7 @@ KEYCLOAK_TOKEN_ENDPOINT=${credentials.tokenEndpoint}
             />
           </Box>
 
-          <Box>
+          {/* <Box>
             <Typography variant="subtitle2" color="text.secondary" gutterBottom>
               Token Endpoint
             </Typography>
@@ -192,7 +192,7 @@ KEYCLOAK_TOKEN_ENDPOINT=${credentials.tokenEndpoint}
               }}
               size="small"
             />
-          </Box>
+          </Box> */}
 
           {credentials.expiresAt && (
             <Box>

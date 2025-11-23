@@ -135,8 +135,8 @@ public class SdkAutoConfiguration {
    */
   @Bean
   @ConditionalOnMissingBean
-  public ConfigHashCalculator configHashCalculator(ConfigurableEnvironment env) {
-    return new ConfigHashCalculator(env);
+  public ConfigHashCalculator configHashCalculator(ConfigurableEnvironment environment, SdkProperties sdkProperties) {
+    return new ConfigHashCalculator(environment, sdkProperties);
   }
 
   /**

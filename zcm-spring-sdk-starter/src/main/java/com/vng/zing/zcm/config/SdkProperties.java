@@ -2,6 +2,7 @@ package com.vng.zing.zcm.config;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.cloud.context.config.annotation.RefreshScope;
 
 /**
  * Represents the centralized configuration properties for the ZCM SDK.
@@ -28,6 +29,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * </pre>
  */
 @Data
+@RefreshScope
 @ConfigurationProperties(prefix = "zcm.sdk")
 public class SdkProperties {
 

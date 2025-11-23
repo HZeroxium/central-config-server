@@ -66,7 +66,7 @@ export function ApplicationServiceForm({
             id: "",
             displayName: "",
             ownerTeamId: "",
-            environments: ["dev"],
+            environments: [],
             tags: [],
             repoUrl: "",
             attributes: {},

@@ -243,7 +243,7 @@ export function CredentialsTab({ serviceId }: CredentialsTabProps) {
                   >
                     View Credentials
                   </Button>
-                  <Button
+                  {/* <Button
                     variant="outlined"
                     color="error"
                     startIcon={<RevokeIcon />}
@@ -251,7 +251,7 @@ export function CredentialsTab({ serviceId }: CredentialsTabProps) {
                     disabled={isRevoking}
                   >
                     Revoke Credentials
-                  </Button>
+                  </Button> */}
                 </>
               )}
 

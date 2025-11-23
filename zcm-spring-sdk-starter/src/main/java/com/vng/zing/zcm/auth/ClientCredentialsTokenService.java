@@ -217,7 +217,7 @@ public class ClientCredentialsTokenService {
             // Use service name as serviceId (assuming serviceId matches service name)
             // Note: This endpoint requires authentication, so discovery may fail
             // In that case, we fall back to construction
-            String discoveryUrl = String.format("%s/api/services/%s/credentials", controlUrl, serviceName);
+            String discoveryUrl = String.format("%s/api/auth/token-endpoint", controlUrl);
 
             log.debug("Attempting to discover token endpoint from: {}", discoveryUrl);
 

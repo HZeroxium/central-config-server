@@ -1,5 +1,6 @@
 package com.vng.zing.zcm.pingconfig;
 
+import com.vng.zing.zcm.config.SdkProperties;
 import com.vng.zing.zcm.configsnapshot.ConfigSnapshotBuilder;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -38,13 +39,16 @@ public class ConfigHashCalculator {
   @Getter
   private final ConfigurableEnvironment environment;
 
+  private final SdkProperties sdkProperties;
+
   /**
    * Constructs a {@code ConfigHashCalculator} using the provided Spring environment.
    *
    * @param environment the environment that contains the active configuration properties
    */
-  public ConfigHashCalculator(ConfigurableEnvironment environment) {
+  public ConfigHashCalculator(ConfigurableEnvironment environment, SdkProperties sdkProperties) {
     this.environment = environment;
+    this.sdkProperties = sdkProperties;
   }
 
   /**
@@ -75,7 +79,13 @@ public class ConfigHashCalculator {
       // Check if mock mode is enabled
       boolean mockEnabled = environment.getProperty("zcm.sdk.ping.hash-mock.enabled", Boolean.class, false);
       if (mockEnabled) {
-        return getMockConfigHash(application, profile);
+        log.info("Mock hash mode is enabled, returning mock config hash");
+        String mockHash = getMockConfigHash(application, profile);
+        log.info("Mock config hash: {}", mockHash);
+        return mockHash;
+      }
+      else {
+        log.info("Mock hash mode is disabled, returning real config hash");
       }
 
       String label = environment.getProperty("spring.cloud.config.label");
@@ -111,7 +121,7 @@ public class ConfigHashCalculator {
    * @return mock config hash
    */
   private String getMockConfigHash(String serviceName, String profile) {
-    String strategy = environment.getProperty("zcm.sdk.ping.hash-mock.strategy", "DETERMINISTIC");
+    String strategy = sdkProperties.getPing().getHashMock().getStrategy().name();
     String mockHash;
 
     switch (strategy.toUpperCase()) {
@@ -130,7 +140,7 @@ public class ConfigHashCalculator {
 
       case "STATIC":
         // Return fixed hash value
-        mockHash = environment.getProperty("zcm.sdk.ping.hash-mock.static-hash", "mock-hash-static-12345");
+        mockHash = sdkProperties.getPing().getHashMock().getStaticHash();
         break;
 
       default:

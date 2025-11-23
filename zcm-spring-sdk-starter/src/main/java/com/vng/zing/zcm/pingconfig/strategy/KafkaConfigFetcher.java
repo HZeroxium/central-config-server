@@ -87,18 +87,20 @@ public class KafkaConfigFetcher {
                     .accept(MediaType.APPLICATION_JSON);
 
             // Add Bearer token for client credentials authentication (preferred)
-            if (tokenService != null) {
-                try {
-                    String accessToken = tokenService.getAccessToken();
-                    requestBuilder.header("Authorization", "Bearer " + accessToken);
-                    log.debug("Including Bearer token in Kafka config fetch request");
-                } catch (Exception e) {
-                    log.error("Failed to obtain access token for Kafka config fetch authentication", e);
-                    // Continue without token - may fail, but fallback will handle it
-                }
+            if (false) { // Disabled: endpoint is public, no token needed
+                // Original code commented out:
+                // if (tokenService != null) {
+                //     try {
+                //         String accessToken = tokenService.getAccessToken();
+                //         requestBuilder.header("Authorization", "Bearer " + accessToken);
+                //         log.debug("Including Bearer token in Kafka config fetch request");
+                //     } catch (Exception e) {
+                //         log.error("Failed to obtain access token for Kafka config fetch authentication", e);
+                //     }
+                // }
             }
             // Fallback to API key if token service not available (deprecated)
-            else if (sdkProperties.getApiKey() != null
+            if (sdkProperties.getApiKey() != null
                     && sdkProperties.getApiKey().isEnabled()
                     && StringUtils.hasText(sdkProperties.getApiKey().getKey())) {
                 requestBuilder.header("X-API-Key", sdkProperties.getApiKey().getKey());

@@ -143,10 +143,14 @@ public class SecurityConfig {
         httpBuilder
                 .authorizeHttpRequests(authz -> {
                     // Heartbeat endpoint now requires authentication (client credentials flow)
+                    authz.requestMatchers("/api/auth/token-endpoint").permitAll();
                     authz.requestMatchers("/api/heartbeat/**").authenticated();
                     authz.requestMatchers("/api/config-server/hash/**").permitAll();
                     // Migration endpoints are public to facilitate SDK integration
                     authz.requestMatchers("/api/migration/**").permitAll();
+                    // Infrastructure endpoints are public for SDK integration (Kafka config discovery)
+                    authz.requestMatchers("/api/infrastructure/**").permitAll();
+
 
                     // Permit seeding endpoints in dev/local/seed-data profiles without
                     // authentication

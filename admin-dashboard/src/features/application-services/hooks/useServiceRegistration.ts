@@ -38,7 +38,7 @@ export function useServiceRegistration(
           id: serviceId,
           displayName,
           ownerTeamId: undefined, // null/undefined creates orphan service
-          environments: ["dev", "staging", "prod"], // Default environments
+          environments: ["dev"], // Default environments
         };
 
         createServiceMutation.mutate(

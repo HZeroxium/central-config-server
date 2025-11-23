@@ -35,7 +35,7 @@ zcm:
       # Client ID and secret are required for M2M authentication
       # Token endpoint will be auto-discovered from config-control-service
       client-id: ${ZCM_SDK_CLIENT_CREDENTIALS_CLIENT_ID:sample-service}
-      client-secret: ${ZCM_SDK_CLIENT_CREDENTIALS_CLIENT_SECRET:HaNZOvPMfmovjO7po1tnR4HsUdj3B66V}
+      client-secret: ${ZCM_SDK_CLIENT_CREDENTIALS_CLIENT_SECRET:JmPikClQsSE1XrawoAHhYskQdT42iExm}
       # Optional: Explicit token endpoint (if not provided, will be auto-discovered)
       # token-endpoint: ${ZCM_SDK_CLIENT_CREDENTIALS_TOKEN_ENDPOINT:}
       # Optional: Keycloak base URL (fallback if discovery fails)
