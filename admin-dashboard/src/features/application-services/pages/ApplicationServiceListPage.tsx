@@ -47,7 +47,7 @@ import type {
 
 export default function ApplicationServiceListPage() {
   const navigate = useNavigate();
-  const { isSysAdmin, permissions, isAuthenticated } = useAuth();
+  const { isSysAdmin, isAuthenticated } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
 
@@ -183,9 +183,9 @@ export default function ApplicationServiceListPage() {
   const services: ApplicationServiceResponse[] = data?.items || [];
   const metadata = data?.metadata;
 
-  const canCreate =
-    isSysAdmin ||
-    permissions?.actions?.["APPLICATION_SERVICE"]?.includes("CREATE");
+  // const canCreate =
+  //   isSysAdmin ||
+  //   permissions?.actions?.["APPLICATION_SERVICE"]?.includes("CREATE");
 
   // Admin can create directly (with ownerTeamId)
   const canCreateDirectly = isSysAdmin;

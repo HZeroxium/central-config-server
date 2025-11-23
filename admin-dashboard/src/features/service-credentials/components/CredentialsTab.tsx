@@ -99,12 +99,29 @@ export function CredentialsTab({ serviceId }: CredentialsTabProps) {
       );
     }
 
+    // For other errors (5xx, network errors), show error with retry button
     return (
       <Card>
         <CardContent>
-          <Alert severity="error">
-            Failed to load credentials:{" "}
-            {error.detail || "Unknown error occurred"}
+          <Alert 
+            severity="error"
+            action={
+              <Button
+                color="inherit"
+                size="small"
+                startIcon={<RefreshIcon />}
+                onClick={() => refetch()}
+              >
+                Retry
+              </Button>
+            }
+          >
+            <Typography variant="body1" fontWeight={600} gutterBottom>
+              Failed to load credentials
+            </Typography>
+            <Typography variant="body2">
+              {error.detail || "Unknown error occurred"}
+            </Typography>
           </Alert>
         </CardContent>
       </Card>
@@ -274,7 +291,7 @@ export function CredentialsTab({ serviceId }: CredentialsTabProps) {
 
       <ConfirmDialog
         open={showRevokeDialog}
-        onClose={() => setShowRevokeDialog(false)}  
+        onCancel={() => setShowRevokeDialog(false)}  
         onConfirm={handleRevoke}
         title="Revoke Credentials"
         message="Are you sure you want to revoke these credentials? This will disable the Keycloak client and prevent new tokens from being issued. Existing tokens may still be valid until expiration."

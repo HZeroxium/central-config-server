@@ -51,9 +51,11 @@ public class ApplicationService {
 
     /**
      * List of environments where this service is deployed.
+     * <p>
+     * Can be empty - user must explicitly choose environments when creating service.
+     * Empty list is valid and indicates service has no configured environments yet.
      */
     @NotNull(message = "Environments list cannot be null")
-    @Size(min = 1, message = "At least one environment must be specified")
     private List<String> environments;
 
     /**

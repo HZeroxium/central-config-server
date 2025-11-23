@@ -104,10 +104,10 @@ public class ApplicationServiceService {
             service.setId(ApplicationServiceId.of(UUID.randomUUID().toString()));
         }
 
-        // Business logic: Apply default environments if null or empty
-        if (service.getEnvironments() == null || service.getEnvironments().isEmpty()) {
-            service.setEnvironments(List.of("dev", "staging", "prod"));
-            log.debug("Applied default environments [dev, staging, prod] to service: {}", service.getId());
+        // Business logic: Initialize environments to empty list if null (user must explicitly choose)
+        if (service.getEnvironments() == null) {
+            service.setEnvironments(List.of());
+            log.debug("Initialized empty environments list for service: {} (user must explicitly choose environments)", service.getId());
         }
 
         // Business logic: Initialize timestamps
@@ -186,7 +186,7 @@ public class ApplicationServiceService {
                 .id(ApplicationServiceId.of(UUID.randomUUID().toString()))
                 .displayName(displayName)
                 .ownerTeamId(null) // Orphaned - requires approval workflow
-                .environments(List.of("dev", "staging", "prod")) // Default environments
+                .environments(List.of()) // Empty environments - user must explicitly choose
                 .lifecycle(ApplicationService.ServiceLifecycle.ACTIVE)
                 .createdAt(Instant.now())
                 .createdBy("system") // System-created

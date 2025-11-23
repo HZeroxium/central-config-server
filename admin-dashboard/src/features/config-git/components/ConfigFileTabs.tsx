@@ -1,16 +1,19 @@
 import { Tabs, Tab, Box } from "@mui/material";
 import type { Profile } from "../types";
+import type { ReactNode } from "react";
 
 interface ConfigFileTabsProps {
   profiles: Profile[];
   currentProfile: Profile;
   onProfileChange: (profile: Profile) => void;
+  renderTabLabel?: (profile: Profile) => ReactNode;
 }
 
 export function ConfigFileTabs({
   profiles,
   currentProfile,
   onProfileChange,
+  renderTabLabel,
 }: ConfigFileTabsProps) {
   const handleChange = (_event: React.SyntheticEvent, newValue: number) => {
     onProfileChange(profiles[newValue]);
@@ -28,7 +31,7 @@ export function ConfigFileTabs({
         {profiles.map((profile) => (
           <Tab
             key={profile}
-            label={profile.toUpperCase()}
+            label={renderTabLabel ? renderTabLabel(profile) : profile.toUpperCase()}
             value={profiles.indexOf(profile)}
           />
         ))}

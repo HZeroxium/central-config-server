@@ -7,8 +7,8 @@ import com.vng.zing.zcm.client.kv.KVApi;
 import com.vng.zing.zcm.client.kv.KVApiImpl;
 import com.vng.zing.zcm.config.SdkProperties;
 import com.vng.zing.zcm.featureflags.SpringUnleashContextProvider;
-import com.vng.zing.zcm.kv.ClientCredentialsTokenService;
 import com.vng.zing.zcm.kv.HybridKVTokenProvider;
+import com.vng.zing.zcm.auth.ClientCredentialsTokenService;
 import com.vng.zing.zcm.kv.KVTokenProvider;
 import com.vng.zing.zcm.loadbalancer.LoadBalancerStrategy;
 import com.vng.zing.zcm.loadbalancer.LoadBalancerStrategyFactory;
@@ -54,6 +54,7 @@ import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClient;
 
 /**
@@ -173,7 +174,7 @@ public class SdkAutoConfiguration {
   public KafkaConfigCache kafkaConfigCache(
       @Autowired(required = false) @Qualifier("kvRestClientBuilder") RestClient.Builder kvRestClientBuilder,
       @Autowired(required = false) @Qualifier("kafkaPingRestClientBuilder") RestClient.Builder kafkaPingRestClientBuilder,
-      @Autowired(required = false) @Qualifier("pingClientCredentialsTokenService") com.vng.zing.zcm.pingconfig.auth.ClientCredentialsTokenService pingTokenService,
+      @Autowired(required = false) @Qualifier("pingClientCredentialsTokenService") com.vng.zing.zcm.auth.ClientCredentialsTokenService pingTokenService,
       Environment environment) {
     log.info("Creating KafkaConfigCache for ping operations");
     
@@ -205,47 +206,57 @@ public class SdkAutoConfiguration {
    * <p>
    * This token service is used by ping strategies to authenticate with config-control-service.
    *
-   * @param pingRestClientBuilder RestClient builder for ping operations
+   * @param pingRestClientBuilder RestClient builder for ping operations (Keycloak token requests)
    * @param env Spring environment for reading environment variables
    * @return a ClientCredentialsTokenService instance for ping operations
    */
   @Bean(name = "pingClientCredentialsTokenService")
   @ConditionalOnMissingBean(name = "pingClientCredentialsTokenService")
-  public com.vng.zing.zcm.pingconfig.auth.ClientCredentialsTokenService pingClientCredentialsTokenService(
+  public com.vng.zing.zcm.auth.ClientCredentialsTokenService pingClientCredentialsTokenService(
       @Qualifier("pingRestClientBuilder") RestClient.Builder pingRestClientBuilder,
       Environment env) {
-    SdkProperties.Ping.ClientCredentials keycloakConfig = props.getPing().getClientCredentials();
+    SdkProperties.ClientCredentials clientCredentialsConfig = props.getClientCredentials();
 
-    // Support environment variable overrides
-    String tokenEndpoint = env.getProperty("ZCM_SDK_PING_CLIENT_CREDENTIALS_TOKEN_ENDPOINT", keycloakConfig.getTokenEndpoint());
-    String clientId = env.getProperty("ZCM_SDK_PING_CLIENT_CREDENTIALS_CLIENT_ID", keycloakConfig.getClientId());
-    String clientSecret = env.getProperty("ZCM_SDK_PING_CLIENT_CREDENTIALS_CLIENT_SECRET", keycloakConfig.getClientSecret());
-    String realm = env.getProperty("ZCM_SDK_PING_CLIENT_CREDENTIALS_REALM", keycloakConfig.getRealm());
+    // Support environment variable overrides (unified naming)
+    String tokenEndpoint = env.getProperty("ZCM_SDK_CLIENT_CREDENTIALS_TOKEN_ENDPOINT",
+            env.getProperty("ZCM_SDK_PING_CLIENT_CREDENTIALS_TOKEN_ENDPOINT", clientCredentialsConfig.getTokenEndpoint()));
+    String clientId = env.getProperty("ZCM_SDK_CLIENT_CREDENTIALS_CLIENT_ID",
+            env.getProperty("ZCM_SDK_PING_CLIENT_CREDENTIALS_CLIENT_ID", clientCredentialsConfig.getClientId()));
+    String clientSecret = env.getProperty("ZCM_SDK_CLIENT_CREDENTIALS_CLIENT_SECRET",
+            env.getProperty("ZCM_SDK_PING_CLIENT_CREDENTIALS_CLIENT_SECRET", clientCredentialsConfig.getClientSecret()));
+    String keycloakBaseUrl = env.getProperty("ZCM_SDK_CLIENT_CREDENTIALS_KEYCLOAK_URL",
+            env.getProperty("ZCM_SDK_PING_CLIENT_CREDENTIALS_KEYCLOAK_URL", clientCredentialsConfig.getKeycloakBaseUrl()));
+    String realm = env.getProperty("ZCM_SDK_CLIENT_CREDENTIALS_REALM",
+            env.getProperty("ZCM_SDK_PING_CLIENT_CREDENTIALS_REALM", clientCredentialsConfig.getRealm()));
 
     // Create a copy of config with environment variable overrides
-    SdkProperties.Ping.ClientCredentials effectiveConfig = new SdkProperties.Ping.ClientCredentials();
+    SdkProperties.ClientCredentials effectiveConfig = new SdkProperties.ClientCredentials();
     effectiveConfig.setTokenEndpoint(tokenEndpoint);
     effectiveConfig.setClientId(clientId);
     effectiveConfig.setClientSecret(clientSecret);
+    effectiveConfig.setKeycloakBaseUrl(keycloakBaseUrl);
     effectiveConfig.setRealm(realm != null ? realm : "config-control");
-    effectiveConfig.setKeycloakUrl(keycloakConfig.getKeycloakUrl());
-    effectiveConfig.setRequired(keycloakConfig.isRequired());
+    effectiveConfig.setRequired(clientCredentialsConfig.isRequired());
 
-    if (effectiveConfig.getTokenEndpoint() == null || effectiveConfig.getTokenEndpoint().isBlank()) {
-      if (effectiveConfig.getKeycloakUrl() == null || effectiveConfig.getKeycloakUrl().isBlank()) {
-        log.warn("Ping client credentials enabled but token-endpoint and keycloak-url are not configured. " +
-                "Ping operations may fail. Configure zcm.sdk.ping.client-credentials.token-endpoint or keycloak-url.");
-      }
-    }
     if (effectiveConfig.getClientId() == null || effectiveConfig.getClientId().isBlank()) {
-      log.warn("Ping client credentials enabled but client-id is not configured. Ping operations may fail.");
+      log.warn("Client credentials enabled but client-id is not configured. Ping operations may fail.");
     }
     if (effectiveConfig.getClientSecret() == null || effectiveConfig.getClientSecret().isBlank()) {
-      log.warn("Ping client credentials enabled but client-secret is not configured. Ping operations may fail.");
+      log.warn("Client credentials enabled but client-secret is not configured. Ping operations may fail.");
     }
 
-    log.info("Creating ClientCredentialsTokenService for ping operations");
-    return new com.vng.zing.zcm.pingconfig.auth.ClientCredentialsTokenService(pingRestClientBuilder.build(), effectiveConfig);
+    // Create discovery RestClient for token endpoint discovery (optional)
+    RestClient discoveryRestClient = null;
+    if (StringUtils.hasText(props.getControlUrl())) {
+      discoveryRestClient = pingRestClientBuilder.build();
+    }
+
+    log.info("Creating unified ClientCredentialsTokenService for ping operations");
+    return new com.vng.zing.zcm.auth.ClientCredentialsTokenService(
+            pingRestClientBuilder.build(),
+            discoveryRestClient,
+            effectiveConfig,
+            props);
   }
 
   /**
@@ -263,13 +274,19 @@ public class SdkAutoConfiguration {
       @Qualifier("pingRestClientBuilder") RestClient.Builder pingRestClientBuilder,
       @Autowired(required = false) @Qualifier("pingKafkaTemplate") KafkaTemplate<String, com.vng.zing.zcm.pingconfig.HeartbeatPayload> pingKafkaTemplate,
       @Autowired(required = false) KafkaConfigCache kafkaConfigCache,
-      @Autowired(required = false) @Qualifier("pingClientCredentialsTokenService") com.vng.zing.zcm.pingconfig.auth.ClientCredentialsTokenService pingTokenService,
+      @Autowired(required = false) @Qualifier("pingClientCredentialsTokenService") com.vng.zing.zcm.auth.ClientCredentialsTokenService pingTokenService,
       @Autowired(required = false) PingMetrics pingMetrics) {
     String protocol = props.getPing().getProtocol();
     PingProtocol pingProtocol = PingProtocol.fromString(protocol);
     
     return switch (pingProtocol) {
-      case HTTP -> new HttpRestPingStrategy(props, pingRestClientBuilder.build());
+      case HTTP -> {
+        if (pingTokenService != null) {
+          yield new HttpRestPingStrategy(props, pingRestClientBuilder.build(), pingTokenService);
+        } else {
+          yield new HttpRestPingStrategy(props, pingRestClientBuilder.build());
+        }
+      }
       case THRIFT -> new ThriftRpcPingStrategy(props);
       case GRPC -> {
         if (pingTokenService != null) {
@@ -519,36 +536,51 @@ public class SdkAutoConfiguration {
   }
 
   /**
-   * Creates a ClientCredentialsTokenService for fetching and caching tokens from Keycloak.
+   * Creates a ClientCredentialsTokenService for KV operations.
+   * <p>
+   * Uses the same unified ClientCredentialsTokenService as ping operations.
+   * If pingClientCredentialsTokenService already exists, it will be reused.
    *
-   * @param kvRestClientBuilder RestClient builder for KV operations
+   * @param kvRestClientBuilder RestClient builder for KV operations (Keycloak token requests)
    * @param env Spring environment for reading environment variables
    * @return a ClientCredentialsTokenService instance
    */
-  @Bean
-  @ConditionalOnMissingBean
+  @Bean(name = "kvClientCredentialsTokenService")
+  @ConditionalOnMissingBean(name = "kvClientCredentialsTokenService")
   @ConditionalOnProperty(prefix = "zcm.sdk.kv", name = "enabled", havingValue = "true", matchIfMissing = false)
-  public ClientCredentialsTokenService clientCredentialsTokenService(
+  public ClientCredentialsTokenService kvClientCredentialsTokenService(
       @Qualifier("kvRestClientBuilder") RestClient.Builder kvRestClientBuilder,
+      @Autowired(required = false) @Qualifier("pingClientCredentialsTokenService") ClientCredentialsTokenService pingTokenService,
       Environment env) {
-    SdkProperties.KVKeycloak keycloakConfig = props.getKv().getKeycloak();
+    // If ping token service already exists and uses same credentials, reuse it
+    if (pingTokenService != null) {
+      log.info("Reusing pingClientCredentialsTokenService for KV operations");
+      return pingTokenService;
+    }
 
-    // Support environment variable overrides
-    String tokenEndpoint = env.getProperty("ZCM_SDK_KV_KEYCLOAK_TOKEN_ENDPOINT", keycloakConfig.getTokenEndpoint());
-    String clientId = env.getProperty("ZCM_SDK_KV_KEYCLOAK_CLIENT_ID", keycloakConfig.getClientId());
-    String clientSecret = env.getProperty("ZCM_SDK_KV_KEYCLOAK_CLIENT_SECRET", keycloakConfig.getClientSecret());
-    String realm = env.getProperty("ZCM_SDK_KV_KEYCLOAK_REALM", keycloakConfig.getRealm());
+    SdkProperties.ClientCredentials clientCredentialsConfig = props.getClientCredentials();
+
+    // Support environment variable overrides (unified naming, with KV-specific fallback)
+    String tokenEndpoint = env.getProperty("ZCM_SDK_CLIENT_CREDENTIALS_TOKEN_ENDPOINT",
+            env.getProperty("ZCM_SDK_KV_KEYCLOAK_TOKEN_ENDPOINT", clientCredentialsConfig.getTokenEndpoint()));
+    String clientId = env.getProperty("ZCM_SDK_CLIENT_CREDENTIALS_CLIENT_ID",
+            env.getProperty("ZCM_SDK_KV_KEYCLOAK_CLIENT_ID", clientCredentialsConfig.getClientId()));
+    String clientSecret = env.getProperty("ZCM_SDK_CLIENT_CREDENTIALS_CLIENT_SECRET",
+            env.getProperty("ZCM_SDK_KV_KEYCLOAK_CLIENT_SECRET", clientCredentialsConfig.getClientSecret()));
+    String keycloakBaseUrl = env.getProperty("ZCM_SDK_CLIENT_CREDENTIALS_KEYCLOAK_URL",
+            env.getProperty("ZCM_SDK_KV_KEYCLOAK_KEYCLOAK_URL", clientCredentialsConfig.getKeycloakBaseUrl()));
+    String realm = env.getProperty("ZCM_SDK_CLIENT_CREDENTIALS_REALM",
+            env.getProperty("ZCM_SDK_KV_KEYCLOAK_REALM", clientCredentialsConfig.getRealm()));
 
     // Create a copy of config with environment variable overrides
-    SdkProperties.KVKeycloak effectiveConfig = new SdkProperties.KVKeycloak();
+    SdkProperties.ClientCredentials effectiveConfig = new SdkProperties.ClientCredentials();
     effectiveConfig.setTokenEndpoint(tokenEndpoint);
     effectiveConfig.setClientId(clientId);
     effectiveConfig.setClientSecret(clientSecret);
+    effectiveConfig.setKeycloakBaseUrl(keycloakBaseUrl);
     effectiveConfig.setRealm(realm != null ? realm : "config-control");
+    effectiveConfig.setRequired(clientCredentialsConfig.isRequired());
 
-    if (effectiveConfig.getTokenEndpoint() == null || effectiveConfig.getTokenEndpoint().isBlank()) {
-      log.warn("KV enabled but token-endpoint is not configured. KV operations may fail.");
-    }
     if (effectiveConfig.getClientId() == null || effectiveConfig.getClientId().isBlank()) {
       log.warn("KV enabled but client-id is not configured. KV operations may fail.");
     }
@@ -556,8 +588,18 @@ public class SdkAutoConfiguration {
       log.warn("KV enabled but client-secret is not configured. KV operations may fail.");
     }
 
-    log.info("Creating ClientCredentialsTokenService for KV client");
-    return new ClientCredentialsTokenService(kvRestClientBuilder.build(), effectiveConfig);
+    // Create discovery RestClient for token endpoint discovery (optional)
+    RestClient discoveryRestClient = null;
+    if (StringUtils.hasText(props.getControlUrl())) {
+      discoveryRestClient = kvRestClientBuilder.build();
+    }
+
+    log.info("Creating unified ClientCredentialsTokenService for KV operations");
+    return new ClientCredentialsTokenService(
+            kvRestClientBuilder.build(),
+            discoveryRestClient,
+            effectiveConfig,
+            props);
   }
 
   /**
@@ -570,7 +612,8 @@ public class SdkAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean
   @ConditionalOnProperty(prefix = "zcm.sdk.kv", name = "enabled", havingValue = "true", matchIfMissing = false)
-  public KVTokenProvider kvTokenProvider(ClientCredentialsTokenService clientCredentialsTokenService) {
+  public KVTokenProvider kvTokenProvider(
+      @Qualifier("kvClientCredentialsTokenService") ClientCredentialsTokenService clientCredentialsTokenService) {
     log.info("Creating HybridKVTokenProvider for KV client");
     return new HybridKVTokenProvider(clientCredentialsTokenService);
   }

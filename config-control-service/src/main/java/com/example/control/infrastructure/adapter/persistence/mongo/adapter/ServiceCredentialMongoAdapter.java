@@ -98,5 +98,16 @@ public class ServiceCredentialMongoAdapter implements ServiceCredentialRepositor
 
         log.debug("Deleted service credential by ID: {}", id);
     }
+
+    @Override
+    public long deleteAll() {
+        log.debug("Deleting all service credentials");
+
+        long count = repository.count();
+        repository.deleteAll();
+
+        log.debug("Deleted {} service credentials", count);
+        return count;
+    }
 }
 

@@ -65,5 +65,16 @@ public interface ServiceCredentialRepositoryPort {
      * @param id the credential ID to delete
      */
     void deleteById(ServiceCredentialId id);
+
+    /**
+     * Delete all service credentials.
+     * <p>
+     * WARNING: This operation removes ALL credentials without filtering.
+     * Use with extreme caution, typically only in test/seeding scenarios.
+     * </p>
+     *
+     * @return the count of deleted credentials
+     */
+    long deleteAll();
 }
 

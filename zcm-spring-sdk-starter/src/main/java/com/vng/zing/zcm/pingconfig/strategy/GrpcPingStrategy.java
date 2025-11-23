@@ -1,10 +1,10 @@
 package com.vng.zing.zcm.pingconfig.strategy;
 
+import com.vng.zing.zcm.auth.ClientCredentialsTokenService;
 import com.vng.zing.zcm.config.SdkProperties;
 import com.vng.zing.zcm.grpc.ConfigControlServiceGrpc;
 import com.vng.zing.zcm.grpc.HeartbeatRequest;
 import com.vng.zing.zcm.pingconfig.HeartbeatPayload;
-import com.vng.zing.zcm.pingconfig.auth.ClientCredentialsTokenService;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.Metadata;
@@ -48,18 +48,19 @@ public class GrpcPingStrategy implements PingStrategy {
   }
 
   /**
-   * Constructor with SdkProperties only (creates token service).
+   * Constructor with SdkProperties only.
+   * <p>
+   * This constructor is for backward compatibility but requires token service to be provided
+   * via dependency injection. If token service is not available, this will fail.
    * 
    * @param sdkProperties SDK configuration properties
    * @throws IllegalStateException if client credentials are required but not configured
    */
   public GrpcPingStrategy(SdkProperties sdkProperties) {
     this.sdkProperties = sdkProperties;
-    // Token service will be created lazily if needed
-    // For now, we'll validate configuration
-    SdkProperties.Ping.ClientCredentials clientCredentials = sdkProperties != null
-            && sdkProperties.getPing() != null
-            ? sdkProperties.getPing().getClientCredentials()
+    // Validate configuration
+    SdkProperties.ClientCredentials clientCredentials = sdkProperties != null
+            ? sdkProperties.getClientCredentials()
             : null;
     
     if (clientCredentials == null || clientCredentials.isRequired()) {
@@ -132,36 +133,27 @@ public class GrpcPingStrategy implements PingStrategy {
    * @param clientCredentials client credentials configuration
    * @throws IllegalStateException if validation fails
    */
-  private void validateClientCredentials(SdkProperties.Ping.ClientCredentials clientCredentials) {
+  private void validateClientCredentials(SdkProperties.ClientCredentials clientCredentials) {
     if (clientCredentials == null) {
       throw new IllegalStateException(
               "Client credentials are required for gRPC ping authentication. " +
-                      "Please configure zcm.sdk.ping.client-credentials.client-id and " +
-                      "zcm.sdk.ping.client-credentials.client-secret. " +
+                      "Please configure zcm.sdk.client-credentials.client-id and " +
+                      "zcm.sdk.client-credentials.client-secret. " +
                       "Obtain credentials from Admin Dashboard after service approval.");
     }
 
     if (!StringUtils.hasText(clientCredentials.getClientId())) {
       throw new IllegalStateException(
               "Client ID is required for gRPC ping authentication. " +
-                      "Set zcm.sdk.ping.client-credentials.client-id or " +
-                      "ZCM_SDK_PING_CLIENT_CREDENTIALS_CLIENT_ID environment variable.");
+                      "Set zcm.sdk.client-credentials.client-id or " +
+                      "ZCM_SDK_CLIENT_CREDENTIALS_CLIENT_ID environment variable.");
     }
 
     if (!StringUtils.hasText(clientCredentials.getClientSecret())) {
       throw new IllegalStateException(
               "Client secret is required for gRPC ping authentication. " +
-                      "Set zcm.sdk.ping.client-credentials.client-secret or " +
-                      "ZCM_SDK_PING_CLIENT_CREDENTIALS_CLIENT_SECRET environment variable.");
-    }
-
-    // Validate token endpoint can be constructed
-    if (!StringUtils.hasText(clientCredentials.getTokenEndpoint())
-            && !StringUtils.hasText(clientCredentials.getKeycloakUrl())) {
-      throw new IllegalStateException(
-              "Keycloak token endpoint not configured. " +
-                      "Either set zcm.sdk.ping.client-credentials.token-endpoint or " +
-                      "set zcm.sdk.ping.client-credentials.keycloak-url.");
+                      "Set zcm.sdk.client-credentials.client-secret or " +
+                      "ZCM_SDK_CLIENT_CREDENTIALS_CLIENT_SECRET environment variable.");
     }
   }
   

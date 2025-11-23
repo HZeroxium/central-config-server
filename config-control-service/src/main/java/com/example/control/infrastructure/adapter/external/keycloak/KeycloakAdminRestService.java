@@ -538,10 +538,76 @@ public class KeycloakAdminRestService {
     }
 
     /**
+     * Find a Keycloak client by client ID.
+     * <p>
+     * Searches for a client in the realm by its clientId.
+     * </p>
+     *
+     * @param clientId the client ID to search for
+     * @return Optional containing the client UUID if found, empty otherwise
+     */
+    public Optional<String> findClientByClientId(String clientId) {
+        Supplier<Optional<String>> apiCall = () -> {
+            try {
+                String url = String.format("%s/admin/realms/%s/clients?clientId=%s",
+                        properties.getUrl(), properties.getRealm(), clientId);
+
+                List<KeycloakClientRepresentation> clients = restClient.get()
+                        .uri(url)
+                        .headers(h -> h.setBearerAuth(getAccessToken()))
+                        .retrieve()
+                        .body(new ParameterizedTypeReference<List<KeycloakClientRepresentation>>() {});
+
+                if (clients == null || clients.isEmpty()) {
+                    log.debug("Client not found with clientId: {}", clientId);
+                    return Optional.empty();
+                }
+
+                // Keycloak returns list, but clientId should be unique, so take first
+                KeycloakClientRepresentation client = clients.get(0);
+                if (client.getId() == null) {
+                    log.warn("Client found but has no ID: {}", clientId);
+                    return Optional.empty();
+                }
+
+                log.debug("Found client with clientId: {}, UUID: {}", clientId, client.getId());
+                return Optional.of(client.getId());
+            } catch (HttpClientErrorException.NotFound e) {
+                log.debug("Client not found with clientId: {}", clientId);
+                return Optional.empty();
+            } catch (Exception e) {
+                log.warn("Failed to find client by clientId: {}", clientId, e);
+                return Optional.empty();
+            }
+        };
+
+        Function<Throwable, Optional<String>> fallback = (Throwable t) -> {
+            log.warn("Keycloak findClientByClientId fallback triggered for clientId: {} due to: {}", 
+                    clientId, t.getMessage());
+            return Optional.empty();
+        };
+
+        Supplier<Optional<String>> decoratedCall = resilienceFactory.decorateSupplier(
+                SERVICE_NAME, apiCall, fallback);
+
+        return decoratedCall.get();
+    }
+
+    /**
      * Create a Keycloak client for service-to-service authentication.
      * <p>
      * Creates a new client with client credentials flow enabled.
      * Keycloak generates the secret automatically, which is retrieved after creation.
+     * </p>
+     * <p>
+     * <strong>Conflict Handling:</strong>
+     * If client already exists (409 CONFLICT), this method will:
+     * <ol>
+     * <li>Find the existing client by clientId</li>
+     * <li>Rotate the client secret to get a new one</li>
+     * <li>Return the existing client UUID with the new secret</li>
+     * </ol>
+     * This preserves the client UUID and allows reuse of existing clients.
      * </p>
      *
      * @param clientId the client ID (typically serviceName)
@@ -601,6 +667,29 @@ public class KeycloakAdminRestService {
 
                 return new KeycloakClientCreationResult(clientId, clientSecret, clientUuid);
             } catch (HttpClientErrorException e) {
+                // Handle 409 CONFLICT - client already exists
+                if (e.getStatusCode().value() == 409) {
+                    log.info("Client {} already exists (409 CONFLICT), reusing existing client and rotating secret", clientId);
+                    
+                    // Find existing client by clientId
+                    Optional<String> existingClientUuid = findClientByClientId(clientId);
+                    if (existingClientUuid.isEmpty()) {
+                        log.error("Client {} exists (409) but could not be found by clientId - this should not happen", clientId);
+                        throw new ExternalServiceException("keycloak", 
+                                "Client already exists but could not be found: " + clientId, e);
+                    }
+                    
+                    String clientUuid = existingClientUuid.get();
+                    
+                    // Rotate secret to get a new one
+                    String newSecret = rotateClientSecret(clientUuid);
+                    
+                    log.info("Reused existing Keycloak client: {} with UUID: {} (secret rotated)", clientId, clientUuid);
+                    
+                    return new KeycloakClientCreationResult(clientId, newSecret, clientUuid);
+                }
+                
+                // For other HTTP errors, throw as before
                 log.error("Failed to create Keycloak client: {} - Status: {}, Body: {}", 
                         clientId, e.getStatusCode(), e.getResponseBodyAsString(), e);
                 throw new ExternalServiceException("keycloak", 

@@ -59,6 +59,8 @@ public class DataSeederService {
     private final ServiceShareRepositoryPort serviceShareRepository;
     private final ApprovalRequestRepositoryPort approvalRequestRepository;
     private final ApprovalDecisionRepositoryPort approvalDecisionRepository;
+    private final FailedHeartbeatRepositoryPort failedHeartbeatRepository;
+    private final ServiceCredentialRepositoryPort serviceCredentialRepository;
     private final KVSeederService kvSeederService;
     private final SeederConfigProperties config;
     private final KeycloakUserResolver keycloakUserResolver;
@@ -75,6 +77,8 @@ public class DataSeederService {
      * <li>Approval Decisions</li>
      * <li>Approval Requests</li>
      * <li>Service Shares</li>
+     * <li>Failed Heartbeats</li>
+     * <li>Service Credentials</li>
      * <li>Drift Events</li>
      * <li>Service Instances</li>
      * <li>Application Services</li>
@@ -117,6 +121,12 @@ public class DataSeederService {
             result.sharesDeleted = serviceShareRepository.deleteAll();
             log.info("Deleted {} service shares", result.sharesDeleted);
 
+            result.failedHeartbeatsDeleted = failedHeartbeatRepository.deleteAll();
+            log.info("Deleted {} failed heartbeats", result.failedHeartbeatsDeleted);
+
+            result.serviceCredentialsDeleted = serviceCredentialRepository.deleteAll();
+            log.info("Deleted {} service credentials", result.serviceCredentialsDeleted);
+
             result.driftEventsDeleted = driftEventRepository.deleteAll();
             log.info("Deleted {} drift events", result.driftEventsDeleted);
 
@@ -142,7 +152,9 @@ public class DataSeederService {
      * Insertion order respects referential integrity:
      * <ol>
      * <li>Application Services</li>
+     * <li>Service Credentials (depends on ApplicationService)</li>
      * <li>Service Instances</li>
+     * <li>Failed Heartbeats (depends on ServiceInstance)</li>
      * <li>Drift Events</li>
      * <li>Service Shares</li>
      * <li>Approval Requests</li>
@@ -197,7 +209,19 @@ public class DataSeederService {
             result.servicesSeeded = data.services.size();
             log.info("Persisted {} application services", result.servicesSeeded);
 
-            // 2. Service Instances
+            // 2. Service Credentials (after ApplicationServices, before ServiceInstances)
+            if (data.serviceCredentials != null && !data.serviceCredentials.isEmpty()) {
+                log.info("Persisting {} service credentials...", data.serviceCredentials.size());
+                for (ServiceCredential credential : data.serviceCredentials) {
+                    serviceCredentialRepository.save(credential);
+                }
+                result.serviceCredentialsSeeded = data.serviceCredentials.size();
+                log.info("Persisted {} service credentials", result.serviceCredentialsSeeded);
+            } else {
+                result.serviceCredentialsSeeded = 0;
+            }
+
+            // 3. Service Instances
             log.info("Persisting {} service instances...", data.instances.size());
             for (ServiceInstance instance : data.instances) {
                 serviceInstanceRepository.save(instance);
@@ -205,7 +229,19 @@ public class DataSeederService {
             result.instancesSeeded = data.instances.size();
             log.info("Persisted {} service instances", result.instancesSeeded);
 
-            // 3. Drift Events
+            // 4. Failed Heartbeats (after ServiceInstances)
+            if (data.failedHeartbeats != null && !data.failedHeartbeats.isEmpty()) {
+                log.info("Persisting {} failed heartbeats...", data.failedHeartbeats.size());
+                for (FailedHeartbeat failedHeartbeat : data.failedHeartbeats) {
+                    failedHeartbeatRepository.save(failedHeartbeat);
+                }
+                result.failedHeartbeatsSeeded = data.failedHeartbeats.size();
+                log.info("Persisted {} failed heartbeats", result.failedHeartbeatsSeeded);
+            } else {
+                result.failedHeartbeatsSeeded = 0;
+            }
+
+            // 5. Drift Events
             log.info("Persisting {} drift events...", data.driftEvents.size());
             for (DriftEvent driftEvent : data.driftEvents) {
                 driftEventRepository.save(driftEvent);
@@ -213,7 +249,7 @@ public class DataSeederService {
             result.driftEventsSeeded = data.driftEvents.size();
             log.info("Persisted {} drift events", result.driftEventsSeeded);
 
-            // 4. Service Shares
+            // 6. Service Shares
             log.info("Persisting {} service shares...", data.shares.size());
             for (ServiceShare share : data.shares) {
                 serviceShareRepository.save(share);
@@ -221,7 +257,7 @@ public class DataSeederService {
             result.sharesSeeded = data.shares.size();
             log.info("Persisted {} service shares", result.sharesSeeded);
 
-            // 5. Approval Requests
+            // 7. Approval Requests
             log.info("Persisting {} approval requests...", data.approvalRequests.size());
             for (ApprovalRequest request : data.approvalRequests) {
                 // Each ApprovalRequest is a fresh entity with version=0
@@ -231,7 +267,7 @@ public class DataSeederService {
             result.approvalRequestsSeeded = data.approvalRequests.size();
             log.info("Persisted {} approval requests", result.approvalRequestsSeeded);
 
-            // 6. Approval Decisions
+            // 8. Approval Decisions
             log.info("Persisting {} approval decisions...", data.approvalDecisions.size());
             for (ApprovalDecision decision : data.approvalDecisions) {
                 // ApprovalDecisions are independent entities that reference ApprovalRequests
@@ -241,7 +277,7 @@ public class DataSeederService {
             result.approvalDecisionsSeeded = data.approvalDecisions.size();
             log.info("Persisted {} approval decisions", result.approvalDecisionsSeeded);
 
-            // 7. KV Entries
+            // 9. KV Entries
             if (config.getKv().isEnabled()) {
                 log.info("Seeding KV entries for services...");
                 result.kvEntriesSeeded = kvSeederService.seedKVEntriesForServices(data.kvData);
@@ -250,7 +286,7 @@ public class DataSeederService {
                 result.kvEntriesSeeded = 0;
             }
 
-            // 8. Config Files
+            // 10. Config Files
             if (config.isGenerateConfigFiles() && configFileGeneratorService != null) {
                 try {
                     log.info("Generating config files for {} services...", data.services.size());
@@ -366,12 +402,14 @@ public class DataSeederService {
         public long sharesDeleted;
         public long approvalRequestsDeleted;
         public long approvalDecisionsDeleted;
+        public long failedHeartbeatsDeleted;
+        public long serviceCredentialsDeleted;
         public long kvEntriesDeleted;
 
         public long getTotalDeleted() {
             return servicesDeleted + instancesDeleted + driftEventsDeleted +
                     sharesDeleted + approvalRequestsDeleted + approvalDecisionsDeleted +
-                    kvEntriesDeleted;
+                    failedHeartbeatsDeleted + serviceCredentialsDeleted + kvEntriesDeleted;
         }
     }
 
@@ -385,13 +423,15 @@ public class DataSeederService {
         public int sharesSeeded;
         public int approvalRequestsSeeded;
         public int approvalDecisionsSeeded;
+        public int failedHeartbeatsSeeded;
+        public int serviceCredentialsSeeded;
         public int kvEntriesSeeded;
         public int configFilesGenerated;
 
         public int getTotalSeeded() {
             return servicesSeeded + instancesSeeded + driftEventsSeeded +
                     sharesSeeded + approvalRequestsSeeded + approvalDecisionsSeeded +
-                    kvEntriesSeeded;
+                    failedHeartbeatsSeeded + serviceCredentialsSeeded + kvEntriesSeeded;
         }
     }
 

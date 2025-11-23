@@ -1,16 +1,13 @@
 package com.vng.zing.zcm.pingconfig.strategy;
 
+import com.vng.zing.zcm.auth.ClientCredentialsTokenService;
 import com.vng.zing.zcm.config.SdkProperties;
 import com.vng.zing.zcm.pingconfig.HeartbeatPayload;
-import com.vng.zing.zcm.pingconfig.auth.ClientCredentialsTokenService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClient;
 
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -31,6 +28,23 @@ public class HttpRestPingStrategy implements PingStrategy {
   private final ClientCredentialsTokenService tokenService;
 
   /**
+   * Constructor with SdkProperties, RestClient, and optional token service.
+   * <p>
+   * If tokenService is provided, it will be used. Otherwise, validates client credentials
+   * configuration and creates a new token service.
+   *
+   * @param sdkProperties SDK configuration properties
+   * @param restClient RestClient for HTTP requests
+   * @param tokenService Optional token service (if null, will be created from config)
+   * @throws IllegalStateException if client credentials are required but not configured
+   */
+  public HttpRestPingStrategy(SdkProperties sdkProperties, RestClient restClient, ClientCredentialsTokenService tokenService) {
+    this.sdkProperties = sdkProperties;
+    this.restClient = restClient;
+    this.tokenService = tokenService;
+  }
+
+  /**
    * Constructor with SdkProperties and RestClient.
    * <p>
    * Validates client credentials configuration and initializes token service.
@@ -43,15 +57,16 @@ public class HttpRestPingStrategy implements PingStrategy {
     this.sdkProperties = sdkProperties;
     this.restClient = restClient;
 
-    // Validate and initialize client credentials
-    SdkProperties.Ping.ClientCredentials clientCredentials = sdkProperties != null
-            && sdkProperties.getPing() != null
-            ? sdkProperties.getPing().getClientCredentials()
+    // Validate client credentials configuration
+    SdkProperties.ClientCredentials clientCredentials = sdkProperties != null
+            ? sdkProperties.getClientCredentials()
             : null;
 
     if (clientCredentials == null || clientCredentials.isRequired()) {
       validateClientCredentials(clientCredentials);
-      this.tokenService = new ClientCredentialsTokenService(restClient, clientCredentials);
+      // Token service will be created by SdkAutoConfiguration, so we set it to null here
+      // and expect it to be injected via constructor
+      this.tokenService = null;
     } else {
       // Client credentials not required (backward compatibility)
       log.warn("Client credentials authentication is disabled. This is deprecated and may not work in future versions.");
@@ -74,36 +89,27 @@ public class HttpRestPingStrategy implements PingStrategy {
    * @param clientCredentials client credentials configuration
    * @throws IllegalStateException if validation fails
    */
-  private void validateClientCredentials(SdkProperties.Ping.ClientCredentials clientCredentials) {
+  private void validateClientCredentials(SdkProperties.ClientCredentials clientCredentials) {
     if (clientCredentials == null) {
       throw new IllegalStateException(
               "Client credentials are required for ping authentication. " +
-                      "Please configure zcm.sdk.ping.client-credentials.client-id and " +
-                      "zcm.sdk.ping.client-credentials.client-secret. " +
+                      "Please configure zcm.sdk.client-credentials.client-id and " +
+                      "zcm.sdk.client-credentials.client-secret. " +
                       "Obtain credentials from Admin Dashboard after service approval.");
     }
 
     if (!StringUtils.hasText(clientCredentials.getClientId())) {
       throw new IllegalStateException(
               "Client ID is required for ping authentication. " +
-                      "Set zcm.sdk.ping.client-credentials.client-id or " +
-                      "ZCM_SDK_PING_CLIENT_CREDENTIALS_CLIENT_ID environment variable.");
+                      "Set zcm.sdk.client-credentials.client-id or " +
+                      "ZCM_SDK_CLIENT_CREDENTIALS_CLIENT_ID environment variable.");
     }
 
     if (!StringUtils.hasText(clientCredentials.getClientSecret())) {
       throw new IllegalStateException(
               "Client secret is required for ping authentication. " +
-                      "Set zcm.sdk.ping.client-credentials.client-secret or " +
-                      "ZCM_SDK_PING_CLIENT_CREDENTIALS_CLIENT_SECRET environment variable.");
-    }
-
-    // Validate token endpoint can be constructed
-    if (!StringUtils.hasText(clientCredentials.getTokenEndpoint())
-            && !StringUtils.hasText(clientCredentials.getKeycloakUrl())) {
-      throw new IllegalStateException(
-              "Keycloak token endpoint not configured. " +
-                      "Either set zcm.sdk.ping.client-credentials.token-endpoint or " +
-                      "set zcm.sdk.ping.client-credentials.keycloak-url.");
+                      "Set zcm.sdk.client-credentials.client-secret or " +
+                      "ZCM_SDK_CLIENT_CREDENTIALS_CLIENT_SECRET environment variable.");
     }
   }
 
@@ -126,31 +132,11 @@ public class HttpRestPingStrategy implements PingStrategy {
         throw new RuntimeException("Failed to authenticate heartbeat request: " + e.getMessage(), e);
       }
     } else {
-      // Fallback to API key (deprecated)
-      SdkProperties.Ping.ClientCredentials clientCredentials = sdkProperties != null
-              && sdkProperties.getPing() != null
-              ? sdkProperties.getPing().getClientCredentials()
-              : null;
-      
-      if (isDeprecationPeriodPassed(clientCredentials)) {
-        throw new IllegalStateException(
-                "API key authentication is no longer supported. Client credentials are required. " +
-                "Please configure zcm.sdk.ping.client-credentials.client-id and " +
-                "zcm.sdk.ping.client-credentials.client-secret. " +
-                "Obtain credentials from Admin Dashboard after service approval.");
-      }
-      
-      if (sdkProperties != null
-              && sdkProperties.getApiKey() != null
-              && sdkProperties.getApiKey().isEnabled()
-              && StringUtils.hasText(sdkProperties.getApiKey().getKey())) {
-        requestBuilder.header("X-API-Key", sdkProperties.getApiKey().getKey());
-        log.warn("Using deprecated API key authentication. Please migrate to client credentials. " +
-                "API key support will be removed after deprecation period ends.");
-      } else {
-        throw new IllegalStateException(
-                "No authentication configured. Client credentials are required for ping authentication.");
-      }
+      throw new IllegalStateException(
+              "No authentication configured. Client credentials are required for ping authentication. " +
+                      "Please configure zcm.sdk.client-credentials.client-id and " +
+                      "zcm.sdk.client-credentials.client-secret. " +
+                      "Obtain credentials from Admin Dashboard after service approval.");
     }
 
     var responseEntity = requestBuilder
@@ -174,32 +160,6 @@ public class HttpRestPingStrategy implements PingStrategy {
     return PingProtocol.HTTP;
   }
 
-  /**
-   * Checks if the API key deprecation period has passed.
-   *
-   * @param clientCredentials client credentials configuration
-   * @return true if deprecation period has passed, false otherwise
-   */
-  private boolean isDeprecationPeriodPassed(SdkProperties.Ping.ClientCredentials clientCredentials) {
-    if (clientCredentials == null || !StringUtils.hasText(clientCredentials.getDeprecationPeriodEnd())) {
-      // No deprecation period configured - enforce immediately
-      return true;
-    }
-
-    try {
-      // Parse ISO-8601 date string (e.g., "2024-12-31T23:59:59Z")
-      ZonedDateTime deprecationEnd = ZonedDateTime.parse(
-          clientCredentials.getDeprecationPeriodEnd(),
-          DateTimeFormatter.ISO_ZONED_DATE_TIME);
-      ZonedDateTime now = ZonedDateTime.now(deprecationEnd.getZone());
-      return now.isAfter(deprecationEnd) || now.isEqual(deprecationEnd);
-    } catch (DateTimeParseException e) {
-      log.warn("Invalid deprecation period end date format: {}. Enforcing client credentials requirement.",
-          clientCredentials.getDeprecationPeriodEnd(), e);
-      // If date format is invalid, enforce immediately
-      return true;
-    }
-  }
 
   /**
    * Converts HeartbeatPayload to a Map for JSON serialization.

@@ -18,13 +18,15 @@ import {
   Divider,
   Alert,
   CircularProgress,
+  Tooltip,
 } from "@mui/material";
 import {
   History as HistoryIcon,
   Code as DiffIcon,
 } from "@mui/icons-material";
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import { DiffViewer } from "./DiffViewer";
+import { parseUnixTimestamp } from "../utils/timestampUtils";
 import type { CommitResponse } from "@lib/api/models";
 
 interface GitHistoryViewerProps {
@@ -93,51 +95,64 @@ export function GitHistoryViewer({
         </Box>
 
         <List>
-          {commits.map((commit, index) => (
-            <Box key={commit.sha || index}>
-              <ListItem>
-                <ListItemText
-                  primary={
-                    <Typography variant="body1" fontWeight={500}>
-                      {commit.message || "No message"}
-                    </Typography>
-                  }
-                  secondary={
-                    <Box>
-                      <Typography variant="body2" color="text.secondary">
-                        {commit.author && `By ${commit.author}`}
-                        {commit.timestamp &&
-                          ` • ${format(
-                            new Date(commit.timestamp),
-                            "PPpp"
-                          )}`}
+          {commits.map((commit, index) => {
+            const commitDate = parseUnixTimestamp(commit.timestamp);
+            const relativeTime = commitDate 
+              ? formatDistanceToNow(commitDate, { addSuffix: true })
+              : null;
+            const absoluteTime = commitDate
+              ? format(commitDate, "PPpp")
+              : null;
+
+            return (
+              <Box key={commit.sha || index}>
+                <ListItem>
+                  <ListItemText
+                    primary={
+                      <Typography variant="body1" fontWeight={500}>
+                        {commit.message || "No message"}
                       </Typography>
-                      {commit.sha && (
-                        <Typography
-                          variant="caption"
-                          fontFamily="monospace"
-                          color="text.secondary"
-                        >
-                          {commit.sha.substring(0, 8)}
+                    }
+                    secondary={
+                      <Box>
+                        <Typography variant="body2" color="text.secondary">
+                          {/* {commit.author && `By ${commit.author}`} */}
+                          {commit.timestamp && relativeTime && (
+                            <Tooltip title={absoluteTime || ""} arrow>
+                              <span> {relativeTime}</span>
+                            </Tooltip>
+                          )}
+                          {commit.timestamp && !relativeTime && absoluteTime && (
+                            <span> {absoluteTime}</span>
+                          )}
                         </Typography>
-                      )}
-                    </Box>
-                  }
-                />
-                <ListItemSecondaryAction>
-                  <IconButton
-                    edge="end"
-                    onClick={() => handleViewDiff(commit)}
-                    size="small"
-                    aria-label="View diff"
-                  >
-                    <DiffIcon />
-                  </IconButton>
-                </ListItemSecondaryAction>
-              </ListItem>
-              {index < commits.length - 1 && <Divider />}
-            </Box>
-          ))}
+                        {commit.sha && (
+                          <Typography
+                            variant="caption"
+                            fontFamily="monospace"
+                            color="text.secondary"
+                          >
+                            {commit.sha.substring(0, 8)}
+                          </Typography>
+                        )}
+                      </Box>
+                    }
+                  />
+                  <ListItemSecondaryAction>
+                    <IconButton
+                      edge="end"
+                      onClick={() => handleViewDiff(commit)}
+                      size="small"
+                      aria-label="View diff"
+                    >
+                      <DiffIcon />
+                    </IconButton>
+                  </ListItemSecondaryAction>
+                </ListItem>
+                {index < commits.length - 1 && <Divider />}
+              </Box>
+            );
+          })}
         </List>
 
         <Dialog

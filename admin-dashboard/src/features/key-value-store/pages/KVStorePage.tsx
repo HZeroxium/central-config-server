@@ -368,7 +368,9 @@ export default function KVStorePage({
     );
   }
 
-  if (!permissions.canView) {
+  // Only block access if permissions are loaded and explicitly denied
+  // Allow access while permissions are loading (optimistic)
+  if (!permissions.isLoading && !permissions.canView) {
     return (
       <Box sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
         <Alert severity="error">

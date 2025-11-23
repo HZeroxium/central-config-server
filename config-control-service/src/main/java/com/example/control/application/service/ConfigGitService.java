@@ -57,6 +57,7 @@ public class ConfigGitService {
     private final CommitMessageBuilder commitMessageBuilder;
     private final ServiceConfigTemplateGenerator templateGenerator;
     private final ServiceCredentialQueryService serviceCredentialQueryService;
+    private final ServiceCredentialService serviceCredentialService;
 
     /**
      * Get config file content from GitHub.
@@ -301,17 +302,18 @@ public class ConfigGitService {
     }
 
     /**
-     * Initialize service directory in GitHub repository with template config file.
+     * Initialize service directory in GitHub repository with template config files.
      * <p>
-     * Creates the service directory structure and initial application.yml template file
-     * for the default profile (dev). This is called automatically after service approval.
+     * Creates the service directory structure and initial application.yml template files
+     * for all standard profiles: dev, staging, prod, and test. This is called automatically
+     * after service approval.
      * </p>
      * <p>
      * <strong>Business Logic:</strong>
      * <ul>
      * <li>Skips if file already exists (idempotent operation)</li>
-     * <li>Creates only for default profile (dev) initially</li>
-     * <li>User can create additional profiles later via PUT /api/config-git/{serviceId}/{profile}</li>
+     * <li>Creates config files for all 4 profiles: dev, staging, prod, test</li>
+     * <li>Continues creating other profiles even if one fails (graceful degradation)</li>
      * <li>Includes ZCM SDK configuration with placeholders</li>
      * <li>Includes client credentials section (commented out until activated)</li>
      * </ul>
@@ -325,16 +327,8 @@ public class ConfigGitService {
     public void initializeServiceDirectory(String serviceId, String displayName, List<String> environments) {
         log.info("Initializing Git directory for service: {} (displayName: {})", serviceId, displayName);
 
-        // Default profile for initial template
-        String defaultProfile = "dev";
-        String path = pathMapper.mapToGitHubPath(serviceId, defaultProfile);
-
-        // Check if file already exists (skip if exists)
-        if (gitHubProxy.fileExists(path)) {
-            log.info("Config file already exists for service: {} (profile: {}), skipping initialization", 
-                    serviceId, defaultProfile);
-            return;
-        }
+        // All standard profiles to create
+        List<String> profiles = List.of("dev", "staging", "prod", "test");
 
         // Try to get clientId from ServiceCredential if available
         String clientId = null;
@@ -350,35 +344,90 @@ public class ConfigGitService {
                     serviceId, e.getMessage());
         }
 
-        // Generate template content
-        String templateContent = templateGenerator.generateApplicationYmlTemplate(
-                serviceId, displayName, environments, clientId);
+        int successCount = 0;
+        int skippedCount = 0;
+        int errorCount = 0;
 
-        // Build commit message
-        String commitMessage = String.format(
-                "Initialize config directory for %s (service: %s)\n\n" +
-                "Created initial application.yml template with ZCM SDK configuration.\n" +
-                "Service was approved and ownership transferred.",
-                displayName, serviceId);
+        // Create config files for all profiles
+        for (String profile : profiles) {
+            String path = pathMapper.mapToGitHubPath(serviceId, profile);
 
+            // Check if file already exists (skip if exists)
+            if (gitHubProxy.fileExists(path)) {
+                log.info("Config file already exists for service: {} (profile: {}), skipping", 
+                        serviceId, profile);
+                skippedCount++;
+                continue;
+            }
+
+            // Generate template content
+            String templateContent = templateGenerator.generateApplicationYmlTemplate(
+                    serviceId, displayName, environments, clientId);
+
+            // Build commit message
+            String commitMessage = String.format(
+                    "Initialize config directory for %s (service: %s, profile: %s)\n\n" +
+                    "Created initial application-%s.yml template with ZCM SDK configuration.\n" +
+                    "Service was approved and ownership transferred.",
+                    displayName, serviceId, profile, profile);
+
+            try {
+                // Create file in GitHub
+                GHCommit commit = gitHubProxy.createFile(path, templateContent, commitMessage);
+
+                log.info("Successfully created config file for service: {} (profile: {}), commit: {}",
+                        serviceId, profile, commit.getSHA1());
+
+                // Evict cache for this path
+                contentCache.evict(path);
+                successCount++;
+            } catch (com.example.control.domain.exception.ConfigConflictException e) {
+                // File was created between check and creation (race condition)
+                log.warn("Config file was created concurrently for service: {} (profile: {}), skipping",
+                        serviceId, profile);
+                skippedCount++;
+            } catch (Exception e) {
+                // Log error but continue with other profiles (graceful degradation)
+                log.error("Failed to create config file for service: {} (profile: {}): {}",
+                        serviceId, profile, e.getMessage(), e);
+                errorCount++;
+            }
+        }
+
+        log.info("Initialized Git directory for service: {} - Created: {}, Skipped: {}, Errors: {}",
+                serviceId, successCount, skippedCount, errorCount);
+
+        // If all profiles failed, throw exception to indicate failure
+        if (successCount == 0 && skippedCount == 0) {
+            throw new RuntimeException("Failed to create any config files for service: " + serviceId);
+        }
+
+        // Automatically activate credentials if all required config files exist
+        // Required files: dev, staging, prod, test (all 4 profiles)
         try {
-            // Create file in GitHub
-            GHCommit commit = gitHubProxy.createFile(path, templateContent, commitMessage);
+            boolean allFilesExist = profiles.stream()
+                    .allMatch(profile -> {
+                        String path = pathMapper.mapToGitHubPath(serviceId, profile);
+                        return gitHubProxy.fileExists(path);
+                    });
 
-            log.info("Successfully initialized Git directory for service: {} (profile: {}), commit: {}",
-                    serviceId, defaultProfile, commit.getSHA1());
-
-            // Evict cache for this path
-            contentCache.evict(path);
-        } catch (com.example.control.domain.exception.ConfigConflictException e) {
-            // File was created between check and creation (race condition)
-            log.warn("Config file was created concurrently for service: {} (profile: {}), skipping initialization",
-                    serviceId, defaultProfile);
+            if (allFilesExist) {
+                log.info("All required config files exist for service: {}, activating credentials", serviceId);
+                try {
+                    serviceCredentialService.activateCredentials(ApplicationServiceId.of(serviceId));
+                    log.info("Successfully activated credentials for service: {}", serviceId);
+                } catch (Exception e) {
+                    // Log but don't fail - credentials may not exist yet or already activated
+                    log.debug("Could not activate credentials for service {} (may not exist or already activated): {}",
+                            serviceId, e.getMessage());
+                }
+            } else {
+                log.debug("Not all config files exist for service: {}, credentials remain PENDING", serviceId);
+            }
         } catch (Exception e) {
-            // Log error but don't fail - approval should succeed even if Git fails
-            log.error("Failed to initialize Git directory for service: {} (profile: {}): {}",
-                    serviceId, defaultProfile, e.getMessage(), e);
-            throw e; // Re-throw to allow caller to handle gracefully
+            // Log but don't fail - credential activation is best-effort
+            log.warn("Failed to check/activate credentials for service {}: {}",
+                    serviceId, e.getMessage());
         }
     }
 

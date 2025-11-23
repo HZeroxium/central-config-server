@@ -2,8 +2,8 @@ package com.vng.zing.zcm.pingconfig.strategy;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.vng.zing.zcm.auth.ClientCredentialsTokenService;
 import com.vng.zing.zcm.config.SdkProperties;
-import com.vng.zing.zcm.pingconfig.auth.ClientCredentialsTokenService;
 import com.vng.zing.zcm.pingconfig.metrics.PingMetrics;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.env.Environment;

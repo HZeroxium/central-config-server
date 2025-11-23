@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from "react";
-import { Box, Alert } from "@mui/material";
+import { Box, Alert, Badge } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import { ConfigEditor } from "./ConfigEditor";
 import { ConfigFileTabs } from "./ConfigFileTabs";
 import { GitHistoryViewer } from "./GitHistoryViewer";
+import { ConfigSaveConfirmationModal } from "./ConfigSaveConfirmationModal";
 import { useConfigFileOperations } from "../hooks/useConfigFile";
+import { useConfigFilesPrefetch } from "../hooks/useConfigFilesPrefetch";
 import { useCommitHistory } from "../hooks/useCommitHistory";
 import type { Profile } from "../types";
 
@@ -18,6 +20,11 @@ export function ConfigFilesTab({ serviceId }: ConfigFilesTabProps) {
   const [selectedProfile, setSelectedProfile] = useState<Profile>("dev");
   const [editorContent, setEditorContent] = useState<string>("");
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+
+  // Prefetch all profiles when tab opens
+  const { profiles: prefetchedProfiles } =
+    useConfigFilesPrefetch(serviceId);
 
   const {
     configFile,
@@ -62,7 +69,13 @@ export function ConfigFilesTab({ serviceId }: ConfigFilesTabProps) {
     // The useEffect above will handle loading the new file content
   }, [selectedProfile]);
 
-  const handleSave = async () => {
+  const handleSaveClick = () => {
+    // Show confirmation modal first
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirmSave = async () => {
+    setShowConfirmModal(false);
     setSaveError(null);
     try {
       await update(
@@ -83,6 +96,10 @@ export function ConfigFilesTab({ serviceId }: ConfigFilesTabProps) {
     }
   };
 
+  const handleCancelSave = () => {
+    setShowConfirmModal(false);
+  };
+
   const handleReset = () => {
     setEditorContent(configFile?.content || "");
     setSaveError(null);
@@ -97,6 +114,12 @@ export function ConfigFilesTab({ serviceId }: ConfigFilesTabProps) {
     );
   }
 
+  // Get error state for each profile tab
+  const getProfileError = (profile: Profile) => {
+    const profileData = prefetchedProfiles[profile];
+    return profileData?.error && (profileData.error as { status?: number })?.status !== 404;
+  };
+
   return (
     <Box>
       <ConfigFileTabs
@@ -107,6 +130,19 @@ export function ConfigFilesTab({ serviceId }: ConfigFilesTabProps) {
           setEditorContent("");
           setSaveError(null);
         }}
+        renderTabLabel={(profile) => {
+          const hasError = getProfileError(profile);
+          return (
+            <Badge
+              color="error"
+              variant="dot"
+              invisible={!hasError}
+              sx={{ "& .MuiBadge-badge": { right: -8, top: 8 } }}
+            >
+              {profile.toUpperCase()}
+            </Badge>
+          );
+        }}
       />
 
       <Grid container spacing={3}>
@@ -114,7 +150,7 @@ export function ConfigFilesTab({ serviceId }: ConfigFilesTabProps) {
           <ConfigEditor
             value={editorContent}
             onChange={setEditorContent}
-            onSave={handleSave}
+            onSave={handleSaveClick}
             onReset={handleReset}
             isLoading={configLoading}
             isSaving={isUpdating}
@@ -138,6 +174,15 @@ export function ConfigFilesTab({ serviceId }: ConfigFilesTabProps) {
           />
         </Grid>
       </Grid>
+
+      <ConfigSaveConfirmationModal
+        open={showConfirmModal}
+        onClose={handleCancelSave}
+        onConfirm={handleConfirmSave}
+        serviceId={serviceId}
+        profile={selectedProfile}
+        isSaving={isUpdating}
+      />
     </Box>
   );
 }

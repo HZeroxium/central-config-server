@@ -64,9 +64,7 @@ public class ThriftRpcPingStrategy implements PingStrategy {
       return; // Skip validation if properties not available
     }
 
-    SdkProperties.Ping.ClientCredentials clientCredentials = sdkProperties.getPing() != null
-            ? sdkProperties.getPing().getClientCredentials()
-            : null;
+    SdkProperties.ClientCredentials clientCredentials = sdkProperties.getClientCredentials();
 
     if (clientCredentials == null || clientCredentials.isRequired()) {
       if (clientCredentials == null || !StringUtils.hasText(clientCredentials.getClientId())) {

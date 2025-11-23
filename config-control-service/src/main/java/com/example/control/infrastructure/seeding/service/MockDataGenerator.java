@@ -47,6 +47,8 @@ public class MockDataGenerator {
     private final ServiceShareFactory serviceShareFactory;
     private final ApprovalRequestFactory approvalRequestFactory;
     private final ApprovalDecisionFactory approvalDecisionFactory;
+    private final FailedHeartbeatFactory failedHeartbeatFactory;
+    private final ServiceCredentialFactory serviceCredentialFactory;
     private final KVEntryFactory kvEntryFactory;
     private final KVListFactory kvListFactory;
     private final KeycloakUserResolver keycloakUserResolver;
@@ -131,7 +133,15 @@ public class MockDataGenerator {
         data.approvalDecisions = generateApprovalDecisions(data.approvalRequests);
         log.info("Generated {} approval decisions", data.approvalDecisions.size());
 
-        // Phase 7: Generate KV Entries (including test-kv-service primitives)
+        // Phase 7: Generate Service Credentials (for services with owners)
+        data.serviceCredentials = generateServiceCredentials(data.services);
+        log.info("Generated {} service credentials", data.serviceCredentials.size());
+
+        // Phase 8: Generate Failed Heartbeats (for some instances)
+        data.failedHeartbeats = generateFailedHeartbeats(data.services, data.instances);
+        log.info("Generated {} failed heartbeats", data.failedHeartbeats.size());
+
+        // Phase 9: Generate KV Entries (including test-kv-service primitives)
         data.kvData = generateKVEntries(data.services);
         int totalKVEntries = data.kvData.getTotalEntryCount();
         log.info("Generated {} KV entries across {} services", totalKVEntries, data.services.size());
@@ -454,6 +464,89 @@ public class MockDataGenerator {
     }
 
     /**
+     * Generates service credentials for services with owners.
+     * <p>
+     * Only generates credentials for services that have an owner team
+     * (non-orphan services). Approximately 80% of owned services get credentials.
+     * </p>
+     *
+     * @param services list of services
+     * @return list of generated service credentials
+     */
+    private List<ServiceCredential> generateServiceCredentials(List<ApplicationService> services) {
+        List<ServiceCredential> credentials = new ArrayList<>();
+
+        // Filter services with owners
+        List<ApplicationService> ownedServices = services.stream()
+                .filter(s -> s.getOwnerTeamId() != null)
+                .toList();
+
+        // Generate credentials for ~80% of owned services
+        int targetCount = (int) Math.ceil(ownedServices.size() * 0.8);
+        List<ApplicationService> selectedServices = new ArrayList<>(ownedServices);
+        Collections.shuffle(selectedServices);
+        selectedServices = selectedServices.subList(0, Math.min(targetCount, selectedServices.size()));
+
+        for (ApplicationService service : selectedServices) {
+            ServiceCredential credential = serviceCredentialFactory.generate(service, adminUserId);
+            if (credential != null) {
+                credentials.add(credential);
+            }
+        }
+
+        return credentials;
+    }
+
+    /**
+     * Generates failed heartbeats for some service instances.
+     * <p>
+     * Generates failed heartbeats for approximately 5% of instances
+     * to simulate real-world DLQ scenarios.
+     * </p>
+     *
+     * @param services  list of services (for serviceId and teamId lookup)
+     * @param instances list of instances
+     * @return list of generated failed heartbeats
+     */
+    private List<FailedHeartbeat> generateFailedHeartbeats(List<ApplicationService> services,
+                                                          List<ServiceInstance> instances) {
+        List<FailedHeartbeat> failedHeartbeats = new ArrayList<>();
+
+        // Create service lookup map
+        Map<String, ApplicationService> serviceMap = new HashMap<>();
+        for (ApplicationService service : services) {
+            serviceMap.put(service.getId().id(), service);
+        }
+
+        // Generate failed heartbeats for ~5% of instances
+        int targetCount = (int) Math.ceil(instances.size() * 0.05);
+        List<ServiceInstance> selectedInstances = new ArrayList<>(instances);
+        Collections.shuffle(selectedInstances);
+        selectedInstances = selectedInstances.subList(0, Math.min(targetCount, selectedInstances.size()));
+
+        for (ServiceInstance instance : selectedInstances) {
+            ApplicationService service = serviceMap.get(instance.getServiceId());
+            if (service == null) {
+                continue;
+            }
+
+            String environment = instance.getEnvironment() != null 
+                    ? instance.getEnvironment() 
+                    : "dev";
+            
+            FailedHeartbeat failedHeartbeat = failedHeartbeatFactory.generate(
+                    service.getDisplayName(),
+                    instance.getInstanceId(),
+                    service.getId().id(),
+                    service.getOwnerTeamId(),
+                    environment);
+            failedHeartbeats.add(failedHeartbeat);
+        }
+
+        return failedHeartbeats;
+    }
+
+    /**
      * Generates KV entries for approximately 10% of services (random selection).
      * <p>
      * Always includes test-kv-service if it exists in the services list.
@@ -660,11 +753,14 @@ public class MockDataGenerator {
         public List<ServiceShare> shares = new ArrayList<>();
         public List<ApprovalRequest> approvalRequests = new ArrayList<>();
         public List<ApprovalDecision> approvalDecisions = new ArrayList<>();
+        public List<ServiceCredential> serviceCredentials = new ArrayList<>();
+        public List<FailedHeartbeat> failedHeartbeats = new ArrayList<>();
         public KVData kvData = new KVData();
 
         public int getTotalCount() {
             return services.size() + instances.size() + driftEvents.size() +
                     shares.size() + approvalRequests.size() + approvalDecisions.size() +
+                    serviceCredentials.size() + failedHeartbeats.size() +
                     kvData.getTotalEntryCount();
         }
     }
